@@ -1,0 +1,78 @@
+package org.biglau.actions
+
+import android.content.ActivityNotFoundException
+import android.content.Context
+import android.content.Intent
+import android.net.Uri
+import android.os.Build
+import android.provider.MediaStore
+import android.provider.Settings
+import android.widget.Toast
+
+/** Zentrale Stelle fuer alle System-Intents, die eine Kachel ausloesen kann. */
+object Intents {
+
+    fun openDialer(context: Context) = start(context) {
+        Intent(Intent.ACTION_DIAL)
+    }
+
+    fun openMessages(context: Context) = start(context) {
+        Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_APP_MESSAGING)
+    }
+
+    fun openContacts(context: Context) = start(context) {
+        Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_APP_CONTACTS)
+    }
+
+    fun openCamera(context: Context) = start(context) {
+        Intent(MediaStore.INTENT_ACTION_STILL_IMAGE_CAMERA)
+    }
+
+    fun openClock(context: Context) = start(context) {
+        Intent(android.provider.AlarmClock.ACTION_SHOW_ALARMS)
+    }
+
+    fun call(context: Context, number: String) = start(context) {
+        Intent(Intent.ACTION_CALL, Uri.fromParts("tel", number, null))
+    }
+
+    fun dial(context: Context, number: String) = start(context) {
+        Intent(Intent.ACTION_DIAL, Uri.fromParts("tel", number, null))
+    }
+
+    fun sms(context: Context, number: String) = start(context) {
+        Intent(Intent.ACTION_SENDTO, Uri.fromParts("smsto", number, null))
+    }
+
+    fun notificationListenerSettings(context: Context) = start(context) {
+        Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)
+    }
+
+    /** Oeffnet den Dialog zur Wahl des Standard-Launchers. */
+    fun chooseHomeApp(context: Context) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            val roleManager = context.getSystemService(android.app.role.RoleManager::class.java)
+            if (roleManager != null &&
+                roleManager.isRoleAvailable(android.app.role.RoleManager.ROLE_HOME) &&
+                !roleManager.isRoleHeld(android.app.role.RoleManager.ROLE_HOME)
+            ) {
+                val intent = roleManager
+                    .createRequestRoleIntent(android.app.role.RoleManager.ROLE_HOME)
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                if (runCatching { context.startActivity(intent) }.isSuccess) return
+            }
+        }
+        start(context) { Intent(Settings.ACTION_HOME_SETTINGS) }
+    }
+
+    private inline fun start(context: Context, build: () -> Intent) {
+        val intent = build().addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        try {
+            context.startActivity(intent)
+        } catch (e: ActivityNotFoundException) {
+            Toast.makeText(context, "Keine passende App gefunden", Toast.LENGTH_SHORT).show()
+        } catch (e: SecurityException) {
+            Toast.makeText(context, "Berechtigung fehlt", Toast.LENGTH_SHORT).show()
+        }
+    }
+}
