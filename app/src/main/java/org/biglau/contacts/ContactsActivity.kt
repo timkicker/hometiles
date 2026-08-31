@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Message
@@ -49,8 +50,12 @@ import org.biglau.actions.Intents
 import org.biglau.data.ConfigStore
 import org.biglau.search.TextSearch
 import org.biglau.ui.BigHeading
+import org.biglau.ui.BigIconButton
+import org.biglau.ui.PermissionGate
+import org.biglau.ui.PermissionState
 import org.biglau.ui.BigRow
 import org.biglau.ui.BigSearchField
+import org.biglau.ui.ScrollButtons
 import org.biglau.ui.ContactAvatar
 import org.biglau.ui.dpSp
 import org.biglau.ui.theme.BigLauTheme
@@ -80,17 +85,30 @@ class ContactsActivity : ComponentActivity() {
             val askWrite = rememberLauncherForActivityResult(
                 ActivityResultContracts.RequestPermission(),
             ) { }
+            var deniedOnce by remember { mutableStateOf(false) }
+            var canAskAgain by remember { mutableStateOf(true) }
             val ask = rememberLauncherForActivityResult(
                 ActivityResultContracts.RequestPermission(),
-            ) { result -> granted = result; if (!result) finish() }
+            ) { result ->
+                granted = result
+                if (!result) {
+                    deniedOnce = true
+                    canAskAgain = shouldShowRequestPermissionRationale(Manifest.permission.READ_CONTACTS)
+                }
+            }
+
+            // Beim ersten Oeffnen fragt das System von selbst. Nach einer Ablehnung schloss
+            // sich der Bildschirm frueher wortlos - man hatte etwas angetippt, und es
+            // verschwand einfach wieder. Jetzt bleibt er stehen und erklaert sich.
+            LaunchedEffect(Unit) {
+                if (!granted && !deniedOnce) ask.launch(Manifest.permission.READ_CONTACTS)
+            }
 
             LaunchedEffect(granted) {
                 if (granted) {
                     loading = true
                     all = repository.load()
                     loading = false
-                } else {
-                    ask.launch(Manifest.permission.READ_CONTACTS)
                 }
             }
 
@@ -117,7 +135,15 @@ class ContactsActivity : ComponentActivity() {
                         .padding(horizontal = 8.dp),
                 ) {
                     val current = selected
-                    if (current != null) {
+                    if (!granted) {
+                        PermissionGate(
+                            title = stringResource(R.string.contacts),
+                            explanation = stringResource(R.string.contacts_permission),
+                            blocked = PermissionState.blocked(deniedOnce, canAskAgain),
+                            onAsk = { ask.launch(Manifest.permission.READ_CONTACTS) },
+                            onSettings = { Intents.appSettings(this@ContactsActivity) },
+                        )
+                    } else if (current != null) {
                         ContactDetail(
                             contact = current,
                             onCall = { Intents.call(this@ContactsActivity, it) },
@@ -160,6 +186,7 @@ class ContactsActivity : ComponentActivity() {
                                 }
                             },
                             onPick = { selected = it },
+                            scrollButtons = config.behaviour.accessibility.scrollButtons,
                             onCreate = { startActivity(repository.createIntent()) },
                         )
                     }
@@ -179,12 +206,25 @@ private fun ContactList(
     onToggleSort: () -> Unit,
     onPick: (PhoneContact) -> Unit,
     onCreate: () -> Unit,
+    scrollButtons: Boolean,
 ) {
     val palette = LocalBigPalette.current
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         if (query.isEmpty()) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
                 BigHeading(stringResource(R.string.contacts), modifier = Modifier.weight(1f))
+                // Sortierung ist eine Nebensache und darf ein Symbol sein; einen Kontakt
+                // anzulegen ist eine Handlung und behaelt sein Wort.
+                BigIconButton(
+                    icon = Icons.Filled.SortByAlpha,
+                    description = stringResource(
+                        if (sortBySurname) R.string.contacts_sort_surname else R.string.contacts_sort_first,
+                    ),
+                    onClick = onToggleSort,
+                )
             }
         }
         BigSearchField(
@@ -195,22 +235,11 @@ private fun ContactList(
         if (query.isEmpty()) {
             // Bewusst hier und nicht am Listenende: bei 338 Kontakten waere er dort
             // nach unten gescrollt und praktisch unerreichbar.
-            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                BigRow(
-                    label = stringResource(
-                        if (sortBySurname) R.string.contacts_sort_surname else R.string.contacts_sort_first,
-                    ),
-                    icon = Icons.Filled.SortByAlpha,
-                    modifier = Modifier.weight(1f),
-                    onClick = onToggleSort,
-                )
-                BigRow(
-                    label = stringResource(R.string.contacts_new),
-                    icon = Icons.Filled.PersonAdd,
-                    modifier = Modifier.weight(0.55f),
-                    onClick = onCreate,
-                )
-            }
+            BigRow(
+                label = stringResource(R.string.contacts_new),
+                icon = Icons.Filled.PersonAdd,
+                onClick = onCreate,
+            )
         }
         if (loading) {
             Text(
@@ -227,15 +256,24 @@ private fun ContactList(
                 modifier = Modifier.padding(horizontal = 4.dp, vertical = 16.dp),
             )
         }
-        LazyColumn(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        val listState = rememberLazyListState()
+        LazyColumn(
+            state = listState,
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+            modifier = Modifier.weight(1f, fill = false),
+        ) {
             items(contacts, key = { it.id }) { contact ->
                 BigRow(
                     label = contact.name,
                     secondary = contact.numbers.firstOrNull()?.number,
+                    secondaryMaxLines = 1,
                     leading = { ContactAvatar(contact.name, contact.photoUri) },
                     onClick = { onPick(contact) },
                 )
             }
+        }
+        if (scrollButtons) {
+            ScrollButtons(listState)
         }
     }
 }

@@ -39,6 +39,53 @@ object ScreenEdits {
         )
     }
 
+    /**
+     * Raster, die auf drei Zoll aufgehen. Mehr als drei Spalten wird auf 349 dp Breite
+     * zur Briefmarke - deshalb endet die Liste dort und nicht bei einer freien Eingabe,
+     * mit der man sich den Startbildschirm unbrauchbar machen koennte.
+     */
+    val GRID_PRESETS: List<Pair<Int, Int>> = listOf(
+        1 to 2,
+        2 to 2,
+        2 to 3,
+        2 to 4,
+        3 to 4,
+        3 to 5,
+    )
+
+    /**
+     * Welche Kacheln ein kleineres Raster nicht mehr fasst.
+     *
+     * Wird vor dem Umstellen gefragt und dem Nutzer gezeigt: ein Raster zu wechseln und
+     * dabei stillschweigend vier Kacheln zu verlieren, waere derselbe Fehler wie eine
+     * ausgeblendete App ohne Weg zurueck - nur unwiderruflich.
+     */
+    fun dropped(screen: Screen, cols: Int, rows: Int): List<Cell> =
+        screen.cells.filter { it.x >= cols || it.y >= rows }
+
+    /**
+     * Neues Raster. Kacheln ausserhalb fallen weg, Kacheln die ueber den neuen Rand
+     * ragen werden beschnitten statt hinauszuragen.
+     */
+    fun setGrid(config: LauncherConfig, id: String, cols: Int, rows: Int): LauncherConfig {
+        if (cols < 1 || rows < 1) return config
+        return config.copy(
+            screens = config.screens.map { screen ->
+                if (screen.id != id) {
+                    screen
+                } else {
+                    screen.copy(
+                        cols = cols,
+                        rows = rows,
+                        cells = screen.cells
+                            .filter { it.x < cols && it.y < rows }
+                            .map { it.copy(w = minOf(it.w, cols - it.x), h = minOf(it.h, rows - it.y)) },
+                    )
+                }
+            },
+        )
+    }
+
     /** Eine Kennung, die auf keinen bestehenden Screen faellt. */
     fun freeId(config: LauncherConfig, base: String = "screen"): String {
         var index = config.screens.size + 1
@@ -80,6 +127,22 @@ object ScreenEdits {
     }
 
     /** Zeigt irgendeine Kachel auf einen Screen, den es nicht gibt? */
+    /**
+     * Screens, zu denen keine einzige Kachel führt.
+     *
+     * Das Gegenstueck zu `danglingReferences`: dort zeigt eine Kachel ins Leere, hier liegt
+     * ein Screen im Leeren. Entstanden ist er meist so - angelegt, die Sprungkachel spaeter
+     * mit etwas anderem belegt, und seither ist er nur noch in der Konfiguration. Der
+     * Startbildschirm zaehlt nie dazu; zu ihm fuehrt immer die Zurueck-Geste.
+     */
+    fun unreachable(config: LauncherConfig): List<Screen> {
+        val reached = config.screens
+            .flatMap { it.cells }
+            .mapNotNull { (it.button.action as? ButtonAction.GoToScreen)?.screenId }
+            .toSet()
+        return config.screens.filter { it.id != config.homeScreenId && it.id !in reached }
+    }
+
     fun danglingReferences(config: LauncherConfig): List<String> {
         val known = config.screens.map { it.id }.toSet()
         return config.screens

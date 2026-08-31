@@ -44,6 +44,13 @@ object Intents {
         Intent(Intent.ACTION_SENDTO, Uri.fromParts("smsto", number, null))
     }
 
+    /** Die Seite dieser App in den Systemeinstellungen - der einzige Weg zurueck, wenn
+     *  Android eine Berechtigung nicht mehr abfragt. */
+    fun appSettings(context: Context) = start(context) {
+        Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
+            .setData(android.net.Uri.fromParts("package", context.packageName, null))
+    }
+
     fun notificationListenerSettings(context: Context) = start(context) {
         Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)
     }
@@ -63,6 +70,25 @@ object Intents {
             }
         }
         start(context) { Intent(Settings.ACTION_HOME_SETTINGS) }
+    }
+
+    /**
+     * Fragt die Telefon-Rolle an. Bewusst nur auf ausdrueckliche Handlung: wer sie annimmt,
+     * gibt BigLau die Gespraechsansicht - und ein Fehler darin macht Telefonieren unmoeglich.
+     */
+    fun chooseDialerApp(context: Context) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            val roleManager = context.getSystemService(android.app.role.RoleManager::class.java)
+            if (roleManager != null &&
+                roleManager.isRoleAvailable(android.app.role.RoleManager.ROLE_DIALER)
+            ) {
+                val intent = roleManager
+                    .createRequestRoleIntent(android.app.role.RoleManager.ROLE_DIALER)
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                if (runCatching { context.startActivity(intent) }.isSuccess) return
+            }
+        }
+        start(context) { Intent(Settings.ACTION_MANAGE_DEFAULT_APPS_SETTINGS) }
     }
 
     private inline fun start(context: Context, build: () -> Intent) {

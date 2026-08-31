@@ -28,6 +28,10 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.clickable
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import org.biglau.R
 import org.biglau.ui.theme.LocalBigPalette
 import org.biglau.ui.theme.LocalTextScale
 import org.biglau.ui.theme.tileBorder
@@ -84,18 +88,32 @@ fun BigSearchField(
                 ),
                 cursorBrush = SolidColor(palette.accent),
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                modifier = Modifier.fillMaxWidth(),
+                // Ohne diesen Namen meldet ein Screenreader nur "Eingabefeld" - der
+                // aufgemalte Platzhalter ist fuer ihn nicht das Gleiche wie eine Beschriftung.
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .semantics { contentDescription = hint },
             )
         }
         if (value.isNotEmpty()) {
-            Icon(
-                Icons.Filled.Close,
-                contentDescription = null,
-                tint = palette.onBackground,
+            // Eigene Flaeche statt eines nackten Symbols: 48 dp ist das Mindestmass fuer
+            // einen Fingertipp, und ein Knopf ohne Namen bleibt fuer TalkBack stumm.
+            val clear = stringResource(R.string.search_clear)
+            Box(
                 modifier = Modifier
-                    .size(32.dp)
-                    .clickable { onValueChange("") },
-            )
+                    .size(48.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .clickable { onValueChange("") }
+                    .semantics { contentDescription = clear },
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    Icons.Filled.Close,
+                    contentDescription = null,
+                    tint = palette.onBackground,
+                    modifier = Modifier.size(32.dp),
+                )
+            }
         }
     }
 }

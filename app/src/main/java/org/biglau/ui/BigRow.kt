@@ -3,6 +3,9 @@ package org.biglau.ui
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.border
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
@@ -24,6 +27,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.ImageBitmap
@@ -32,6 +36,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import org.biglau.ui.theme.BigSurface
 import org.biglau.ui.theme.LocalBigPalette
 import org.biglau.ui.theme.LocalTextScale
 import org.biglau.ui.theme.tileBorder
@@ -53,6 +58,15 @@ fun BigRow(
     surface: org.biglau.ui.theme.BigSurface? = null,
     onClick: () -> Unit,
     onLongClick: (() -> Unit)? = null,
+    /**
+     * Zwei Zeilen als Vorgabe: erklaerende Zweitzeilen sind fast immer laenger als eine
+     * Zeile bei 1,35-facher Systemschrift, und ein abgeschnittener Satz erklaert nichts.
+     * Listen, in denen die Zweitzeile Daten traegt - eine Rufnummer, eine Vorschau -,
+     * bleiben bei einer Zeile, damit die Zeilenhoehe gleich bleibt.
+     */
+    secondaryMaxLines: Int = 2,
+    /** Eigener Rahmen statt des Themenrahmens - fuer Zeilen, deren Flaeche schon etwas sagt. */
+    borderColor: Color? = null,
 ) {
     val palette = LocalBigPalette.current
     val scale = LocalTextScale.current
@@ -60,7 +74,7 @@ fun BigRow(
     val pressed by interaction.collectIsPressedAsState()
     val press by animateFloatAsState(if (pressed) 0.98f else 1f, label = "press")
     val paint = surface ?: palette.surfaceDefault
-    val border = palette.tileBorder()
+    val border = borderColor ?: palette.tileBorder()
 
     Row(
         modifier = modifier
@@ -101,11 +115,44 @@ fun BigRow(
                     text = secondary,
                     color = paint.ink,
                     fontSize = (15f * scale).sp,
-                    maxLines = 1,
+                    maxLines = secondaryMaxLines,
                     overflow = TextOverflow.Ellipsis,
                 )
             }
         }
+    }
+}
+
+/**
+ * Quadratischer Knopf mit Symbol statt Wort.
+ *
+ * Nur für Nebensachen, die neben einer Überschrift Platz finden müssen. Auf drei Zoll und
+ * bei 1,35-facher Systemschrift passen zwei beschriftete Knöpfe schlicht nicht nebeneinander;
+ * dann ist ein ehrliches Symbol mit Vorlese-Beschreibung besser als ein Wort, das mitten im
+ * Buchstaben abbricht.
+ */
+@Composable
+fun BigIconButton(
+    icon: ImageVector,
+    description: String,
+    modifier: Modifier = Modifier,
+    surface: BigSurface? = null,
+    onClick: () -> Unit,
+) {
+    val palette = LocalBigPalette.current
+    val paint = surface ?: palette.surfaceDefault
+    val border = palette.tileBorder()
+    Box(
+        modifier = modifier
+            .size(56.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .background(paint.fill)
+            .then(if (border != null) Modifier.border(3.dp, border, RoundedCornerShape(12.dp)) else Modifier)
+            .clickable(onClick = onClick)
+            .semantics { contentDescription = description },
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(icon, contentDescription = null, tint = paint.ink, modifier = Modifier.size(32.dp))
     }
 }
 

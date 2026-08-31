@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <plurals name="sos_counting_plural">
+        <item quantity="one">Wird an einen Kontakt gesendet in</item>
+        <item quantity="other">Wird an %1$d Kontakte gesendet in</item>
+    </plurals>
+    <plurals name="sos_sent_location_plural">
+        <item quantity="one">An einen Kontakt gesendet, mit Standort.</item>
+        <item quantity="other">An %1$d Kontakte gesendet, mit Standort.</item>
+    </plurals>
+    <plurals name="sos_sent_plain_plural">
+        <item quantity="one">An einen Kontakt gesendet. Kein Standort verfügbar.</item>
+        <item quantity="other">An %1$d Kontakte gesendet. Kein Standort verfügbar.</item>
+    </plurals>
+    <plurals name="screen_grid_loses">
+        <item quantity="one">%1$d Kachel geht verloren</item>
+        <item quantity="other">%1$d Kacheln gehen verloren</item>
+    </plurals>
+    <plurals name="screens_unreachable">
+        <item quantity="one">Zu „%1$s" führt keine Kachel. Legen Sie irgendwo eine Sprungkachel an, sonst finden Sie ihn nicht wieder.</item>
+        <item quantity="other">Zu diesen Screens führt keine Kachel: %1$s. Legen Sie irgendwo Sprungkacheln an, sonst finden Sie sie nicht wieder.</item>
+    </plurals>
+</resources>

@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <plurals name="sos_counting_plural">
+        <item quantity="one">Sending to one contact in</item>
+        <item quantity="other">Sending to %1$d contacts in</item>
+    </plurals>
+    <plurals name="sos_sent_location_plural">
+        <item quantity="one">Sent to one contact, with your location.</item>
+        <item quantity="other">Sent to %1$d contacts, with your location.</item>
+    </plurals>
+    <plurals name="sos_sent_plain_plural">
+        <item quantity="one">Sent to one contact. No location was available.</item>
+        <item quantity="other">Sent to %1$d contacts. No location was available.</item>
+    </plurals>
+    <plurals name="screen_grid_loses">
+        <item quantity="one">%1$d tile would be lost</item>
+        <item quantity="other">%1$d tiles would be lost</item>
+    </plurals>
+    <plurals name="screens_unreachable">
+        <item quantity="one">No tile leads to “%1$s”. Put a “Jump to screen” tile somewhere, or you will not find it again.</item>
+        <item quantity="other">No tile leads to these screens: %1$s. Put a “Jump to screen” tile somewhere, or you will not find them again.</item>
+    </plurals>
+</resources>

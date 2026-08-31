@@ -12,6 +12,15 @@ import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.Icon
+import androidx.compose.ui.Alignment
+import androidx.compose.foundation.border
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -42,6 +51,7 @@ import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.OpenInFull
 import androidx.compose.material.icons.filled.Palette
+import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.Widgets
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -56,6 +66,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.res.stringResource
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -321,11 +334,21 @@ class TileEditorActivity : ComponentActivity() {
                             onGrant = { askForContacts.launch(Manifest.permission.READ_CONTACTS) },
                         ) { contact ->
                             chosenContact = contact
-                            if (contact.hasChoice) {
-                                mode = Mode.PICK_NUMBER
-                            } else {
-                                chosenNumber = contact.primaryNumber
-                                mode = Mode.PICK_MODE
+                            when {
+                                contact.hasChoice -> mode = Mode.PICK_NUMBER
+                                // Ohne Nummer waere die Kachel eine, die nie etwas tut.
+                                // Lieber gar nicht erst anlegen als still nichts belegen.
+                                !contact.isCallable -> {
+                                    Toast.makeText(
+                                        this@TileEditorActivity,
+                                        getString(R.string.contact_without_number, contact.name),
+                                        Toast.LENGTH_LONG,
+                                    ).show()
+                                }
+                                else -> {
+                                    chosenNumber = contact.primaryNumber
+                                    mode = Mode.PICK_MODE
+                                }
                             }
                         }
 
@@ -353,7 +376,12 @@ class TileEditorActivity : ComponentActivity() {
                             mode = Mode.MENU
                         }
 
-                        Mode.EDIT_LABEL -> LabelEditor(button.label.orEmpty()) { text ->
+                        Mode.EDIT_LABEL -> LabelEditor(
+                            initial = button.label.orEmpty(),
+                            automatic = describe(button.copy(label = null)) { a ->
+                                apps.labelFor(a.packageName, a.activityName)
+                            },
+                        ) { text ->
                             write(TileEdits.withLabel(button, text))
                             mode = Mode.MENU
                         }
@@ -377,6 +405,7 @@ class TileEditorActivity : ComponentActivity() {
                                     ShortcutRepository.get(this@TileEditorActivity).forPackage(it.packageName)
                                 }.orEmpty()
                             },
+                            onBack = { mode = Mode.PICK_SHORTCUT_APP },
                         ) { row ->
                             write(
                                 TileEdits.withAction(
@@ -487,7 +516,7 @@ private fun MenuList(
         }
         item { BigRow(stringResource(R.string.editor_pick_app), icon = Icons.Filled.Apps, onClick = onPickApp) }
         item { BigRow(stringResource(R.string.editor_pick_contact), icon = Icons.Filled.Person, onClick = onPickContact) }
-        item { BigRow(stringResource(R.string.editor_pick_builtin), icon = Icons.Filled.Widgets, onClick = onPickBuiltin) }
+        item { BigRow(stringResource(R.string.editor_pick_builtin), icon = Icons.Filled.Tune, onClick = onPickBuiltin) }
         item { BigRow(stringResource(R.string.editor_pick_shortcut), icon = Icons.Filled.Bolt, onClick = onPickShortcut) }
         item { BigRow(stringResource(R.string.editor_pick_widget), icon = Icons.Filled.Widgets, onClick = onPickWidget) }
         item { BigRow(stringResource(R.string.editor_pick_screen), icon = Icons.AutoMirrored.Filled.ArrowForward, onClick = onPickScreen) }
@@ -587,7 +616,7 @@ private fun AppList(
 }
 
 @Composable
-private fun LabelEditor(initial: String, onDone: (String) -> Unit) {
+private fun LabelEditor(initial: String, automatic: String, onDone: (String) -> Unit) {
     var text by remember { mutableStateOf(initial) }
     val palette = LocalBigPalette.current
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -597,6 +626,15 @@ private fun LabelEditor(initial: String, onDone: (String) -> Unit) {
             onValueChange = { text = it },
             singleLine = true,
             textStyle = TextStyle(fontSize = 26.sp, fontWeight = FontWeight.Bold),
+            // Der automatische Name steht blass im leeren Feld. Sonst sieht man nur einen
+            // leeren Kasten und weiss nicht, was man da eigentlich ersetzt.
+            placeholder = {
+                Text(automatic, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+            },
+            // Die Haken-Taste der Tastatur uebernimmt. Auf drei Zoll verdeckt die Tastatur
+            // den "Fertig"-Knopf vollstaendig - wer tippt, kommt sonst nicht an ihn heran.
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+            keyboardActions = KeyboardActions(onDone = { onDone(text) }),
             modifier = Modifier.fillMaxWidth(),
         )
         Text(
@@ -618,16 +656,48 @@ private fun ColorPicker(selected: Int, onPick: (Int?) -> Unit) {
     val palette = LocalBigPalette.current
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         BigHeading(stringResource(R.string.editor_color))
+        // Die Farbnamen stehen in derselben Reihenfolge wie die Farben selbst. Ohne sie
+        // waeren die Felder fuer einen Screenreader sechs namenlose Schaltflaechen.
+        val names = stringArrayResource(R.array.tile_colors)
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
             palette.tiles.forEachIndexed { index, color ->
+                val chosen = index == selected
+                val plain = names.getOrElse(index) { "" }
+                // Der Zustand gehoert in den Namen. Die reine selected-Eigenschaft kommt in
+                // der Bedienungshilfen-Schnittstelle nicht an - geprueft im Knotenabzug des
+                // Geraets -, und eine Auswahl, die nur zu sehen ist, hilft beim Vorlesen nicht.
+                val name = if (chosen) stringResource(R.string.a11y_chosen, plain) else plain
                 Box(
-                    Modifier
+                    modifier = Modifier
                         .weight(1f)
                         .aspectRatio(0.7f)
                         .clip(RoundedCornerShape(12.dp))
                         .background(color)
-                        .clickable { onPick(index) },
-                )
+                        .then(
+                            if (chosen) {
+                                Modifier.border(4.dp, palette.onBackground, RoundedCornerShape(12.dp))
+                            } else {
+                                Modifier
+                            },
+                        )
+                        .clickable { onPick(index) }
+                        .semantics {
+                            contentDescription = name
+                            if (chosen) this.selected = true
+                        },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    // Der Rahmen allein traegt die Auswahl nicht: auf einem farbigen Feld
+                    // sieht ein Rahmen schnell nach Zierrat aus. Das Haekchen ist eindeutig.
+                    if (chosen) {
+                        Icon(
+                            Icons.Filled.Check,
+                            contentDescription = null,
+                            tint = palette.onTile,
+                            modifier = Modifier.size(28.dp),
+                        )
+                    }
+                }
             }
         }
         BigRow(
@@ -801,6 +871,18 @@ private fun ResizePanel(
                 onClick = { onApply { board, live -> CellLayout.shrink(board, live, direction) } },
             )
         }
+        // Ohne diesen Satz stuenden hier nur "Aktuell 1 x 1" und "Fertig" - das sieht aus,
+        // als waere die Seite kaputt, dabei ist rundherum schlicht kein Platz frei.
+        if (grow.isEmpty() && shrink.isEmpty()) {
+            item {
+                Text(
+                    text = stringResource(R.string.resize_no_room),
+                    color = palette.onBackground,
+                    fontSize = 16.sp,
+                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 8.dp),
+                )
+            }
+        }
         item {
             BigRow(
                 label = stringResource(R.string.editor_done),
@@ -887,6 +969,7 @@ private fun NeedsHomeRole(onChoose: () -> Unit) {
 private fun ShortcutList(
     app: LaunchableApp?,
     rows: List<ShortcutRow>,
+    onBack: () -> Unit,
     onPick: (ShortcutRow) -> Unit,
 ) {
     val palette = LocalBigPalette.current
@@ -899,6 +982,16 @@ private fun ShortcutList(
                     color = palette.onBackground,
                     fontSize = 16.sp,
                     modifier = Modifier.padding(horizontal = 4.dp, vertical = 8.dp),
+                )
+            }
+            // Die meisten Apps bieten keine Verknuepfungen an, und welche das sind, sieht man
+            // der Liste nicht an. Ohne diesen Knopf steht man vor einem Satz und muesste die
+            // Zurueck-Geste kennen, um eine andere App zu probieren.
+            item {
+                BigRow(
+                    label = stringResource(R.string.shortcut_other_app),
+                    surface = palette.surfaceAccent,
+                    onClick = onBack,
                 )
             }
         }

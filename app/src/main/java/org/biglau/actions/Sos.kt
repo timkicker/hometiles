@@ -7,7 +7,9 @@ import android.location.Location
 import android.location.LocationManager
 import android.telephony.SmsManager
 import androidx.core.content.ContextCompat
+import org.biglau.R
 import org.biglau.data.SosConfig
+import org.biglau.toggles.SosMessage
 
 data class SosResult(val sent: Int, val failed: Int, val hadLocation: Boolean) {
     val ok: Boolean get() = sent > 0
@@ -24,15 +26,16 @@ object Sos {
         if (!hasPermission(context, Manifest.permission.SEND_SMS)) return SosResult(0, config.numbers.size, false)
 
         val location = if (config.sendLocation) lastKnownLocation(context) else null
-        val text = buildString {
-            append(config.message)
-            if (location != null) {
-                append("\nhttps://maps.google.com/?q=")
-                append("%.5f".format(location.latitude))
-                append(',')
-                append("%.5f".format(location.longitude))
-            }
-        }
+        // Bewusst ueber SosMessage und nicht hier zusammengebaut: die Koordinaten muessen
+        // einen Punkt als Trennzeichen haben. Mit der Systemsprache formatiert stuende auf
+        // einem deutschen Telefon "47,26543" im Link - und der Empfaenger koennte ihn nicht
+        // oeffnen. Ausgerechnet in der Notruf-SMS.
+        val text = SosMessage.compose(
+            text = config.message,
+            latitude = location?.latitude,
+            longitude = location?.longitude,
+            fallback = context.getString(R.string.sos_message_default),
+        )
 
         val sms = smsManager(context)
         var sent = 0

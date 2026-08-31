@@ -1,0 +1,28 @@
+BigLau is a home screen made of large, plainly labelled tiles, with a phone dialler and a
+messaging app in the same package. It is meant for small screens, unsteady hands and eyes
+that would rather not squint.
+
+Every tile can be anything you like: an app, a contact, a shortcut, a widget, a function
+such as the torch or Wi-Fi, or a jump to another screen. Grid size, tile size, colours and
+labels are all yours to set.
+
+What you get:
+
+* A home screen of big tiles, freely assigned, with an optional header showing time, date
+  and battery.
+* A dialler with a keypad, speed dial on 2 to 9, a grouped call log and its own in-call
+  screen. Taking over the phone role is offered, never forced.
+* Messages: thread list, conversation and composing.
+* Contacts with search, sorting by first name or surname, and favourites.
+* An SOS button with a countdown that calls several numbers in turn and can send an
+  emergency message with your location.
+* Reading help: hold a tile to have it read out or shown large, and page through long
+  lists with buttons instead of swiping.
+* Export your setup to a file and read it back on your next phone.
+* If the launcher ever fails to start, a simple fallback screen appears with phone,
+  contacts and settings, rather than a black device.
+
+No account, no advertising, no tracking, and no internet permission at all.
+
+BigLau is a free replacement for BIG Launcher, whose features are now spread across three
+paid apps.

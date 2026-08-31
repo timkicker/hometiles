@@ -1,6 +1,7 @@
 package org.biglau.contacts
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -152,5 +153,54 @@ class ContactMergeTest {
     @Test
     fun `eine leere Liste ergibt eine leere Liste`() {
         assertTrue(ContactMerge.merge(emptyList()).isEmpty())
+    }
+}
+
+/**
+ * Ein Kontakt ohne Rufnummer.
+ *
+ * Heute liefert die Abfrage über Phone.CONTENT_URI keine Zeile für so jemanden, die Liste
+ * enthält ihn also gar nicht. Aber `primaryNumber` war ein `first()` auf einer Liste, die
+ * leer sein kann - ein Absturz, eine Umbaurunde entfernt. Und ein abgestürzter Launcher ist
+ * ein schwarzes Telefon: genau so hat Android schon einmal die Startbildschirm-Rolle wieder
+ * entzogen.
+ */
+class ContactWithoutNumberTest {
+
+    private val ohneNummer = PhoneContact(
+        id = 1L,
+        name = "Nur E-Mail",
+        photoUri = null,
+        numbers = emptyList(),
+    )
+
+    private val mitNummer = PhoneContact(
+        id = 2L,
+        name = "Mit Nummer",
+        photoUri = null,
+        numbers = listOf(PhoneNumber("+436601234567", null)),
+    )
+
+    @Test
+    fun `ohne Nummer stuerzt nichts ab`() {
+        assertNull(ohneNummer.primaryNumber)
+        assertFalse(ohneNummer.isCallable)
+        assertFalse(ohneNummer.hasChoice)
+    }
+
+    @Test
+    fun `mit einer Nummer gibt es nichts zu waehlen`() {
+        assertEquals("+436601234567", mitNummer.primaryNumber)
+        assertTrue(mitNummer.isCallable)
+        assertFalse(mitNummer.hasChoice)
+    }
+
+    @Test
+    fun `mit zwei Nummern wird gefragt`() {
+        val zwei = mitNummer.copy(
+            numbers = mitNummer.numbers + PhoneNumber("+436809876543", null),
+        )
+        assertTrue(zwei.hasChoice)
+        assertTrue(zwei.isCallable)
     }
 }

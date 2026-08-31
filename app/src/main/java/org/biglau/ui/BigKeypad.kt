@@ -2,7 +2,8 @@ package org.biglau.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -23,6 +24,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import org.biglau.R
@@ -36,17 +38,26 @@ import org.biglau.ui.theme.tileBorder
  *
  * Wird spaeter die Grundlage der Waehltastatur.
  */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun BigKeypad(
     onDigit: (Char) -> Unit,
     onBackspace: () -> Unit,
     modifier: Modifier = Modifier,
+    onLongDigit: ((Char) -> Unit)? = null,
+    /** Kurzhinweis unter der Ziffer, etwa der Name der Kurzwahl. */
+    hintFor: (Char) -> String? = { null },
+    /**
+     * Zusatztaste unten links. Die Waehltastatur setzt dort das Plus fuer Auslandsnummern;
+     * die PIN-Eingabe laesst den Platz leer, weil dort kein Plus hingehoert.
+     */
+    extraKey: Char? = null,
 ) {
     val rows = listOf(
         listOf("1", "2", "3"),
         listOf("4", "5", "6"),
         listOf("7", "8", "9"),
-        listOf("", "0", "⌫"),
+        listOf(extraKey?.toString() ?: "", "0", "⌫"),
     )
 
     Column(
@@ -77,14 +88,26 @@ fun BigKeypad(
                         else -> KeypadKey(
                             Modifier.weight(1f),
                             onClick = { onDigit(key[0]) },
+                            onLongClick = onLongDigit?.let { handler -> { handler(key[0]) } },
                             description = key,
                         ) {
-                            Text(
-                                text = key,
-                                color = LocalBigPalette.current.onBackground,
-                                fontSize = 32.sp,
-                                fontWeight = FontWeight.Bold,
-                            )
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text(
+                                    text = key,
+                                    color = LocalBigPalette.current.onBackground,
+                                    fontSize = 32.sp,
+                                    fontWeight = FontWeight.Bold,
+                                )
+                                hintFor(key[0])?.let { hint ->
+                                    Text(
+                                        text = hint,
+                                        color = LocalBigPalette.current.accent,
+                                        fontSize = 11.sp,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                    )
+                                }
+                            }
                         }
                     }
                 }
@@ -93,11 +116,13 @@ fun BigKeypad(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun KeypadKey(
     modifier: Modifier,
     onClick: () -> Unit,
     description: String,
+    onLongClick: (() -> Unit)? = null,
     content: @Composable () -> Unit,
 ) {
     val palette = LocalBigPalette.current
@@ -108,7 +133,7 @@ private fun KeypadKey(
             .clip(RoundedCornerShape(12.dp))
             .background(palette.emptyTile)
             .then(if (border != null) Modifier.border(3.dp, border, RoundedCornerShape(12.dp)) else Modifier)
-            .clickable(onClick = onClick)
+            .combinedClickable(onClick = onClick, onLongClick = onLongClick)
             .semantics { contentDescription = description },
         contentAlignment = Alignment.Center,
         content = { content() },

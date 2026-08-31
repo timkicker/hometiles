@@ -23,7 +23,9 @@ android {
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-            signingConfig = signingConfigs.getByName("debug")
+            // Bewusst keine Signatur: ein mit dem Debug-Schluessel signiertes Release waere
+            // eine Luege ueber seine Herkunft. F-Droid signiert selbst, alle anderen sollen
+            // ihren eigenen Schluessel eintragen.
         }
         debug {
             applicationIdSuffix = ".debug"

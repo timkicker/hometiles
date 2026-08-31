@@ -20,8 +20,17 @@ data class PhoneContact(
     val numbers: List<PhoneNumber>,
     val starred: Boolean = false,
 ) {
-    val primaryNumber: String get() = numbers.first().number
+    /**
+     * Die erste Nummer, oder `null`.
+     *
+     * Bewusst nullbar und nicht `first()`: die Liste kommt heute aus einer Abfrage, die
+     * ohne Nummer gar keine Zeile liefert - aber ein Kontakt ohne Nummer ist nichts
+     * Unmoegliches, und ein `first()` auf einer leeren Liste wuerde den Launcher
+     * abschiessen. Ein abgestuerzter Launcher ist ein schwarzes Telefon.
+     */
+    val primaryNumber: String? get() = numbers.firstOrNull()?.number
     val hasChoice: Boolean get() = numbers.size > 1
+    val isCallable: Boolean get() = numbers.isNotEmpty()
 }
 
 /**

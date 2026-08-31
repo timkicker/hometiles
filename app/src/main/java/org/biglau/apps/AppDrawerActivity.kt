@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.VisibilityOff
@@ -36,6 +37,7 @@ import org.biglau.data.ConfigStore
 import org.biglau.ui.BigHeading
 import org.biglau.ui.BigRow
 import org.biglau.ui.BigSearchField
+import org.biglau.ui.ScrollButtons
 import org.biglau.ui.theme.BigLauTheme
 import org.biglau.ui.theme.LocalBigPalette
 
@@ -103,7 +105,12 @@ class AppDrawerActivity : ComponentActivity() {
                                 modifier = Modifier.padding(horizontal = 4.dp, vertical = 16.dp),
                             )
                         }
-                        LazyColumn(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        val listState = rememberLazyListState()
+                        LazyColumn(
+                            state = listState,
+                            verticalArrangement = Arrangement.spacedBy(4.dp),
+                            modifier = Modifier.weight(1f, fill = false),
+                        ) {
                             if (recents.isNotEmpty()) {
                                 item { BigHeading(stringResource(R.string.apps_recent)) }
                                 items(recents, key = { "recent-" + AppDrawer.keyOf(it) }) { app ->
@@ -129,6 +136,9 @@ class AppDrawerActivity : ComponentActivity() {
                                     },
                                 )
                             }
+                        }
+                        if (config.behaviour.accessibility.scrollButtons) {
+                            ScrollButtons(listState)
                         }
                     }
                 }

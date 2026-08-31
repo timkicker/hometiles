@@ -9,6 +9,7 @@ import android.util.DisplayMetrics
 import androidx.core.content.ContextCompat
 import org.biglau.notify.NotificationRepository
 import org.biglau.notify.SystemPackagesReader
+import org.biglau.safety.CrashRecorder
 
 /**
  * Was die App ueber ihre eigene Lage weiss. Beim Bauen kostete jede dieser Zahlen einen
@@ -38,6 +39,9 @@ object Diagnostics {
             add("Anrufe" to yesNo(granted(context, Manifest.permission.CALL_PHONE)))
             add("SMS senden" to yesNo(granted(context, Manifest.permission.SEND_SMS)))
             add("Standort" to yesNo(granted(context, Manifest.permission.ACCESS_FINE_LOCATION)))
+            val recorder = CrashRecorder.get(context)
+            add("Fehlgeschlagene Starts" to recorder.failedStarts.toString())
+            add("Letzter Absturz" to (recorder.lastCrash()?.lineSequence()?.firstOrNull() ?: "keiner"))
         }
     }
 

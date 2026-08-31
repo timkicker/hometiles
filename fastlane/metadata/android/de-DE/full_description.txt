@@ -1,0 +1,28 @@
+BigLau ist ein Startbildschirm aus großen, klar beschrifteten Kacheln — mit Telefon und
+Nachrichten in derselben App. Gedacht für kleine Bildschirme, unruhige Hände und Augen,
+die nicht zusammenkneifen wollen.
+
+Jede Kachel kann alles sein: eine App, ein Kontakt, eine Verknüpfung, ein Widget, eine
+Funktion wie Taschenlampe oder WLAN, oder der Sprung auf einen anderen Bildschirm. Raster,
+Kachelgröße, Farben und Beschriftungen stellen Sie selbst ein.
+
+Was dabei ist:
+
+* Ein Startbildschirm aus großen Kacheln, frei belegbar, dazu auf Wunsch eine Kopfzeile
+  mit Uhrzeit, Datum und Ladestand.
+* Ein Telefon mit Tastenfeld, Kurzwahl auf 2 bis 9, gruppierter Anrufliste und eigenem
+  Anrufbildschirm. Die Telefon-Rolle wird angeboten, nie aufgedrängt.
+* Nachrichten: Liste, Gespräch, Verfassen.
+* Kontakte mit Suche, Sortierung nach Vor- oder Nachnamen und Favoriten.
+* Ein SOS-Knopf mit Countdown, der mehrere Nummern nacheinander anruft und eine
+  Notfall-Nachricht mit Standort verschicken kann.
+* Lesehilfe: Kachel halten, um sie vorlesen oder groß anzeigen zu lassen; Blätterknöpfe
+  statt Wischen für lange Listen.
+* Die Einstellungen als Datei sichern und auf dem nächsten Telefon wieder einlesen.
+* Startet der Launcher einmal nicht, erscheint ein einfacher Auffangbildschirm mit
+  Telefon, Kontakten und Einstellungen statt eines schwarzen Geräts.
+
+Kein Konto, keine Werbung, keine Verfolgung — und gar keine Internet-Berechtigung.
+
+BigLau ist der freie Ersatz für BIG Launcher, dessen Funktionen inzwischen auf drei
+gekaufte Apps verteilt sind.

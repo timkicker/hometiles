@@ -10,7 +10,8 @@ const val CONFIG_VERSION = 1
 @Serializable
 enum class Builtin {
     DIALER, MESSAGES, CONTACTS, CAMERA, CLOCK, APP_LIST, SETTINGS,
-    FLASHLIGHT, SOS, NEXT_SCREEN, PREV_SCREEN, HOME_SCREEN, BATTERY,
+    FLASHLIGHT, SOS, NEXT_SCREEN, PREV_SCREEN, HOME_SCREEN, BATTERY, MISSED_CALLS,
+    WIFI, BLUETOOTH, AIRPLANE, RINGER,
 }
 
 /** Was beim Antippen einer Kontaktkachel passiert. */
@@ -144,11 +145,22 @@ data class Appearance(
 )
 
 @Serializable
+data class Accessibility(
+    /** Langdruck liest die Beschriftung vor. */
+    val speakOnLongPress: Boolean = false,
+    /** Langdruck zeigt die Beschriftung gross ueber dem ganzen Bildschirm. */
+    val popupOnLongPress: Boolean = false,
+    /** Zwei Knöpfe unter langen Listen statt Wischen - für unruhige Hände. */
+    val scrollButtons: Boolean = false,
+)
+
+@Serializable
 data class Behaviour(
     val hapticFeedback: Boolean = true,
     val blinkOnNotification: Boolean = true,
     val swipeBetweenScreens: Boolean = false,
     val homeKeyReturnsToStart: Boolean = true,
+    val accessibility: Accessibility = Accessibility(),
 )
 
 @Serializable
@@ -161,7 +173,8 @@ data class Security(
 @Serializable
 data class SosConfig(
     val numbers: List<String> = emptyList(),
-    val message: String = "Ich brauche Hilfe.",
+    /** Leer heisst: noch nicht gesetzt - dann gilt der Text in der Sprache des Telefons. */
+    val message: String = "",
     val countdownSeconds: Int = 5,
     val sendLocation: Boolean = true,
     val callAfterSms: String? = null,
@@ -175,6 +188,15 @@ data class AppsConfig(
     val recent: List<String> = emptyList(),
     /** Wie viele davon oben in der Liste stehen; 0 blendet die Reihe aus. */
     val recentCount: Int = 4,
+)
+
+@Serializable
+data class SpeedDialTarget(val name: String, val number: String)
+
+@Serializable
+data class PhoneConfig(
+    /** Taste (als Zeichenkette, damit JSON es mag) auf Ziel. */
+    val speedDial: Map<String, SpeedDialTarget> = emptyMap(),
 )
 
 @Serializable
@@ -198,6 +220,9 @@ data class LauncherConfig(
     val sos: SosConfig = SosConfig(),
     val apps: AppsConfig = AppsConfig(),
     val contacts: ContactsConfig = ContactsConfig(),
+    val phone: PhoneConfig = PhoneConfig(),
+    /** Ist der Erststart-Assistent durchlaufen? */
+    val wizardDone: Boolean = false,
 ) {
     fun screenById(id: String): Screen? = screens.firstOrNull { it.id == id }
 
