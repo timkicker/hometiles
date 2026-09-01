@@ -3,6 +3,12 @@ package org.biglau.ui
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import org.biglau.R
+import androidx.compose.ui.res.stringResource
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.Icon
+import androidx.compose.material.icons.filled.Bolt
+import androidx.compose.material.icons.Icons
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
@@ -28,6 +34,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
 import org.biglau.info.BatteryInfo
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.Row
+import org.biglau.info.SignalReading
+import org.biglau.info.SignalInfo
 import org.biglau.info.BatteryReading
 import org.biglau.info.ClockTick
 import org.biglau.ui.theme.LocalBigPalette
@@ -114,7 +124,7 @@ fun BatteryContent(
     val numberSize = singleLineSizeSp(percentText, cellWidth.value, cellHeight.value, scale, maxSp = 64f)
 
     Column(
-        modifier = modifier.fillMaxSize().padding(10.dp),
+        modifier = modifier.fillMaxSize().padding(8.dp),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
@@ -127,10 +137,11 @@ fun BatteryContent(
             softWrap = false,
         )
         if (charging) {
-            Text(
-                text = "⚡",
-                color = palette.onTile,
-                fontSize = dpSp(numberSize * 0.5f),
+            Icon(
+                imageVector = Icons.Filled.Bolt,
+                contentDescription = stringResource(R.string.battery_charging),
+                tint = palette.onTile,
+                modifier = Modifier.size(dpSp(numberSize * 0.5f).value.dp),
             )
         }
         if (fraction != null) {
@@ -140,7 +151,7 @@ fun BatteryContent(
                     .fillMaxWidth()
                     .height(10.dp)
                     .clip(RoundedCornerShape(50))
-                    .background(Color.Black.copy(alpha = 0.35f)),
+                    .background(palette.onTile.copy(alpha = 0.25f)),
             ) {
                 Box(
                     Modifier
@@ -150,6 +161,76 @@ fun BatteryContent(
                         .background(if (low) palette.danger else palette.onTile),
                 )
             }
+        }
+    }
+}
+
+/**
+ * Der Inhalt einer Empfangskachel: vier Balken, darunter Netzart und gegebenenfalls Roaming.
+ *
+ * Vier Zustände, weil sie zu verschiedenen Handlungen führen - keine Karte, kein Netz,
+ * schwach, in Ordnung. Leere Balken für alle drei ersten Fälle sagten nicht, was zu tun ist,
+ * deshalb steht bei den ersten beiden ein Wort statt einer Zahl.
+ */
+@Composable
+fun SignalContent(
+    reading: SignalReading?,
+    cellWidth: Dp,
+    cellHeight: Dp,
+    modifier: Modifier = Modifier,
+) {
+    val palette = LocalBigPalette.current
+    val scale = LocalTextScale.current
+    val zustand = reading?.let { SignalInfo.stateOf(it) } ?: SignalInfo.State.NO_SIM
+    val balken = reading?.let { SignalInfo.bars(it) } ?: 0
+    val zusatz = reading?.let { SignalInfo.caption(it) }.orEmpty()
+    val wort = when (zustand) {
+        SignalInfo.State.NO_PERMISSION -> stringResource(R.string.signal_no_permission)
+        SignalInfo.State.NO_SIM -> stringResource(R.string.signal_no_sim)
+        SignalInfo.State.NO_SERVICE -> stringResource(R.string.signal_no_service)
+        else -> zusatz
+    }
+    val schwach = zustand == SignalInfo.State.WEAK || zustand == SignalInfo.State.NO_SERVICE
+
+    Column(
+        modifier = modifier.fillMaxSize().padding(8.dp),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            verticalAlignment = Alignment.Bottom,
+        ) {
+            // Steigende Balken, wie man sie kennt. Leere bleiben als Umriss stehen, damit
+            // man sieht, wie viel fehlt - eine verschwundene Stufe zeigt nur die halbe Lage.
+            repeat(SignalInfo.MAX_LEVEL) { index ->
+                val hoehe = (cellHeight.value * (0.08f + 0.045f * index)).coerceAtMost(48f).dp
+                Box(
+                    Modifier
+                        .width((cellWidth.value * 0.09f).coerceIn(6f, 16f).dp)
+                        .height(hoehe)
+                        // Vollrund wie der Ladebalken: eine Anzeige, keine Flaeche. Ein
+                        // eigener kleiner Radius waere ein zweiter Radius in der App.
+                        .clip(RoundedCornerShape(50))
+                        .background(
+                            if (index < balken) {
+                                if (schwach) palette.danger else palette.onTile
+                            } else {
+                                palette.onTile.copy(alpha = 0.25f)
+                            },
+                        ),
+                )
+            }
+        }
+        if (wort.isNotEmpty()) {
+            Text(
+                text = wort,
+                color = if (schwach) palette.danger else palette.onTile,
+                fontSize = dpSp(singleLineSizeSp(wort, cellWidth.value, cellHeight.value, scale, maxSp = 22f)),
+                fontWeight = FontWeight.Bold,
+                maxLines = 1,
+                modifier = Modifier.padding(top = 8.dp),
+            )
         }
     }
 }

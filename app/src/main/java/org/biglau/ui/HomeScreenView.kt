@@ -21,13 +21,30 @@ import org.biglau.data.Appearance
 import org.biglau.data.Background
 import org.biglau.data.Button
 import org.biglau.data.ButtonAction
+import androidx.compose.material.icons.Icons
+import org.biglau.web.LinkTarget
+import androidx.compose.material.icons.filled.Public
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Column
+import androidx.compose.ui.Alignment
+import androidx.compose.material3.Icon
+import androidx.compose.material.icons.filled.Apps
+import androidx.compose.material.icons.filled.Widgets
+import androidx.compose.material.icons.filled.Bolt
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.foundation.Image
+import androidx.compose.material.icons.filled.Folder
 import org.biglau.data.Cell
+import org.biglau.tiles.FolderEdits
 import org.biglau.data.LabelPosition
 import android.text.format.DateFormat
 import androidx.compose.ui.platform.LocalContext
 import org.biglau.data.Builtin
 import org.biglau.data.Screen
 import org.biglau.info.BatteryReading
+import org.biglau.info.SignalInfo
+import org.biglau.info.SignalReading
 import org.biglau.notify.SystemPackages
 import org.biglau.notify.TileNotifications
 import org.biglau.tiles.TileEdits
@@ -45,8 +62,11 @@ fun HomeScreenView(
     appIcon: (String, String) -> ImageBitmap? = { _, _ -> null },
     appLabel: (String, String) -> String? = { _, _ -> null },
     shortcutIcon: (String, String) -> ImageBitmap? = { _, _ -> null },
+    /** Der Ordner zu einer Kennung - fuer die Vorschau auf der Ordnerkachel. */
+    folderOf: (String) -> Screen? = { null },
     notificationCounts: Map<String, Int> = emptyMap(),
     battery: BatteryReading? = null,
+    signal: SignalReading? = null,
     systemPackages: SystemPackages = SystemPackages(),
     onActivate: (Cell) -> Unit = {},
     onEdit: (x: Int, y: Int) -> Unit = { _, _ -> },
@@ -105,9 +125,11 @@ fun HomeScreenView(
                     notificationCounts = notificationCounts,
                     systemPackages = systemPackages,
                     battery = battery,
+                    signal = signal,
                     appIcon = appIcon,
                     appLabel = appLabel,
                     shortcutIcon = shortcutIcon,
+                    folderOf = folderOf,
                     modifier = Modifier
                         .offset(
                             x = metrics.offsetX(cell.x, gutter.value).dp,
@@ -132,9 +154,11 @@ private fun TileFor(
     notificationCounts: Map<String, Int>,
     systemPackages: SystemPackages,
     battery: BatteryReading?,
+    signal: SignalReading?,
     appIcon: (String, String) -> ImageBitmap?,
     appLabel: (String, String) -> String?,
     shortcutIcon: (String, String) -> ImageBitmap?,
+    folderOf: (String) -> Screen?,
     modifier: Modifier,
     onClick: () -> Unit,
     onLongClick: () -> Unit,
@@ -164,6 +188,9 @@ private fun TileFor(
                 }
                 Builtin.BATTERY -> {
                     { BatteryContent(battery, cellWidth, cellHeight) }
+                }
+                Builtin.SIGNAL -> {
+                    { SignalContent(signal, cellWidth, cellHeight) }
                 }
                 else -> null
             },
@@ -243,6 +270,37 @@ private fun TileFor(
             onLongClick = onLongClick,
         )
 
+        // Der Ordner zeigt, was drin ist: bis zu vier verkleinerte Symbole seines Inhalts.
+        // Ein Pfeil wie beim Screenwechsel waere hier gelogen - man wechselt nicht, man
+        // schaut hinein.
+        is ButtonAction.Folder -> FolderTile(
+            // Bewusst nicht button.label: der Ordner hat genau einen Namen, und der steht
+            // am Ordner selbst - sonst hiesse dasselbe Ding auf der Kachel anders als darin.
+            label = folderOf(action.screenId)?.name ?: stringResource(R.string.folder),
+            preview = folderOf(action.screenId)?.let { FolderEdits.preview(it) }.orEmpty(),
+            appIcon = appIcon,
+            background = color,
+            cellWidth = cellWidth,
+            cellHeight = cellHeight,
+            appearance = appearance,
+            modifier = modifier,
+            onClick = onClick,
+            onLongClick = onLongClick,
+        )
+
+        is ButtonAction.Link -> BigTile(
+            label = button.label ?: LinkTarget.labelFor(action.url),
+            background = color,
+            cellHeight = cellHeight,
+            cellWidth = cellWidth,
+            icon = if (appearance.showIcons) Icons.Filled.Public else null,
+            labelPosition = appearance.labelPosition,
+            cornerRadius = appearance.cornerRadiusDp.dp,
+            modifier = modifier,
+            onClick = onClick,
+            onLongClick = onLongClick,
+        )
+
         ButtonAction.None -> EmptyTile(
             appearance = appearance,
             cellWidth = cellWidth,
@@ -270,7 +328,10 @@ private fun EmptyTile(
 ) {
     val palette = LocalBigPalette.current
     BigTile(
-        label = label ?: stringResource(R.string.empty_tile),
+        // Ein leerer Zustand ist eine Aufforderung, kein Trauerfall: die Kachel sagt, was
+        // sie anbietet, statt was ihr fehlt. In der Beschreibung im Editor bleibt es
+        // "Leer" - dort ist es eine Zustandsangabe und keine Einladung.
+        label = label ?: stringResource(R.string.empty_tile_invite),
         background = palette.emptyTile,
         cellHeight = cellHeight,
         cellWidth = cellWidth,
@@ -294,4 +355,117 @@ private fun tileColor(button: Button, x: Int, y: Int, cols: Int): Color {
         TileEdits.autoColorIndex(x, y, cols, palette.tiles.size)
     }
     return palette.tiles[index]
+}
+
+/**
+ * Die Kachel eines Ordners: bis zu vier verkleinerte Symbole seines Inhalts, darunter der
+ * Name in derselben Zone wie bei jeder anderen Kachel.
+ *
+ * Warum keine eigene Form, kein Stapel, kein Kreis: die Kachel muss sich in die Reihe fügen,
+ * sonst bricht die Grundlinie über die Rasterzeile. Dass es ein Ordner ist, sagen die vier
+ * kleinen Symbole - das ist Information, keine Verzierung.
+ */
+@Composable
+private fun FolderTile(
+    label: String,
+    preview: List<Cell>,
+    appIcon: (String, String) -> ImageBitmap?,
+    background: Color,
+    cellWidth: androidx.compose.ui.unit.Dp,
+    cellHeight: androidx.compose.ui.unit.Dp,
+    appearance: Appearance,
+    modifier: Modifier,
+    onClick: () -> Unit,
+    onLongClick: () -> Unit,
+) {
+    BigTile(
+        label = label,
+        background = background,
+        cellWidth = cellWidth,
+        cellHeight = cellHeight,
+        labelPosition = appearance.labelPosition,
+        cornerRadius = appearance.cornerRadiusDp.dp,
+        // Leer: das Ordnersymbol. Gefuellt: der Inhalt selbst - das ist die Auskunft, die
+        // man vor dem Oeffnen braucht.
+        icon = if (appearance.showIcons && preview.isEmpty()) Icons.Filled.Folder else null,
+        iconContent = if (preview.isEmpty()) {
+            null
+        } else {
+            {
+                FolderPreview(
+                    cells = preview,
+                    cellWidth = cellWidth,
+                    appIcon = appIcon,
+                )
+            }
+        },
+        modifier = modifier,
+        onClick = onClick,
+        onLongClick = onLongClick,
+    )
+}
+
+/**
+ * Bis zu vier verkleinerte Symbole des Ordnerinhalts, in zwei Reihen.
+ *
+ * Bewusst Symbole und keine Miniaturkacheln: eine Kachel im Kleinen ist ein grauer Fleck,
+ * ein Symbol bleibt erkennbar. Und bewusst oben links, wo bei jeder anderen Kachel auch das
+ * Symbol sitzt - die Ordnerkachel soll sich in die Reihe fuegen, nicht auffallen.
+ */
+@Composable
+private fun FolderPreview(
+    cells: List<Cell>,
+    cellWidth: androidx.compose.ui.unit.Dp,
+    appIcon: (String, String) -> ImageBitmap?,
+) {
+    val palette = LocalBigPalette.current
+    val kante = (cellWidth.value * 0.20f).coerceIn(18f, 34f).dp
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        cells.chunked(2).forEach { reihe ->
+            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                reihe.forEach { cell ->
+                    Box(Modifier.size(kante), contentAlignment = Alignment.Center) {
+                        when (val action = cell.button.action) {
+                            is ButtonAction.App -> {
+                                val bild = appIcon(action.packageName, action.activityName)
+                                if (bild != null) {
+                                    Image(bitmap = bild, contentDescription = null, modifier = Modifier.size(kante))
+                                } else {
+                                    Icon(Icons.Filled.Apps, null, tint = palette.onTile, modifier = Modifier.size(kante))
+                                }
+                            }
+
+                            is ButtonAction.Action -> Icon(
+                                action.builtin.icon(),
+                                contentDescription = null,
+                                tint = palette.onTile,
+                                modifier = Modifier.size(kante),
+                            )
+
+                            is ButtonAction.Contact -> Icon(
+                                Icons.Filled.Person,
+                                contentDescription = null,
+                                tint = palette.onTile,
+                                modifier = Modifier.size(kante),
+                            )
+
+                            is ButtonAction.Shortcut -> Icon(
+                                Icons.Filled.Bolt,
+                                contentDescription = null,
+                                tint = palette.onTile,
+                                modifier = Modifier.size(kante),
+                            )
+
+                            else -> Icon(
+                                Icons.Filled.Widgets,
+                                contentDescription = null,
+                                tint = palette.onTile,
+                                modifier = Modifier.size(kante),
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
 }

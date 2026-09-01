@@ -25,6 +25,7 @@ import androidx.compose.material.icons.filled.Accessibility
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material.icons.filled.Save
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Info
@@ -34,6 +35,7 @@ import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Replay
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.TextFields
+import androidx.compose.material.icons.filled.ViewCarousel
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
@@ -47,6 +49,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -73,6 +80,7 @@ import org.biglau.toggles.SosNumbers
 import org.biglau.data.ThemeName
 import org.biglau.notify.NotificationRepository
 import org.biglau.security.Pin
+import org.biglau.tiles.FolderEdits
 import org.biglau.tiles.ScreenEdits
 import org.biglau.ui.BigHeading
 import org.biglau.ui.BigRow
@@ -92,14 +100,14 @@ class SettingsActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        val bypassPin = intent.getBooleanExtra(EXTRA_BYPASS_PIN, false)
         val store = ConfigStore.get(this)
 
         setContent {
             val config by store.config.collectAsStateWithLifecycle()
-            val locked = config.security.pin != null && !bypassPin
+            val locked = config.security.pin != null
             var page by remember { mutableStateOf(if (locked) Page.GATE else Page.MAIN) }
             var renaming by remember { mutableStateOf<Screen?>(null) }
+            var switching by remember { mutableStateOf<Screen?>(null) }
 
             val exportFile = rememberLauncherForActivityResult(
                 ActivityResultContracts.CreateDocument("application/json"),
@@ -136,7 +144,11 @@ class SettingsActivity : ComponentActivity() {
                 }
             }
 
-            BigLauTheme(config.appearance.theme, config.appearance.textScale) {
+            BigLauTheme(
+                config.appearance.theme,
+                config.appearance.textScale,
+                haptics = config.behaviour.hapticFeedback,
+            ) {
                 BackHandler(enabled = page != Page.MAIN && page != Page.GATE) { page = Page.MAIN }
 
                 Box(
@@ -188,14 +200,36 @@ class SettingsActivity : ComponentActivity() {
                             onDone = { finish() },
                         )
 
-                        Page.SCREENS -> ScreenList(
-                            screens = config.screens,
+                        Page.SCREENS -> if (switching != null) {
+                            val ziel = switching!!
+                            NoSettingsWarning(
+                                name = ziel.name,
+                                canAddTile = ScreenEdits.withSettingsTile(config, ziel.id) != null,
+                                onAddAndSwitch = {
+                                    store.update { current ->
+                                        val mitKachel = ScreenEdits.withSettingsTile(current, ziel.id)
+                                            ?: return@update current
+                                        mitKachel.copy(homeScreenId = ziel.id)
+                                    }
+                                    switching = null
+                                },
+                                onCancel = { switching = null },
+                            )
+                        } else ScreenList(
+                            // Ordner gehoeren ihrer Kachel, nicht der Screen-Liste.
+                            screens = FolderEdits.plainScreens(config),
                             homeId = config.homeScreenId,
                             unreachable = ScreenEdits.unreachable(config),
                             onRename = { renaming = it; page = Page.RENAME },
                             onDelete = { store.update { current -> ScreenEdits.delete(current, it.id) } },
                             onMakeHome = { target ->
-                                store.update { current -> current.copy(homeScreenId = target.id) }
+                                // Ohne Weg in die Einstellungen waere der Wechsel nicht
+                                // rueckgaengig zu machen - man kaeme nie wieder hierher.
+                                if (ScreenEdits.settingsReachable(config, target.id)) {
+                                    store.update { current -> current.copy(homeScreenId = target.id) }
+                                } else {
+                                    switching = target
+                                }
                             },
                         )
 
@@ -283,6 +317,16 @@ class SettingsActivity : ComponentActivity() {
 
                         Page.SECURITY -> SecurityList(
                             hasPin = config.security.pin != null,
+                            protectsEditor = config.security.pinProtectsEditor,
+                            onToggleEditorProtection = {
+                                store.update {
+                                    it.copy(
+                                        security = it.security.copy(
+                                            pinProtectsEditor = !it.security.pinProtectsEditor,
+                                        ),
+                                    )
+                                }
+                            },
                             onSetPin = { page = Page.SET_PIN },
                             onRemovePin = {
                                 store.update { it.copy(security = it.security.copy(pin = null)) }
@@ -306,6 +350,26 @@ class SettingsActivity : ComponentActivity() {
 
                         Page.ACCESSIBILITY -> AccessibilityList(
                             config = config.behaviour.accessibility,
+                            haptics = config.behaviour.hapticFeedback,
+                            homeKeyReturns = config.behaviour.homeKeyReturnsToStart,
+                            onToggleHaptics = {
+                                store.update {
+                                    it.copy(
+                                        behaviour = it.behaviour.copy(
+                                            hapticFeedback = !it.behaviour.hapticFeedback,
+                                        ),
+                                    )
+                                }
+                            },
+                            onToggleHomeKey = {
+                                store.update {
+                                    it.copy(
+                                        behaviour = it.behaviour.copy(
+                                            homeKeyReturnsToStart = !it.behaviour.homeKeyReturnsToStart,
+                                        ),
+                                    )
+                                }
+                            },
                             onToggleSpeak = {
                                 store.update {
                                     val a = it.behaviour.accessibility
@@ -375,7 +439,6 @@ class SettingsActivity : ComponentActivity() {
     }
 
     companion object {
-        const val EXTRA_BYPASS_PIN = "bypassPin"
     }
 }
 
@@ -399,7 +462,9 @@ private fun MainList(
     val palette = LocalBigPalette.current
     LazyColumn(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         item { BigHeading(stringResource(R.string.settings)) }
-        item { BigRow(stringResource(R.string.settings_screens), icon = Icons.Filled.Home, onClick = onScreens) }
+        // Nicht dasselbe Haus wie "Als Startbildschirm verwenden" weiter unten: zwei Zeilen
+        // mit demselben Symbol tragen kein Wissen, sie stiften Verwechslung.
+        item { BigRow(stringResource(R.string.settings_screens), icon = Icons.Filled.ViewCarousel, onClick = onScreens) }
         item { BigRow(stringResource(R.string.settings_appearance), icon = Icons.Filled.Palette, onClick = onAppearance) }
         item { BigRow(stringResource(R.string.settings_behaviour), icon = Icons.Filled.NotificationsActive, onClick = onBehaviour) }
         item { BigRow(stringResource(R.string.settings_hidden_apps), icon = Icons.Filled.VisibilityOff, onClick = onHiddenApps) }
@@ -537,7 +602,7 @@ private fun ScreenPanel(
     var text by remember(screen.id) { mutableStateOf(screen.name) }
     var confirming by remember(screen.id) { mutableStateOf<Pair<Int, Int>?>(null) }
     val palette = LocalBigPalette.current
-    LazyColumn(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+    LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         item { BigHeading(stringResource(R.string.screen_edit)) }
         item {
             OutlinedTextField(
@@ -692,6 +757,10 @@ private fun AppearanceList(
 @Composable
 private fun AccessibilityList(
     config: Accessibility,
+    haptics: Boolean,
+    homeKeyReturns: Boolean,
+    onToggleHaptics: () -> Unit,
+    onToggleHomeKey: () -> Unit,
     onToggleSpeak: () -> Unit,
     onTogglePopup: () -> Unit,
     onToggleScroll: () -> Unit,
@@ -729,6 +798,24 @@ private fun AccessibilityList(
                 onClick = onToggleScroll,
             )
         }
+        item {
+            BigRow(
+                label = stringResource(if (haptics) R.string.haptics_on else R.string.haptics_off),
+                secondary = stringResource(R.string.haptics_hint),
+                surface = if (haptics) palette.surfaceAccent else palette.surfaceDefault,
+                onClick = onToggleHaptics,
+            )
+        }
+        item {
+            BigRow(
+                label = stringResource(
+                    if (homeKeyReturns) R.string.home_key_on else R.string.home_key_off,
+                ),
+                secondary = stringResource(R.string.home_key_hint),
+                surface = if (homeKeyReturns) palette.surfaceAccent else palette.surfaceDefault,
+                onClick = onToggleHomeKey,
+            )
+        }
         if (LongPress.needsEditModeEntry(config)) {
             item {
                 Text(
@@ -760,7 +847,7 @@ private fun SosSettings(
     }
     val rejected = remember(numbersText) { SosNumbers.rejected(numbersText) }
 
-    LazyColumn(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+    LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         item { BigHeading(stringResource(R.string.sos)) }
         item {
             Text(
@@ -855,6 +942,9 @@ private fun SosSettings(
 @Composable
 private fun TransferList(onExport: () -> Unit, onImport: () -> Unit) {
     val palette = LocalBigPalette.current
+    // Einlesen ersetzt die ganze Belegung, und zwar unwiderruflich. Dieselbe zweistufige
+    // Rueckfrage wie beim Verkleinern des Rasters: der erste Tipp warnt, der zweite tut es.
+    var armed by remember { mutableStateOf(false) }
     LazyColumn(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         item { BigHeading(stringResource(R.string.settings_transfer)) }
         item {
@@ -876,9 +966,19 @@ private fun TransferList(onExport: () -> Unit, onImport: () -> Unit) {
         item {
             BigRow(
                 label = stringResource(R.string.transfer_import),
-                secondary = stringResource(R.string.transfer_import_hint),
+                secondary = stringResource(
+                    if (armed) R.string.transfer_import_confirm else R.string.transfer_import_hint,
+                ),
                 icon = Icons.Filled.FolderOpen,
-                onClick = onImport,
+                surface = if (armed) palette.surfaceDanger else palette.surfaceDefault,
+                onClick = {
+                    if (armed) {
+                        armed = false
+                        onImport()
+                    } else {
+                        armed = true
+                    }
+                },
             )
         }
     }
@@ -954,7 +1054,13 @@ private fun BehaviourList(
 }
 
 @Composable
-private fun SecurityList(hasPin: Boolean, onSetPin: () -> Unit, onRemovePin: () -> Unit) {
+private fun SecurityList(
+    hasPin: Boolean,
+    protectsEditor: Boolean,
+    onToggleEditorProtection: () -> Unit,
+    onSetPin: () -> Unit,
+    onRemovePin: () -> Unit,
+) {
     val palette = LocalBigPalette.current
     LazyColumn(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         item { BigHeading(stringResource(R.string.settings_security)) }
@@ -976,6 +1082,16 @@ private fun SecurityList(hasPin: Boolean, onSetPin: () -> Unit, onRemovePin: () 
         if (hasPin) {
             item {
                 BigRow(
+                    label = stringResource(
+                        if (protectsEditor) R.string.security_editor_on else R.string.security_editor_off,
+                    ),
+                    secondary = stringResource(R.string.security_editor_hint),
+                    surface = if (protectsEditor) palette.surfaceAccent else palette.surfaceDefault,
+                    onClick = onToggleEditorProtection,
+                )
+            }
+            item {
+                BigRow(
                     label = stringResource(R.string.security_remove_pin),
                     icon = Icons.Filled.Delete,
                     surface = palette.surfaceDanger,
@@ -988,7 +1104,22 @@ private fun SecurityList(hasPin: Boolean, onSetPin: () -> Unit, onRemovePin: () 
 
 @Composable
 private fun DiagnosticsList(activity: ComponentActivity) {
-    val lines = remember { Diagnostics.collect(activity) }
+    // Was nach den Systemleisten uebrig bleibt - genau die Flaeche, die eine Kachel
+    // bekommt. Das Fenster allein sagte 605 dp Hoehe, tatsaechlich nutzbar sind 581.
+    val dichte = LocalDensity.current
+    val einblendungen = WindowInsets.safeDrawing
+    val nutzbar = run {
+        val metrics = activity.resources.displayMetrics
+        val breitePx = metrics.widthPixels -
+            einblendungen.getLeft(dichte, LayoutDirection.Ltr) -
+            einblendungen.getRight(dichte, LayoutDirection.Ltr)
+        val hoehePx = metrics.heightPixels - einblendungen.getTop(dichte) - einblendungen.getBottom(dichte)
+        (breitePx / dichte.density).toInt() to (hoehePx / dichte.density).toInt()
+    }
+    val zusammenhang = LocalContext.current
+    val lines = remember(nutzbar) {
+        Diagnostics.collect(activity, nutzbar) { id -> zusammenhang.getString(id) }
+    }
     LazyColumn(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         item { BigHeading(stringResource(R.string.settings_diagnostics)) }
         items(lines) { line ->
@@ -1008,4 +1139,48 @@ private fun labelPositionLabel(position: LabelPosition) = when (position) {
     LabelPosition.BOTTOM_CENTER -> R.string.label_bottom_center
     LabelPosition.TOP_LEFT -> R.string.label_top_left
     LabelPosition.HIDDEN -> R.string.label_hidden
+}
+
+/**
+ * Warnung, bevor jemand sich selbst aussperrt.
+ *
+ * Auf dem gewählten Screen liegt keine Einstellungen-Kachel, und von dort führt auch über
+ * Sprünge und Ordner keine hin. Nach dem Wechsel käme man nie wieder hierher - es hülfe nur
+ * noch ein anderer Launcher oder ein Rechner mit adb.
+ *
+ * Angeboten wird deshalb der Ausweg statt eines Verbots: eine Einstellungen-Kachel anlegen
+ * und dann wechseln. Nur wenn dafür kein Platz ist, geht es wirklich nicht.
+ */
+@Composable
+private fun NoSettingsWarning(
+    name: String,
+    canAddTile: Boolean,
+    onAddAndSwitch: () -> Unit,
+    onCancel: () -> Unit,
+) {
+    val palette = LocalBigPalette.current
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        BigHeading(stringResource(R.string.home_switch_warning_title))
+        Text(
+            text = stringResource(
+                if (canAddTile) R.string.home_switch_warning else R.string.home_switch_blocked,
+                name,
+            ),
+            color = palette.danger,
+            fontSize = 16.sp,
+            modifier = Modifier.padding(horizontal = 4.dp),
+        )
+        if (canAddTile) {
+            BigRow(
+                label = stringResource(R.string.home_switch_add_tile),
+                icon = Icons.Filled.Settings,
+                surface = palette.surfaceAccent,
+                onClick = onAddAndSwitch,
+            )
+        }
+        BigRow(
+            label = stringResource(R.string.home_switch_cancel),
+            onClick = onCancel,
+        )
+    }
 }

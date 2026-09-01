@@ -99,3 +99,46 @@ class ContactSortTest {
         assertTrue(ContactSort.searchText(anna, includeNumbers = true).contains("660"))
     }
 }
+
+/**
+ * Die Favoritenliste als eigene Kachel.
+ *
+ * `PLAN.md` 4.3 sagt sie zu; gebaut war bisher nur „Favoriten zuerst" innerhalb der vollen
+ * Liste. Bei 338 Kontakten ist auch eine sortierte Liste ein Umweg zu den drei Menschen,
+ * die man täglich anruft.
+ */
+class FavouritesOnlyTest {
+
+    private fun kontakt(id: Long, name: String, stern: Boolean) = PhoneContact(
+        id = id,
+        name = name,
+        photoUri = null,
+        numbers = listOf(PhoneNumber("+43660$id", null)),
+        starred = stern,
+    )
+
+    private val alle = listOf(
+        kontakt(1, "Zita Zauner", true),
+        kontakt(2, "Anna Auer", false),
+        kontakt(3, "Berta Berger", true),
+    )
+
+    @Test
+    fun `nur die mit Stern`() {
+        val nur = ContactSort.favouritesOnly(alle, ContactOrder.FIRST_NAME)
+        assertEquals(listOf("Berta Berger", "Zita Zauner"), nur.map { it.name })
+    }
+
+    @Test
+    fun `innerhalb der Favoriten wird normal sortiert`() {
+        // Nicht "Favoriten zuerst" - hier sind alle Favoriten, also zaehlt nur der Name.
+        val nur = ContactSort.favouritesOnly(alle, ContactOrder.SURNAME)
+        assertEquals(listOf("Berta Berger", "Zita Zauner"), nur.map { it.name })
+    }
+
+    @Test
+    fun `ohne Favoriten bleibt die Liste leer`() {
+        val ohne = alle.map { it.copy(starred = false) }
+        assertTrue(ContactSort.favouritesOnly(ohne, ContactOrder.FIRST_NAME).isEmpty())
+    }
+}

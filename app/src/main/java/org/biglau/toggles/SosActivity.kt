@@ -87,7 +87,11 @@ class SosActivity : ComponentActivity() {
                 if (!outcome.ok) askSms.launch(Manifest.permission.SEND_SMS)
             }
 
-            BigLauTheme(config.appearance.theme, config.appearance.textScale) {
+            BigLauTheme(
+                config.appearance.theme,
+                config.appearance.textScale,
+                haptics = config.behaviour.hapticFeedback,
+            ) {
                 Box(
                     Modifier
                         .fillMaxSize()
@@ -105,7 +109,7 @@ class SosActivity : ComponentActivity() {
                                     fontSize = dpSp(17f),
                                     modifier = Modifier.padding(horizontal = 4.dp),
                                 )
-                                BigRow(stringResource(R.string.dialog_ok), onClick = { finish() })
+                                BigRow(stringResource(R.string.dialog_close), onClick = { finish() })
                             }
 
                             result != null -> {
@@ -116,7 +120,7 @@ class SosActivity : ComponentActivity() {
                                     fontWeight = FontWeight.Bold,
                                     modifier = Modifier.padding(horizontal = 4.dp),
                                 )
-                                BigRow(stringResource(R.string.dialog_ok), onClick = { finish() })
+                                BigRow(stringResource(R.string.dialog_close), onClick = { finish() })
                             }
 
                             else -> {

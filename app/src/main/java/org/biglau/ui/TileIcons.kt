@@ -19,6 +19,14 @@ import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.filled.SignalCellularAlt
+import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.Restore
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.Tune
+import androidx.compose.material.icons.filled.BrightnessMedium
+import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.NetworkCell
 import androidx.compose.ui.graphics.vector.ImageVector
 import org.biglau.R
 import org.biglau.data.Builtin
@@ -42,6 +50,14 @@ fun Builtin.icon(): ImageVector = when (this) {
     Builtin.BLUETOOTH -> Icons.Filled.Bluetooth
     Builtin.AIRPLANE -> Icons.Filled.AirplanemodeActive
     Builtin.RINGER -> Icons.AutoMirrored.Filled.VolumeUp
+    Builtin.SIGNAL -> Icons.Filled.SignalCellularAlt
+    Builtin.MOBILE_DATA -> Icons.Filled.NetworkCell
+    Builtin.LOCATION -> Icons.Filled.LocationOn
+    Builtin.BRIGHTNESS -> Icons.Filled.BrightnessMedium
+    Builtin.ANDROID_SETTINGS -> Icons.Filled.Tune
+    Builtin.CALL_LOG -> Icons.Filled.History
+    Builtin.FAVOURITES -> Icons.Filled.Star
+    Builtin.RECENT_APPS -> Icons.Filled.Restore
 }
 
 fun Builtin.labelRes(): Int = when (this) {
@@ -63,4 +79,12 @@ fun Builtin.labelRes(): Int = when (this) {
     Builtin.BLUETOOTH -> R.string.toggle_bluetooth
     Builtin.AIRPLANE -> R.string.toggle_airplane
     Builtin.RINGER -> R.string.toggle_ringer
+    Builtin.SIGNAL -> R.string.signal
+    Builtin.MOBILE_DATA -> R.string.toggle_mobile_data
+    Builtin.LOCATION -> R.string.toggle_location
+    Builtin.BRIGHTNESS -> R.string.toggle_brightness
+    Builtin.ANDROID_SETTINGS -> R.string.android_settings
+    Builtin.CALL_LOG -> R.string.calllog
+    Builtin.FAVOURITES -> R.string.favourites
+    Builtin.RECENT_APPS -> R.string.apps_recent
 }

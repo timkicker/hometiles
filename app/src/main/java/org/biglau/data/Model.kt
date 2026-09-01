@@ -11,7 +11,9 @@ const val CONFIG_VERSION = 1
 enum class Builtin {
     DIALER, MESSAGES, CONTACTS, CAMERA, CLOCK, APP_LIST, SETTINGS,
     FLASHLIGHT, SOS, NEXT_SCREEN, PREV_SCREEN, HOME_SCREEN, BATTERY, MISSED_CALLS,
-    WIFI, BLUETOOTH, AIRPLANE, RINGER,
+    WIFI, BLUETOOTH, AIRPLANE, RINGER, SIGNAL,
+    MOBILE_DATA, LOCATION, BRIGHTNESS, ANDROID_SETTINGS, CALL_LOG,
+    FAVOURITES, RECENT_APPS,
 }
 
 /** Was beim Antippen einer Kontaktkachel passiert. */
@@ -41,6 +43,22 @@ sealed interface ButtonAction {
     @Serializable
     @SerialName("screen")
     data class GoToScreen(val screenId: String) : ButtonAction
+
+    /**
+     * Ein Ordner. Sein Inhalt ist ein ganz gewoehnlicher [Screen] mit [ScreenKind.FOLDER] -
+     * damit gilt jede Regel, die fuer Screens schon geprueft ist, hier ohne Zutun weiter.
+     */
+    @Serializable
+    @SerialName("folder")
+    data class Folder(val screenId: String) : ButtonAction
+
+    /**
+     * Eine Webseite. Die Adresse steht in der Kachel, nicht in einer Liste - sonst müsste
+     * man sie doppelt pflegen.
+     */
+    @Serializable
+    @SerialName("link")
+    data class Link(val url: String) : ButtonAction
 
     @Serializable
     @SerialName("shortcut")
@@ -102,6 +120,14 @@ sealed interface Background {
     @Serializable @SerialName("image") data class Image(val uri: String) : Background
 }
 
+/**
+ * Ein Screen steht fuer sich; ein Ordner gehoert der Kachel, die ihn oeffnet, und wird als
+ * Ueberlagerung gezeigt. Der Unterschied ist bewusst nur eine Marke und kein eigener Typ:
+ * eine zweite Sorte Kachelraster hiesse jede Regel zweimal zu pflegen.
+ */
+@Serializable
+enum class ScreenKind { SCREEN, FOLDER }
+
 @Serializable
 data class Screen(
     val id: String,
@@ -110,7 +136,10 @@ data class Screen(
     val rows: Int = 3,
     val cells: List<Cell> = emptyList(),
     val background: Background = Background.Theme,
+    val kind: ScreenKind = ScreenKind.SCREEN,
 ) {
+    val isFolder: Boolean get() = kind == ScreenKind.FOLDER
+
     /** Belegte Zelle an dieser Rasterposition, sofern eine sie ueberdeckt. */
     fun cellAt(x: Int, y: Int): Cell? = cells.firstOrNull { it.covers(x, y) }
 

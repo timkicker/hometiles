@@ -87,7 +87,11 @@ class InCallActivity : ComponentActivity() {
 
             BackHandler(enabled = true) { /* absichtlich nichts */ }
 
-            BigLauTheme(config.appearance.theme, config.appearance.textScale) {
+            BigLauTheme(
+                config.appearance.theme,
+                config.appearance.textScale,
+                haptics = config.behaviour.hapticFeedback,
+            ) {
                 val current = view
                 Box(
                     Modifier

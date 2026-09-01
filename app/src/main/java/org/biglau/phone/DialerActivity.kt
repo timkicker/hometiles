@@ -124,7 +124,11 @@ class DialerActivity : ComponentActivity() {
             ) { }
 
             LaunchedEffect(Unit) {
-                if (intent?.getBooleanExtra(EXTRA_MISSED, false) == true) tab = Tab.LOG
+                if (intent?.getBooleanExtra(EXTRA_MISSED, false) == true ||
+                    intent?.getBooleanExtra(EXTRA_LOG, false) == true
+                ) {
+                    tab = Tab.LOG
+                }
             }
 
             // Beim ersten Blick in die Anrufliste fragt das System von selbst. Nach einer
@@ -138,7 +142,11 @@ class DialerActivity : ComponentActivity() {
                 }
             }
 
-            BigLauTheme(config.appearance.theme, config.appearance.textScale) {
+            BigLauTheme(
+                config.appearance.theme,
+                config.appearance.textScale,
+                haptics = config.behaviour.hapticFeedback,
+            ) {
                 BackHandler(enabled = tab != Tab.KEYPAD) { tab = Tab.KEYPAD }
 
                 Box(
@@ -253,6 +261,8 @@ class DialerActivity : ComponentActivity() {
      * still verschlucken. Ein Tastendruck mehr ist der richtige Preis dafuer.
      */
     companion object {
+        /** Anrufliste zeigen, alle Eintraege - anders als EXTRA_MISSED, das filtert. */
+        const val EXTRA_LOG = "showLog"
         const val EXTRA_MISSED = "missedOnly"
     }
 
@@ -337,7 +347,7 @@ private fun Keypad(
                 extraKey = '+',
             )
         }
-        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             BigRow(
                 label = stringResource(R.string.dialer_call),
                 icon = Icons.Filled.Call,
@@ -393,12 +403,12 @@ private fun CallList(
             }
             item {
                 BigRow(
-                    label = stringResource(R.string.dialog_yes),
+                    label = stringResource(R.string.calllog_confirm_delete),
                     surface = palette.surfaceDanger,
                     onClick = onConfirmDelete,
                 )
             }
-            item { BigRow(label = stringResource(R.string.dialog_no), onClick = onCancelDelete) }
+            item { BigRow(label = stringResource(R.string.calllog_confirm_keep), onClick = onCancelDelete) }
         }
         return
     }

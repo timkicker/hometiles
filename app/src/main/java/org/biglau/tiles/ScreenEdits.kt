@@ -140,7 +140,68 @@ object ScreenEdits {
             .flatMap { it.cells }
             .mapNotNull { (it.button.action as? ButtonAction.GoToScreen)?.screenId }
             .toSet()
-        return config.screens.filter { it.id != config.homeScreenId && it.id !in reached }
+        // Ordner sind hier nicht gemeint: zu ihnen fuehrt eine Ordnerkachel, keine
+        // Sprungkachel, und ob eine fehlt, prueft FolderEdits.orphaned.
+        return config.screens.filter {
+            it.id != config.homeScreenId && it.id !in reached && !it.isFolder
+        }
+    }
+
+    /**
+     * Sind die Einstellungen von diesem Screen aus erreichbar?
+     *
+     * Die schlimmste Sackgasse der ganzen App: wer einen Screen zum Startbildschirm macht,
+     * auf dem keine Einstellungen-Kachel liegt, kommt nie wieder in die Einstellungen -
+     * und damit auch nie wieder zurück. Es hilft dann nur noch ein anderer Launcher oder
+     * ein Rechner mit adb. Genau das ist beim Ausprobieren am 01.09.2026 passiert.
+     *
+     * Gezählt wird über Sprung- und Ordnerkacheln hinweg, denn ein Weg über zwei Ecken ist
+     * auch ein Weg. Die App-Liste zählt **nicht**: BigLau steht zwar darin, aber ein Start
+     * von dort führt auf den Startbildschirm und nicht in die Einstellungen.
+     */
+    fun settingsReachable(config: LauncherConfig, fromScreenId: String): Boolean {
+        val besucht = mutableSetOf<String>()
+        val offen = ArrayDeque(listOf(fromScreenId))
+        while (offen.isNotEmpty()) {
+            val id = offen.removeFirst()
+            if (!besucht.add(id)) continue
+            val screen = config.screens.firstOrNull { it.id == id } ?: continue
+            screen.cells.forEach { zelle ->
+                when (val aktion = zelle.button.action) {
+                    is ButtonAction.Action ->
+                        if (aktion.builtin == Builtin.SETTINGS) return true
+                    is ButtonAction.GoToScreen -> offen.addLast(aktion.screenId)
+                    is ButtonAction.Folder -> offen.addLast(aktion.screenId)
+                    else -> Unit
+                }
+            }
+        }
+        return false
+    }
+
+    /**
+     * Legt eine Einstellungen-Kachel auf den ersten freien Platz - der Ausweg aus der
+     * Sackgasse oben. Gibt `null` zurueck, wenn kein Platz frei ist; dann darf der Wechsel
+     * nicht stattfinden, denn danach gaebe es keinen Weg mehr zurueck.
+     */
+    fun withSettingsTile(config: LauncherConfig, screenId: String): LauncherConfig? {
+        val screen = config.screens.firstOrNull { it.id == screenId } ?: return null
+        val platz = screen.freeSlots().firstOrNull() ?: return null
+        return config.copy(
+            screens = config.screens.map {
+                if (it.id != screenId) {
+                    it
+                } else {
+                    it.copy(
+                        cells = it.cells + Cell(
+                            x = platz.first,
+                            y = platz.second,
+                            button = Button(action = ButtonAction.Action(Builtin.SETTINGS)),
+                        ),
+                    )
+                }
+            },
+        )
     }
 
     fun danglingReferences(config: LauncherConfig): List<String> {

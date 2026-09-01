@@ -2,6 +2,8 @@ package org.biglau
 
 import android.app.role.RoleManager
 import android.content.ComponentName
+import android.Manifest
+import androidx.activity.result.contract.ActivityResultContracts
 import android.content.Intent
 import android.content.IntentFilter
 import android.os.Build
@@ -13,6 +15,8 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.material.icons.filled.Close
 import org.biglau.ui.BigRow
 import androidx.compose.material.icons.automirrored.filled.Message
 import androidx.compose.material.icons.filled.Call
@@ -60,6 +64,7 @@ import org.biglau.safety.StartMode
 import org.biglau.contacts.ContactsActivity
 import org.biglau.data.ContactMode
 import org.biglau.info.BatteryRepository
+import org.biglau.info.SignalRepository
 import org.biglau.notify.NotificationRepository
 import org.biglau.phone.DialerActivity
 import org.biglau.toggles.SosActivity
@@ -72,6 +77,8 @@ import org.biglau.settings.SettingsActivity
 import org.biglau.sms.SmsActivity
 import org.biglau.widgets.WidgetHostController
 import org.biglau.shortcuts.ShortcutRepository
+import org.biglau.tiles.ScreenOrder
+import org.biglau.web.LinkTarget
 import org.biglau.tiles.TileEditorActivity
 import org.biglau.a11y.LongPress
 import org.biglau.a11y.LongPressAction
@@ -107,8 +114,18 @@ class MainActivity : ComponentActivity() {
      */
     private val currentScreen = mutableStateOf<String?>(null)
 
+    /** Steht die Erklaerung zur Leseberechtigung gerade offen? */
+    private val phoneStateAsked = mutableStateOf(false)
+
+    /** Holt die Leseerlaubnis fuer die Empfangskachel - mehr nicht. */
+    private val askPhoneState =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { }
+
     /** Der Kontakt, bei dem gerade "anrufen oder schreiben?" offen steht. */
     private val contactChoice = mutableStateOf<ButtonAction.Contact?>(null)
+
+    /** Der gerade geoeffnete Ordner, oder `null`. */
+    private val openFolder = mutableStateOf<String?>(null)
 
     override fun onDestroy() {
         // Die Sprachausgabe haelt eine Verbindung zum System-Dienst; ohne dieses Aufraeumen
@@ -123,8 +140,15 @@ class MainActivity : ComponentActivity() {
         if (intent.getBooleanExtra(EXTRA_EDIT_MODE, false)) {
             editModeRequest.value = true
         } else if (Intent.ACTION_MAIN == intent.action) {
-            // Die Heim-Geste auf einem Nebenscreen fuehrt heim.
-            currentScreen.value = null
+            // Ein offener Ordner schliesst immer: er ist eine Ueberlagerung, und wer heim
+            // tippt, will nicht weiter darin stehen.
+            openFolder.value = null
+            // Der Screenwechsel dagegen ist eine Einstellung. Sie stand bisher im Modell
+            // und wurde nirgends gelesen - ein Schalter, der nichts tut, ist schlimmer als
+            // einer, den es nicht gibt.
+            if (ConfigStore.get(this).current.behaviour.homeKeyReturnsToStart) {
+                currentScreen.value = null
+            }
         }
     }
 
@@ -193,6 +217,9 @@ class MainActivity : ComponentActivity() {
             val systemPackages = remember(counts) { SystemPackagesReader.read(context) }
             val battery by remember { BatteryRepository.readings(context) }
                 .collectAsStateWithLifecycle(initialValue = null)
+            // Rein lesend: der Fluss hoert dem Telefoniedienst zu und meldet nichts an.
+            val signal by remember { SignalRepository.readings(context) }
+                .collectAsStateWithLifecycle(initialValue = null)
 
             // Ein Launcher darf die Zurueck-Geste nicht wie eine gewoehnliche App behandeln:
             // auf dem Startscreen tut sie nichts. Auf einem Nebenscreen fuehrt sie heim,
@@ -202,7 +229,9 @@ class MainActivity : ComponentActivity() {
             // Override schluckt das Ereignis, bevor dieser Handler es ueberhaupt sieht.
             BackHandler(enabled = true) {
                 when {
+                    phoneStateAsked.value -> phoneStateAsked.value = false
                     contactChoice.value != null -> contactChoice.value = null
+                    openFolder.value != null -> openFolder.value = null
                     popupLabel != null -> popupLabel = null
                     editMode -> editMode = false
                     screenId != config.homeScreenId -> currentScreen.value = null
@@ -212,9 +241,65 @@ class MainActivity : ComponentActivity() {
             // Wir sind bis hierher gekommen: der Start gilt als geglueckt.
             LaunchedEffect(Unit) { crashes.noteRendered() }
 
+            // Einmal beschrieben, zweimal benutzt: fuer den Screen und fuer den Ordner
+            // darueber. Ein zweiter, abgeschriebener Aufruf waere die Stelle, an der die
+            // beiden nach der naechsten Aenderung auseinanderlaufen.
+            val zeigeKachel: @Composable (org.biglau.data.Screen, Modifier) -> Unit =
+                { gezeigt, gestalt ->
+                    HomeScreenView(
+                        screen = gezeigt,
+                        appearance = config.appearance,
+                        modifier = gestalt,
+                        appIcon = { pkg, act ->
+                            apps.iconFor(pkg, act)?.toBitmap(96, 96)?.asImageBitmap()
+                        },
+                        appLabel = { pkg, act -> apps.labelFor(pkg, act) },
+                        shortcutIcon = { pkg, id ->
+                            ShortcutRepository.get(context)
+                                .iconFor(pkg, id, resources.displayMetrics.densityDpi)
+                                ?.toBitmap(96, 96)?.asImageBitmap()
+                        },
+                        folderOf = { id -> config.screens.firstOrNull { it.id == id && it.isFolder } },
+                        notificationCounts =
+                            if (config.behaviour.blinkOnNotification) counts else emptyMap(),
+                        systemPackages = systemPackages,
+                        battery = battery,
+                        signal = signal,
+                        // Im Bearbeitungsmodus oeffnet schon der kurze Tipp den Editor. Ein
+                        // langer Druck bleibt dann keine Voraussetzung - wer ihn nicht schafft,
+                        // koennte seine Kacheln sonst nie aendern.
+                        onActivate = { cell ->
+                            if (editMode) {
+                                context.startActivity(
+                                    TileEditorActivity.intent(context, gezeigt.id, cell.x, cell.y),
+                                )
+                            } else {
+                                activate(cell, apps) { currentScreen.value = it }
+                            }
+                        },
+                        onEdit = { x, y ->
+                            LongPress.decide(config.behaviour.accessibility, editMode).forEach { action ->
+                                when (action) {
+                                    LongPressAction.EDIT -> context.startActivity(
+                                        TileEditorActivity.intent(context, gezeigt.id, x, y),
+                                    )
+                                    LongPressAction.SPEAK -> Speaker.say(
+                                        context,
+                                        labelAt(config, gezeigt.id, x, y, apps),
+                                    )
+                                    LongPressAction.POPUP -> popupLabel =
+                                        labelAt(config, gezeigt.id, x, y, apps)
+                                    LongPressAction.NOTHING -> Unit
+                                }
+                            }
+                        },
+                    )
+                }
+
             BigLauTheme(
                 theme = config.appearance.theme,
                 textScale = config.appearance.textScale,
+                haptics = config.behaviour.hapticFeedback,
             ) {
                 Column(
                     Modifier
@@ -240,56 +325,34 @@ class MainActivity : ComponentActivity() {
                             ),
                         )
                     }
-                    HomeScreenView(
-                        screen = screen,
-                        appearance = config.appearance,
-                        modifier = Modifier.fillMaxSize(),
-                        appIcon = { pkg, act ->
-                            apps.iconFor(pkg, act)?.toBitmap(96, 96)?.asImageBitmap()
-                        },
-                        appLabel = { pkg, act -> apps.labelFor(pkg, act) },
-                        shortcutIcon = { pkg, id ->
-                            ShortcutRepository.get(context)
-                                .iconFor(pkg, id, resources.displayMetrics.densityDpi)
-                                ?.toBitmap(96, 96)?.asImageBitmap()
-                        },
-                        notificationCounts = if (config.behaviour.blinkOnNotification) counts else emptyMap(),
-                        systemPackages = systemPackages,
-                        battery = battery,
-                        // Im Bearbeitungsmodus oeffnet schon der kurze Tipp den Editor. Ein
-                        // langer Druck bleibt dann keine Voraussetzung - wer ihn nicht schafft,
-                        // koennte seine Kacheln sonst nie aendern.
-                        onActivate = { cell ->
-                            if (editMode) {
-                                context.startActivity(
-                                    TileEditorActivity.intent(context, screen.id, cell.x, cell.y),
-                                )
-                            } else {
-                                activate(cell, apps) { currentScreen.value = it }
-                            }
-                        },
-                        onEdit = { x, y ->
-                            LongPress.decide(config.behaviour.accessibility, editMode).forEach { action ->
-                                when (action) {
-                                    LongPressAction.EDIT -> context.startActivity(
-                                        TileEditorActivity.intent(context, screen.id, x, y),
-                                    )
-                                    LongPressAction.SPEAK -> Speaker.say(
-                                        context,
-                                        labelAt(config, screen.id, x, y, apps),
-                                    )
-                                    LongPressAction.POPUP -> popupLabel =
-                                        labelAt(config, screen.id, x, y, apps)
-                                    LongPressAction.NOTHING -> Unit
-                                }
-                            }
-                        },
-                    )
+                    zeigeKachel(screen, Modifier.fillMaxSize())
                 }
 
                 val label = popupLabel
                 if (label != null) {
                     LabelPopup(label) { popupLabel = null }
+                }
+
+                val ordner = openFolder.value?.let { id ->
+                    config.screens.firstOrNull { it.id == id && it.isFolder }
+                }
+                if (ordner != null) {
+                    FolderOverlay(
+                        name = ordner.name,
+                        onClose = { openFolder.value = null },
+                    ) {
+                        zeigeKachel(ordner, Modifier.fillMaxSize())
+                    }
+                }
+
+                if (phoneStateAsked.value) {
+                    SignalPermissionExplainer(
+                        onAsk = {
+                            phoneStateAsked.value = false
+                            askPhoneState.launch(Manifest.permission.READ_PHONE_STATE)
+                        },
+                        onDismiss = { phoneStateAsked.value = false },
+                    )
                 }
 
                 val asking = contactChoice.value
@@ -327,10 +390,16 @@ class MainActivity : ComponentActivity() {
             is ButtonAction.Shortcut -> action.label
             is ButtonAction.Widget -> action.label
             is ButtonAction.GoToScreen -> config.screenById(action.screenId)?.name ?: getString(R.string.next_screen)
+            is ButtonAction.Folder -> config.screenById(action.screenId)?.name ?: getString(R.string.folder)
+            is ButtonAction.Link -> LinkTarget.labelFor(action.url)
             is ButtonAction.Action -> getString(action.builtin.labelRes())
             ButtonAction.None -> getString(R.string.empty_tile)
         }
     }
+
+    /** Welcher Screen gerade zu sehen ist - fuer "naechster" und "voriger". */
+    private fun currentScreenId(): String =
+        currentScreen.value ?: ConfigStore.get(this).current.homeScreenId
 
     private fun activate(cell: Cell, apps: AppRepository, goToScreen: (String) -> Unit) {
         when (val action = cell.button.action) {
@@ -351,6 +420,10 @@ class MainActivity : ComponentActivity() {
             }
 
             is ButtonAction.GoToScreen -> goToScreen(action.screenId)
+            // Ein Ordner wechselt den Screen nicht, er legt sich darueber - deshalb ein
+            // eigener Zustand und nicht currentScreen. Zurueck schliesst ihn wieder.
+            is ButtonAction.Folder -> openFolder.value = action.screenId
+            is ButtonAction.Link -> Intents.openLink(this, action.url)
 
             is ButtonAction.Action -> when (action.builtin) {
                 Builtin.DIALER -> startActivity(Intent(this, DialerActivity::class.java))
@@ -363,6 +436,14 @@ class MainActivity : ComponentActivity() {
                 Builtin.CAMERA -> Intents.openCamera(this)
                 Builtin.CLOCK -> Intents.openClock(this)
                 Builtin.BATTERY -> Unit
+                // Nur die Leseerlaubnis holen. Die Kachel zeigt danach den Empfang; sie
+                // waehlt nichts und meldet sich nirgends an.
+                // Erst erklaeren, dann fragen. Android stellt diese Leseberechtigung unter
+                // der Ueberschrift "Anrufe taetigen und verwalten" - das klingt nach etwas
+                // ganz anderem, als es ist, und wer das liest, lehnt zu Recht erst einmal ab.
+                Builtin.SIGNAL -> if (!SignalRepository.hasPermission(this)) {
+                    phoneStateAsked.value = true
+                }
                 Builtin.FLASHLIGHT -> ToggleActions.run(this, ToggleKind.FLASHLIGHT)
                 Builtin.WIFI -> ToggleActions.run(this, ToggleKind.WIFI)
                 Builtin.BLUETOOTH -> ToggleActions.run(this, ToggleKind.BLUETOOTH)
@@ -372,7 +453,29 @@ class MainActivity : ComponentActivity() {
                 Builtin.HOME_SCREEN -> goToScreen(ConfigStore.get(this).current.homeScreenId)
                 Builtin.SETTINGS -> startActivity(Intent(this, SettingsActivity::class.java))
                 Builtin.APP_LIST -> startActivity(Intent(this, AppDrawerActivity::class.java))
-                else -> Toast.makeText(this, R.string.editor_soon, Toast.LENGTH_SHORT).show()
+                Builtin.MOBILE_DATA -> ToggleActions.run(this, ToggleKind.MOBILE_DATA)
+                Builtin.LOCATION -> ToggleActions.run(this, ToggleKind.LOCATION)
+                Builtin.BRIGHTNESS -> ToggleActions.run(this, ToggleKind.BRIGHTNESS)
+                Builtin.ANDROID_SETTINGS -> Intents.androidSettings(this)
+                Builtin.FAVOURITES -> startActivity(
+                    Intent(this, ContactsActivity::class.java)
+                        .putExtra(ContactsActivity.EXTRA_FAVOURITES, true),
+                )
+                Builtin.RECENT_APPS -> startActivity(
+                    Intent(this, AppDrawerActivity::class.java)
+                        .putExtra(AppDrawerActivity.EXTRA_RECENT, true),
+                )
+                Builtin.CALL_LOG -> startActivity(
+                    Intent(this, DialerActivity::class.java)
+                        .putExtra(DialerActivity.EXTRA_LOG, true),
+                )
+                // Kein else: ein neuer Eintrag soll den Übersetzer zwingen, sich zu
+                // entscheiden. Im else standen bisher stillschweigend "nächster Screen"
+                // und "voriger Screen" und meldeten "demnächst".
+                Builtin.NEXT_SCREEN -> ScreenOrder.next(ConfigStore.get(this).current, currentScreenId())
+                    ?.let { goToScreen(it) }
+                Builtin.PREV_SCREEN -> ScreenOrder.previous(ConfigStore.get(this).current, currentScreenId())
+                    ?.let { goToScreen(it) }
             }
 
             // Ein Widget bedient sich selbst - ein Antippen der Zelle tut hier nichts.
@@ -436,7 +539,7 @@ private fun EditModeBanner(onLeave: () -> Unit) {
             .fillMaxWidth()
             .background(palette.surfaceAccent.fill)
             .clickable { onLeave() }
-            .padding(horizontal = 16.dp, vertical = 10.dp),
+            .padding(horizontal = 16.dp, vertical = 8.dp),
     )
 }
 
@@ -462,7 +565,7 @@ private fun LabelPopup(label: String, onDismiss: () -> Unit) {
                 fontWeight = FontWeight.Bold,
                 textAlign = TextAlign.Center,
             )
-            Spacer(Modifier.height(20.dp))
+            Spacer(Modifier.height(24.dp))
             Text(
                 text = stringResource(R.string.tap_to_close),
                 color = palette.onBackground.copy(alpha = 0.7f),
@@ -526,5 +629,92 @@ private fun ContactChoice(
                 modifier = Modifier.padding(horizontal = 4.dp),
             )
         }
+    }
+}
+
+/**
+ * Ein geöffneter Ordner: der Name oben, darunter sein Kachelraster, und ein Streifen unten
+ * zum Schließen.
+ *
+ * Bewusst deckend und bildschirmfüllend statt als schwebendes Fenster: auf drei Zoll wäre ein
+ * Fenster mit Rand entweder winzig oder ohne Rand, und dann ist es kein Fenster mehr. So
+ * bekommen die Kacheln darin genau dieselbe Fläche wie auf dem Startbildschirm - und dieselbe
+ * Trefferfläche.
+ */
+@Composable
+private fun FolderOverlay(
+    name: String,
+    onClose: () -> Unit,
+    content: @Composable () -> Unit,
+) {
+    val palette = LocalBigPalette.current
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(palette.background)
+            .safeDrawingPadding()
+            .padding(horizontal = 8.dp),
+    ) {
+        Text(
+            text = name,
+            color = palette.onBackground,
+            fontSize = org.biglau.ui.dpSp(26f),
+            fontWeight = FontWeight.Bold,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.padding(horizontal = 4.dp, vertical = 8.dp),
+        )
+        Box(Modifier.weight(1f)) { content() }
+        // Die Zurueck-Geste schliesst ihn auch. Der Streifen ist fuer alle da, die sie nicht
+        // benutzen - und er sagt, was er tut, statt nur ein Kreuz zu zeigen.
+        BigRow(
+            label = stringResource(R.string.folder_close),
+            icon = Icons.Filled.Close,
+            onClick = onClose,
+        )
+    }
+}
+
+/**
+ * Erklärt die Leseberechtigung, bevor Android sie erfragt.
+ *
+ * Android führt `READ_PHONE_STATE` unter „Anrufe tätigen und verwalten". Das ist die
+ * Überschrift einer ganzen Gruppe und klingt nach weit mehr, als hier gebraucht wird:
+ * BigLau will die Anzahl der Balken wissen und sonst nichts. Wer den Systemdialog ohne
+ * Vorwarnung sieht, lehnt zu Recht ab - und hat dann eine Kachel, die nie etwas anzeigt.
+ */
+@Composable
+private fun SignalPermissionExplainer(onAsk: () -> Unit, onDismiss: () -> Unit) {
+    val palette = LocalBigPalette.current
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(palette.background)
+            .safeDrawingPadding()
+            .padding(horizontal = 8.dp),
+        verticalArrangement = Arrangement.Center,
+    ) {
+        Text(
+            text = stringResource(R.string.signal_permission_title),
+            color = palette.onBackground,
+            fontSize = org.biglau.ui.dpSp(26f),
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(horizontal = 4.dp, vertical = 8.dp),
+        )
+        Text(
+            text = stringResource(R.string.signal_permission_body),
+            color = palette.onBackground,
+            fontSize = org.biglau.ui.dpSp(16f),
+            modifier = Modifier.padding(horizontal = 4.dp, vertical = 8.dp),
+        )
+        BigRow(
+            label = stringResource(R.string.signal_permission_ask),
+            surface = palette.surfaceAccent,
+            onClick = onAsk,
+        )
+        BigRow(
+            label = stringResource(R.string.signal_permission_no),
+            onClick = onDismiss,
+        )
     }
 }

@@ -77,7 +77,11 @@ class WizardActivity : ComponentActivity() {
                 if (next == null) finishWizard(store) else step = next
             }
 
-            BigLauTheme(config.appearance.theme, config.appearance.textScale) {
+            BigLauTheme(
+                config.appearance.theme,
+                config.appearance.textScale,
+                haptics = config.behaviour.hapticFeedback,
+            ) {
                 BackHandler(enabled = true) {
                     WizardSteps.previous(step, state)?.let { step = it }
                 }

@@ -57,8 +57,23 @@ object NotificationRepository {
             "enabled_notification_listeners",
         ) ?: return false
         val us = ComponentName(context, BigNotificationListener::class.java)
-        return flat.split(':').any {
-            ComponentName.unflattenFromString(it)?.packageName == us.packageName
-        }
+        return ListenerList.contains(flat, us.packageName, us.className)
+    }
+
+    /**
+     * Die Liste der erlaubten Dienste, wie sie in `enabled_notification_listeners` steht.
+     *
+     * Eigene Zerlegung, weil das System zwei Schreibweisen zulaesst: `paket/vollstaendige
+     * .Klasse` und die Kurzform `paket/.Klasse`. Bisher wurde nur das Paket verglichen -
+     * das ging gut, solange BigLau genau einen solchen Dienst hat, haette aber beim
+     * zweiten stillschweigend "ja" gesagt, obwohl der falsche erlaubt ist.
+     */
+    object ListenerList {
+
+        fun contains(flat: String, packageName: String, className: String): Boolean =
+            flat.split(':').map { it.trim() }.any { eintrag ->
+                eintrag == "$packageName/$className" ||
+                    eintrag == "$packageName/" + className.removePrefix(packageName)
+            }
     }
 }

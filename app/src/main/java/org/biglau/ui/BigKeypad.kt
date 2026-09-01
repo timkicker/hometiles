@@ -62,12 +62,12 @@ fun BigKeypad(
 
     Column(
         modifier = modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.spacedBy(6.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         rows.forEach { row ->
             Row(
                 modifier = Modifier.fillMaxWidth().weight(1f),
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 row.forEach { key ->
                     when (key) {
@@ -146,7 +146,7 @@ fun PinDots(length: Int, total: Int = 8, modifier: Modifier = Modifier) {
     val palette = LocalBigPalette.current
     Row(
         modifier = modifier,
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         repeat(total) { index ->

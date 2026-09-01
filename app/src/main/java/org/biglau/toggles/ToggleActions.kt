@@ -65,6 +65,11 @@ object ToggleActions {
             } else {
                 Settings.ACTION_WIFI_SETTINGS
             }
+            ToggleKind.MOBILE_DATA -> if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                Settings.Panel.ACTION_INTERNET_CONNECTIVITY
+            } else {
+                Settings.ACTION_DATA_ROAMING_SETTINGS
+            }
             else -> Settings.ACTION_SETTINGS
         }
         start(context, Intent(action))
@@ -75,6 +80,9 @@ object ToggleActions {
             ToggleKind.AIRPLANE -> Settings.ACTION_AIRPLANE_MODE_SETTINGS
             ToggleKind.BLUETOOTH -> Settings.ACTION_BLUETOOTH_SETTINGS
             ToggleKind.WIFI -> Settings.ACTION_WIFI_SETTINGS
+            ToggleKind.MOBILE_DATA -> Settings.ACTION_DATA_ROAMING_SETTINGS
+            ToggleKind.LOCATION -> Settings.ACTION_LOCATION_SOURCE_SETTINGS
+            ToggleKind.BRIGHTNESS -> Settings.ACTION_DISPLAY_SETTINGS
             else -> Settings.ACTION_SETTINGS
         }
         start(context, Intent(action))

@@ -24,6 +24,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Message
 import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material.icons.filled.SortByAlpha
 import androidx.compose.material.icons.filled.Star
@@ -67,6 +68,11 @@ import org.biglau.ui.theme.LocalBigPalette
  */
 class ContactsActivity : ComponentActivity() {
 
+    companion object {
+        /** Nur die Favoriten zeigen - von der Favoritenkachel aus. */
+        const val EXTRA_FAVOURITES = "favouritesOnly"
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -78,6 +84,10 @@ class ContactsActivity : ComponentActivity() {
             var granted by remember { mutableStateOf(repository.hasPermission()) }
             var all by remember { mutableStateOf<List<PhoneContact>>(emptyList()) }
             var query by rememberSaveable { mutableStateOf("") }
+            // Von der Favoritenkachel aus: nur die mit Stern, ohne Suche davor.
+            var favouritesOnly by rememberSaveable {
+                mutableStateOf(intent?.getBooleanExtra(EXTRA_FAVOURITES, false) == true)
+            }
             var selected by remember { mutableStateOf<PhoneContact?>(null) }
             var loading by remember { mutableStateOf(true) }
 
@@ -117,14 +127,18 @@ class ContactsActivity : ComponentActivity() {
                 val filtered = TextSearch.filter(all, query) {
                     ContactSort.searchText(it, config.contacts.searchNumbers)
                 }
-                if (query.isEmpty()) {
-                    ContactSort.sorted(filtered, order, config.contacts.favouritesFirst)
-                } else {
-                    filtered
+                when {
+                    favouritesOnly -> ContactSort.favouritesOnly(filtered, order)
+                    query.isEmpty() -> ContactSort.sorted(filtered, order, config.contacts.favouritesFirst)
+                    else -> filtered
                 }
             }
 
-            BigLauTheme(config.appearance.theme, config.appearance.textScale) {
+            BigLauTheme(
+                config.appearance.theme,
+                config.appearance.textScale,
+                haptics = config.behaviour.hapticFeedback,
+            ) {
                 BackHandler(enabled = selected != null) { selected = null }
 
                 Box(
@@ -187,6 +201,8 @@ class ContactsActivity : ComponentActivity() {
                             },
                             onPick = { selected = it },
                             scrollButtons = config.behaviour.accessibility.scrollButtons,
+                            favouritesOnly = favouritesOnly,
+                            onShowAll = { favouritesOnly = false },
                             onCreate = { startActivity(repository.createIntent()) },
                         )
                     }
@@ -207,6 +223,8 @@ private fun ContactList(
     onPick: (PhoneContact) -> Unit,
     onCreate: () -> Unit,
     scrollButtons: Boolean,
+    favouritesOnly: Boolean,
+    onShowAll: () -> Unit,
 ) {
     val palette = LocalBigPalette.current
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -215,7 +233,10 @@ private fun ContactList(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                BigHeading(stringResource(R.string.contacts), modifier = Modifier.weight(1f))
+                BigHeading(
+                    stringResource(if (favouritesOnly) R.string.favourites else R.string.contacts),
+                    modifier = Modifier.weight(1f),
+                )
                 // Sortierung ist eine Nebensache und darf ein Symbol sein; einen Kontakt
                 // anzulegen ist eine Handlung und behaelt sein Wort.
                 BigIconButton(
@@ -232,7 +253,24 @@ private fun ContactList(
             onValueChange = onQuery,
             hint = stringResource(R.string.search_contacts),
         )
-        if (query.isEmpty()) {
+        if (query.isEmpty() && favouritesOnly) {
+            // Ohne diesen Weg waere eine leere Favoritenliste eine Sackgasse - und auch
+            // eine gefuellte laesst sonst niemanden zu den uebrigen Kontakten.
+            if (contacts.isEmpty()) {
+                Text(
+                    text = stringResource(R.string.favourites_none),
+                    color = palette.onBackground,
+                    fontSize = 17.sp,
+                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 8.dp),
+                )
+            }
+            BigRow(
+                label = stringResource(R.string.favourites_show_all),
+                icon = Icons.Filled.Person,
+                surface = palette.surfaceAccent,
+                onClick = onShowAll,
+            )
+        } else if (query.isEmpty()) {
             // Bewusst hier und nicht am Listenende: bei 338 Kontakten waere er dort
             // nach unten gescrollt und praktisch unerreichbar.
             BigRow(

@@ -19,6 +19,9 @@
 
     <uses-permission android:name="android.permission.CALL_PHONE" />
     <uses-permission android:name="android.permission.READ_CALL_LOG" />
+    <!-- Nur zum Anzeigen von Empfang und Netzart auf der Signalkachel. Rein lesend:
+         BigLau waehlt darueber nichts und meldet sich nirgends an. -->
+    <uses-permission android:name="android.permission.READ_PHONE_STATE" />
     <uses-permission android:name="android.permission.WRITE_CALL_LOG" />
     <uses-permission android:name="android.permission.READ_CONTACTS" />
     <!-- Nur fuers Favoritenkennzeichen; Kontakte anlegen und bearbeiten macht die System-App. -->
@@ -67,6 +70,7 @@
         <activity
             android:name=".tiles.TileEditorActivity"
             android:exported="false"
+            android:windowSoftInputMode="adjustResize"
             android:screenOrientation="portrait"
             android:theme="@style/Theme.BigLau" />
 
@@ -122,6 +126,7 @@
             android:name=".sms.SmsActivity"
             android:exported="true"
             android:screenOrientation="portrait"
+            android:windowSoftInputMode="adjustResize"
             android:theme="@style/Theme.BigLau">
             <intent-filter>
                 <action android:name="android.intent.action.SENDTO" />
@@ -175,12 +180,14 @@
         <activity
             android:name=".contacts.ContactsActivity"
             android:exported="false"
+            android:windowSoftInputMode="adjustResize"
             android:screenOrientation="portrait"
             android:theme="@style/Theme.BigLau" />
 
         <activity
             android:name=".apps.AppDrawerActivity"
             android:exported="false"
+            android:windowSoftInputMode="adjustResize"
             android:screenOrientation="portrait"
             android:theme="@style/Theme.BigLau" />
 
@@ -209,6 +216,7 @@
         <activity
             android:name=".settings.SettingsActivity"
             android:exported="false"
+            android:windowSoftInputMode="adjustResize"
             android:screenOrientation="portrait"
             android:theme="@style/Theme.BigLau" />
 

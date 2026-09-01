@@ -10,6 +10,7 @@ import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import org.biglau.data.ThemeName
+import org.biglau.ui.LocalHapticsEnabled
 
 /**
  * Ein Theme besteht aus Hintergrund, Textfarbe und einer Palette fuer die Kacheln.
@@ -111,6 +112,8 @@ val LocalTextScale = staticCompositionLocalOf { 1.0f }
 fun BigLauTheme(
     theme: ThemeName = ThemeName.DARK,
     textScale: Float = 1.0f,
+    /** Spuerbare Rueckmeldung beim Antippen - Einstellung aus `Behaviour`. */
+    haptics: Boolean = true,
     content: @Composable () -> Unit,
 ) {
     val palette = paletteFor(theme)
@@ -134,6 +137,7 @@ fun BigLauTheme(
         )
     }
     CompositionLocalProvider(
+        LocalHapticsEnabled provides haptics,
         LocalBigPalette provides palette,
         LocalTextScale provides textScale,
     ) {

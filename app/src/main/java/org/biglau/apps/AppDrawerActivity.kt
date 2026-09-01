@@ -27,6 +27,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -35,6 +36,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.biglau.R
 import org.biglau.data.ConfigStore
 import org.biglau.ui.BigHeading
+import androidx.compose.material.icons.filled.Apps
 import org.biglau.ui.BigRow
 import org.biglau.ui.BigSearchField
 import org.biglau.ui.ScrollButtons
@@ -47,6 +49,11 @@ import org.biglau.ui.theme.LocalBigPalette
  */
 class AppDrawerActivity : ComponentActivity() {
 
+    companion object {
+        /** Mit der Liste der zuletzt benutzten Apps oeffnen. */
+        const val EXTRA_RECENT = "recentOnly"
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -57,6 +64,11 @@ class AppDrawerActivity : ComponentActivity() {
             val config by store.config.collectAsStateWithLifecycle()
             var all by remember { mutableStateOf<List<LaunchableApp>>(emptyList()) }
             var query by rememberSaveable { mutableStateOf("") }
+            // Von der Kachel "Zuletzt benutzt" aus: erst nur die letzten, aber jederzeit
+            // umschaltbar - eine Liste ohne Weg zur vollstaendigen waere eine Sackgasse.
+            var recentOnly by rememberSaveable {
+                mutableStateOf(intent?.getBooleanExtra(EXTRA_RECENT, false) == true)
+            }
             val palette = LocalBigPalette.current
 
             LaunchedEffect(Unit) { all = repository.loadApps() }
@@ -80,7 +92,11 @@ class AppDrawerActivity : ComponentActivity() {
                 repository.launch(app.packageName, app.activityName)
             }
 
-            BigLauTheme(config.appearance.theme, config.appearance.textScale) {
+            BigLauTheme(
+                config.appearance.theme,
+                config.appearance.textScale,
+                haptics = config.behaviour.hapticFeedback,
+            ) {
                 Box(
                     Modifier
                         .fillMaxSize()
@@ -90,12 +106,22 @@ class AppDrawerActivity : ComponentActivity() {
                 ) {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         if (query.isEmpty()) {
-                            BigHeading(stringResource(R.string.apps))
+                            BigHeading(
+                                stringResource(if (recentOnly) R.string.apps_recent else R.string.apps),
+                            )
                         }
                         BigSearchField(
                             value = query,
                             onValueChange = { query = it },
                             hint = stringResource(R.string.search_apps),
+                            secondary = if (query.isEmpty()) {
+                                null
+                            } else {
+                                pluralStringResource(R.plurals.search_matches, shown.size, shown.size)
+                            },
+                            // Genau ein Treffer: die Lupentaste startet ihn direkt. Bei drei
+                            // Zoll ist das oft der ganze Weg - man sieht die Liste nie.
+                            onSearch = { shown.singleOrNull()?.let { launch(it) } },
                         )
                         if (all.isNotEmpty() && shown.isEmpty()) {
                             Text(
@@ -106,19 +132,45 @@ class AppDrawerActivity : ComponentActivity() {
                             )
                         }
                         val listState = rememberLazyListState()
+                        if (recentOnly && query.isEmpty()) {
+                            if (recents.isEmpty()) {
+                                Text(
+                                    text = stringResource(R.string.apps_recent_none),
+                                    color = palette.onBackground,
+                                    fontSize = 17.sp,
+                                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 8.dp),
+                                )
+                            }
+                            BigRow(
+                                label = stringResource(R.string.apps_show_all),
+                                icon = Icons.Filled.Apps,
+                                surface = palette.surfaceAccent,
+                                onClick = { recentOnly = false },
+                            )
+                        }
                         LazyColumn(
                             state = listState,
                             verticalArrangement = Arrangement.spacedBy(4.dp),
                             modifier = Modifier.weight(1f, fill = false),
                         ) {
                             if (recents.isNotEmpty()) {
-                                item { BigHeading(stringResource(R.string.apps_recent)) }
+                                // In der Ansicht "Zuletzt benutzt" waere die Ueberschrift
+                                // dieselbe wie der Seitentitel - zweimal dasselbe Wort
+                                // untereinander sagt beim zweiten Mal nichts mehr.
+                                if (!recentOnly || query.isNotEmpty()) {
+                                    item { BigHeading(stringResource(R.string.apps_recent)) }
+                                }
                                 items(recents, key = { "recent-" + AppDrawer.keyOf(it) }) { app ->
                                     AppRow(app, repository, onClick = { launch(app) }, onHide = null)
                                 }
-                                item { BigHeading(stringResource(R.string.apps_all)) }
+                                if (!recentOnly || query.isNotEmpty()) {
+                                    item { BigHeading(stringResource(R.string.apps_all)) }
+                                }
                             }
-                            items(shown, key = { AppDrawer.keyOf(it) }) { app ->
+                            items(
+                                if (recentOnly && query.isEmpty()) emptyList() else shown,
+                                key = { AppDrawer.keyOf(it) },
+                            ) { app ->
                                 AppRow(
                                     app = app,
                                     repository = repository,

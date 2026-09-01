@@ -26,6 +26,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.draw.clip
@@ -70,6 +71,8 @@ fun BigRow(
 ) {
     val palette = LocalBigPalette.current
     val scale = LocalTextScale.current
+    val haptik = LocalHapticFeedback.current
+    val haptikAn = LocalHapticsEnabled.current
     val interaction = remember { MutableInteractionSource() }
     val pressed by interaction.collectIsPressedAsState()
     val press by animateFloatAsState(if (pressed) 0.98f else 1f, label = "press")
@@ -86,8 +89,8 @@ fun BigRow(
             .combinedClickable(
                 interactionSource = interaction,
                 indication = null,
-                onClick = onClick,
-                onLongClick = onLongClick,
+                onClick = { haptik.tap(haptikAn); onClick() },
+                onLongClick = onLongClick?.let { echt -> { haptik.longPress(haptikAn); echt() } },
             )
             .heightIn(min = 72.dp)
             .padding(horizontal = 16.dp, vertical = 12.dp),

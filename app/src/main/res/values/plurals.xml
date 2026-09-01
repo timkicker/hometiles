@@ -20,4 +20,20 @@
         <item quantity="one">No tile leads to “%1$s”. Put a “Jump to screen” tile somewhere, or you will not find it again.</item>
         <item quantity="other">No tile leads to these screens: %1$s. Put a “Jump to screen” tile somewhere, or you will not find them again.</item>
     </plurals>
+    <plurals name="search_matches">
+        <item quantity="one">%1$d match — the magnifier key opens it</item>
+        <item quantity="other">%1$d matches</item>
+    </plurals>
+    <plurals name="folder_delete_body">
+        <item quantity="one">%1$d tile inside goes with it. That cannot be undone.</item>
+        <item quantity="other">%1$d tiles inside go with it. That cannot be undone.</item>
+    </plurals>
+    <plurals name="move_target_folder">
+        <item quantity="one">Folder · %1$d space free</item>
+        <item quantity="other">Folder · %1$d spaces free</item>
+    </plurals>
+    <plurals name="move_target_screen">
+        <item quantity="one">Screen · %1$d space free</item>
+        <item quantity="other">Screen · %1$d spaces free</item>
+    </plurals>
 </resources>

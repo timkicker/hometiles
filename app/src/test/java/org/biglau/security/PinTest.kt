@@ -1,8 +1,10 @@
 package org.biglau.security
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
+import org.biglau.ui.EMERGENCY_HOLD_MILLIS
 import org.junit.Test
 
 class PinTest {
@@ -92,5 +94,56 @@ class PinTest {
     fun `derselbe Salzwert ergibt denselben Hash`() {
         val salt = ByteArray(16) { 7 }
         assertEquals(Pin.hash("1234", salt), Pin.hash("1234", salt))
+    }
+}
+
+/**
+ * Die Notausstiegs-Dauer.
+ *
+ * Sie steht im Erklärtext der Sperre, und der Text muss stimmen: wer 30 Sekunden hält, weil
+ * es dort steht, und nach 25 loslässt, weil nichts passiert, hält sich für ausgesperrt. Die
+ * Zahl im Text und die Zahl im Code dürfen nicht auseinanderlaufen.
+ */
+class EmergencyHoldTest {
+
+    @Test
+    fun `der Notausstieg dauert dreissig Sekunden`() {
+        assertEquals(30_000L, EMERGENCY_HOLD_MILLIS)
+    }
+
+    @Test
+    fun `die Dauer geht glatt in Sekunden auf`() {
+        // Der Countdown zählt in ganzen Sekunden herunter; ein krummer Wert ließe ihn
+        // bei 1 stehenbleiben, statt bei 0 auszulösen.
+        assertEquals(0L, EMERGENCY_HOLD_MILLIS % 1000)
+    }
+}
+
+/**
+ * Der PIN-Schutz für den Kachel-Editor.
+ *
+ * `PLAN.md` 4.5 sagt ihn zu; das Feld stand seit dem ersten Tag im Modell und wurde
+ * nirgends gelesen. Der Sinn ist nicht Geheimhaltung, sondern dass die Belegung nicht
+ * versehentlich zerlegt wird - ein langer Druck passiert schneller, als man denkt.
+ */
+class EditorProtectionTest {
+
+    private val gesetzt = Pin.hash("1234")
+
+    @Test
+    fun `ohne PIN schuetzt nichts`() {
+        assertFalse(Pin.protectsEditor(null, enabled = true))
+        assertFalse(Pin.protectsEditor(null, enabled = false))
+    }
+
+    @Test
+    fun `mit PIN und eingeschaltet wird gefragt`() {
+        assertTrue(Pin.protectsEditor(gesetzt, enabled = true))
+    }
+
+    @Test
+    fun `mit PIN und ausgeschaltet nicht`() {
+        // Wer die Einstellungen sperrt, will die Kacheln nicht zwangsläufig mitsperren.
+        assertFalse(Pin.protectsEditor(gesetzt, enabled = false))
     }
 }

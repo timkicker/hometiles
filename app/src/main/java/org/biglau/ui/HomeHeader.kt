@@ -6,6 +6,12 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import org.biglau.R
+import androidx.compose.ui.res.stringResource
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.Icon
+import androidx.compose.material.icons.filled.Bolt
+import androidx.compose.material.icons.Icons
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -85,7 +91,7 @@ fun HomeHeader(
             .height(if (showDate) 78.dp else 54.dp)
             .clip(RoundedCornerShape(12.dp))
             .background(palette.emptyTile)
-            .padding(horizontal = 14.dp, vertical = 6.dp),
+            .padding(horizontal = 12.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(modifier = Modifier.weight(1f)) {
@@ -109,25 +115,37 @@ fun HomeHeader(
         }
 
         Column(horizontalAlignment = Alignment.End) {
-            Text(
-                text = buildString {
-                    append(if (percent == null) "?" else "$percent %")
-                    if (charging) append(" ⚡")
-                },
-                color = if (low) palette.danger else palette.onBackground,
-                fontSize = dpSp(20f * scale),
-                fontWeight = FontWeight.Bold,
-                maxLines = 1,
-                softWrap = false,
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = if (percent == null) "?" else "$percent %",
+                    color = if (low) palette.danger else palette.onBackground,
+                    fontSize = dpSp(20f * scale),
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    softWrap = false,
+                )
+                // Das Blitzzeichen war ein Emoji und kam damit aus der Emoji-Schrift des
+                // Systems - eine zweite Schriftart mitten in der Kopfzeile, in fremder Farbe.
+                // Jetzt dasselbe Symbol-Set wie ueberall sonst, in unserer Tinte.
+                if (charging) {
+                    Icon(
+                        imageVector = Icons.Filled.Bolt,
+                        contentDescription = stringResource(R.string.battery_charging),
+                        tint = if (low) palette.danger else palette.onBackground,
+                        modifier = Modifier.padding(start = 4.dp).size(dpSp(20f * scale).value.dp),
+                    )
+                }
+            }
             if (fraction != null) {
                 Box(
                     Modifier
-                        .padding(top = 5.dp)
+                        .padding(top = 4.dp)
                         .width(72.dp)
                         .height(8.dp)
                         .clip(RoundedCornerShape(50))
-                        .background(Color.Black.copy(alpha = 0.45f)),
+                        // Aus dem Token-System abgeleitet statt aus einem festen Schwarz:
+                        // im hellen Thema waere ein schwarzer Balken ein Fremdkoerper.
+                        .background(palette.onBackground.copy(alpha = 0.25f)),
                 ) {
                     Box(
                         Modifier

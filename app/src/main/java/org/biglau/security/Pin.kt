@@ -22,6 +22,19 @@ object Pin {
     private const val KEY_BITS = 256
     private const val ALGORITHM = "PBKDF2WithHmacSHA256"
 
+    /**
+     * Muss vor dem Kachel-Editor eine PIN abgefragt werden?
+     *
+     * Nur, wenn es überhaupt eine gibt **und** der Schutz eingeschaltet ist. Der Sinn ist
+     * nicht Geheimhaltung, sondern dass die Belegung nicht versehentlich zerlegt wird -
+     * ein langer Druck passiert schneller, als man denkt.
+     *
+     * Bewusst **ohne** eigenen Notausstieg: den gibt es genau einmal, auf der PIN-Eingabe
+     * der Einstellungen. Zwei Hintertüren an einem Schloss sind eine zu viel, und von den
+     * Einstellungen aus lässt sich dieser Schutz abschalten.
+     */
+    fun protectsEditor(stored: String?, enabled: Boolean): Boolean = stored != null && enabled
+
     /** Nur Ziffern, und zwar zwischen vier und acht davon. */
     fun isValid(pin: String): Boolean =
         pin.length in MIN_LENGTH..MAX_LENGTH && pin.all { it.isDigit() }

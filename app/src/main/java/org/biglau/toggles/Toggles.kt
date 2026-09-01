@@ -1,6 +1,16 @@
 package org.biglau.toggles
 
-enum class ToggleKind { FLASHLIGHT, RINGER, WIFI, BLUETOOTH, AIRPLANE }
+enum class ToggleKind {
+    FLASHLIGHT, RINGER, WIFI, BLUETOOTH, AIRPLANE,
+
+    /**
+     * Mobile Daten, Standort und Helligkeit. Alle drei darf eine gewöhnliche App nicht
+     * selbst umlegen - mobile Daten nie, den Standort nie, die Helligkeit nur mit
+     * `WRITE_SETTINGS`, was eine eigene Sondererlaubnis ist. Sie öffnen deshalb die
+     * zuständige Systemseite, und die Beschriftung sagt das auch.
+     */
+    MOBILE_DATA, LOCATION, BRIGHTNESS,
+}
 
 /** Was beim Antippen tatsaechlich passieren kann. */
 enum class ToggleAction {
@@ -32,6 +42,11 @@ object Toggles {
         ToggleKind.WIFI -> if (sdkInt >= 29) ToggleAction.PANEL else ToggleAction.SWITCH
         ToggleKind.BLUETOOTH -> if (sdkInt >= 33) ToggleAction.SETTINGS else ToggleAction.SWITCH
         ToggleKind.AIRPLANE -> ToggleAction.SETTINGS
+        // Mobile Daten haben ab Android 10 eine eigene Systemblende; darunter bleibt nur
+        // die Einstellungsseite.
+        ToggleKind.MOBILE_DATA -> if (sdkInt >= 29) ToggleAction.PANEL else ToggleAction.SETTINGS
+        ToggleKind.LOCATION -> ToggleAction.SETTINGS
+        ToggleKind.BRIGHTNESS -> ToggleAction.SETTINGS
     }
 
     /** Kann der Nutzer erwarten, dass sich der Zustand sofort aendert? */

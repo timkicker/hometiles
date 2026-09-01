@@ -118,7 +118,11 @@ class SmsActivity : ComponentActivity() {
                 SmsThreads.group(messages) { names[PhoneNumbers.clean(it)] }
             }
 
-            BigLauTheme(config.appearance.theme, config.appearance.textScale) {
+            BigLauTheme(
+                config.appearance.theme,
+                config.appearance.textScale,
+                haptics = config.behaviour.hapticFeedback,
+            ) {
                 BackHandler(enabled = openThread != null) { openThread = null }
 
                 Box(
@@ -253,7 +257,7 @@ private fun Conversation(
     onSend: () -> Unit,
 ) {
     val palette = LocalBigPalette.current
-    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         BigHeading(title)
         if (!isDefaultApp) {
             // Ehrlich sein statt eine Nachricht zu zeigen, die nach dem Neustart weg ist.

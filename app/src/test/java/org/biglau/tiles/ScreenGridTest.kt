@@ -5,6 +5,7 @@ import org.biglau.data.ButtonAction
 import org.biglau.data.Cell
 import org.biglau.data.LauncherConfig
 import org.biglau.data.Screen
+import org.biglau.data.ScreenKind
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -154,5 +155,35 @@ class ScreenReachabilityTest {
             homeScreenId = "home",
         )
         assertTrue(ScreenEdits.unreachable(config).isEmpty())
+    }
+}
+
+/**
+ * Ordner dürfen die Warnung vor unerreichbaren Screens nicht auslösen.
+ *
+ * Zu einem Ordner führt eine Ordnerkachel, keine Sprungkachel. Ohne diese Ausnahme hätte
+ * jeder angelegte Ordner sofort eine rote Warnung erzeugt - und eine Warnung, die immer
+ * kommt, liest nach der dritten niemand mehr.
+ */
+class FolderReachabilityTest {
+
+    @Test
+    fun `ein Ordner gilt nicht als unerreichbarer Screen`() {
+        val ordner = Screen(id = "f1", name = "Bank", kind = ScreenKind.FOLDER)
+        val heim = Screen(
+            id = "home",
+            name = "Start",
+            cells = listOf(Cell(0, 0, button = Button(action = ButtonAction.Folder("f1")))),
+        )
+        val config = LauncherConfig(screens = listOf(heim, ordner), homeScreenId = "home")
+        assertTrue(ScreenEdits.unreachable(config).isEmpty())
+    }
+
+    @Test
+    fun `ein gewoehnlicher Screen ohne Sprungkachel weiterhin schon`() {
+        val zweiter = Screen(id = "s2", name = "Zwei")
+        val heim = Screen(id = "home", name = "Start")
+        val config = LauncherConfig(screens = listOf(heim, zweiter), homeScreenId = "home")
+        assertEquals(listOf("s2"), ScreenEdits.unreachable(config).map { it.id })
     }
 }

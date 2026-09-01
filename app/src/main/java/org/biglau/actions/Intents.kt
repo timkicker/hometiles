@@ -46,6 +46,16 @@ object Intents {
 
     /** Die Seite dieser App in den Systemeinstellungen - der einzige Weg zurueck, wenn
      *  Android eine Berechtigung nicht mehr abfragt. */
+    /** Die Systemeinstellungen von Android - nicht unsere. */
+    /** Eine Webseite oeffnen - was der Nutzer als Standardbrowser gesetzt hat. */
+    fun openLink(context: Context, url: String) = start(context) {
+        Intent(Intent.ACTION_VIEW, android.net.Uri.parse(url))
+    }
+
+    fun androidSettings(context: Context) = start(context) {
+        Intent(android.provider.Settings.ACTION_SETTINGS)
+    }
+
     fun appSettings(context: Context) = start(context) {
         Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
             .setData(android.net.Uri.fromParts("package", context.packageName, null))

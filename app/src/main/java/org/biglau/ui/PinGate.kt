@@ -6,6 +6,8 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -92,31 +94,39 @@ fun PinGate(
             PinDots(entered.length)
         }
 
-        if (explainer != null && !wrong && heldSeconds == 0) {
-            Text(
-                text = explainer,
-                color = palette.onBackground,
-                fontSize = 15.sp,
-                modifier = Modifier.padding(horizontal = 4.dp),
-            )
-        }
-        if (heldSeconds > 0) {
-            Text(
-                text = "${EMERGENCY_HOLD_MILLIS / 1000 - heldSeconds}",
-                color = palette.accent,
-                fontSize = 22.sp,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(horizontal = 4.dp),
-            )
-        }
-        if (wrong) {
-            Text(
-                text = wrongText,
-                color = palette.danger,
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(horizontal = 4.dp),
-            )
+        // Erklaerung und Fehlermeldung teilen sich einen Platz fester Hoehe. Vorher
+        // wechselten sie einander ab - fuenf Zeilen Erklaerung gegen eine Zeile Fehler -,
+        // und die Tastatur sprang bei jedem Fehlversuch um mehrere Zentimeter. Wer dann
+        // weitertippt, trifft die Taste daneben und haelt sich fuer vertippt.
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(96.dp)
+                .padding(horizontal = 4.dp),
+        ) {
+            when {
+                heldSeconds > 0 -> Text(
+                    text = "${EMERGENCY_HOLD_MILLIS / 1000 - heldSeconds}",
+                    color = palette.accent,
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.Bold,
+                )
+
+                wrong -> Text(
+                    text = wrongText,
+                    color = palette.danger,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                )
+
+                explainer != null -> Text(
+                    text = explainer,
+                    color = palette.onBackground,
+                    fontSize = 15.sp,
+                    maxLines = 4,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
         }
 
         Box(Modifier.weight(1f)) {
@@ -133,7 +143,17 @@ fun PinGate(
         BigRow(
             label = confirmLabel,
             surface = palette.surfaceAccent,
-            onClick = { if (onCheck(entered)) onAccept(entered) else wrong = true },
+            onClick = {
+                if (onCheck(entered)) {
+                    onAccept(entered)
+                } else {
+                    // Eingabe leeren. Blieb sie stehen, tippte man die naechste PIN hinten
+                    // an die falsche an und kam nie wieder heraus - acht Punkte voll, und
+                    // jede weitere Ziffer fiel lautlos weg.
+                    wrong = true
+                    entered = ""
+                }
+            },
         )
     }
 }

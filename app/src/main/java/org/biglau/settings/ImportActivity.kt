@@ -57,7 +57,11 @@ class ImportActivity : ComponentActivity() {
             var done by remember { mutableStateOf(false) }
             val palette = LocalBigPalette.current
 
-            BigLauTheme(config.appearance.theme, config.appearance.textScale) {
+            BigLauTheme(
+                config.appearance.theme,
+                config.appearance.textScale,
+                haptics = config.behaviour.hapticFeedback,
+            ) {
                 Box(
                     Modifier
                         .fillMaxSize()

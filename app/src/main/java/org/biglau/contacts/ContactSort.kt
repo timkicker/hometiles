@@ -48,6 +48,18 @@ object ContactSort {
         ),
     )
 
+    /**
+     * Nur die Favoriten, in derselben Reihenfolge wie sonst.
+     *
+     * Eine eigene Kachel dafuer, weil die volle Liste bei 338 Kontakten selbst mit Suche
+     * ein Umweg ist - und weil die drei bis fuenf Menschen, die man taeglich anruft,
+     * genau die sind, fuer die diese App gemacht ist.
+     */
+    fun favouritesOnly(
+        contacts: List<PhoneContact>,
+        order: ContactOrder,
+    ): List<PhoneContact> = sorted(contacts.filter { it.starred }, order, favouritesFirst = false)
+
     /** Ueber welche Felder gesucht wird. */
     fun searchText(contact: PhoneContact, includeNumbers: Boolean): String = buildString {
         append(contact.name)

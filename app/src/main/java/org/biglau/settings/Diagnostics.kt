@@ -7,6 +7,7 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.util.DisplayMetrics
 import androidx.core.content.ContextCompat
+import org.biglau.R
 import org.biglau.notify.NotificationRepository
 import org.biglau.notify.SystemPackagesReader
 import org.biglau.safety.CrashRecorder
@@ -18,30 +19,52 @@ import org.biglau.safety.CrashRecorder
  */
 object Diagnostics {
 
-    fun collect(context: Context): List<Pair<String, String>> {
+    /**
+     * @param usableDp was nach Statusleiste und Gestenleiste uebrig bleibt - `null`, wenn
+     *   es nicht zu ermitteln war.
+     * @param text loest eine Zeichenkette auf. Die Beschriftungen standen hier einmal fest
+     *   auf Deutsch; auf einem englischen Geraet war ausgerechnet die Seite unlesbar, die
+     *   man aufschlaegt, wenn etwas nicht geht.
+     */
+    fun collect(
+        context: Context,
+        usableDp: Pair<Int, Int>?,
+        text: (Int) -> String,
+    ): List<Pair<String, String>> {
         val metrics: DisplayMetrics = context.resources.displayMetrics
-        val widthDp = metrics.widthPixels * 160f / metrics.densityDpi
-        val heightDp = metrics.heightPixels * 160f / metrics.densityDpi
+        val fensterBreiteDp = (metrics.widthPixels * 160f / metrics.densityDpi).toInt()
+        val fensterHoeheDp = (metrics.heightPixels * 160f / metrics.densityDpi).toInt()
 
         return buildList {
-            add("Fensterfläche" to "${metrics.widthPixels} × ${metrics.heightPixels} px")
-            add("Dichte" to "${metrics.densityDpi} dpi (Faktor ${"%.3f".format(metrics.density)})")
-            add("Nutzbar" to "${widthDp.toInt()} × ${heightDp.toInt()} dp")
-            add("Systemschrift" to "%.2f".format(context.resources.configuration.fontScale))
-            add("Android" to "${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT})")
-            add("Gerät" to "${Build.MANUFACTURER} ${Build.MODEL}")
-            add("Startbildschirm" to yesNo(holdsHomeRole(context)))
-            add("Benachrichtigungszugriff" to yesNo(NotificationRepository.isEnabled(context)))
+            add(text(R.string.diag_window) to "${metrics.widthPixels} × ${metrics.heightPixels} px")
+            add(
+                text(R.string.diag_density) to
+                    "${metrics.densityDpi} dpi (${"%.3f".format(metrics.density)}×)",
+            )
+            add(text(R.string.diag_window_dp) to "$fensterBreiteDp × $fensterHoeheDp dp")
+            // Die Zeile, auf die es beim Entwerfen ankommt: das Fenster ist nicht das,
+            // was eine Kachel bekommt. Statusleiste und Gestenleiste gehen noch ab.
+            usableDp?.let { (breite, hoehe) ->
+                add(text(R.string.diag_usable) to "$breite × $hoehe dp")
+            }
+            add(text(R.string.diag_font_scale) to "%.2f".format(context.resources.configuration.fontScale))
+            add(text(R.string.diag_android) to "${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT})")
+            add(text(R.string.diag_device) to "${Build.MANUFACTURER} ${Build.MODEL}")
+            add(text(R.string.diag_home_role) to yesNo(holdsHomeRole(context), text))
+            add(text(R.string.diag_notification_access) to yesNo(NotificationRepository.isEnabled(context), text))
             val system = SystemPackagesReader.read(context)
-            add("Standard-SMS-App" to (system.sms ?: "keine"))
-            add("Standard-Telefon-App" to (system.dialer ?: "keine"))
-            add("Kontakte" to yesNo(granted(context, Manifest.permission.READ_CONTACTS)))
-            add("Anrufe" to yesNo(granted(context, Manifest.permission.CALL_PHONE)))
-            add("SMS senden" to yesNo(granted(context, Manifest.permission.SEND_SMS)))
-            add("Standort" to yesNo(granted(context, Manifest.permission.ACCESS_FINE_LOCATION)))
+            add(text(R.string.diag_default_sms) to (system.sms ?: text(R.string.diag_none)))
+            add(text(R.string.diag_default_dialer) to (system.dialer ?: text(R.string.diag_none)))
+            add(text(R.string.diag_contacts) to yesNo(granted(context, Manifest.permission.READ_CONTACTS), text))
+            add(text(R.string.diag_calls) to yesNo(granted(context, Manifest.permission.CALL_PHONE), text))
+            add(text(R.string.diag_send_sms) to yesNo(granted(context, Manifest.permission.SEND_SMS), text))
+            add(text(R.string.diag_location) to yesNo(granted(context, Manifest.permission.ACCESS_FINE_LOCATION), text))
             val recorder = CrashRecorder.get(context)
-            add("Fehlgeschlagene Starts" to recorder.failedStarts.toString())
-            add("Letzter Absturz" to (recorder.lastCrash()?.lineSequence()?.firstOrNull() ?: "keiner"))
+            add(text(R.string.diag_failed_starts) to recorder.failedStarts.toString())
+            add(
+                text(R.string.diag_last_crash) to
+                    (recorder.lastCrash()?.lineSequence()?.firstOrNull() ?: text(R.string.diag_none)),
+            )
         }
     }
 
@@ -54,5 +77,6 @@ object Diagnostics {
         return roles.isRoleAvailable(RoleManager.ROLE_HOME) && roles.isRoleHeld(RoleManager.ROLE_HOME)
     }
 
-    private fun yesNo(value: Boolean) = if (value) "ja" else "nein"
+    private fun yesNo(value: Boolean, text: (Int) -> String) =
+        text(if (value) R.string.diag_yes else R.string.diag_no)
 }

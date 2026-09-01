@@ -50,6 +50,8 @@ object TileEdits {
         is ButtonAction.App -> b is ButtonAction.App
         is ButtonAction.Contact -> b is ButtonAction.Contact
         is ButtonAction.GoToScreen -> b is ButtonAction.GoToScreen
+        is ButtonAction.Folder -> b is ButtonAction.Folder
+        is ButtonAction.Link -> b is ButtonAction.Link
         is ButtonAction.Shortcut -> b is ButtonAction.Shortcut
         is ButtonAction.Widget -> b is ButtonAction.Widget
         is ButtonAction.Action -> b is ButtonAction.Action

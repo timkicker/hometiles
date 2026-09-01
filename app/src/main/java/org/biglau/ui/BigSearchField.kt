@@ -4,6 +4,9 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -47,6 +50,10 @@ fun BigSearchField(
     onValueChange: (String) -> Unit,
     hint: String,
     modifier: Modifier = Modifier,
+    /** Zweite Zeile im Feld, etwa die Zahl der Treffer. */
+    secondary: String? = null,
+    /** Die Lupentaste der Tastatur. */
+    onSearch: (() -> Unit)? = null,
 ) {
     val palette = LocalBigPalette.current
     val scale = LocalTextScale.current
@@ -69,7 +76,8 @@ fun BigSearchField(
             tint = palette.onBackground,
             modifier = Modifier.size(28.dp),
         )
-        Box(Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
+        Column(Modifier.weight(1f)) {
+            Box(contentAlignment = Alignment.CenterStart) {
             if (value.isEmpty()) {
                 Text(
                     text = hint,
@@ -88,12 +96,28 @@ fun BigSearchField(
                 ),
                 cursorBrush = SolidColor(palette.accent),
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                keyboardActions = KeyboardActions(onSearch = { onSearch?.invoke() }),
                 // Ohne diesen Namen meldet ein Screenreader nur "Eingabefeld" - der
                 // aufgemalte Platzhalter ist fuer ihn nicht das Gleiche wie eine Beschriftung.
                 modifier = Modifier
                     .fillMaxWidth()
                     .semantics { contentDescription = hint },
             )
+            }
+            // Auf drei Zoll verdeckt die Tastatur die Trefferliste vollstaendig. Die Zahl
+            // der Treffer steht deshalb im Feld selbst - der einzigen Zeile, die sichtbar
+            // bleibt, waehrend man tippt.
+            if (secondary != null) {
+                Text(
+                    text = secondary,
+                    color = palette.onBackground,
+                    fontSize = (14f * scale).sp,
+                    // Zwei Zeilen: bei 1,35-facher Systemschrift passt der Hinweis zur
+                    // Lupentaste sonst nicht, und abgeschnitten erklaert er nichts.
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
         }
         if (value.isNotEmpty()) {
             // Eigene Flaeche statt eines nackten Symbols: 48 dp ist das Mindestmass fuer

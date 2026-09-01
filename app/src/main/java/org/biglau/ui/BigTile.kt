@@ -39,6 +39,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -79,11 +80,19 @@ fun BigTile(
     badgeCount: Int = 0,
     /** Ersetzt Icon und Beschriftung - genutzt von Uhr und Batterie. */
     content: (@Composable () -> Unit)? = null,
+    /**
+     * Eigene Zeichnung **an der Stelle des Symbols**, mit Beschriftungszone wie sonst auch.
+     * Anders als [content], das die ganze Kachel uebernimmt und damit auch die Beschriftung
+     * verschluckt - der Ordner braucht beides, sein Inhalt oben und sein Name unten.
+     */
+    iconContent: (@Composable () -> Unit)? = null,
     contentDescription: String = label,
     onClick: () -> Unit = {},
     onLongClick: () -> Unit = {},
 ) {
     val palette = LocalBigPalette.current
+    val haptik = LocalHapticFeedback.current
+    val haptikAn = LocalHapticsEnabled.current
     val textScale = LocalTextScale.current
     val interaction = remember { MutableInteractionSource() }
     val pressed by interaction.collectIsPressedAsState()
@@ -133,8 +142,8 @@ fun BigTile(
             .combinedClickable(
                 interactionSource = interaction,
                 indication = null,
-                onClick = onClick,
-                onLongClick = onLongClick,
+                onClick = { haptik.tap(haptikAn); onClick() },
+                onLongClick = onLongClick?.let { echt -> { haptik.longPress(haptikAn); echt() } },
             )
             .semantics { this.contentDescription = contentDescription },
     ) {
@@ -188,6 +197,7 @@ fun BigTile(
         ) {
             Box(Modifier.fillMaxWidth()) {
                 when {
+                    iconContent != null -> iconContent()
                     photoUri != null -> Unit
                     iconBitmap != null -> Image(
                         bitmap = iconBitmap,

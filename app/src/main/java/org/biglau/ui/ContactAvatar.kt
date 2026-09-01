@@ -29,7 +29,7 @@ fun ContactAvatar(
     modifier: Modifier = Modifier,
 ) {
     val palette = LocalBigPalette.current
-    val shape = RoundedCornerShape(10.dp)
+    val shape = RoundedCornerShape(12.dp)
 
     if (photoUri != null) {
         AsyncImage(

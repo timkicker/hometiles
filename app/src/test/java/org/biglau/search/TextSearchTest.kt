@@ -102,3 +102,56 @@ class TextSearchTest {
         assertEquals(once, twice)
     }
 }
+
+/**
+ * Suchen, bis genau einer übrig ist.
+ *
+ * Auf drei Zoll verdeckt die Tastatur die Trefferliste vollständig - zwischen Suchfeld und
+ * Tastatur bleiben zwanzig Pixel. Der Ausweg ist nicht mehr Platz, den es nicht gibt,
+ * sondern: die Zahl der Treffer steht im Feld, und bei genau einem startet ihn die
+ * Lupentaste. Diese Tests halten fest, dass man dorthin auch kommt.
+ */
+class SingleMatchTest {
+
+    private val apps = listOf(
+        "AnkiDroid", "Assistant", "BigLau", "Bolt", "Brave", "Calculator", "Calendar",
+        "Camera", "Chrome", "Clock", "Gmail", "Google Maps", "MeteoSwiss",
+        "Microsoft SwiftKey Keyboard", "Settings",
+    )
+
+    private fun treffer(query: String) = TextSearch.filter(apps, query) { it }
+
+    @Test
+    fun `vier Buchstaben genuegen fuer einen einzigen Treffer`() {
+        assertEquals(listOf("Calculator"), treffer("calc"))
+    }
+
+    @Test
+    fun `drei Buchstaben lassen hier noch zwei uebrig`() {
+        // "cal" trifft Calculator und Calendar - die Zahl im Feld sagt das, und die
+        // Lupentaste tut dann nichts, statt willkuerlich eine der beiden zu starten.
+        assertEquals(2, treffer("cal").size)
+        assertNull(treffer("cal").singleOrNull())
+    }
+
+    @Test
+    fun `zwei Wortteile fuehren schneller zum Ziel`() {
+        assertEquals(listOf("Google Maps"), treffer("goog map"))
+    }
+
+    @Test
+    fun `ein Wort in der Mitte zaehlt auch`() {
+        assertEquals(listOf("Microsoft SwiftKey Keyboard"), treffer("swift"))
+    }
+
+    @Test
+    fun `ohne Treffer bleibt nichts uebrig`() {
+        assertEquals(emptyList<String>(), treffer("zzz"))
+        assertNull(treffer("zzz").singleOrNull())
+    }
+
+    @Test
+    fun `die leere Anfrage zeigt alles`() {
+        assertEquals(apps.size, treffer("").size)
+    }
+}
