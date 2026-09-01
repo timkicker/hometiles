@@ -6,9 +6,9 @@ import android.content.Intent
 import android.media.AudioManager
 import android.os.Build
 import android.provider.Settings
-import android.widget.Toast
 import org.biglau.R
 import org.biglau.actions.Flashlight
+import org.biglau.ui.Notice
 
 /**
  * Fuehrt aus, was [Toggles] fuer moeglich haelt.
@@ -30,7 +30,7 @@ object ToggleActions {
     private fun switch(context: Context, kind: ToggleKind) {
         when (kind) {
             ToggleKind.FLASHLIGHT -> if (!Flashlight.toggle(context)) {
-                Toast.makeText(context, R.string.toggle_no_flashlight, Toast.LENGTH_SHORT).show()
+                Notice.show(context, R.string.toggle_no_flashlight)
             }
 
             ToggleKind.RINGER -> {

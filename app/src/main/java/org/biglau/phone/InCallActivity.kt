@@ -39,6 +39,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.delay
+import org.biglau.ui.BigLauActivity
 import org.biglau.R
 import org.biglau.data.ConfigStore
 import org.biglau.ui.BigKeypad
@@ -57,7 +58,7 @@ import org.biglau.ui.theme.LocalBigPalette
  * Die Zurueck-Geste tut hier nichts: waehrend eines Anrufs versehentlich wegzuwischen und
  * dann das Auflegen nicht mehr zu finden, waere die schlimmste Art, diese App zu verlieren.
  */
-class InCallActivity : ComponentActivity() {
+class InCallActivity : BigLauActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -90,7 +91,12 @@ class InCallActivity : ComponentActivity() {
             BigLauTheme(
                 config.appearance.theme,
                 config.appearance.textScale,
-                haptics = config.behaviour.hapticFeedback,
+                haptics = config.behaviour.haptics,
+                font = config.appearance.font,
+                labelScale = config.appearance.labelScale,
+                iconPercent = config.appearance.iconPercent,
+                icons = config.appearance.icons,
+                cornerRadiusDp = config.appearance.cornerRadiusDp,
             ) {
                 val current = view
                 Box(

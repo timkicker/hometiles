@@ -4,7 +4,7 @@ object Defaults {
 
     const val MAIN_ID = "home"
 
-    /** Startbelegung im 2x3-Raster - das Standardraster fuer 349x581 dp. */
+    /** Startbelegung im 2x3-Raster - das Standardraster fuer 349x565 dp. */
     fun mainScreen(): Screen {
         val actions = listOf(
             Builtin.DIALER,

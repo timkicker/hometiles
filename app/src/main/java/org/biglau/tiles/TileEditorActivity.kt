@@ -4,7 +4,6 @@ import android.Manifest
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
-import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -45,6 +44,10 @@ import androidx.compose.material.icons.filled.QuestionMark
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Folder
+import org.biglau.ui.theme.LocalCornerRadius
+import org.biglau.ui.BigLauActivity
+import org.biglau.notify.TileNotifications
+import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.ViewCarousel
 import androidx.compose.material.icons.automirrored.filled.DriveFileMove
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
@@ -54,6 +57,7 @@ import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.OpenInFull
 import androidx.compose.material.icons.filled.Palette
+import androidx.compose.material.icons.filled.TouchApp
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.Widgets
 import androidx.compose.material3.OutlinedTextField
@@ -69,6 +73,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -88,6 +93,7 @@ import org.biglau.search.TextSearch
 import org.biglau.shortcuts.ShortcutRepository
 import org.biglau.shortcuts.ShortcutRow
 import org.biglau.shortcuts.Shortcuts
+import org.biglau.ui.Notice
 import org.biglau.widgets.WidgetFit
 import org.biglau.widgets.WidgetHostController
 import org.biglau.widgets.WidgetProviderRow
@@ -116,13 +122,13 @@ import org.biglau.ui.labelRes
 import org.biglau.ui.theme.BigLauTheme
 import org.biglau.ui.theme.LocalBigPalette
 
-private enum class Mode { MENU, MOVE, EDIT_LINK, PICK_BUILTIN, PICK_APP, PICK_CONTACT, PICK_NUMBER, PICK_MODE, EDIT_LABEL, PICK_COLOR, RESIZE, PICK_SCREEN, PICK_SHORTCUT_APP, PICK_SHORTCUT, PICK_WIDGET }
+private enum class Mode { MENU, MOVE, EDIT_LINK, PICK_LONG_PRESS, PICK_LONG_PRESS_APP, PICK_LONG_PRESS_BUILTIN, PICK_BUILTIN, PICK_APP, PICK_CONTACT, PICK_NUMBER, PICK_MODE, EDIT_LABEL, PICK_COLOR, RESIZE, PICK_SCREEN, PICK_SHORTCUT_APP, PICK_SHORTCUT, PICK_WIDGET }
 
 /**
  * Belegt eine einzelne Kachel. Schreibt direkt in den ConfigStore - der Homescreen
  * beobachtet denselben Fluss und zeichnet sich neu, sobald hier etwas passiert.
  */
-class TileEditorActivity : ComponentActivity() {
+class TileEditorActivity : BigLauActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -216,11 +222,10 @@ class TileEditorActivity : ComponentActivity() {
                         bigger ?: board
                     }
                     if (!grew) {
-                        Toast.makeText(
+                        Notice.show(
                             this@TileEditorActivity,
                             getString(R.string.widget_no_room, needX, needY),
-                            Toast.LENGTH_LONG,
-                        ).show()
+                        )
                     }
                 }
 
@@ -301,7 +306,12 @@ class TileEditorActivity : ComponentActivity() {
             BigLauTheme(
                 config.appearance.theme,
                 config.appearance.textScale,
-                haptics = config.behaviour.hapticFeedback,
+                haptics = config.behaviour.haptics,
+                font = config.appearance.font,
+                labelScale = config.appearance.labelScale,
+                iconPercent = config.appearance.iconPercent,
+                icons = config.appearance.icons,
+                cornerRadiusDp = config.appearance.cornerRadiusDp,
             ) {
                 BackHandler(enabled = mode != Mode.MENU) { mode = Mode.MENU }
 
@@ -342,6 +352,7 @@ class TileEditorActivity : ComponentActivity() {
                     when (mode) {
                         Mode.MENU -> MenuList(
                             button = button,
+                            screenName = { id -> config.screenById(id)?.name },
                             appLabel = { a -> apps.labelFor(a.packageName, a.activityName) },
                             onPickBuiltin = { mode = Mode.PICK_BUILTIN },
                             onPickApp = { mode = Mode.PICK_APP },
@@ -358,6 +369,9 @@ class TileEditorActivity : ComponentActivity() {
                             onPickWidget = { mode = Mode.PICK_WIDGET },
                             onPickScreen = { mode = Mode.PICK_SCREEN },
                             onPickLink = { mode = Mode.EDIT_LINK },
+                            onToggleBlink = { write(button.copy(blink = !button.blink)) },
+                            onPickLongPress = { mode = Mode.PICK_LONG_PRESS },
+                            onClearLongPress = { write(TileEdits.withLongPress(button, null)) },
                             mayAddFolder = FolderEdits.mayContainFolder(screen),
                             onNewFolder = {
                                 val id = ScreenEdits.freeId(store.current, base = "folder")
@@ -412,11 +426,10 @@ class TileEditorActivity : ComponentActivity() {
                                 // Ohne Nummer waere die Kachel eine, die nie etwas tut.
                                 // Lieber gar nicht erst anlegen als still nichts belegen.
                                 !contact.isCallable -> {
-                                    Toast.makeText(
+                                    Notice.show(
                                         this@TileEditorActivity,
                                         getString(R.string.contact_without_number, contact.name),
-                                        Toast.LENGTH_LONG,
-                                    ).show()
+                                    )
                                 }
                                 else -> {
                                     chosenNumber = contact.primaryNumber
@@ -461,9 +474,11 @@ class TileEditorActivity : ComponentActivity() {
                                 } else {
                                     button.label.orEmpty()
                                 },
-                                automatic = describe(button.copy(label = null)) { a ->
-                                    apps.labelFor(a.packageName, a.activityName)
-                                },
+                                automatic = describe(
+                                    button.copy(label = null),
+                                    screenName = { id -> config.screenById(id)?.name },
+                                    appLabel = { a -> apps.labelFor(a.packageName, a.activityName) },
+                                ),
                                 titleRes = if (ordner != null) R.string.folder_rename else R.string.editor_label,
                                 hintRes = if (ordner != null) {
                                     R.string.folder_rename_hint
@@ -539,15 +554,36 @@ class TileEditorActivity : ComponentActivity() {
                         ) { eingabe ->
                             val adresse = LinkTarget.normalise(eingabe)
                             if (adresse == null) {
-                                Toast.makeText(
-                                    this@TileEditorActivity,
-                                    R.string.link_invalid,
-                                    Toast.LENGTH_LONG,
-                                ).show()
+                                Notice.show(this@TileEditorActivity, R.string.link_invalid)
                             } else {
                                 write(TileEdits.withAction(button, ButtonAction.Link(adresse)))
                                 mode = Mode.MENU
                             }
+                        }
+
+                        // Erst die Art, dann die Sache. Eine Liste, die Apps und Funktionen
+                        // vermischt, waere auf diesem Schirm zu lang zum Durchsehen.
+                        Mode.PICK_LONG_PRESS -> LongPressKindList(
+                            onApp = { mode = Mode.PICK_LONG_PRESS_APP },
+                            onBuiltin = { mode = Mode.PICK_LONG_PRESS_BUILTIN },
+                        )
+
+                        Mode.PICK_LONG_PRESS_APP -> AppList(
+                            apps,
+                            headingRes = R.string.editor_long_press_pick_app,
+                        ) { app ->
+                            write(
+                                TileEdits.withLongPress(
+                                    button,
+                                    ButtonAction.App(app.packageName, app.activityName),
+                                )
+                            )
+                            mode = Mode.MENU
+                        }
+
+                        Mode.PICK_LONG_PRESS_BUILTIN -> BuiltinList { builtin ->
+                            write(TileEdits.withLongPress(button, ButtonAction.Action(builtin)))
+                            mode = Mode.MENU
                         }
 
                         Mode.MOVE -> MoveTargetList(
@@ -613,6 +649,7 @@ class TileEditorActivity : ComponentActivity() {
 @Composable
 private fun MenuList(
     button: Button,
+    screenName: (String) -> String?,
     appLabel: (ButtonAction.App) -> String?,
     onPickBuiltin: () -> Unit,
     onPickApp: () -> Unit,
@@ -621,6 +658,9 @@ private fun MenuList(
     onPickWidget: () -> Unit,
     onPickScreen: () -> Unit,
     onPickLink: () -> Unit,
+    onToggleBlink: () -> Unit,
+    onPickLongPress: () -> Unit,
+    onClearLongPress: () -> Unit,
     mayAddFolder: Boolean,
     onNewFolder: () -> Unit,
     onEditLabel: () -> Unit,
@@ -637,7 +677,7 @@ private fun MenuList(
         item {
             BigRow(
                 label = stringResource(R.string.editor_current),
-                secondary = describe(button, appLabel),
+                secondary = describe(button, screenName, appLabel),
                 surface = palette.surfaceDefault,
                 onClick = {},
             )
@@ -686,6 +726,52 @@ private fun MenuList(
                 )
             }
         }
+        // Nur wo Blinken ueberhaupt etwas bedeutet: eine Uhr und eine leere Kachel haben
+        // keine Benachrichtigungen, und ein Schalter dafuer waere eine Zusage ohne Deckung.
+        if (TileNotifications.canBlink(button.action)) {
+            item {
+                BigRow(
+                    label = stringResource(
+                        if (button.blink) R.string.editor_blink_on else R.string.editor_blink_off,
+                    ),
+                    secondary = stringResource(R.string.editor_blink_hint),
+                    icon = Icons.Filled.NotificationsActive,
+                    surface = if (button.blink) palette.surfaceAccent else palette.surfaceDefault,
+                    onClick = onToggleBlink,
+                )
+            }
+        }
+        // Zweitbelegung: PLAN.md 4.3 sagt sie zu. Nur wo die Kachel ueberhaupt etwas tut -
+        // eine leere Kachel mit Zweitbelegung waere ein Raetsel.
+        if (button.action != ButtonAction.None) {
+            item {
+                BigRow(
+                    label = if (button.longPress == null) {
+                        stringResource(R.string.editor_long_press_set)
+                    } else {
+                        stringResource(
+                            R.string.editor_long_press_is,
+                            describe(
+                                button.copy(action = button.longPress!!, label = null),
+                                screenName,
+                                appLabel,
+                            ),
+                        )
+                    },
+                    secondary = stringResource(R.string.editor_long_press_hint),
+                    icon = Icons.Filled.TouchApp,
+                    onClick = onPickLongPress,
+                )
+            }
+            if (button.longPress != null) {
+                item {
+                    BigRow(
+                        label = stringResource(R.string.editor_long_press_clear),
+                        onClick = onClearLongPress,
+                    )
+                }
+            }
+        }
         item { BigRow(stringResource(R.string.editor_color), icon = Icons.Filled.Palette, onClick = onPickColor) }
         if (onResize != null) {
             item { BigRow(stringResource(R.string.editor_resize), icon = Icons.Filled.OpenInFull, onClick = onResize) }
@@ -708,19 +794,52 @@ private fun MenuList(
     }
 }
 
+/**
+ * Dieselbe Ableitung wie auf dem Startbildschirm - siehe [TileLabel]. Der Editor hatte
+ * frueher seine eigene und nannte einen Ordner nur "Ordner", wo der Startbildschirm den
+ * Namen zeigte.
+ */
 @Composable
-private fun describe(button: Button, appLabel: (ButtonAction.App) -> String?): String =
-    button.label ?: when (val a = button.action) {
-        is ButtonAction.Action -> stringResource(a.builtin.labelRes())
-        is ButtonAction.App -> appLabel(a) ?: a.packageName
-        is ButtonAction.Contact -> a.name
-        is ButtonAction.Shortcut -> a.label
-        is ButtonAction.Widget -> a.label.ifBlank { stringResource(R.string.editor_pick_widget) }
-        is ButtonAction.GoToScreen -> stringResource(R.string.next_screen)
-        is ButtonAction.Folder -> stringResource(R.string.folder)
-        is ButtonAction.Link -> LinkTarget.labelFor(a.url)
-        ButtonAction.None -> stringResource(R.string.empty_tile)
+private fun describe(
+    button: Button,
+    screenName: (String) -> String?,
+    appLabel: (ButtonAction.App) -> String?,
+): String {
+    val context = LocalContext.current
+    return TileLabel.of(
+        button,
+        TileLabel.Words(
+            emptyTile = stringResource(R.string.empty_tile),
+            folder = stringResource(R.string.folder),
+            nextScreen = stringResource(R.string.next_screen),
+            widget = stringResource(R.string.editor_pick_widget),
+        ),
+        screenName = screenName,
+        appLabel = appLabel,
+        builtinLabel = { builtin -> context.getString(builtin.labelRes()) },
+    )
+}
+
+@Composable
+private fun LongPressKindList(onApp: () -> Unit, onBuiltin: () -> Unit) {
+    LazyColumn(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        item { BigHeading(stringResource(R.string.editor_long_press_kind)) }
+        item {
+            BigRow(
+                label = stringResource(R.string.editor_long_press_kind_app),
+                icon = Icons.Filled.Apps,
+                onClick = onApp,
+            )
+        }
+        item {
+            BigRow(
+                label = stringResource(R.string.editor_long_press_kind_builtin),
+                icon = Icons.Filled.TouchApp,
+                onClick = onBuiltin,
+            )
+        }
     }
+}
 
 @Composable
 private fun BuiltinList(onPick: (Builtin) -> Unit) {
@@ -844,11 +963,11 @@ private fun ColorPicker(selected: Int, onPick: (Int?) -> Unit) {
                     modifier = Modifier
                         .weight(1f)
                         .aspectRatio(0.7f)
-                        .clip(RoundedCornerShape(12.dp))
+                        .clip(RoundedCornerShape(LocalCornerRadius.current))
                         .background(color)
                         .then(
                             if (chosen) {
-                                Modifier.border(4.dp, palette.onBackground, RoundedCornerShape(12.dp))
+                                Modifier.border(4.dp, palette.onBackground, RoundedCornerShape(LocalCornerRadius.current))
                             } else {
                                 Modifier
                             },

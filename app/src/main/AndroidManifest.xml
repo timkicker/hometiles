@@ -52,7 +52,6 @@
             android:launchMode="singleTask"
             android:stateNotNeeded="true"
             android:excludeFromRecents="true"
-            android:screenOrientation="portrait"
             android:configChanges="keyboardHidden|navigation|orientation|screenSize|screenLayout|smallestScreenSize"
             android:windowSoftInputMode="adjustPan"
             android:theme="@style/Theme.BigLau">
@@ -71,7 +70,6 @@
             android:name=".tiles.TileEditorActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize"
-            android:screenOrientation="portrait"
             android:theme="@style/Theme.BigLau" />
 
         <!-- Gespraechsansicht. showWhenLocked, damit ein Anruf auch bei gesperrtem
@@ -83,7 +81,6 @@
             android:excludeFromRecents="true"
             android:showWhenLocked="true"
             android:turnScreenOn="true"
-            android:screenOrientation="portrait"
             android:theme="@style/Theme.BigLau" />
 
         <!-- Die vier Pflichtkomponenten einer Standard-SMS-App. Fehlt eine davon,
@@ -125,7 +122,6 @@
         <activity
             android:name=".sms.SmsActivity"
             android:exported="true"
-            android:screenOrientation="portrait"
             android:windowSoftInputMode="adjustResize"
             android:theme="@style/Theme.BigLau">
             <intent-filter>
@@ -154,7 +150,6 @@
         <activity
             android:name=".toggles.SosActivity"
             android:exported="false"
-            android:screenOrientation="portrait"
             android:theme="@style/Theme.BigLau" />
 
         <!-- Fuer die Telefon-Rolle verlangt Android einen ACTION_DIAL-Einstieg. Ohne ihn
@@ -162,7 +157,6 @@
         <activity
             android:name=".phone.DialerActivity"
             android:exported="true"
-            android:screenOrientation="portrait"
             android:theme="@style/Theme.BigLau">
             <intent-filter>
                 <action android:name="android.intent.action.DIAL" />
@@ -181,21 +175,24 @@
             android:name=".contacts.ContactsActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize"
-            android:screenOrientation="portrait"
             android:theme="@style/Theme.BigLau" />
 
         <activity
             android:name=".apps.AppDrawerActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize"
-            android:screenOrientation="portrait"
             android:theme="@style/Theme.BigLau" />
 
         <!-- Sicherungsdatei von aussen oeffnen: Dateimanager, Cloud, Mailanhang. -->
         <activity
+            android:name=".ui.NoticeActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:theme="@style/Theme.BigLau" />
+
+        <activity
             android:name=".settings.ImportActivity"
             android:exported="true"
-            android:screenOrientation="portrait"
             android:theme="@style/Theme.BigLau">
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
@@ -210,14 +207,12 @@
         <activity
             android:name=".wizard.WizardActivity"
             android:exported="false"
-            android:screenOrientation="portrait"
             android:theme="@style/Theme.BigLau" />
 
         <activity
             android:name=".settings.SettingsActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize"
-            android:screenOrientation="portrait"
             android:theme="@style/Theme.BigLau" />
 
         <service

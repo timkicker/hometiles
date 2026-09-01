@@ -10,7 +10,11 @@ import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import org.biglau.data.ThemeName
-import org.biglau.ui.LocalHapticsEnabled
+import org.biglau.data.FontChoice
+import androidx.compose.ui.unit.dp
+import org.biglau.data.HapticStrength
+import org.biglau.data.IconVisibility
+import org.biglau.ui.LocalHaptics
 
 /**
  * Ein Theme besteht aus Hintergrund, Textfarbe und einer Palette fuer die Kacheln.
@@ -108,12 +112,33 @@ fun BigPalette.tileBorder(): Color? =
 val LocalBigPalette = staticCompositionLocalOf { Dark }
 val LocalTextScale = staticCompositionLocalOf { 1.0f }
 
+/** Beschriftung auf der Kachel, zusaetzlich zur globalen Textgroesse. PLAN.md 4.2. */
+val LocalLabelScale = staticCompositionLocalOf { 1.0f }
+
+/** Icongroesse als Prozent der kuerzeren Zellenkante. PLAN.md 4.2. */
+val LocalIconPercent = staticCompositionLocalOf { 40 }
+
+/** Ob ein Symbol auf der Kachel steht - ja, nein, oder nur wenn Platz. PLAN.md 4.2. */
+val LocalIconVisibility = staticCompositionLocalOf { IconVisibility.ALWAYS }
+
+/**
+ * Der eine Eckenradius fuer alle Flaechen. PLAN.md 3.7 verbietet einen zweiten Radius
+ * daneben - und genau das entstand, als er an fuenfzehn Stellen als 12.dp im Quelltext
+ * stand: wer die Kacheln eckig stellte, bekam eckige Kacheln und runde Zeilen.
+ */
+val LocalCornerRadius = staticCompositionLocalOf { 12.dp }
+
 @Composable
 fun BigLauTheme(
     theme: ThemeName = ThemeName.DARK,
     textScale: Float = 1.0f,
     /** Spuerbare Rueckmeldung beim Antippen - Einstellung aus `Behaviour`. */
-    haptics: Boolean = true,
+    haptics: HapticStrength = HapticStrength.LIGHT,
+    font: FontChoice = FontChoice.HYPERLEGIBLE,
+    labelScale: Float = 1.0f,
+    iconPercent: Int = 40,
+    icons: IconVisibility = IconVisibility.ALWAYS,
+    cornerRadiusDp: Int = 12,
     content: @Composable () -> Unit,
 ) {
     val palette = paletteFor(theme)
@@ -137,11 +162,19 @@ fun BigLauTheme(
         )
     }
     CompositionLocalProvider(
-        LocalHapticsEnabled provides haptics,
+        LocalHaptics provides haptics,
         LocalBigPalette provides palette,
         LocalTextScale provides textScale,
+        LocalLabelScale provides labelScale,
+        LocalIconPercent provides iconPercent,
+        LocalIconVisibility provides icons,
+        LocalCornerRadius provides cornerRadiusDp.dp,
     ) {
-        MaterialTheme(colorScheme = scheme, content = content)
+        MaterialTheme(
+            colorScheme = scheme,
+            typography = typographyFor(font),
+            content = content,
+        )
     }
 }
 

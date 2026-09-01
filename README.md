@@ -85,3 +85,8 @@ Kein `INTERNET`. BigLau sendet nichts.
 ## Lizenz
 
 GPL-3.0-or-later, siehe [LICENSE](LICENSE).
+
+Mitgeliefert ist die Schrift **Atkinson Hyperlegible** vom Braille Institute of America
+unter der SIL Open Font License 1.1, siehe
+[LICENSE-Atkinson-Hyperlegible.txt](LICENSE-Atkinson-Hyperlegible.txt). Sie ist die
+Vorgabe, weil sie Buchstaben auseinanderzieht, die sich sonst gleichen.

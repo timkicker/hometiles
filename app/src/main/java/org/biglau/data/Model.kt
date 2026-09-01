@@ -113,11 +113,18 @@ data class Cell(
     fun covers(cx: Int, cy: Int): Boolean = cx in x until (x + w) && cy in y until (y + h)
 }
 
+/**
+ * Der Hintergrund eines Screens. PLAN.md 4.1.
+ *
+ * **Ohne Bild, und das mit Absicht** - siehe [org.biglau.ui.theme.ScreenBackground]. Der
+ * Typ stand hier von Anfang an und wurde nie gemalt: ein `else`-Zweig verschluckte ihn.
+ * Ein Fall im Modell, den niemand behandelt, ist eine Zusage, die in der Sicherungsdatei
+ * steht und nichts tut.
+ */
 @Serializable
 sealed interface Background {
     @Serializable @SerialName("theme") data object Theme : Background
     @Serializable @SerialName("color") data class Solid(val argb: Long) : Background
-    @Serializable @SerialName("image") data class Image(val uri: String) : Background
 }
 
 /**
@@ -155,23 +162,102 @@ enum class ThemeName { DARK, HIGH_CONTRAST, LIGHT }
 @Serializable
 enum class LabelPosition { BOTTOM_LEFT, BOTTOM_CENTER, TOP_LEFT, HIDDEN }
 
+/** Die Sprache der App - unabhaengig von der des Telefons. Siehe PLAN.md 4.9. */
+@Serializable
+enum class Language { SYSTEM, GERMAN, ENGLISH }
+
+/**
+ * Wie sich der Bildschirm dreht. PLAN.md 4.2.
+ *
+ * [PORTRAIT] ist die Vorgabe und war bisher fest verdrahtet. Auf drei Zoll ist quer
+ * schmal: die Zeilen werden flach, und die Beschriftung bekommt kaum noch Hoehe. Wer das
+ * Telefon aber in einer Halterung hat - am Fahrrad, am Rollator, am Bett -, braucht es
+ * vielleicht genau so.
+ */
+@Serializable
+enum class ScreenOrientation { PORTRAIT, LANDSCAPE, AUTO }
+
+/**
+ * Was die Uhr zeigt - in der Kopfzeile und auf der Uhr-Kachel. PLAN.md 4.2.
+ */
+@Serializable
+enum class ClockDisplay { OFF, TIME, TIME_DATE, TIME_DATE_WEEKDAY }
+
+/**
+ * Ob ein Symbol auf der Kachel steht. PLAN.md 4.2.
+ *
+ * [IF_ROOM] ist die interessante Stufe: auf einer flachen Kachel drueckt ein Symbol die
+ * Beschriftung an den Rand, und ein halbes Wort ist schlechter als gar kein Bild. Wo es
+ * eng wird, faellt das Symbol weg und das Wort bekommt den Platz.
+ */
+@Serializable
+enum class IconVisibility { ALWAYS, IF_ROOM, NEVER }
+
+/**
+ * Die Schrift. Atkinson Hyperlegible ist die Vorgabe, weil sie fuers Lesen bei schlechten
+ * Augen gezeichnet wurde - siehe [org.biglau.ui.theme.Hyperlegible].
+ */
+@Serializable
+enum class FontChoice { HYPERLEGIBLE, SYSTEM }
+
 @Serializable
 data class Appearance(
     val theme: ThemeName = ThemeName.DARK,
+    val language: Language = Language.SYSTEM,
+    val font: FontChoice = FontChoice.HYPERLEGIBLE,
     /** Faktor auf unsere eigene, aus der Zellhoehe berechnete Schriftgroesse. */
     val textScale: Float = 1.0f,
     val labelPosition: LabelPosition = LabelPosition.BOTTOM_LEFT,
+    /** Beschriftung auf der Kachel, 0,5-1,5 - zusaetzlich zur globalen Textgroesse. */
+    val labelScale: Float = 1.0f,
+    /** Icongroesse als Prozent der kuerzeren Zellenkante, 20-60. */
+    val iconPercent: Int = 40,
+    /**
+     * Alt: nur ja oder nein. Bleibt stehen, damit eine gesicherte Konfiguration aus einer
+     * frueheren Fassung nicht stumm auf die Vorgabe zurueckfaellt. [Appearance.icons] zaehlt.
+     */
     val showIcons: Boolean = true,
+    val iconVisibility: IconVisibility? = null,
     val gutterDp: Int = 4,
     /** Aussenrand in Prozent der Bildschirmbreite. */
     val safeBorderPercent: Int = 2,
     val cornerRadiusDp: Int = 12,
     val fullScreen: Boolean = false,
-    /** Zeigt die Uhr-Kachel auch Wochentag und Datum? */
+    /**
+     * Alt: nur mit oder ohne Datum. Bleibt stehen, damit eine gesicherte Konfiguration aus
+     * einer frueheren Fassung nicht stumm auf die Vorgabe zurueckfaellt. [Appearance.clock]
+     * zaehlt.
+     */
     val clockShowsDate: Boolean = true,
+    val clockDisplay: ClockDisplay? = null,
+    /** Groesse der Uhr in der Kopfzeile, 0,75-2,0 - zusaetzlich zur globalen Textgroesse. */
+    val clockScale: Float = 1.0f,
+    val orientation: ScreenOrientation = ScreenOrientation.PORTRAIT,
     /** Zeile ueber dem Raster mit Uhrzeit, Datum und Ladestand. */
     val showHeader: Boolean = true,
-)
+) {
+    /** Die geltende Uhr-Stufe - aus der neuen Angabe, sonst aus dem alten Schalter. */
+    val clock: ClockDisplay
+        get() = clockDisplay
+            ?: if (clockShowsDate) ClockDisplay.TIME_DATE_WEEKDAY else ClockDisplay.TIME
+
+    /** Setzt beide Felder, damit alt und neu nie widersprechen. */
+    fun withClock(display: ClockDisplay): Appearance = copy(
+        clockDisplay = display,
+        clockShowsDate = display == ClockDisplay.TIME_DATE ||
+            display == ClockDisplay.TIME_DATE_WEEKDAY,
+    )
+
+    /** Die geltende Wahl - aus der neuen Angabe, sonst aus dem alten Schalter. */
+    val icons: IconVisibility
+        get() = iconVisibility ?: if (showIcons) IconVisibility.ALWAYS else IconVisibility.NEVER
+
+    /** Setzt beide Felder, damit alt und neu nie widersprechen. */
+    fun withIcons(choice: IconVisibility): Appearance = copy(
+        iconVisibility = choice,
+        showIcons = choice != IconVisibility.NEVER,
+    )
+}
 
 @Serializable
 data class Accessibility(
@@ -183,20 +269,71 @@ data class Accessibility(
     val scrollButtons: Boolean = false,
 )
 
+/**
+ * Womit eine Kachel ausgelöst wird.
+ *
+ * Für zittrige Hände ist [LONG] die wichtigste Einstellung der ganzen App: ein
+ * versehentliches Streifen startet dann nichts mehr. Der Preis ist, dass jeder Start eine
+ * halbe Sekunde länger dauert - deshalb ist es eine Entscheidung und keine Vorgabe.
+ */
+@Serializable
+enum class PressMode { SHORT, LONG }
+
+/**
+ * Wie deutlich sich eine Berührung meldet.
+ *
+ * [LIGHT] ist ein kurzer Stups, [STRONG] ein spürbarer Schlag. Wer dicke Finger, dicke
+ * Handschuhe oder wenig Gefühl in den Händen hat, merkt den leichten Stups nicht - und
+ * hält den Treffer dann für einen Fehlgriff. Beim langen Druck ist auch [LIGHT] deutlich:
+ * dort meldet die Stärke nicht das Treffen, sondern dass gleich etwas anderes passiert.
+ */
+@Serializable
+enum class HapticStrength { OFF, LIGHT, STRONG }
+
 @Serializable
 data class Behaviour(
+    val pressMode: PressMode = PressMode.SHORT,
+    /**
+     * Alt: nur an oder aus. Bleibt stehen, damit eine Konfiguration aus einer früheren
+     * Fassung nicht stumm auf die Vorgabe zurückfällt, und damit ein Export von hier in
+     * einer früheren Fassung noch etwas bedeutet. [haptics] ist die Frage, die zählt.
+     */
     val hapticFeedback: Boolean = true,
+    val hapticStrength: HapticStrength? = null,
+    /**
+     * Meldungen bleiben stehen, bis sie weggetippt werden. Eine kurze Einblendung ist nach
+     * zwei Sekunden weg - wer langsam liest, erfaehrt nur, dass etwas aufgeblitzt ist.
+     */
+    val confirmMessages: Boolean = false,
     val blinkOnNotification: Boolean = true,
     val swipeBetweenScreens: Boolean = false,
     val homeKeyReturnsToStart: Boolean = true,
     val accessibility: Accessibility = Accessibility(),
-)
+) {
+    /** Die geltende Stärke - aus der neuen Angabe, sonst aus dem alten Schalter. */
+    val haptics: HapticStrength
+        get() = hapticStrength
+            ?: if (hapticFeedback) HapticStrength.LIGHT else HapticStrength.OFF
+
+    /** Setzt beide Felder, damit alt und neu nie widersprechen. */
+    fun withHaptics(strength: HapticStrength): Behaviour = copy(
+        hapticStrength = strength,
+        hapticFeedback = strength != HapticStrength.OFF,
+    )
+}
 
 @Serializable
 data class Security(
     /** Salted Hash, null = keine PIN gesetzt. */
     val pin: String? = null,
     val pinProtectsEditor: Boolean = true,
+    /** Die App-Liste ist der Weg zu jeder App, die auf keiner Kachel liegt. */
+    val pinProtectsAppList: Boolean = false,
+    /**
+     * Die Anrufliste zu leeren ist nicht rueckgaengig zu machen. Steht eine PIN, wird sie
+     * hier von selbst gefragt - wer eine PIN setzt, will genau solche Schritte sichern.
+     */
+    val pinProtectsCallLogDelete: Boolean = true,
 )
 
 @Serializable
@@ -206,7 +343,7 @@ data class SosConfig(
     val message: String = "",
     val countdownSeconds: Int = 5,
     val sendLocation: Boolean = true,
-    val callAfterSms: String? = null,
+
 )
 
 @Serializable
@@ -217,6 +354,10 @@ data class AppsConfig(
     val recent: List<String> = emptyList(),
     /** Wie viele davon oben in der Liste stehen; 0 blendet die Reihe aus. */
     val recentCount: Int = 4,
+    /** Apps, die ohne PIN starten. Gilt nur, wenn [lockOthers] an und eine PIN gesetzt ist. */
+    val allowed: Set<String> = emptySet(),
+    /** Alles ausser [allowed] fragt nach der PIN. PLAN.md 4.5. */
+    val lockOthers: Boolean = false,
 )
 
 @Serializable
@@ -243,6 +384,12 @@ data class LauncherConfig(
     val screens: List<Screen> = listOf(Defaults.mainScreen()),
     val homeScreenId: String = Defaults.MAIN_ID,
     val swipeOrder: List<String> = emptyList(),
+    /**
+     * Screens, die nicht in der Wischkette liegen. PLAN.md 4.1 „welche Screens per Wischen
+     * erreichbar sind". Ausdruecklich als Ausnahmeliste und nicht als Mitgliederliste,
+     * damit ein spaeter angelegter Screen von selbst dabei ist statt still zu fehlen.
+     */
+    val swipeExcluded: Set<String> = emptySet(),
     val appearance: Appearance = Appearance(),
     val behaviour: Behaviour = Behaviour(),
     val security: Security = Security(),

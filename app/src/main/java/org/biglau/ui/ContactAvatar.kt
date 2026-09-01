@@ -15,6 +15,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import org.biglau.ui.theme.LocalCornerRadius
 import org.biglau.ui.theme.LocalBigPalette
 
 /**
@@ -29,7 +30,7 @@ fun ContactAvatar(
     modifier: Modifier = Modifier,
 ) {
     val palette = LocalBigPalette.current
-    val shape = RoundedCornerShape(12.dp)
+    val shape = RoundedCornerShape(LocalCornerRadius.current)
 
     if (photoUri != null) {
         AsyncImage(

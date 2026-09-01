@@ -30,6 +30,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.delay
+import org.biglau.ui.BigLauActivity
 import org.biglau.R
 import org.biglau.actions.Sos
 import org.biglau.data.ConfigStore
@@ -47,7 +48,7 @@ import org.biglau.ui.theme.LocalBigPalette
  * groesste Flaeche auf dem Bildschirm - im Ernstfall drueckt man nicht daneben, und im
  * Versehensfall trifft man ihn sofort.
  */
-class SosActivity : ComponentActivity() {
+class SosActivity : BigLauActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -90,7 +91,12 @@ class SosActivity : ComponentActivity() {
             BigLauTheme(
                 config.appearance.theme,
                 config.appearance.textScale,
-                haptics = config.behaviour.hapticFeedback,
+                haptics = config.behaviour.haptics,
+                font = config.appearance.font,
+                labelScale = config.appearance.labelScale,
+                iconPercent = config.appearance.iconPercent,
+                icons = config.appearance.icons,
+                cornerRadiusDp = config.appearance.cornerRadiusDp,
             ) {
                 Box(
                     Modifier

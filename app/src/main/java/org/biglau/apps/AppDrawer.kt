@@ -37,7 +37,19 @@ object AppDrawer {
      * Merkt sich einen Start. Zuletzt benutzt heisst ganz vorn, jeder Schluessel nur einmal,
      * und die Liste waechst nicht unbegrenzt.
      */
-    fun remember(recentKeys: List<String>, key: String, cap: Int = 12): List<String> =
+    /**
+     * Wie viele Einträge überhaupt gespeichert werden.
+     *
+     * Muss mindestens so groß sein wie die größte anzeigbare Zahl, sonst wäre eine
+     * Einstellung wählbar, die nie erreicht wird. Am 01.09.2026 stand die Liste nach einem
+     * Tag Gebrauch genau auf diesem Wert - zwölf verschiedene Apps an einem Tag.
+     */
+    const val STORAGE_CAP = 12
+
+    /** Was die Einstellung zur Auswahl stellt. 0 heißt: gar keine Vorschläge. */
+    val RECENT_CHOICES = listOf(0, 4, 6, 8, 12)
+
+    fun remember(recentKeys: List<String>, key: String, cap: Int = STORAGE_CAP): List<String> =
         (listOf(key) + recentKeys.filterNot { it == key }).take(cap.coerceAtLeast(1))
 
     /** Die vollstaendige, durchsuchte Liste. Leere Anfrage heisst alphabetisch. */

@@ -102,3 +102,49 @@ class AppDrawerTest {
         assertTrue(AppDrawer.toggleHidden(once, brave).isEmpty())
     }
 }
+
+/**
+ * Wie viele „zuletzt benutzt" gezeigt werden.
+ *
+ * Anlass aus dem Gebrauch: nach einem Tag stand die Speicherliste auf zwölf Einträgen -
+ * zwölf verschiedene Apps -, angezeigt wurden vier, und die Zahl war nirgends einstellbar.
+ */
+class RecentCountTest {
+
+    private fun app(name: String) = LaunchableApp(name, "$name.Main", name)
+
+    private val alle = (1..15).map { app("app$it") }
+    private val schluessel = alle.map { AppDrawer.keyOf(it) }
+
+    @Test
+    fun `die Auswahl geht nie ueber das hinaus, was gespeichert wird`() {
+        // Sonst waere eine Zahl waehlbar, die nie erreicht wird.
+        assertTrue(AppDrawer.RECENT_CHOICES.max() <= AppDrawer.STORAGE_CAP)
+    }
+
+    @Test
+    fun `null bedeutet gar keine Vorschlaege`() {
+        assertTrue(AppDrawer.recents(alle, schluessel, emptySet(), 0).isEmpty())
+        assertTrue(AppDrawer.RECENT_CHOICES.contains(0))
+    }
+
+    @Test
+    fun `die gewaehlte Zahl wird eingehalten`() {
+        AppDrawer.RECENT_CHOICES.filter { it > 0 }.forEach { anzahl ->
+            assertEquals(anzahl, AppDrawer.recents(alle, schluessel, emptySet(), anzahl).size)
+        }
+    }
+
+    @Test
+    fun `gespeichert wird nicht mehr als der Deckel erlaubt`() {
+        var liste = emptyList<String>()
+        schluessel.forEach { liste = AppDrawer.remember(liste, it) }
+        assertEquals(AppDrawer.STORAGE_CAP, liste.size)
+    }
+
+    @Test
+    fun `sind weniger da als gewuenscht, gibt es eben weniger`() {
+        val wenige = schluessel.take(3)
+        assertEquals(3, AppDrawer.recents(alle, wenige, emptySet(), 12).size)
+    }
+}

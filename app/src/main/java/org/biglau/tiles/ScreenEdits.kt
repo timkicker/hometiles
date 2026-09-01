@@ -139,7 +139,15 @@ object ScreenEdits {
         val reached = config.screens
             .flatMap { it.cells }
             .mapNotNull { (it.button.action as? ButtonAction.GoToScreen)?.screenId }
-            .toSet()
+            .toSet() +
+            // Wischen zaehlt mit, wenn es eingeschaltet ist. Ohne das warnte die App vor
+            // Screens, die man mit einer Handbewegung erreicht - und eine Warnung, die
+            // nicht stimmt, nimmt man auch dort nicht mehr ernst, wo sie stimmt.
+            if (config.behaviour.swipeBetweenScreens) {
+                ScreenOrder.ordered(config).map { it.id }.toSet()
+            } else {
+                emptySet()
+            }
         // Ordner sind hier nicht gemeint: zu ihnen fuehrt eine Ordnerkachel, keine
         // Sprungkachel, und ob eine fehlt, prueft FolderEdits.orphaned.
         return config.screens.filter {

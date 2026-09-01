@@ -25,6 +25,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
+import org.biglau.ui.theme.LocalCornerRadius
 import org.biglau.R
 import org.biglau.a11y.Paging
 import org.biglau.ui.theme.LocalBigPalette
@@ -118,7 +119,7 @@ private fun PageButton(
         modifier = Modifier
             .height(56.dp)
             .then(modifier)
-            .clip(RoundedCornerShape(12.dp))
+            .clip(RoundedCornerShape(LocalCornerRadius.current))
             .background(if (enabled) surface.fill else surface.fill.copy(alpha = 0.4f))
             .clickable(enabled = enabled, onClick = onClick)
             .semantics { contentDescription = description },

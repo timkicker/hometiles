@@ -72,13 +72,26 @@ class SlopRulesTest {
     @Test
     fun `Flaechen haben genau einen Eckenradius`() {
         // Runde Formen sind erlaubt, aber nur für Anzeigen: Punkte, Abzeichen, Balken,
-        // Griffe. Für Flächen - Kacheln, Zeilen, Felder, Knöpfe - gilt 12 dp, sonst
-        // nichts. Ein zweiter Radius auf einer Fläche fällt sofort als Flickwerk auf.
+        // Griffe - die schreiben sich als Prozentform `RoundedCornerShape(50)`. Für
+        // Flächen - Kacheln, Zeilen, Felder, Knöpfe - gibt es genau einen Wert, und der
+        // steht jetzt in `LocalCornerRadius`, weil er einstellbar ist (PLAN.md 4.1).
+        //
+        // Vorher stand er fünfzehnmal als `12.dp` im Quelltext. Das fiel nicht auf,
+        // solange er unverstellbar war; kaum war er es, hätte eine eckig gestellte Kachel
+        // neben einer runden Zeile gestanden. Deshalb prüft die Regel jetzt schärfer:
+        // gar keine Zahl mehr, nur noch die eine Quelle.
         val radien = quellen.flatMap { datei ->
             Regex("""RoundedCornerShape\((\d+)\.dp\)""").findAll(datei.readText())
                 .map { it.groupValues[1].toInt() }
         }.toSet()
-        assertEquals(setOf(12), radien)
+        assertEquals(emptySet<Int>(), radien)
+    }
+
+    @Test
+    fun `der eine Radius kommt aus einer Quelle`() {
+        // Gegenprobe: die Regel oben wäre auch erfüllt, wenn niemand mehr rundet.
+        val nutzer = quellen.count { it.readText().contains("LocalCornerRadius.current") }
+        assertEquals(true, nutzer >= 5)
     }
 
     @Test
@@ -152,5 +165,23 @@ class SlopRulesTest {
             Regex("""FontWeight\.(\w+)""").findAll(datei.readText()).map { it.groupValues[1] }
         }.toSet()
         assertEquals(emptySet<String>(), schnitte - setOf("Normal", "Bold"))
+    }
+}
+
+/**
+ * Die Ausrichtung steht in der Konfiguration, nicht im Manifest.
+ *
+ * Zwölf Aktivitäten trugen `screenOrientation="portrait"` — eine Entscheidung an zwölf
+ * Stellen, die PLAN.md 4.2 als eine Einstellung zusagt. Ein fest verdrahteter Wert ist
+ * derselbe Fehler wie ein totes Feld, nur andersherum: der Plan verspricht eine Wahl, und
+ * es gibt keine.
+ */
+class ManifestOrientationTest {
+
+    @Test
+    fun `keine activity klemmt die ausrichtung fest`() {
+        val manifest = java.io.File("src/main/AndroidManifest.xml").readText()
+        val treffer = Regex("""screenOrientation="[^"]*"""").findAll(manifest).map { it.value }.toList()
+        assertEquals(emptyList<String>(), treffer)
     }
 }

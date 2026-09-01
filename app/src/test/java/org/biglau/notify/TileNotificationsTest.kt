@@ -5,6 +5,8 @@ import org.biglau.data.Button
 import org.biglau.data.ButtonAction
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class TileNotificationsTest {
@@ -75,5 +77,47 @@ class TileNotificationsTest {
     fun `eine Kachel ohne beobachtetes Paket zaehlt nie`() {
         val button = Button(ButtonAction.Action(Builtin.CAMERA))
         assertEquals(0, TileNotifications.badgeFor(button, mapOf("com.sms.app" to 3), system))
+    }
+}
+
+/**
+ * Wo ein Blink-Schalter überhaupt Sinn ergibt.
+ *
+ * Das Feld `Button.blink` wurde von Anfang an beachtet, war aber im Editor nirgends
+ * erreichbar - man konnte es nur über eine importierte Datei ändern. Beim Nachrüsten stellt
+ * sich die Frage, wo der Schalter erscheint: einen für eine Uhr anzubieten hieße, etwas zu
+ * versprechen, das nie eintritt.
+ */
+class CanBlinkTest {
+
+    @Test
+    fun `hinter einer App kann etwas ankommen`() {
+        assertTrue(TileNotifications.canBlink(ButtonAction.App("com.beispiel", "com.beispiel.Main")))
+    }
+
+    @Test
+    fun `Telefon und Nachrichten auch`() {
+        assertTrue(TileNotifications.canBlink(ButtonAction.Action(Builtin.DIALER)))
+        assertTrue(TileNotifications.canBlink(ButtonAction.Action(Builtin.MESSAGES)))
+        assertTrue(TileNotifications.canBlink(ButtonAction.Action(Builtin.MISSED_CALLS)))
+    }
+
+    @Test
+    fun `eine Uhr benachrichtigt nicht`() {
+        assertFalse(TileNotifications.canBlink(ButtonAction.Action(Builtin.CLOCK)))
+        assertFalse(TileNotifications.canBlink(ButtonAction.Action(Builtin.BATTERY)))
+    }
+
+    @Test
+    fun `eine leere Kachel erst recht nicht`() {
+        assertFalse(TileNotifications.canBlink(ButtonAction.None))
+    }
+
+    @Test
+    fun `ein Ordner und ein Link auch nicht`() {
+        // Der Ordner koennte irgendwann den Inhalt zusammenzaehlen; heute tut er es nicht,
+        // und ein Schalter dafuer waere eine Zusage ohne Deckung.
+        assertFalse(TileNotifications.canBlink(ButtonAction.Folder("f1")))
+        assertFalse(TileNotifications.canBlink(ButtonAction.Link("https://orf.at")))
     }
 }

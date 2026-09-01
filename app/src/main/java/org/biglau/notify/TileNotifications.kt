@@ -33,6 +33,23 @@ object TileNotifications {
     }
 
     /** Anzahl fuer diese Kachel; null oder abgeschaltet ergibt null Treffer. */
+    /**
+     * Kann diese Kachel ueberhaupt blinken?
+     *
+     * Nur, wenn hinter ihr eine App steckt, die benachrichtigen kann. Einen Schalter fuer
+     * eine Uhr oder eine leere Kachel anzubieten hiesse, etwas zu versprechen, das nie
+     * eintritt - und der Nutzer suchte den Fehler dann bei sich.
+     */
+    fun canBlink(action: ButtonAction): Boolean = when (action) {
+        is ButtonAction.App -> true
+        is ButtonAction.Action -> action.builtin in setOf(
+            Builtin.DIALER,
+            Builtin.MESSAGES,
+            Builtin.MISSED_CALLS,
+        )
+        else -> false
+    }
+
     fun badgeFor(
         button: Button,
         counts: Map<String, Int>,

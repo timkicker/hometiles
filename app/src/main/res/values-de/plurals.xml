@@ -36,4 +36,8 @@
         <item quantity="one">Screen · %1$d Platz frei</item>
         <item quantity="other">Screen · %1$d Plätze frei</item>
     </plurals>
+    <plurals name="apps_recent_count_value">
+        <item quantity="one">%1$d App</item>
+        <item quantity="other">%1$d Apps</item>
+    </plurals>
 </resources>

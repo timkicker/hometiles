@@ -56,6 +56,22 @@ object ConfigTransfer {
      * die gesamte Belegung des Nutzers loeschen und dabei aussehen, als haette er geklappt.
      * Die Datei muss ihre Screens deshalb ausdruecklich mitbringen.
      */
+    /**
+     * Stammt diese Sicherung aus einer neueren Fassung von BigLau?
+     *
+     * Dann enthaelt sie Felder, die diese Fassung nicht kennt - und `ignoreUnknownKeys`
+     * wirft sie beim Einlesen wortlos weg. Wer eine Sicherung vom neuen Telefon auf ein
+     * altes zurueckspielt, verliert also Einstellungen, ohne dass irgendetwas es sagt. Das
+     * ist genau der Fall, fuer den das Feld `version` in jeder Datei steht; bis hierher
+     * hat es niemand gelesen.
+     */
+    fun isFromNewerVersion(text: String): Boolean = runCatching {
+        val root = json.parseToJsonElement(text) as? kotlinx.serialization.json.JsonObject
+        val version = (root?.get("version") as? kotlinx.serialization.json.JsonPrimitive)
+            ?.content?.toIntOrNull()
+        version != null && version > CONFIG_VERSION
+    }.getOrDefault(false)
+
     fun import(text: String): LauncherConfig? = runCatching {
         val root = json.parseToJsonElement(text) as? kotlinx.serialization.json.JsonObject
             ?: return null

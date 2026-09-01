@@ -37,6 +37,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import org.biglau.ui.theme.LocalCornerRadius
 import org.biglau.ui.theme.BigSurface
 import org.biglau.ui.theme.LocalBigPalette
 import org.biglau.ui.theme.LocalTextScale
@@ -57,6 +58,13 @@ fun BigRow(
     /** Freier Platz vorn - genutzt fuer Kontaktfotos und Initialen. */
     leading: (@Composable () -> Unit)? = null,
     surface: org.biglau.ui.theme.BigSurface? = null,
+    /**
+     * Nur fuer die Schriftauswahl: dort steht jede Zeile in ihrer eigenen Schrift, damit
+     * man den Unterschied sieht statt ihn zu lesen. Sonst gilt die Schrift des Themas.
+     */
+    fontFamily: androidx.compose.ui.text.font.FontFamily? = null,
+    /** Nur fuer die Radius-Auswahl: dort zeigt jede Zeile ihre eigene Ecke. */
+    cornerRadius: androidx.compose.ui.unit.Dp? = null,
     onClick: () -> Unit,
     onLongClick: (() -> Unit)? = null,
     /**
@@ -72,7 +80,7 @@ fun BigRow(
     val palette = LocalBigPalette.current
     val scale = LocalTextScale.current
     val haptik = LocalHapticFeedback.current
-    val haptikAn = LocalHapticsEnabled.current
+    val haptikStaerke = LocalHaptics.current
     val interaction = remember { MutableInteractionSource() }
     val pressed by interaction.collectIsPressedAsState()
     val press by animateFloatAsState(if (pressed) 0.98f else 1f, label = "press")
@@ -83,14 +91,14 @@ fun BigRow(
         modifier = modifier
             .fillMaxWidth()
             .scale(press)
-            .clip(RoundedCornerShape(12.dp))
+            .clip(RoundedCornerShape(cornerRadius ?: LocalCornerRadius.current))
             .background(paint.fill)
-            .then(if (border != null) Modifier.border(3.dp, border, RoundedCornerShape(12.dp)) else Modifier)
+            .then(if (border != null) Modifier.border(3.dp, border, RoundedCornerShape(cornerRadius ?: LocalCornerRadius.current)) else Modifier)
             .combinedClickable(
                 interactionSource = interaction,
                 indication = null,
-                onClick = { haptik.tap(haptikAn); onClick() },
-                onLongClick = onLongClick?.let { echt -> { haptik.longPress(haptikAn); echt() } },
+                onClick = { haptik.tap(haptikStaerke); onClick() },
+                onLongClick = onLongClick?.let { echt -> { haptik.longPress(haptikStaerke); echt() } },
             )
             .heightIn(min = 72.dp)
             .padding(horizontal = 16.dp, vertical = 12.dp),
@@ -109,6 +117,7 @@ fun BigRow(
                 text = label,
                 color = paint.ink,
                 fontSize = (22f * scale).sp,
+                fontFamily = fontFamily,
                 fontWeight = FontWeight.Bold,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
@@ -148,9 +157,9 @@ fun BigIconButton(
     Box(
         modifier = modifier
             .size(56.dp)
-            .clip(RoundedCornerShape(12.dp))
+            .clip(RoundedCornerShape(LocalCornerRadius.current))
             .background(paint.fill)
-            .then(if (border != null) Modifier.border(3.dp, border, RoundedCornerShape(12.dp)) else Modifier)
+            .then(if (border != null) Modifier.border(3.dp, border, RoundedCornerShape(LocalCornerRadius.current)) else Modifier)
             .clickable(onClick = onClick)
             .semantics { contentDescription = description },
         contentAlignment = Alignment.Center,

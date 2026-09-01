@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.lazy.LazyColumn
+import org.biglau.ui.BigLauActivity
 import org.biglau.ui.ScrollButtonPair
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.layout.Row
@@ -55,7 +56,7 @@ import org.biglau.ui.theme.LocalBigPalette
  * erledigt ist. Bei der Textgroesse und beim Aussehen wirkt die Wahl sofort auf den Assistenten
  * selbst - man sieht also, was man waehlt, statt es sich vorzustellen.
  */
-class WizardActivity : ComponentActivity() {
+class WizardActivity : BigLauActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -80,7 +81,12 @@ class WizardActivity : ComponentActivity() {
             BigLauTheme(
                 config.appearance.theme,
                 config.appearance.textScale,
-                haptics = config.behaviour.hapticFeedback,
+                haptics = config.behaviour.haptics,
+                font = config.appearance.font,
+                labelScale = config.appearance.labelScale,
+                iconPercent = config.appearance.iconPercent,
+                icons = config.appearance.icons,
+                cornerRadiusDp = config.appearance.cornerRadiusDp,
             ) {
                 BackHandler(enabled = true) {
                     WizardSteps.previous(step, state)?.let { step = it }

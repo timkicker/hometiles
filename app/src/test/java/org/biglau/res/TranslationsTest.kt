@@ -68,3 +68,37 @@ class TranslationsTest {
         assertEquals("unterschiedlich viele Platzhalter", emptySet<String>(), abweichend)
     }
 }
+
+/**
+ * Zahlen in Worten, die zur Zahl passen.
+ *
+ * Die Rückfrage vor dem Zurücksetzen sagte "1 folders". Wer eine Warnung schlampig
+ * findet, nimmt sie nicht ernst - und das ist die eine Warnung, die man ernst nehmen muss.
+ */
+class PluralsTest {
+
+    private fun plurale(verzeichnis: String): Map<String, Set<String>> {
+        val datei = java.io.File("src/main/res/$verzeichnis/strings.xml")
+        return Regex("""<plurals name="([^"]+)">(.*?)</plurals>""", RegexOption.DOT_MATCHES_ALL)
+            .findAll(datei.readText())
+            .associate { treffer ->
+                treffer.groupValues[1] to Regex("""quantity="([^"]+)"""")
+                    .findAll(treffer.groupValues[2])
+                    .map { it.groupValues[1] }
+                    .toSet()
+            }
+    }
+
+    @Test
+    fun `beide sprachen kennen dieselben plurale`() {
+        assertEquals(plurale("values").keys, plurale("values-de").keys)
+    }
+
+    @Test
+    fun `jedes plural hat einzahl und mehrzahl`() {
+        val unvollstaendig = (plurale("values") + plurale("values-de"))
+            .filterValues { !it.containsAll(setOf("one", "other")) }
+            .keys
+        assertEquals(emptySet<String>(), unvollstaendig)
+    }
+}

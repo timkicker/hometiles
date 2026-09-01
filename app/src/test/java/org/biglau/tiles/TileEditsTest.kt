@@ -124,4 +124,23 @@ class TileEditsTest {
             TileEdits.withLongPress(button, ButtonAction.Action(Builtin.SOS)).longPress,
         )
     }
+
+    // Die Zweitbelegung darf jetzt auch eine App sein - "Halten oeffnet Spotify" ist
+    // der Fall, den man wirklich will, nicht nur eine eingebaute Funktion.
+    @Test
+    fun `zweitbelegung nimmt eine app`() {
+        val kachel = Button(action = ButtonAction.App("org.example", "org.example.Main"))
+        val mit = TileEdits.withLongPress(kachel, ButtonAction.App("com.spotify.music", "Main"))
+        assertEquals(ButtonAction.App("com.spotify.music", "Main"), mit.longPress)
+        assertEquals(kachel.action, mit.action)
+    }
+
+    // Eine Zweitbelegung, die nichts tut, waere schlimmer als keine: das Halten
+    // faende dann weder eine Aktion noch den Editor.
+    @Test
+    fun `leere zweitbelegung wird nicht gespeichert`() {
+        val kachel = Button(action = ButtonAction.Action(Builtin.CAMERA))
+        assertNull(TileEdits.withLongPress(kachel, ButtonAction.None).longPress)
+        assertNull(TileEdits.withLongPress(kachel, null).longPress)
+    }
 }

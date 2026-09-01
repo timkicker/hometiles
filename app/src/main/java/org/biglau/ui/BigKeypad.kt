@@ -27,6 +27,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import org.biglau.ui.theme.LocalCornerRadius
 import org.biglau.R
 import org.biglau.ui.theme.LocalBigPalette
 import org.biglau.ui.theme.tileBorder
@@ -130,9 +131,9 @@ private fun KeypadKey(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .clip(RoundedCornerShape(12.dp))
+            .clip(RoundedCornerShape(LocalCornerRadius.current))
             .background(palette.emptyTile)
-            .then(if (border != null) Modifier.border(3.dp, border, RoundedCornerShape(12.dp)) else Modifier)
+            .then(if (border != null) Modifier.border(3.dp, border, RoundedCornerShape(LocalCornerRadius.current)) else Modifier)
             .combinedClickable(onClick = onClick, onLongClick = onLongClick)
             .semantics { contentDescription = description },
         contentAlignment = Alignment.Center,

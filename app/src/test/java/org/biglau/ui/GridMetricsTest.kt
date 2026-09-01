@@ -149,3 +149,116 @@ class GridMetricsTest {
         assertEquals(24f, iconSizeDp(cellWidthDp = 30f, cellHeightDp = 30f), 0.01f)
     }
 }
+
+/**
+ * PLAN.md 4.2: Label-Größe 50–150 %, Icongröße 20–60 % der Zelle.
+ *
+ * Beides sind Zahlen, mit denen man sich die Kachel kaputtstellen könnte. Deshalb steht
+ * hier, wo die Grenzen liegen und was passiert, wenn jemand darüber hinaus will.
+ */
+class TileSizingTest {
+
+    private val breit = 165.6f
+    private val hoch = 186.4f
+
+    @Test
+    fun `die label-groesse multipliziert auf die globale textgroesse`() {
+        val normal = labelSizeSp(breit, hoch, userScale = 1f, labelScale = 1f)
+        val gross = labelSizeSp(breit, hoch, userScale = 1f, labelScale = 1.5f)
+        assertEquals(normal * 1.5f, gross, 0.01f)
+    }
+
+    // Ohne Grenze koennte eine importierte Datei die Beschriftung auf null setzen - und
+    // eine Kachel ohne lesbares Wort ist eine Kachel, die man raten muss.
+    @Test
+    fun `die label-groesse wird beschnitten`() {
+        val zuKlein = labelSizeSp(breit, hoch, userScale = 1f, labelScale = 0.1f)
+        val kleinstes = labelSizeSp(breit, hoch, userScale = 1f, labelScale = LABEL_SCALE_MIN)
+        assertEquals(kleinstes, zuKlein, 0.01f)
+
+        val zuGross = labelSizeSp(breit, hoch, userScale = 1f, labelScale = 9f)
+        val groesstes = labelSizeSp(breit, hoch, userScale = 1f, labelScale = LABEL_SCALE_MAX)
+        assertEquals(groesstes, zuGross, 0.01f)
+    }
+
+    @Test
+    fun `die icongroesse folgt dem anteil`() {
+        val zwanzig = iconSizeDp(breit, hoch, percent = 20)
+        val vierzig = iconSizeDp(breit, hoch, percent = 40)
+        assertEquals(true, vierzig > zwanzig)
+    }
+
+    /**
+     * Der Fall, der die Kachel kaputt machte: 60 % auf einer flachen Kachel plus
+     * Beschriftungszone ist mehr als die Kachel hoch ist. Das Symbol legte sich über das
+     * Wort, und beides war schlechter zu lesen als vorher.
+     */
+    @Test
+    fun `das icon waechst nie in die beschriftung hinein`() {
+        val flach = 90f
+        val labelSp = labelSizeSp(340f, flach, userScale = 1f)
+        val zone = labelZoneDp(flach, labelSp)
+        val icon = iconSizeDp(340f, flach, percent = 60, labelZoneDp = zone)
+        assertEquals(true, icon + zone <= flach)
+    }
+
+    // Gegenprobe zum Deckel: ohne Beschriftung gehoert die ganze Zelle dem Symbol.
+    @Test
+    fun `ohne beschriftung gilt der deckel nicht`() {
+        assertEquals(24f, iconSizeDp(30f, 30f, percent = 40, labelZoneDp = 0f), 0.01f)
+    }
+
+    @Test
+    fun `ein unmoeglicher anteil wird beschnitten`() {
+        assertEquals(iconSizeDp(breit, hoch, ICON_PERCENT_MAX), iconSizeDp(breit, hoch, 200), 0.01f)
+        assertEquals(iconSizeDp(breit, hoch, ICON_PERCENT_MIN), iconSizeDp(breit, hoch, 0), 0.01f)
+    }
+
+    // Die Vorgaben sind die Werte, mit denen die App bisher gemalt hat - niemandem soll
+    // sich der Startbildschirm veraendern, nur weil es die Einstellung jetzt gibt.
+    @Test
+    fun `die vorgaben aendern nichts`() {
+        assertEquals(1.0f, org.biglau.data.Appearance().labelScale, 0.001f)
+        assertEquals(40, org.biglau.data.Appearance().iconPercent)
+        assertEquals(
+            labelSizeSp(breit, hoch, userScale = 1f),
+            labelSizeSp(breit, hoch, userScale = 1f, labelScale = 1.0f),
+            0.001f,
+        )
+    }
+}
+
+/**
+ * Die Beschriftungszone braucht einen Boden.
+ *
+ * Aufgefallen, als die Querlage einstellbar wurde: eine Zelle von 60 dp Höhe bekam über
+ * die 28-Prozent-Regel nur 16,8 dp, und eine fette 14-sp-Zeile braucht mit Unterlängen
+ * knapp 19. Quer standen alle Beschriftungen abgeschnitten da. Es betrifft nicht nur die
+ * Querlage — jede flache Kachel in einem dichten Raster hat dasselbe Problem.
+ */
+class LabelZoneFloorTest {
+
+    @Test
+    fun `eine flache zelle bekommt trotzdem eine volle zeile`() {
+        val labelSp = labelSizeSp(cellWidthDp = 420f, cellHeightDp = 60f, userScale = 1f)
+        val zone = labelZoneDp(60f, labelSp)
+        assertTrue("Zone $zone reicht nicht fuer $labelSp sp", zone >= labelSp * 1.3f)
+    }
+
+    // Der Boden darf die Kachel nicht auffressen: bleibt fuer den Inhalt nichts uebrig,
+    // ist die Kachel eine Zeile Text auf einer Farbflaeche.
+    @Test
+    fun `der boden nimmt nie mehr als die halbe kachel`() {
+        for (hoehe in listOf(30f, 40f, 60f, 90f, 190f)) {
+            val labelSp = labelSizeSp(300f, hoehe, userScale = 2f)
+            assertTrue(labelZoneDp(hoehe, labelSp) <= hoehe * 0.5f + 0.01f)
+        }
+    }
+
+    // Gegenprobe: bei hohen Kacheln aendert sich nichts, die alte Obergrenze gilt weiter.
+    @Test
+    fun `hohe kacheln bleiben wie sie waren`() {
+        val labelSp = labelSizeSp(165.6f, 376.8f, userScale = 1f)
+        assertEquals(labelSp * 2.2f, labelZoneDp(376.8f, labelSp), 0.01f)
+    }
+}

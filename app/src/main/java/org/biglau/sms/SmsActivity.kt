@@ -3,7 +3,6 @@ package org.biglau.sms
 import android.Manifest
 import android.os.Bundle
 import android.telephony.SmsManager
-import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -41,6 +40,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import org.biglau.ui.theme.LocalCornerRadius
+import org.biglau.ui.BigLauActivity
+import org.biglau.ui.currentLocale
 import org.biglau.R
 import org.biglau.contacts.ContactRepository
 import org.biglau.data.ConfigStore
@@ -48,6 +50,7 @@ import org.biglau.phone.PhoneNumbers
 import org.biglau.toggles.SosMessage
 import org.biglau.ui.BigHeading
 import org.biglau.actions.Intents
+import org.biglau.ui.Notice
 import org.biglau.ui.PermissionGate
 import org.biglau.ui.PermissionState
 import org.biglau.ui.BigRow
@@ -66,7 +69,7 @@ import java.util.Locale
  * gesendete Nachricht landet dann nicht in der Datenbank - das kann nur die Standard-App.
  * Die Oberflaeche sagt das, statt eine Nachricht zu zeigen, die nach dem Neustart weg ist.
  */
-class SmsActivity : ComponentActivity() {
+class SmsActivity : BigLauActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -121,7 +124,12 @@ class SmsActivity : ComponentActivity() {
             BigLauTheme(
                 config.appearance.theme,
                 config.appearance.textScale,
-                haptics = config.behaviour.hapticFeedback,
+                haptics = config.behaviour.haptics,
+                font = config.appearance.font,
+                labelScale = config.appearance.labelScale,
+                iconPercent = config.appearance.iconPercent,
+                icons = config.appearance.icons,
+                cornerRadiusDp = config.appearance.cornerRadiusDp,
             ) {
                 BackHandler(enabled = openThread != null) { openThread = null }
 
@@ -186,9 +194,9 @@ class SmsActivity : ComponentActivity() {
 
         if (sent) {
             onSent()
-            Toast.makeText(this, R.string.sms_sent, Toast.LENGTH_SHORT).show()
+            Notice.show(this, R.string.sms_sent)
         } else {
-            Toast.makeText(this, R.string.sms_send_failed, Toast.LENGTH_LONG).show()
+            Notice.show(this, R.string.sms_send_failed)
         }
     }
 }
@@ -201,7 +209,8 @@ private fun ThreadList(
     onOpen: (Long) -> Unit,
 ) {
     val palette = LocalBigPalette.current
-    val format = remember { SimpleDateFormat("EEE d. MMM, HH:mm", Locale.getDefault()) }
+    val locale = currentLocale()
+    val format = remember(locale) { SimpleDateFormat("EEE d. MMM, HH:mm", locale) }
     val listState = rememberLazyListState()
 
     Column {
@@ -280,7 +289,7 @@ private fun Conversation(
                             start = if (message.incoming) 0.dp else 40.dp,
                             end = if (message.incoming) 40.dp else 0.dp,
                         )
-                        .clip(RoundedCornerShape(12.dp))
+                        .clip(RoundedCornerShape(LocalCornerRadius.current))
                         .background(
                             if (message.incoming) palette.emptyTile else palette.surfaceAccent.fill,
                         )

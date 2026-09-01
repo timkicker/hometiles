@@ -7,7 +7,8 @@ import android.net.Uri
 import android.os.Build
 import android.provider.MediaStore
 import android.provider.Settings
-import android.widget.Toast
+import org.biglau.R
+import org.biglau.ui.Notice
 
 /** Zentrale Stelle fuer alle System-Intents, die eine Kachel ausloesen kann. */
 object Intents {
@@ -106,9 +107,9 @@ object Intents {
         try {
             context.startActivity(intent)
         } catch (e: ActivityNotFoundException) {
-            Toast.makeText(context, "Keine passende App gefunden", Toast.LENGTH_SHORT).show()
+            Notice.show(context, R.string.intent_no_app)
         } catch (e: SecurityException) {
-            Toast.makeText(context, "Berechtigung fehlt", Toast.LENGTH_SHORT).show()
+            Notice.show(context, R.string.intent_no_permission)
         }
     }
 }

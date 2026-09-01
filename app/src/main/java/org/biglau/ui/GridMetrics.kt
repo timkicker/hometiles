@@ -49,20 +49,63 @@ fun gridMetrics(
  * Bewusst nicht aus sp abgeleitet: die Systemschriftgroesse steht auf dem Zielgeraet schon
  * auf 1,35 und wuerde sich sonst ein zweites Mal multiplizieren.
  */
-fun labelSizeSp(cellWidthDp: Float, cellHeightDp: Float, userScale: Float): Float =
-    minOf(cellHeightDp * 0.14f, cellWidthDp * 0.16f).coerceIn(14f, 40f) * userScale
+fun labelSizeSp(
+    cellWidthDp: Float,
+    cellHeightDp: Float,
+    userScale: Float,
+    labelScale: Float = 1.0f,
+): Float = minOf(cellHeightDp * 0.14f, cellWidthDp * 0.16f).coerceIn(14f, 40f) *
+    userScale * labelScale.coerceIn(LABEL_SCALE_MIN, LABEL_SCALE_MAX)
+
+/** PLAN.md 4.2: Label-Groesse relativ zur Kachel, 50-150 %. */
+const val LABEL_SCALE_MIN = 0.5f
+const val LABEL_SCALE_MAX = 1.5f
+val LABEL_SCALES = listOf(0.5f, 0.75f, 1.0f, 1.25f, 1.5f)
+
+/** PLAN.md 4.2: Icongroesse 20-60 % der Zelle. */
+const val ICON_PERCENT_MIN = 20
+const val ICON_PERCENT_MAX = 60
+val ICON_PERCENTS = listOf(20, 30, 40, 50, 60)
 
 /**
  * Hoehe der Beschriftungszone. Fest je Zellgroesse, damit die Grundlinien einer Rasterzeile
  * zusammenfallen - aber nach oben durch die Schriftgroesse begrenzt, sonst klafft unter einer
  * hohen Kachel eine leere Flaeche.
+ *
+ * Und nach unten durch die Schriftgroesse begrenzt, seit die Querlage einstellbar ist: eine
+ * Zelle von 60 dp Hoehe bekam ueber 28 Prozent nur 16,8 dp, und eine fette 14-sp-Zeile
+ * braucht mit Unterlaengen knapp 19. Die Beschriftungen standen quer alle abgeschnitten da.
+ * Ein Wort mit abgesaebeltem Unterrand liest sich schlechter als eines, fuer das das Symbol
+ * ein Stueck kleiner wird - und kleiner wird es, weil [iconSizeDp] die Zone abzieht.
  */
 fun labelZoneDp(cellHeightDp: Float, labelSp: Float): Float =
     minOf(cellHeightDp * 0.28f, labelSp * 2.2f)
+        .coerceAtLeast(labelSp * 1.35f)
+        // Aber nie mehr als die halbe Kachel: sonst bliebe fuer den Inhalt nichts uebrig.
+        .coerceAtMost(cellHeightDp * 0.5f)
 
-/** Icongroesse: 40 % der kuerzeren Zellenkante. */
-fun iconSizeDp(cellWidthDp: Float, cellHeightDp: Float): Float =
-    (minOf(cellWidthDp, cellHeightDp) * 0.40f).coerceIn(24f, 96f)
+/**
+ * Icongroesse als Anteil der kuerzeren Zellenkante, Vorgabe 40 %.
+ *
+ * Der Anteil ist nicht das letzte Wort: das Icon darf nie in die Beschriftungszone
+ * hineinwachsen. Sonst legte sich bei 60 % auf einer flachen Kachel das Symbol ueber das
+ * Wort, und beides waere schlechter zu lesen als vorher. Wer die Icons gross will, soll
+ * sie so gross bekommen, wie sie hinpassen - und nicht groesser.
+ */
+fun iconSizeDp(
+    cellWidthDp: Float,
+    cellHeightDp: Float,
+    percent: Int = 40,
+    labelZoneDp: Float = 0f,
+): Float {
+    val anteil = percent.coerceIn(ICON_PERCENT_MIN, ICON_PERCENT_MAX) / 100f
+    val gewuenscht = (minOf(cellWidthDp, cellHeightDp) * anteil).coerceIn(24f, 96f)
+    // Ohne Beschriftung gehoert die ganze Zelle dem Symbol. Der Deckel gilt nur gegen die
+    // Beschriftungszone - sonst schrumpfte er auch dort, wo gar nichts im Weg steht.
+    if (labelZoneDp <= 0f) return gewuenscht
+    val platz = cellHeightDp - labelZoneDp - 8f
+    return minOf(gewuenscht, platz).coerceAtLeast(16f)
+}
 
 /**
  * Schriftgroesse fuer eine Zeile, die vollstaendig in die Zelle passen muss - Uhrzeit,

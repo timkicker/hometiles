@@ -22,6 +22,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import org.biglau.ui.BigLauActivity
 import org.biglau.R
 import org.biglau.data.ConfigStore
 import org.biglau.data.ConfigTransfer
@@ -42,7 +43,7 @@ import org.biglau.ui.theme.LocalBigPalette
  * Importiert wird erst nach ausdruecklicher Bestaetigung: das Einlesen ersetzt die
  * gesamte bestehende Einrichtung.
  */
-class ImportActivity : ComponentActivity() {
+class ImportActivity : BigLauActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -50,7 +51,9 @@ class ImportActivity : ComponentActivity() {
 
         val uri: Uri? = intent?.data
         val store = ConfigStore.get(this)
-        val loaded: LauncherConfig? = uri?.let { read(it) }?.let(ConfigTransfer::import)
+        val text: String? = uri?.let { read(it) }
+        val loaded: LauncherConfig? = text?.let(ConfigTransfer::import)
+        val vonNeuerer = text != null && ConfigTransfer.isFromNewerVersion(text)
 
         setContent {
             val config by store.config.collectAsStateWithLifecycle()
@@ -60,7 +63,12 @@ class ImportActivity : ComponentActivity() {
             BigLauTheme(
                 config.appearance.theme,
                 config.appearance.textScale,
-                haptics = config.behaviour.hapticFeedback,
+                haptics = config.behaviour.haptics,
+                font = config.appearance.font,
+                labelScale = config.appearance.labelScale,
+                iconPercent = config.appearance.iconPercent,
+                icons = config.appearance.icons,
+                cornerRadiusDp = config.appearance.cornerRadiusDp,
             ) {
                 Box(
                     Modifier
@@ -74,6 +82,7 @@ class ImportActivity : ComponentActivity() {
                         Text(
                             text = when {
                                 loaded == null -> stringResource(R.string.transfer_bad_file)
+                                done && vonNeuerer -> stringResource(R.string.transfer_imported_older)
                                 done -> stringResource(R.string.transfer_imported)
                                 else -> stringResource(
                                     R.string.transfer_confirm,

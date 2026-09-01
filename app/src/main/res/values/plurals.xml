@@ -36,4 +36,8 @@
         <item quantity="one">Screen · %1$d space free</item>
         <item quantity="other">Screen · %1$d spaces free</item>
     </plurals>
+    <plurals name="apps_recent_count_value">
+        <item quantity="one">%1$d app</item>
+        <item quantity="other">%1$d apps</item>
+    </plurals>
 </resources>

@@ -43,6 +43,7 @@ import org.biglau.info.ClockTick
 import org.biglau.ui.theme.LocalBigPalette
 import org.biglau.ui.theme.LocalTextScale
 import java.text.SimpleDateFormat
+import org.biglau.data.ClockDisplay
 import java.util.Date
 import java.util.Locale
 
@@ -54,7 +55,7 @@ import java.util.Locale
 fun ClockContent(
     cellWidth: Dp,
     cellHeight: Dp,
-    showDate: Boolean,
+    clock: ClockDisplay,
     twentyFourHour: Boolean,
     modifier: Modifier = Modifier,
 ) {
@@ -69,11 +70,14 @@ fun ClockContent(
         }
     }
 
-    val locale = Locale.getDefault()
+    val locale = currentLocale()
     val timeFormat = remember(twentyFourHour, locale) {
         SimpleDateFormat(if (twentyFourHour) "HH:mm" else "h:mm a", locale)
     }
-    val dateFormat = remember(locale) { SimpleDateFormat("EEEE, d. MMMM", locale) }
+    val datePattern = ClockFormat.datePattern(clock, onTile = true)
+    val dateFormat = remember(locale, datePattern) {
+        datePattern?.let { SimpleDateFormat(it, locale) }
+    }
 
     val timeText = timeFormat.format(Date(now))
     val timeSize = singleLineSizeSp(timeText, cellWidth.value, cellHeight.value, scale)
@@ -91,7 +95,7 @@ fun ClockContent(
             maxLines = 1,
             softWrap = false,
         )
-        if (showDate) {
+        if (dateFormat != null) {
             Text(
                 text = dateFormat.format(Date(now)),
                 color = palette.onTile,

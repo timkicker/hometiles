@@ -37,6 +37,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.material.icons.filled.Folder
 import org.biglau.data.Cell
 import org.biglau.tiles.FolderEdits
+import org.biglau.data.IconVisibility
 import org.biglau.data.LabelPosition
 import android.text.format.DateFormat
 import androidx.compose.ui.platform.LocalContext
@@ -48,6 +49,8 @@ import org.biglau.info.SignalReading
 import org.biglau.notify.SystemPackages
 import org.biglau.notify.TileNotifications
 import org.biglau.tiles.TileEdits
+import org.biglau.ui.theme.LocalTextScale
+import org.biglau.ui.theme.LocalLabelScale
 import org.biglau.ui.theme.LocalBigPalette
 
 /**
@@ -79,9 +82,11 @@ fun HomeScreenView(
         modifier = modifier
             .fillMaxSize()
             .background(
+                // Erschoepfend: ein else-Zweig hatte hier jahrelang den Bild-Fall
+                // verschluckt, und niemand sah, dass er nie gemalt wurde.
                 when (val bg = screen.background) {
                     is Background.Solid -> Color(bg.argb.toInt())
-                    else -> palette.background
+                    Background.Theme -> palette.background
                 }
             ),
     ) {
@@ -181,7 +186,7 @@ private fun TileFor(
                         ClockContent(
                             cellWidth = cellWidth,
                             cellHeight = cellHeight,
-                            showDate = appearance.clockShowsDate,
+                            clock = appearance.clock,
                             twentyFourHour = DateFormat.is24HourFormat(LocalContext.current),
                         )
                     }
@@ -194,7 +199,9 @@ private fun TileFor(
                 }
                 else -> null
             },
-            icon = if (appearance.showIcons) action.builtin.icon() else null,
+            // Hier faellt nur die harte Entscheidung "gar keine Symbole". Ob eines auf
+            // diese eine Kachel passt, weiss erst BigTile - dort stehen die Zellmasse.
+            icon = if (appearance.icons != IconVisibility.NEVER) action.builtin.icon() else null,
             labelPosition = appearance.labelPosition,
             cornerRadius = appearance.cornerRadiusDp.dp,
             modifier = modifier,
@@ -207,7 +214,7 @@ private fun TileFor(
             background = color,
             cellHeight = cellHeight,
             cellWidth = cellWidth,
-            iconBitmap = if (appearance.showIcons) appIcon(action.packageName, action.activityName) else null,
+            iconBitmap = if (appearance.icons != IconVisibility.NEVER) appIcon(action.packageName, action.activityName) else null,
             badgeCount = badge,
             labelPosition = appearance.labelPosition,
             cornerRadius = appearance.cornerRadiusDp.dp,
@@ -222,7 +229,7 @@ private fun TileFor(
             cellHeight = cellHeight,
             cellWidth = cellWidth,
             photoUri = action.photoUri,
-            icon = if (appearance.showIcons && action.photoUri == null) {
+            icon = if (appearance.icons != IconVisibility.NEVER && action.photoUri == null) {
                 org.biglau.data.Builtin.CONTACTS.icon()
             } else {
                 null
@@ -249,7 +256,7 @@ private fun TileFor(
             cellHeight = cellHeight,
             cellWidth = cellWidth,
             badgeCount = badge,
-            iconBitmap = if (appearance.showIcons) shortcutIcon(action.packageName, action.shortcutId) else null,
+            iconBitmap = if (appearance.icons != IconVisibility.NEVER) shortcutIcon(action.packageName, action.shortcutId) else null,
             labelPosition = appearance.labelPosition,
             cornerRadius = appearance.cornerRadiusDp.dp,
             modifier = modifier,
@@ -262,7 +269,7 @@ private fun TileFor(
             background = color,
             cellHeight = cellHeight,
             cellWidth = cellWidth,
-            icon = if (appearance.showIcons) org.biglau.data.Builtin.NEXT_SCREEN.icon() else null,
+            icon = if (appearance.icons != IconVisibility.NEVER) org.biglau.data.Builtin.NEXT_SCREEN.icon() else null,
             labelPosition = appearance.labelPosition,
             cornerRadius = appearance.cornerRadiusDp.dp,
             modifier = modifier,
@@ -293,7 +300,7 @@ private fun TileFor(
             background = color,
             cellHeight = cellHeight,
             cellWidth = cellWidth,
-            icon = if (appearance.showIcons) Icons.Filled.Public else null,
+            icon = if (appearance.icons != IconVisibility.NEVER) Icons.Filled.Public else null,
             labelPosition = appearance.labelPosition,
             cornerRadius = appearance.cornerRadiusDp.dp,
             modifier = modifier,
@@ -387,14 +394,20 @@ private fun FolderTile(
         cornerRadius = appearance.cornerRadiusDp.dp,
         // Leer: das Ordnersymbol. Gefuellt: der Inhalt selbst - das ist die Auskunft, die
         // man vor dem Oeffnen braucht.
-        icon = if (appearance.showIcons && preview.isEmpty()) Icons.Filled.Folder else null,
-        iconContent = if (preview.isEmpty()) {
+        icon = if (appearance.icons != IconVisibility.NEVER && preview.isEmpty()) Icons.Filled.Folder else null,
+        // "Keine Symbole" gilt auch hier. Die Vorschau besteht aus Symbolen; sie stehen zu
+        // lassen, waehrend ueberall sonst keine mehr sind, sieht nach einem Fehler aus.
+        // Der Ordnername allein sagt dann, was drin ist.
+        iconContent = if (preview.isEmpty() || appearance.icons == IconVisibility.NEVER) {
             null
         } else {
             {
                 FolderPreview(
                     cells = preview,
                     cellWidth = cellWidth,
+                    // Was nach der Beschriftung uebrig bleibt - dieselbe Rechnung wie in
+                    // BigTile, damit die Vorschau nicht mehr beansprucht, als da ist.
+                    availableHeight = (cellHeight.value - vorschauZone(cellWidth, cellHeight)).dp,
                     appIcon = appIcon,
                 )
             }
@@ -416,12 +429,15 @@ private fun FolderTile(
 private fun FolderPreview(
     cells: List<Cell>,
     cellWidth: androidx.compose.ui.unit.Dp,
+    availableHeight: androidx.compose.ui.unit.Dp,
     appIcon: (String, String) -> ImageBitmap?,
 ) {
     val palette = LocalBigPalette.current
-    val kante = (cellWidth.value * 0.20f).coerceIn(18f, 34f).dp
-    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        cells.chunked(2).forEach { reihe ->
+    val kanteDp = FolderPreviewLayout.edgeDp(cellWidth.value, availableHeight.value)
+    val kante = kanteDp.dp
+    val reihen = FolderPreviewLayout.rows(availableHeight.value, kanteDp)
+    Column(verticalArrangement = Arrangement.spacedBy(FolderPreviewLayout.GAP_DP.dp)) {
+        cells.chunked(2).take(reihen).forEach { reihe ->
             Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 reihe.forEach { cell ->
                     Box(Modifier.size(kante), contentAlignment = Alignment.Center) {
@@ -468,4 +484,19 @@ private fun FolderPreview(
             }
         }
     }
+}
+
+/** Die Hoehe, die die Beschriftung der Ordnerkachel beansprucht. */
+@Composable
+private fun vorschauZone(
+    cellWidth: androidx.compose.ui.unit.Dp,
+    cellHeight: androidx.compose.ui.unit.Dp,
+): Float {
+    val labelSp = labelSizeSp(
+        cellWidth.value,
+        cellHeight.value,
+        LocalTextScale.current,
+        LocalLabelScale.current,
+    )
+    return labelZoneDp(cellHeight.value, labelSp)
 }

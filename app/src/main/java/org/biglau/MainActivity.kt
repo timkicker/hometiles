@@ -8,7 +8,6 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.os.Build
 import android.os.Bundle
-import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
@@ -17,6 +16,11 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.material.icons.filled.Close
+import org.biglau.apps.AppLock
+import org.biglau.security.Pin
+import org.biglau.ui.PinGate
+import org.biglau.ui.SystemBarsEffect
+import org.biglau.ui.BigLauActivity
 import org.biglau.ui.BigRow
 import androidx.compose.material.icons.automirrored.filled.Message
 import androidx.compose.material.icons.filled.Call
@@ -53,6 +57,7 @@ import org.biglau.apps.AppDrawerActivity
 import org.biglau.apps.AppRepository
 import org.biglau.data.Builtin
 import org.biglau.data.ButtonAction
+import org.biglau.data.PressMode
 import org.biglau.data.Cell
 import androidx.compose.runtime.LaunchedEffect
 import org.biglau.data.ConfigStore
@@ -68,6 +73,7 @@ import org.biglau.info.SignalRepository
 import org.biglau.notify.NotificationRepository
 import org.biglau.phone.DialerActivity
 import org.biglau.toggles.SosActivity
+import org.biglau.ui.Notice
 import org.biglau.wizard.WizardActivity
 import org.biglau.wizard.WizardSteps
 import org.biglau.toggles.ToggleActions
@@ -78,8 +84,13 @@ import org.biglau.sms.SmsActivity
 import org.biglau.widgets.WidgetHostController
 import org.biglau.shortcuts.ShortcutRepository
 import org.biglau.tiles.ScreenOrder
+import org.biglau.tiles.SwipeGesture
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import org.biglau.web.LinkTarget
 import org.biglau.tiles.TileEditorActivity
+import org.biglau.tiles.TileLabel
 import org.biglau.a11y.LongPress
 import org.biglau.a11y.LongPressAction
 import org.biglau.a11y.Speaker
@@ -89,7 +100,7 @@ import org.biglau.ui.HomeScreenView
 import org.biglau.ui.theme.BigLauTheme
 import org.biglau.ui.theme.LocalBigPalette
 
-class MainActivity : ComponentActivity() {
+class MainActivity : BigLauActivity() {
 
     companion object {
         const val EXTRA_EDIT_MODE = "editMode"
@@ -126,6 +137,13 @@ class MainActivity : ComponentActivity() {
 
     /** Der gerade geoeffnete Ordner, oder `null`. */
     private val openFolder = mutableStateOf<String?>(null)
+
+    /**
+     * Eine App, die auf die PIN wartet. PLAN.md 4.5 - siehe [org.biglau.apps.AppLock].
+     * Auf der Activity und nicht in der Komposition, damit die Frage einen Wechsel in eine
+     * andere App und zurueck ueberlebt.
+     */
+    private val lockedApp = mutableStateOf<ButtonAction.App?>(null)
 
     override fun onDestroy() {
         // Die Sprachausgabe haelt eine Verbindung zum System-Dienst; ohne dieses Aufraeumen
@@ -206,6 +224,7 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             val config by store.config.collectAsStateWithLifecycle()
+            SystemBarsEffect(config.appearance.fullScreen)
             val context = LocalContext.current
             val screenId = currentScreen.value ?: config.homeScreenId
             var editMode by editModeRequest
@@ -269,17 +288,38 @@ class MainActivity : ComponentActivity() {
                         // langer Druck bleibt dann keine Voraussetzung - wer ihn nicht schafft,
                         // koennte seine Kacheln sonst nie aendern.
                         onActivate = { cell ->
-                            if (editMode) {
-                                context.startActivity(
+                            when {
+                                editMode -> context.startActivity(
                                     TileEditorActivity.intent(context, gezeigt.id, cell.x, cell.y),
                                 )
-                            } else {
-                                activate(cell, apps) { currentScreen.value = it }
+                                // Wer den langen Druck gewaehlt hat, will vom kurzen nichts
+                                // ausgeloest bekommen - sonst waere die Einstellung wirkungslos.
+                                config.behaviour.pressMode == PressMode.LONG -> Unit
+                                else -> activate(cell, apps) { currentScreen.value = it }
                             }
                         },
                         onEdit = { x, y ->
-                            LongPress.decide(config.behaviour.accessibility, editMode).forEach { action ->
+                            val zelle = gezeigt.cellAt(x, y)
+                            LongPress.decide(
+                                config.behaviour.accessibility,
+                                editMode,
+                                config.behaviour.pressMode,
+                                hasSecondAction = zelle?.button?.longPress != null,
+                            ).forEach { action ->
                                 when (action) {
+                                    // Der lange Druck startet die Kachel - fuer Haende, die
+                                    // beim Streifen sonst etwas ausloesen wuerden.
+                                    LongPressAction.ACTIVATE -> zelle?.let { treffer ->
+                                        activate(treffer, apps) { ziel -> currentScreen.value = ziel }
+                                    }
+                                    // Die Zweitbelegung: dieselbe Ausfuehrung wie beim
+                                    // Kurzdruck, nur mit der anderen Aktion.
+                                    LongPressAction.SECOND_ACTION -> zelle?.button?.longPress?.let { zweite ->
+                                        activate(
+                                            zelle.copy(button = zelle.button.copy(action = zweite)),
+                                            apps,
+                                        ) { ziel -> currentScreen.value = ziel }
+                                    }
                                     LongPressAction.EDIT -> context.startActivity(
                                         TileEditorActivity.intent(context, gezeigt.id, x, y),
                                     )
@@ -299,7 +339,12 @@ class MainActivity : ComponentActivity() {
             BigLauTheme(
                 theme = config.appearance.theme,
                 textScale = config.appearance.textScale,
-                haptics = config.behaviour.hapticFeedback,
+                haptics = config.behaviour.haptics,
+                font = config.appearance.font,
+                labelScale = config.appearance.labelScale,
+                iconPercent = config.appearance.iconPercent,
+                icons = config.appearance.icons,
+                cornerRadiusDp = config.appearance.cornerRadiusDp,
             ) {
                 Column(
                     Modifier
@@ -316,7 +361,8 @@ class MainActivity : ComponentActivity() {
                     if (config.appearance.showHeader) {
                         HomeHeader(
                             battery = battery,
-                            showDate = config.appearance.clockShowsDate,
+                            clock = config.appearance.clock,
+                            clockScale = config.appearance.clockScale,
                             modifier = Modifier.padding(
                                 start = 8.dp,
                                 end = 8.dp,
@@ -325,7 +371,36 @@ class MainActivity : ComponentActivity() {
                             ),
                         )
                     }
-                    zeigeKachel(screen, Modifier.fillMaxSize())
+                    // Wischen ist eine Einstellung und standardmaessig aus - siehe
+                    // PLAN.md 3.2. Die Kantenstreifen bleiben der Zurueck-Geste.
+                    val dichte = LocalDensity.current
+                    val wischen = if (!config.behaviour.swipeBetweenScreens) {
+                        Modifier
+                    } else {
+                        Modifier.pointerInput(screenId, config.screens.size) {
+                            var startX = 0f
+                            var strecke = 0f
+                            detectHorizontalDragGestures(
+                                onDragStart = { punkt ->
+                                    startX = with(dichte) { punkt.x.toDp().value }
+                                    strecke = 0f
+                                },
+                                onDragEnd = {
+                                    val breite = with(dichte) { size.width.toDp().value }
+                                    when (SwipeGesture.decide(startX, strecke, breite)) {
+                                        SwipeGesture.Direction.NEXT ->
+                                            ScreenOrder.next(config, screenId)?.let { currentScreen.value = it }
+                                        SwipeGesture.Direction.PREVIOUS ->
+                                            ScreenOrder.previous(config, screenId)?.let { currentScreen.value = it }
+                                        SwipeGesture.Direction.NONE -> Unit
+                                    }
+                                },
+                            ) { _, betrag ->
+                                strecke += with(dichte) { betrag.toDp().value }
+                            }
+                        }
+                    }
+                    zeigeKachel(screen, Modifier.fillMaxSize().then(wischen))
                 }
 
                 val label = popupLabel
@@ -353,6 +428,25 @@ class MainActivity : ComponentActivity() {
                         },
                         onDismiss = { phoneStateAsked.value = false },
                     )
+                }
+
+                val wartend = lockedApp.value
+                if (wartend != null) {
+                    PinGate(
+                        title = stringResource(R.string.applock_locked),
+                        explainer = stringResource(R.string.applock_locked_hint),
+                        wrongText = stringResource(R.string.security_wrong_pin),
+                        confirmLabel = stringResource(R.string.editor_done),
+                        onCheck = { eingabe -> Pin.verify(eingabe, config.security.pin) },
+                        onAccept = {
+                            lockedApp.value = null
+                            apps.launch(wartend.packageName, wartend.activityName)
+                        },
+                        acceptOnComplete = true,
+                    )
+                    // Zurueck schliesst die Frage, statt aus dem Startbildschirm zu fallen.
+                    BackHandler { lockedApp.value = null }
+                    return@BigLauTheme
                 }
 
                 val asking = contactChoice.value
@@ -383,19 +477,21 @@ class MainActivity : ComponentActivity() {
         apps: AppRepository,
     ): String {
         val button = config.screenById(screenId)?.cellAt(x, y)?.button ?: return getString(R.string.empty_tile)
-        button.label?.let { return it }
-        return when (val action = button.action) {
-            is ButtonAction.App -> apps.labelFor(action.packageName, action.activityName) ?: action.packageName
-            is ButtonAction.Contact -> action.name
-            is ButtonAction.Shortcut -> action.label
-            is ButtonAction.Widget -> action.label
-            is ButtonAction.GoToScreen -> config.screenById(action.screenId)?.name ?: getString(R.string.next_screen)
-            is ButtonAction.Folder -> config.screenById(action.screenId)?.name ?: getString(R.string.folder)
-            is ButtonAction.Link -> LinkTarget.labelFor(action.url)
-            is ButtonAction.Action -> getString(action.builtin.labelRes())
-            ButtonAction.None -> getString(R.string.empty_tile)
-        }
+        return TileLabel.of(
+            button,
+            words(),
+            screenName = { id -> config.screenById(id)?.name },
+            appLabel = { a -> apps.labelFor(a.packageName, a.activityName) },
+            builtinLabel = { builtin -> getString(builtin.labelRes()) },
+        )
     }
+
+    private fun words() = TileLabel.Words(
+        emptyTile = getString(R.string.empty_tile),
+        folder = getString(R.string.folder),
+        nextScreen = getString(R.string.next_screen),
+        widget = getString(R.string.editor_pick_widget),
+    )
 
     /** Welcher Screen gerade zu sehen ist - fuer "naechster" und "voriger". */
     private fun currentScreenId(): String =
@@ -403,11 +499,22 @@ class MainActivity : ComponentActivity() {
 
     private fun activate(cell: Cell, apps: AppRepository, goToScreen: (String) -> Unit) {
         when (val action = cell.button.action) {
-            is ButtonAction.App -> apps.launch(action.packageName, action.activityName)
+            is ButtonAction.App -> {
+                val gesperrt = AppLock.needsPin(
+                    ConfigStore.get(this).current,
+                    "${action.packageName}/${action.activityName}",
+                    action.packageName,
+                )
+                if (gesperrt) {
+                    lockedApp.value = action
+                } else {
+                    apps.launch(action.packageName, action.activityName)
+                }
+            }
 
             is ButtonAction.Shortcut ->
                 if (!ShortcutRepository.get(this).launch(action.packageName, action.shortcutId)) {
-                    Toast.makeText(this, R.string.shortcut_gone, Toast.LENGTH_SHORT).show()
+                    Notice.show(this, R.string.shortcut_gone)
                 }
 
             is ButtonAction.Contact -> when (action.mode) {

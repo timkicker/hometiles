@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import org.biglau.ui.theme.LocalCornerRadius
 import org.biglau.R
 import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.layout.size
@@ -41,6 +42,7 @@ import org.biglau.info.ClockTick
 import org.biglau.ui.theme.LocalBigPalette
 import org.biglau.ui.theme.LocalTextScale
 import java.text.SimpleDateFormat
+import org.biglau.data.ClockDisplay
 import java.util.Date
 import java.util.Locale
 
@@ -58,7 +60,8 @@ import java.util.Locale
 @Composable
 fun HomeHeader(
     battery: BatteryReading?,
-    showDate: Boolean,
+    clock: ClockDisplay,
+    clockScale: Float = 1.0f,
     modifier: Modifier = Modifier,
 ) {
     val palette = LocalBigPalette.current
@@ -73,12 +76,15 @@ fun HomeHeader(
         }
     }
 
-    val locale = Locale.getDefault()
+    val locale = currentLocale()
     val twentyFourHour = remember(context) { DateFormat.is24HourFormat(context) }
     val timeFormat = remember(twentyFourHour, locale) {
         SimpleDateFormat(if (twentyFourHour) "HH:mm" else "h:mm a", locale)
     }
-    val dateFormat = remember(locale) { SimpleDateFormat("EEE, d. MMM", locale) }
+    val datePattern = ClockFormat.datePattern(clock, onTile = false)
+    val dateFormat = remember(locale, datePattern) {
+        datePattern?.let { SimpleDateFormat(it, locale) }
+    }
 
     val percent = battery?.let { BatteryInfo.percent(it) }
     val charging = battery?.let { BatteryInfo.isCharging(it) } ?: false
@@ -88,26 +94,33 @@ fun HomeHeader(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .height(if (showDate) 78.dp else 54.dp)
-            .clip(RoundedCornerShape(12.dp))
+            // Die Hoehe waechst mit der Uhr mit, sonst schnitte die Kopfzeile ihre
+            // eigene Zeile ab, sobald jemand sie groesser stellt.
+            .height(
+                ((if (ClockFormat.datePattern(clock, onTile = false) != null) 78f else 54f) *
+                    ClockFormat.scale(clockScale)).dp
+            )
+            .clip(RoundedCornerShape(LocalCornerRadius.current))
             .background(palette.emptyTile)
             .padding(horizontal = 12.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = timeFormat.format(Date(now)),
-                color = palette.onBackground,
-                fontSize = dpSp(26f * scale),
-                fontWeight = FontWeight.Bold,
-                maxLines = 1,
-                softWrap = false,
-            )
-            if (showDate) {
+            if (ClockFormat.showsTime(clock, onTile = false)) {
+                Text(
+                    text = timeFormat.format(Date(now)),
+                    color = palette.onBackground,
+                    fontSize = dpSp(26f * scale * ClockFormat.scale(clockScale)),
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    softWrap = false,
+                )
+            }
+            if (dateFormat != null) {
                 Text(
                     text = dateFormat.format(Date(now)),
                     color = palette.onBackground,
-                    fontSize = dpSp(14f * scale),
+                    fontSize = dpSp(14f * scale * ClockFormat.scale(clockScale)),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )

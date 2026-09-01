@@ -33,7 +33,15 @@ object Pin {
      * der Einstellungen. Zwei Hintertüren an einem Schloss sind eine zu viel, und von den
      * Einstellungen aus lässt sich dieser Schutz abschalten.
      */
-    fun protectsEditor(stored: String?, enabled: Boolean): Boolean = stored != null && enabled
+    fun protectsEditor(stored: String?, enabled: Boolean): Boolean = protects(stored, enabled)
+
+    /**
+     * Die allgemeine Frage: schuetzt die PIN diesen Schritt?
+     *
+     * Ohne gesetzte PIN schuetzt nichts - ein eingeschalteter Schutz ohne Schloss waere
+     * eine Zusage, die beim ersten Antippen zerfaellt.
+     */
+    fun protects(stored: String?, enabled: Boolean): Boolean = stored != null && enabled
 
     /** Nur Ziffern, und zwar zwischen vier und acht davon. */
     fun isValid(pin: String): Boolean =

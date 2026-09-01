@@ -34,6 +34,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import org.biglau.ui.theme.LocalCornerRadius
 import org.biglau.R
 import org.biglau.ui.theme.LocalBigPalette
 import org.biglau.ui.theme.LocalTextScale
@@ -62,9 +63,9 @@ fun BigSearchField(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
+            .clip(RoundedCornerShape(LocalCornerRadius.current))
             .background(palette.emptyTile)
-            .then(if (border != null) Modifier.border(3.dp, border, RoundedCornerShape(12.dp)) else Modifier)
+            .then(if (border != null) Modifier.border(3.dp, border, RoundedCornerShape(LocalCornerRadius.current)) else Modifier)
             .heightIn(min = 64.dp)
             .padding(horizontal = 16.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -126,7 +127,7 @@ fun BigSearchField(
             Box(
                 modifier = Modifier
                     .size(48.dp)
-                    .clip(RoundedCornerShape(12.dp))
+                    .clip(RoundedCornerShape(LocalCornerRadius.current))
                     .clickable { onValueChange("") }
                     .semantics { contentDescription = clear },
                 contentAlignment = Alignment.Center,

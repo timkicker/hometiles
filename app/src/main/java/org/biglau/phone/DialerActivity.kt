@@ -5,7 +5,6 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import android.telephony.PhoneNumberUtils
-import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -49,6 +48,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import org.biglau.ui.BigLauActivity
+import org.biglau.ui.currentLocale
 import org.biglau.R
 import kotlinx.coroutines.launch
 import org.biglau.contacts.ContactRepository
@@ -59,6 +60,9 @@ import org.biglau.ui.ContactAvatar
 import org.biglau.ui.BigHeading
 import org.biglau.ui.BigKeypad
 import org.biglau.actions.Intents
+import org.biglau.security.Pin
+import org.biglau.ui.PinGate
+import org.biglau.ui.Notice
 import org.biglau.ui.PermissionGate
 import org.biglau.ui.PermissionState
 import org.biglau.ui.BigRow
@@ -79,7 +83,7 @@ private enum class Tab { KEYPAD, LOG, ASSIGN }
  * Gewaehlt wird ueber ACTION_CALL, die Gespraechsansicht bleibt vorerst die des Systems.
  * Notrufnummern gehen ausdruecklich *nicht* diesen Weg, siehe [dial].
  */
-class DialerActivity : ComponentActivity() {
+class DialerActivity : BigLauActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -99,9 +103,33 @@ class DialerActivity : ComponentActivity() {
             var assigningKey by remember { mutableStateOf<Char?>(null) }
             var missedOnly by rememberSaveable { mutableStateOf(intent?.getBooleanExtra(EXTRA_MISSED, false) == true) }
             var pendingDelete by remember { mutableStateOf<Pair<String, List<Long>>?>(null) }
+            // Erst die Rueckfrage - sie sagt, was verschwindet -, dann die PIN. So steht
+            // das Schloss unmittelbar vor dem Schritt, der nicht rueckgaengig zu machen ist,
+            // und man weiss beim Eintippen, wofuer.
+            var pinFor by remember { mutableStateOf<Pair<String, List<Long>>?>(null) }
             val scope = rememberCoroutineScope()
             var contacts by remember { mutableStateOf<List<PhoneContact>>(emptyList()) }
             val contactRepo = remember { ContactRepository.get(this@DialerActivity) }
+
+            /** Das eigentliche Loeschen - hinter Rueckfrage und, wenn gesetzt, PIN. */
+            fun deleteNow(pending: Pair<String, List<Long>>) {
+                scope.launch {
+                    val removed = if (pending.second.isEmpty()) {
+                        callLog.deleteAll()
+                    } else {
+                        callLog.delete(pending.second)
+                    }
+                    if (removed > 0) {
+                        groups = callLog.load()
+                        Notice.show(
+                            this@DialerActivity,
+                            getString(R.string.calllog_deleted, removed),
+                        )
+                    } else {
+                        Notice.show(this@DialerActivity, R.string.calllog_delete_denied)
+                    }
+                }
+            }
 
             LaunchedEffect(tab) {
                 if (tab == Tab.ASSIGN && contacts.isEmpty()) contacts = contactRepo.load()
@@ -145,7 +173,12 @@ class DialerActivity : ComponentActivity() {
             BigLauTheme(
                 config.appearance.theme,
                 config.appearance.textScale,
-                haptics = config.behaviour.hapticFeedback,
+                haptics = config.behaviour.haptics,
+                font = config.appearance.font,
+                labelScale = config.appearance.labelScale,
+                iconPercent = config.appearance.iconPercent,
+                icons = config.appearance.icons,
+                cornerRadiusDp = config.appearance.cornerRadiusDp,
             ) {
                 BackHandler(enabled = tab != Tab.KEYPAD) { tab = Tab.KEYPAD }
 
@@ -156,6 +189,22 @@ class DialerActivity : ComponentActivity() {
                         .safeDrawingPadding()
                         .padding(horizontal = 8.dp),
                 ) {
+                    val zuBestaetigen = pinFor
+                    if (zuBestaetigen != null) {
+                        PinGate(
+                            title = stringResource(R.string.calllog_locked),
+                            explainer = stringResource(R.string.calllog_locked_hint),
+                            wrongText = stringResource(R.string.security_wrong_pin),
+                            confirmLabel = stringResource(R.string.editor_done),
+                            onCheck = { eingabe -> Pin.verify(eingabe, config.security.pin) },
+                            onAccept = {
+                                pinFor = null
+                                deleteNow(zuBestaetigen)
+                            },
+                            acceptOnComplete = true,
+                        )
+                        return@Box
+                    }
                     when (tab) {
                         Tab.KEYPAD -> Keypad(
                             typed = typed,
@@ -223,27 +272,15 @@ class DialerActivity : ComponentActivity() {
                             onCancelDelete = { pendingDelete = null },
                             onConfirmDelete = {
                                 val pending = pendingDelete ?: return@CallList
-                                scope.launch {
-                                    val removed = if (pending.second.isEmpty()) {
-                                        callLog.deleteAll()
-                                    } else {
-                                        callLog.delete(pending.second)
-                                    }
-                                    pendingDelete = null
-                                    if (removed > 0) {
-                                        groups = callLog.load()
-                                        Toast.makeText(
-                                            this@DialerActivity,
-                                            getString(R.string.calllog_deleted, removed),
-                                            Toast.LENGTH_SHORT,
-                                        ).show()
-                                    } else {
-                                        Toast.makeText(
-                                            this@DialerActivity,
-                                            R.string.calllog_delete_denied,
-                                            Toast.LENGTH_LONG,
-                                        ).show()
-                                    }
+                                pendingDelete = null
+                                if (Pin.protects(
+                                        config.security.pin,
+                                        config.security.pinProtectsCallLogDelete,
+                                    )
+                                ) {
+                                    pinFor = pending
+                                } else {
+                                    deleteNow(pending)
                                 }
                             },
                         )
@@ -274,7 +311,7 @@ class DialerActivity : ComponentActivity() {
         }.getOrDefault(false)
 
         if (PhoneNumbers.looksLikeEmergency(number, platformSaysEmergency)) {
-            Toast.makeText(this, R.string.dialer_emergency_handover, Toast.LENGTH_LONG).show()
+            Notice.show(this, R.string.dialer_emergency_handover)
             startActivity(
                 Intent(Intent.ACTION_DIAL, Uri.fromParts("tel", PhoneNumbers.clean(number), null))
                     .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
@@ -382,7 +419,8 @@ private fun CallList(
     scrollButtons: Boolean,
 ) {
     val palette = LocalBigPalette.current
-    val format = remember { SimpleDateFormat("EEE d. MMM, HH:mm", Locale.getDefault()) }
+    val locale = currentLocale()
+    val format = remember(locale) { SimpleDateFormat("EEE d. MMM, HH:mm", locale) }
 
     // Loeschen ist nicht rueckgaengig zu machen, also wird gefragt - und zwar so, dass
     // die Frage die Liste verdeckt: wer bestaetigt, soll nicht nebenbei auf eine Zeile tippen.

@@ -16,7 +16,7 @@ import org.biglau.data.Screen
 object ScreenOrder {
 
     fun ordered(config: LauncherConfig): List<Screen> {
-        val echte = config.screens.filterNot { it.isFolder }
+        val echte = config.screens.filterNot { it.isFolder || it.id in config.swipeExcluded }
         if (config.swipeOrder.isEmpty()) return echte
         // Erst die ausdrücklich geordneten, dann der Rest in seiner natürlichen Folge.
         val nachOrdnung = config.swipeOrder.mapNotNull { id -> echte.firstOrNull { it.id == id } }

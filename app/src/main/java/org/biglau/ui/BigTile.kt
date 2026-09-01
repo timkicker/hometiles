@@ -50,6 +50,10 @@ import androidx.compose.ui.platform.LocalContext
 import org.biglau.data.LabelPosition
 import org.biglau.notify.NotificationCounts
 import org.biglau.ui.theme.LocalBigPalette
+import org.biglau.data.IconVisibility
+import org.biglau.ui.theme.LocalIconPercent
+import org.biglau.ui.theme.LocalIconVisibility
+import org.biglau.ui.theme.LocalLabelScale
 import org.biglau.ui.theme.LocalTextScale
 import org.biglau.ui.theme.tileBorder
 
@@ -92,15 +96,25 @@ fun BigTile(
 ) {
     val palette = LocalBigPalette.current
     val haptik = LocalHapticFeedback.current
-    val haptikAn = LocalHapticsEnabled.current
+    val haptikStaerke = LocalHaptics.current
     val textScale = LocalTextScale.current
     val interaction = remember { MutableInteractionSource() }
     val pressed by interaction.collectIsPressedAsState()
     val scale by animateFloatAsState(if (pressed) 0.97f else 1f, label = "press")
 
-    val labelSp = labelSizeSp(cellWidth.value, cellHeight.value, textScale)
+    val labelSp = labelSizeSp(cellWidth.value, cellHeight.value, textScale, LocalLabelScale.current)
     val labelZone = labelZoneDp(cellHeight.value, labelSp).dp
-    val iconSize = iconSizeDp(cellWidth.value, cellHeight.value).dp
+    val iconGewuenscht = iconSizeDp(cellWidth.value, cellHeight.value, LocalIconPercent.current)
+    val iconDp = iconSizeDp(
+        cellWidth.value,
+        cellHeight.value,
+        LocalIconPercent.current,
+        labelZone.value,
+    )
+    val iconSize = iconDp.dp
+    // Musste das Symbol fuer die Beschriftung gequetscht werden, bekommt das Wort den
+    // ganzen Platz - siehe IconRoom.
+    val zeigeIcon = IconRoom.show(LocalIconVisibility.current, iconGewuenscht, iconDp)
     val pad = (cellHeight.value * 0.06f).coerceIn(6f, 16f).dp
     val staticBorder = borderOverride ?: palette.tileBorder()
 
@@ -142,8 +156,8 @@ fun BigTile(
             .combinedClickable(
                 interactionSource = interaction,
                 indication = null,
-                onClick = { haptik.tap(haptikAn); onClick() },
-                onLongClick = onLongClick?.let { echt -> { haptik.longPress(haptikAn); echt() } },
+                onClick = { haptik.tap(haptikStaerke); onClick() },
+                onLongClick = onLongClick?.let { echt -> { haptik.longPress(haptikStaerke); echt() } },
             )
             .semantics { this.contentDescription = contentDescription },
     ) {
@@ -198,6 +212,7 @@ fun BigTile(
             Box(Modifier.fillMaxWidth()) {
                 when {
                     iconContent != null -> iconContent()
+                    !zeigeIcon -> Unit
                     photoUri != null -> Unit
                     iconBitmap != null -> Image(
                         bitmap = iconBitmap,

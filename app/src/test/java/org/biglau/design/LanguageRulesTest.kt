@@ -83,9 +83,14 @@ class LanguageRulesTest {
  */
 class HardcodedGermanTest {
 
+    // Ohne IGNORE_CASE lief "Keine passende App gefunden" glatt durch: das Muster kannte
+    // nur das kleine "keine". Ein Test, der nur die Kleinschreibung sieht, findet
+    // ausgerechnet die Satzanfaenge nicht - und Meldungen fangen mit einem Satz an.
     private val deutscheWorte = Regex(
-        """"[^"]*\b(nicht|keine|keiner|Gerät|Fenster|Dichte|Schrift|Nutzbar|Anrufe|Kontakte|""" +
-            """Startbildschirm|Kachel|Kacheln|Bildschirm|Einstellungen|Fehler|Absturz)\b[^"]*"""",
+        """"[^"]*\b(nicht|keine|keiner|kein|Gerät|Fenster|Dichte|Schrift|Nutzbar|Anrufe|""" +
+            """Kontakte|Startbildschirm|Kachel|Kacheln|Bildschirm|Einstellungen|Fehler|""" +
+            """Absturz|Berechtigung|gefunden|fehlt|passende)\b[^"]*"""",
+        RegexOption.IGNORE_CASE,
     )
 
     @Test
@@ -112,5 +117,114 @@ class HardcodedGermanTest {
                 }
             }.toList()
         assertEquals(emptyList<String>(), treffer)
+    }
+
+    /**
+     * Der Wortliste oben entkommt jeder deutsche Satz, der zufaellig kein Wort daraus
+     * enthaelt. Die schaerfere Frage stellt sich anders herum: eine Meldung an den Nutzer
+     * darf ueberhaupt kein Text im Quelltext sein, egal in welcher Sprache. Sie gehoert in
+     * strings.xml, sonst gibt es sie nur einmal.
+     */
+    @Test
+    fun `keine Meldung mit festem Text`() {
+        val fest = Regex("""Notice\.show\([^,]+,\s*"""")
+        val treffer = File("src/main/java/org/biglau").walkTopDown()
+            .filter { it.extension == "kt" }
+            .flatMap { datei ->
+                datei.readLines().asSequence().mapIndexedNotNull { index, zeile ->
+                    if (fest.containsMatchIn(zeile)) "${datei.name}:${index + 1}" else null
+                }
+            }.toList()
+        assertEquals(emptyList<String>(), treffer)
+    }
+
+    /**
+     * Und: Meldungen laufen ueber [org.biglau.ui.Notice], nicht an ihm vorbei. Wer einen
+     * Toast direkt baut, umgeht die Einstellung "Meldungen warten, bis du sie wegtippst" -
+     * und ausgerechnet die Meldung, auf die es ankommt, blitzt dann doch nur auf.
+     */
+    @Test
+    fun `kein Toast am Notice vorbei`() {
+        val treffer = File("src/main/java/org/biglau").walkTopDown()
+            .filter { it.extension == "kt" && it.name != "Notice.kt" }
+            .flatMap { datei ->
+                datei.readLines().asSequence().mapIndexedNotNull { index, zeile ->
+                    if (zeile.contains("Toast.makeText")) "${datei.name}:${index + 1}" else null
+                }
+            }.toList()
+        assertEquals(emptyList<String>(), treffer)
+    }
+}
+
+/**
+ * Die Sprachnamen selbst werden nicht übersetzt.
+ *
+ * Wer die eingestellte Sprache nicht liest, sucht in der Liste nach dem Wort, das er
+ * kennt. "Deutsch" als "German" zu übersetzen macht die Zeile genau für den unlesbar,
+ * der sie braucht.
+ */
+class LanguageNamesTest {
+
+    private fun wert(verzeichnis: String, name: String): String {
+        val datei = java.io.File("src/main/res/$verzeichnis/strings.xml")
+        return Regex("""<string name="$name">(.*?)</string>""")
+            .find(datei.readText())!!
+            .groupValues[1]
+    }
+
+    @Test
+    fun `die sprachnamen stehen in beiden dateien gleich`() {
+        assertEquals(wert("values", "language_german"), wert("values-de", "language_german"))
+        assertEquals(wert("values", "language_english"), wert("values-de", "language_english"))
+    }
+
+    @Test
+    fun `sie stehen in ihrer eigenen sprache`() {
+        assertEquals("Deutsch", wert("values", "language_german"))
+        assertEquals("English", wert("values-de", "language_english"))
+    }
+}
+
+/**
+ * Datum und Uhrzeit folgen der eingestellten Sprache, nicht der des Prozesses.
+ *
+ * Nach dem Umstellen auf Deutsch stand ueber dem Startbildschirm weiter "Tue, 1. Sep":
+ * die Texte kamen aus den Ressourcen und waren deutsch, der Wochentag kam aus
+ * `Locale.getDefault()` und blieb englisch. Halb uebersetzt ist schlechter als gar nicht -
+ * es sieht nach einem Fehler aus, und man sucht ihn bei sich.
+ */
+class DateLocaleTest {
+
+    @Test
+    fun `keine anzeige formatiert mit der prozesssprache`() {
+        val treffer = java.io.File("src/main/java/org/biglau").walkTopDown()
+            .filter { it.extension == "kt" }
+            .flatMap { datei ->
+                datei.readLines().asSequence().mapIndexedNotNull { index, zeile ->
+                    // Der Sprecher darf darauf zurueckfallen, wenn die App der Sprache des
+                    // Telefons folgt - eine Stimme ohne Sprache spricht gar nicht.
+                    val rueckfall = zeile.contains("?: Locale.getDefault()")
+                    if (zeile.contains("Locale.getDefault()") && !rueckfall) {
+                        "${datei.name}:${index + 1}"
+                    } else {
+                        null
+                    }
+                }
+            }.toList()
+        assertEquals(emptyList<String>(), treffer)
+    }
+
+    /**
+     * Gegenstueck: Locale.US bleibt erlaubt und ist an drei Stellen sogar noetig - im
+     * Absturzprotokoll, im Dateinamen der Sicherung und in den Koordinaten der SOS-
+     * Nachricht. Dort wuerde eine deutsche Sprache aus "48.20849" ein "47,26543" machen,
+     * und der Kartenlink der Rettung waere kaputt.
+     */
+    @Test
+    fun `Locale US bleibt fuer maschinentexte`() {
+        val mitUS = java.io.File("src/main/java/org/biglau").walkTopDown()
+            .filter { it.extension == "kt" }
+            .count { it.readText().contains("Locale.US") }
+        assertEquals(true, mitUS >= 3)
     }
 }

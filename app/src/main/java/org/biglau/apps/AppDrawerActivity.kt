@@ -1,7 +1,6 @@
 package org.biglau.apps
 
 import android.os.Bundle
-import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -33,12 +32,16 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.graphics.drawable.toBitmap
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import org.biglau.ui.BigLauActivity
 import org.biglau.R
 import org.biglau.data.ConfigStore
+import org.biglau.security.Pin
+import org.biglau.ui.PinGate
 import org.biglau.ui.BigHeading
 import androidx.compose.material.icons.filled.Apps
 import org.biglau.ui.BigRow
 import org.biglau.ui.BigSearchField
+import org.biglau.ui.Notice
 import org.biglau.ui.ScrollButtons
 import org.biglau.ui.theme.BigLauTheme
 import org.biglau.ui.theme.LocalBigPalette
@@ -47,7 +50,7 @@ import org.biglau.ui.theme.LocalBigPalette
  * Die vollstaendige App-Liste. Grosse Zeilen, Suche oben, zuletzt Benutztes davor.
  * Langdruck blendet eine App aus - der Weg zurueck fuehrt ueber die Einstellungen.
  */
-class AppDrawerActivity : ComponentActivity() {
+class AppDrawerActivity : BigLauActivity() {
 
     companion object {
         /** Mit der Liste der zuletzt benutzten Apps oeffnen. */
@@ -70,6 +73,13 @@ class AppDrawerActivity : ComponentActivity() {
                 mutableStateOf(intent?.getBooleanExtra(EXTRA_RECENT, false) == true)
             }
             val palette = LocalBigPalette.current
+            // Die App-Liste ist der Weg zu jeder App, die auf keiner Kachel liegt. Wer
+            // eine PIN setzt und diesen Schutz einschaltet, will genau diesen Weg zu.
+            var locked by remember {
+                mutableStateOf(
+                    Pin.protects(config.security.pin, config.security.pinProtectsAppList),
+                )
+            }
 
             LaunchedEffect(Unit) { all = repository.loadApps() }
 
@@ -92,10 +102,26 @@ class AppDrawerActivity : ComponentActivity() {
                 repository.launch(app.packageName, app.activityName)
             }
 
+            // Die Sperre gilt auch hier, nicht nur auf den Kacheln - sonst waere sie ueber
+            // die Liste in einem Tipp zu umgehen.
+            var lockedApp by remember { mutableStateOf<LaunchableApp?>(null) }
+            fun open(app: LaunchableApp) {
+                if (AppLock.needsPin(config, AppDrawer.keyOf(app), app.packageName)) {
+                    lockedApp = app
+                } else {
+                    launch(app)
+                }
+            }
+
             BigLauTheme(
                 config.appearance.theme,
                 config.appearance.textScale,
-                haptics = config.behaviour.hapticFeedback,
+                haptics = config.behaviour.haptics,
+                font = config.appearance.font,
+                labelScale = config.appearance.labelScale,
+                iconPercent = config.appearance.iconPercent,
+                icons = config.appearance.icons,
+                cornerRadiusDp = config.appearance.cornerRadiusDp,
             ) {
                 Box(
                     Modifier
@@ -104,6 +130,34 @@ class AppDrawerActivity : ComponentActivity() {
                         .safeDrawingPadding()
                         .padding(horizontal = 8.dp),
                 ) {
+                    val gesperrt = lockedApp
+                    if (gesperrt != null) {
+                        PinGate(
+                            title = stringResource(R.string.applock_locked),
+                            explainer = stringResource(R.string.applock_locked_hint),
+                            wrongText = stringResource(R.string.security_wrong_pin),
+                            confirmLabel = stringResource(R.string.editor_done),
+                            onCheck = { eingabe -> Pin.verify(eingabe, config.security.pin) },
+                            onAccept = {
+                                lockedApp = null
+                                launch(gesperrt)
+                            },
+                            acceptOnComplete = true,
+                        )
+                        return@Box
+                    }
+                    if (locked) {
+                        PinGate(
+                            title = stringResource(R.string.apps_locked),
+                            explainer = stringResource(R.string.apps_locked_hint),
+                            wrongText = stringResource(R.string.security_wrong_pin),
+                            confirmLabel = stringResource(R.string.editor_done),
+                            onCheck = { eingabe -> Pin.verify(eingabe, config.security.pin) },
+                            onAccept = { locked = false },
+                            acceptOnComplete = true,
+                        )
+                        return@Box
+                    }
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         if (query.isEmpty()) {
                             BigHeading(
@@ -161,7 +215,7 @@ class AppDrawerActivity : ComponentActivity() {
                                     item { BigHeading(stringResource(R.string.apps_recent)) }
                                 }
                                 items(recents, key = { "recent-" + AppDrawer.keyOf(it) }) { app ->
-                                    AppRow(app, repository, onClick = { launch(app) }, onHide = null)
+                                    AppRow(app, repository, onClick = { open(app) }, onHide = null)
                                 }
                                 if (!recentOnly || query.isNotEmpty()) {
                                     item { BigHeading(stringResource(R.string.apps_all)) }
@@ -174,17 +228,16 @@ class AppDrawerActivity : ComponentActivity() {
                                 AppRow(
                                     app = app,
                                     repository = repository,
-                                    onClick = { launch(app) },
+                                    onClick = { open(app) },
                                     onHide = {
                                         store.update {
                                             it.copy(apps = it.apps.copy(hidden = AppDrawer.toggleHidden(it.apps.hidden, app)))
                                         }
                                         // Ohne diesen Hinweis waere die App einfach verschwunden.
-                                        Toast.makeText(
+                                        Notice.show(
                                             this@AppDrawerActivity,
                                             getString(R.string.apps_hidden_hint, app.label),
-                                            Toast.LENGTH_LONG,
-                                        ).show()
+                                        )
                                     },
                                 )
                             }

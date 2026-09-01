@@ -2,7 +2,6 @@ package org.biglau.contacts
 
 import android.Manifest
 import android.os.Bundle
-import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -45,6 +44,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import org.biglau.ui.BigLauActivity
 import org.biglau.R
 import kotlinx.coroutines.launch
 import org.biglau.actions.Intents
@@ -52,6 +52,7 @@ import org.biglau.data.ConfigStore
 import org.biglau.search.TextSearch
 import org.biglau.ui.BigHeading
 import org.biglau.ui.BigIconButton
+import org.biglau.ui.Notice
 import org.biglau.ui.PermissionGate
 import org.biglau.ui.PermissionState
 import org.biglau.ui.BigRow
@@ -66,7 +67,7 @@ import org.biglau.ui.theme.LocalBigPalette
  * Eigene Kontaktliste. Grosse Zeilen mit Foto, Suche, und eine Detailansicht, in der
  * Anrufen und Schreiben je eine ganze Zeile bekommen statt eines kleinen Symbols.
  */
-class ContactsActivity : ComponentActivity() {
+class ContactsActivity : BigLauActivity() {
 
     companion object {
         /** Nur die Favoriten zeigen - von der Favoritenkachel aus. */
@@ -137,7 +138,12 @@ class ContactsActivity : ComponentActivity() {
             BigLauTheme(
                 config.appearance.theme,
                 config.appearance.textScale,
-                haptics = config.behaviour.hapticFeedback,
+                haptics = config.behaviour.haptics,
+                font = config.appearance.font,
+                labelScale = config.appearance.labelScale,
+                iconPercent = config.appearance.iconPercent,
+                icons = config.appearance.icons,
+                cornerRadiusDp = config.appearance.cornerRadiusDp,
             ) {
                 BackHandler(enabled = selected != null) { selected = null }
 
@@ -170,11 +176,7 @@ class ContactsActivity : ComponentActivity() {
                                             all = repository.load()
                                             selected = all.firstOrNull { it.id == current.id }
                                         } else {
-                                            Toast.makeText(
-                                                this@ContactsActivity,
-                                                R.string.contacts_star_failed,
-                                                Toast.LENGTH_SHORT,
-                                            ).show()
+                                            Notice.show(this@ContactsActivity, R.string.contacts_star_failed)
                                         }
                                     }
                                 } else {
