@@ -39,7 +39,4 @@ object Shortcuts {
                 { labelOf(it).lowercase() },
             ),
         )
-
-    /** Hat diese App ueberhaupt etwas anzubieten? */
-    fun hasAny(rows: List<ShortcutRow>): Boolean = usable(rows).isNotEmpty()
 }

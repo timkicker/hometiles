@@ -28,11 +28,4 @@ object CrashGuard {
 
     /** Erfolgreich gezeichnet: der Zaehler faellt zurueck auf null. */
     fun onRendered(): Int = 0
-
-    /**
-     * Ist der Zaehler so hoch, dass der Nutzer eine Erklaerung verdient?
-     * Genau ab der Schwelle - darunter sagt man ihm besser gar nichts.
-     */
-    fun shouldExplain(consecutiveFailedStarts: Int): Boolean =
-        consecutiveFailedStarts >= THRESHOLD
 }

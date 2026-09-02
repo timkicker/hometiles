@@ -42,12 +42,6 @@ object Flashlight {
         }.getOrDefault(false)
     }
 
-    fun isAvailable(context: Context): Boolean {
-        val manager = context.getSystemService(Context.CAMERA_SERVICE) as? CameraManager
-            ?: return false
-        return torchCameraId(manager) != null
-    }
-
     private fun torchCameraId(manager: CameraManager): String? = runCatching {
         manager.cameraIdList.firstOrNull { id ->
             val chars = manager.getCameraCharacteristics(id)

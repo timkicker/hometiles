@@ -58,6 +58,12 @@ object Diagnostics {
             add(text(R.string.diag_contacts) to yesNo(granted(context, Manifest.permission.READ_CONTACTS), text))
             add(text(R.string.diag_calls) to yesNo(granted(context, Manifest.permission.CALL_PHONE), text))
             add(text(R.string.diag_send_sms) to yesNo(granted(context, Manifest.permission.SEND_SMS), text))
+            add(text(R.string.diag_read_sms) to yesNo(granted(context, Manifest.permission.READ_SMS), text))
+            // Lesen und Schreiben getrennt: genau daran hing die Sackgasse vom 02.09.2026 -
+            // die Anrufliste war zu sehen, aber nichts daraus zu loeschen, weil das
+            // Schreibrecht fehlte. Wer diese Seite aufschlaegt, soll den Unterschied sehen.
+            add(text(R.string.diag_read_call_log) to yesNo(granted(context, Manifest.permission.READ_CALL_LOG), text))
+            add(text(R.string.diag_write_call_log) to yesNo(granted(context, Manifest.permission.WRITE_CALL_LOG), text))
             add(text(R.string.diag_location) to yesNo(granted(context, Manifest.permission.ACCESS_FINE_LOCATION), text))
             val recorder = CrashRecorder.get(context)
             add(text(R.string.diag_failed_starts) to recorder.failedStarts.toString())

@@ -32,9 +32,9 @@ class ScreenBackgroundTest {
     @Test
     fun `jede farbe hebt sich von jeder kachelfarbe ab`() {
         val schwach = mutableListOf<String>()
-        for (thema in ThemeName.entries) {
-            val palette = paletteFor(thema)
-            for (grund in ScreenBackground.choicesFor(thema)) {
+        for ((thema, systemIsDark) in themenUndSystem()) {
+            val palette = paletteFor(thema, systemIsDark)
+            for (grund in ScreenBackground.choicesFor(thema, systemIsDark)) {
                 for ((i, kachel) in palette.tiles.withIndex()) {
                     val wert = contrastRatio(grund, kachel.value.toLong() shr 32)
                     if (wert < 3.0) schwach += "$thema/Kachel$i/${grund.toString(16)}: %.2f".format(wert)
@@ -48,7 +48,7 @@ class ScreenBackgroundTest {
     // die Tinte des Themas ist gegen die Themafarbe geprueft, nicht gegen diese hier.
     @Test
     fun `die tinte erreicht ueberall den grosstext-wert`() {
-        for (grund in ThemeName.entries.flatMap { ScreenBackground.choicesFor(it) }) {
+        for (grund in themenUndSystem().flatMap { (thema, dunkel) -> ScreenBackground.choicesFor(thema, dunkel) }) {
             val tinte = ScreenBackground.inkFor(grund)
             assertTrue(
                 "${grund.toString(16)} erreicht nur %.2f".format(contrastRatio(grund, tinte)),
@@ -88,16 +88,19 @@ class ScreenBackgroundTest {
     @Test
     fun `der hochkontrast-modus bekommt keine farben angeboten`() {
         assertEquals(false, ScreenBackground.offersChoices(ThemeName.HIGH_CONTRAST))
-        assertEquals(emptyList<Long>(), ScreenBackground.choicesFor(ThemeName.HIGH_CONTRAST))
-        assertTrue(ScreenBackground.choicesFor(ThemeName.DARK).isNotEmpty())
-        assertTrue(ScreenBackground.choicesFor(ThemeName.LIGHT).isNotEmpty())
+        assertEquals(emptyList<Long>(), ScreenBackground.choicesFor(ThemeName.HIGH_CONTRAST, true))
+        assertTrue(ScreenBackground.choicesFor(ThemeName.DARK, true).isNotEmpty())
+        assertTrue(ScreenBackground.choicesFor(ThemeName.LIGHT, true).isNotEmpty())
+        // Auch "wie das Telefon" bekommt Farben - in beiden Zustaenden.
+        assertTrue(ScreenBackground.choicesFor(ThemeName.SYSTEM, true).isNotEmpty())
+        assertTrue(ScreenBackground.choicesFor(ThemeName.SYSTEM, false).isNotEmpty())
     }
 
     // Die Farben muessen auch voneinander unterscheidbar sein - fuenf Toene, die man nicht
     // auseinanderhaelt, sind keine Auswahl, sondern eine Zumutung.
     @Test
     fun `die farben unterscheiden sich voneinander`() {
-        val farben = ScreenBackground.choicesFor(ThemeName.DARK)
+        val farben = ScreenBackground.choicesFor(ThemeName.DARK, true)
         assertEquals(farben.size, farben.toSet().size)
     }
 }

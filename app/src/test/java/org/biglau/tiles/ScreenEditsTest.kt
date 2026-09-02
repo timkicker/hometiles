@@ -120,14 +120,12 @@ class ScreenEditsTest {
                 Screen(id = "s2", name = "Zweiter"),
             ),
         )
-        assertTrue(ScreenEdits.danglingReferences(ScreenEdits.delete(config, "s2")).isEmpty())
+        // Nach dem Loeschen darf keine Kachel mehr auf "s2" zeigen.
+        val nachher = ScreenEdits.delete(config, "s2")
+        assertTrue(
+            nachher.screens.flatMap { it.cells }
+                .none { (it.button.action as? ButtonAction.GoToScreen)?.screenId == "s2" },
+        )
     }
 
-    @Test
-    fun `eine Kachel ins Leere wird als solche erkannt`() {
-        val broken = base.copy(
-            screens = listOf(home.copy(cells = listOf(Cell(0, 0, button = Button(ButtonAction.GoToScreen("weg")))))),
-        )
-        assertEquals(listOf("weg"), ScreenEdits.danglingReferences(broken))
-    }
 }

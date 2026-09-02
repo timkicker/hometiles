@@ -40,4 +40,58 @@
         <item quantity="one">%1$d app</item>
         <item quantity="other">%1$d apps</item>
     </plurals>
+    <!-- "Deleted 1 entries" was what stood there before, in the case that happens most:
+         one entry, held down, gone. -->
+    <plurals name="calllog_deleted">
+        <item quantity="one">One entry deleted.</item>
+        <item quantity="other">%1$d entries deleted.</item>
+    </plurals>
+    <plurals name="security_applock_would_allow">
+        <item quantity="one">One app would stay open without the PIN</item>
+        <item quantity="other">%1$d apps would stay open without the PIN</item>
+    </plurals>
+    <plurals name="security_applock_allowed">
+        <item quantity="one">One app opens without the PIN</item>
+        <item quantity="other">%1$d apps open without the PIN</item>
+    </plurals>
+    <plurals name="screen_delete_tiles">
+        <item quantity="one">One tile goes with it.</item>
+        <item quantity="other">%1$d tiles go with it.</item>
+    </plurals>
+    <plurals name="screen_delete_folders">
+        <item quantity="one">So does one folder, with everything inside.</item>
+        <item quantity="other">So do %1$d folders, with everything inside.</item>
+    </plurals>
+    <plurals name="sms_parts">
+        <item quantity="one">Costs one text message</item>
+        <item quantity="other">Costs %1$d text messages</item>
+    </plurals>
+    <plurals name="sos_message_parts">
+        <item quantity="one">With a location this costs one text message</item>
+        <item quantity="other">With a location this costs %1$d text messages</item>
+    </plurals>
+    <plurals name="sos_countdown_seconds">
+        <item quantity="one">one second</item>
+        <item quantity="other">%1$d seconds</item>
+    </plurals>
+    <plurals name="transfer_confirm">
+        <item quantity="one">This backup holds one screen with %2$d tiles. Loading it replaces your current setup.</item>
+        <item quantity="other">This backup holds %1$d screens with %2$d tiles. Loading it replaces your current setup.</item>
+    </plurals>
+    <plurals name="screen_copy_done">
+        <item quantity="one">“%1$s” is ready with one tile. A tile leading there is on this screen.</item>
+        <item quantity="other">“%1$s” is ready with %2$d tiles. A tile leading there is on this screen.</item>
+    </plurals>
+    <plurals name="screen_copy_done_partial">
+        <item quantity="one">“%1$s” is ready with one tile. %3$d were left empty: widgets and folders belong to one place only.</item>
+        <item quantity="other">“%1$s” is ready with %2$d tiles. %3$d were left empty: widgets and folders belong to one place only.</item>
+    </plurals>
+    <plurals name="a11y_badge">
+        <item quantity="one">One new notification</item>
+        <item quantity="other">%1$d new notifications</item>
+    </plurals>
+    <plurals name="sms_repeat_minutes">
+        <item quantity="one">Every minute until it is read</item>
+        <item quantity="other">Every %1$d minutes until it is read</item>
+    </plurals>
 </resources>

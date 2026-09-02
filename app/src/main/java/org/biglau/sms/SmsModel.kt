@@ -21,5 +21,12 @@ data class SmsThread(
     val unreadCount: Int,
 ) {
     val hasUnread: Boolean get() = unreadCount > 0
-    val title: String get() = contactName?.takeIf { it.isNotBlank() } ?: address
+    /**
+     * Der Name, sonst die Nummer - und die in derselben Schreibweise wie in der
+     * Anrufliste. Dieselbe Nummer sah in den beiden Listen verschieden aus, und wer
+     * vergleicht, vergleicht dann zwei Schreibweisen statt zweier Nummern.
+     */
+    val title: String
+        get() = contactName?.takeIf { it.isNotBlank() }
+            ?: org.biglau.phone.PhoneNumbers.forDisplay(address)
 }

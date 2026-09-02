@@ -55,19 +55,19 @@ class SmsThreadsTest {
     fun `ohne ungelesene Nachricht bleibt es bei null`() {
         val threads = SmsThreads.group(listOf(msg(1, 100, read = true)))
         assertTrue(!threads.first().hasUnread)
-        assertEquals(0, SmsThreads.totalUnread(threads))
     }
 
     @Test
-    fun `die Summe der Ungelesenen geht ueber alle Gespraeche`() {
+    fun `jedes Gespraech zaehlt seine eigenen Ungelesenen`() {
         val threads = SmsThreads.group(
             listOf(
                 msg(1, 100, incoming = true, read = false),
                 msg(2, 100, incoming = true, read = false),
                 msg(2, 200, incoming = true, read = false),
             ),
-        )
-        assertEquals(3, SmsThreads.totalUnread(threads))
+        ).associateBy { it.threadId }
+        assertEquals(1, threads.getValue(1L).unreadCount)
+        assertEquals(2, threads.getValue(2L).unreadCount)
     }
 
     @Test
@@ -79,7 +79,10 @@ class SmsThreadsTest {
     @Test
     fun `ohne Namen steht die Adresse als Titel`() {
         val threads = SmsThreads.group(listOf(msg(1, 100)))
-        assertEquals("+436601234567", threads.first().title)
+        // In Bloecken, wie in der Anrufliste. Vorher stand hier die rohe Nummer, und
+        // dieselbe Nummer sah in den beiden Listen verschieden aus - wer vergleicht,
+        // vergleicht dann zwei Schreibweisen statt zweier Nummern.
+        assertEquals("+436 601 234 567", threads.first().title)
     }
 
     @Test
@@ -104,17 +107,14 @@ class SmsThreadsTest {
     }
 
     @Test
-    fun `Schreibweisen derselben Nummer gelten als gleich`() {
-        assertTrue(SmsThreads.sameAddress("+43 660 123", "+43660123"))
-        assertTrue(!SmsThreads.sameAddress("+43660123", "+43660124"))
-    }
-
-    @Test
-    fun `eine leere Adresse gilt nie als gleich`() {
-        // Sonst waeren alle unterdrueckten Absender eine Person - derselbe Fehler wie
-        // damals bei der Anrufliste.
-        assertTrue(!SmsThreads.sameAddress("", ""))
-        assertTrue(!SmsThreads.sameAddress("", "+43660"))
+    fun `gruppiert wird nach der Kennung des Anbieters, nicht nach der Nummer`() {
+        // Bewusst so, siehe SmsThreads: nach der Nummer zu gruppieren wuerfe Gespraeche
+        // zusammen, die der Anbieter getrennt fuehrt. Eine eigene Nummernvergleichs-
+        // funktion gab es dafuer einmal - sie hat nie jemand aufgerufen.
+        val threads = SmsThreads.group(
+            listOf(msg(1, 100, address = "+43 660 123"), msg(2, 200, address = "+43660123")),
+        )
+        assertEquals(2, threads.size)
     }
 
     @Test

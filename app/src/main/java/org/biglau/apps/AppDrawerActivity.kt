@@ -72,7 +72,6 @@ class AppDrawerActivity : BigLauActivity() {
             var recentOnly by rememberSaveable {
                 mutableStateOf(intent?.getBooleanExtra(EXTRA_RECENT, false) == true)
             }
-            val palette = LocalBigPalette.current
             // Die App-Liste ist der Weg zu jeder App, die auf keiner Kachel liegt. Wer
             // eine PIN setzt und diesen Schutz einschaltet, will genau diesen Weg zu.
             var locked by remember {
@@ -121,8 +120,10 @@ class AppDrawerActivity : BigLauActivity() {
                 labelScale = config.appearance.labelScale,
                 iconPercent = config.appearance.iconPercent,
                 icons = config.appearance.icons,
+                hideCutLabels = config.appearance.hideCutLabels,
                 cornerRadiusDp = config.appearance.cornerRadiusDp,
             ) {
+                val palette = LocalBigPalette.current
                 Box(
                     Modifier
                         .fillMaxSize()

@@ -10,6 +10,7 @@ import org.biglau.data.Screen
 import org.biglau.data.ScreenKind
 import org.biglau.data.Security
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
@@ -81,10 +82,19 @@ class ResetTest {
     }
 
     @Test
+    fun `der Notfall-Bildschirm wirft dieselben Widget-Kennungen weg`() {
+        // Der Notfall-Bildschirm hatte sein eigenes Zuruecksetzen: `LauncherConfig()`
+        // direkt, ohne die Kennungen freizugeben. Der Widget-Host haette sie fuer immer
+        // gehalten - und gemerkt haette es niemand, weil man auf diesem Bildschirm ohnehin
+        // nichts sieht. Beide Wege benutzen jetzt dieselben zwei Funktionen hier.
+        assertEquals(LauncherConfig(), Reset.fresh())
+        assertTrue("es gibt Widget-Kennungen zum Freigeben", Reset.widgetIds(config).isNotEmpty())
+    }
+
+    @Test
     fun `zuruecksetzen ergibt den zustand nach der installation`() {
         assertEquals(LauncherConfig(), Reset.fresh())
-        assertEquals(true, Reset.isFresh(Reset.fresh()))
-        assertEquals(false, Reset.isFresh(config))
+        assertTrue("die eingerichtete Belegung ist nicht die Vorgabe", config != Reset.fresh())
     }
 
     // Sonst stuende man vor einem fremden Startbildschirm ohne Hinweis, was zu tun ist.

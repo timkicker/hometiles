@@ -185,3 +185,51 @@ class ManifestOrientationTest {
         assertEquals(emptyList<String>(), treffer)
     }
 }
+
+/**
+ * Eine Telefonnummer sieht überall gleich aus.
+ *
+ * Sie stand an vier Stellen in drei Schreibweisen: die Anrufliste setzte sie in Blöcke,
+ * die Nachrichtenliste und die Kontaktliste zeigten die rohe Ziffernfolge. Wer zwei Listen
+ * vergleicht, vergleicht dann zwei Schreibweisen statt zweier Nummern — und bei einer
+ * Nummer, die man ohnehin nicht auswendig kennt, ist das genau die Stelle, an der man sich
+ * vertut.
+ */
+class PhoneNumberFormattingTest {
+
+    private val quellen: List<File> =
+        File("src/main/java/org/biglau").walkTopDown().filter { it.extension == "kt" }.toList()
+
+    @Test
+    fun `keine anzeige zeigt eine rohe nummer`() {
+        // Nur die Zuweisung selbst, nicht was danach kommt. Zeilenweise reicht nicht -
+        // die Zuweisung geht oft ueber zwei Zeilen -, aber ein festes Fenster reicht zu
+        // weit: `onClick = { onPick(number.number) }` ist kein Anzeigetext, sondern der
+        // Wert, der weitergereicht wird, und der gehoert unformatiert.
+        val treffer = quellen
+            .filter { it.name.endsWith("Activity.kt") }
+            .flatMap { datei ->
+                val zeilen = datei.readLines()
+                val naechsteZuweisung = Regex("""^\s*(?:\w+ = |\)|\})""")
+                zeilen.indices.mapNotNull { i ->
+                    if (!Regex("""^\s*(?:secondary|label) = """).containsMatchIn(zeilen[i])) {
+                        return@mapNotNull null
+                    }
+                    val block = StringBuilder(zeilen[i])
+                    var j = i + 1
+                    while (j < zeilen.size && !naechsteZuweisung.containsMatchIn(zeilen[j])) {
+                        block.append(' ').append(zeilen[j])
+                        j++
+                    }
+                    val text = block.toString()
+                    val zeigtNummer = Regex("""\.number\b""").containsMatchIn(text)
+                    if (zeigtNummer && !text.contains("forDisplay")) {
+                        "${datei.name}:${i + 1}: ${zeilen[i].trim()}"
+                    } else {
+                        null
+                    }
+                }
+            }
+        assertEquals(emptyList<String>(), treffer)
+    }
+}

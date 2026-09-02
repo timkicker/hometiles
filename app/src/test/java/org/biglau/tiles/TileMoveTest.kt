@@ -8,6 +8,7 @@ import org.biglau.data.LauncherConfig
 import org.biglau.data.Screen
 import org.biglau.data.ScreenKind
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -114,5 +115,86 @@ class TileMoveTest {
         )
         val c = config.copy(screens = listOf(heim, voll))
         assertTrue(TileMove.targetsFor(c, "home", heim.cells.first()).isEmpty())
+    }
+
+    // --- Auf demselben Bildschirm: PLAN.md 4.1 "Kacheln tauschen" ---
+
+    @Test
+    fun `freie Plaetze und der Nachbar stehen zur Wahl`() {
+        val plaetze = TileMove.spotsFor(heim, heim.cells.first())
+        // 2x3 minus die eigene Zelle: vier freie Plaetze und der Nachbar rechts.
+        assertEquals(5, plaetze.size)
+        assertEquals(1, plaetze.count { it.occupant != null })
+        assertTrue(plaetze.none { it.x == 0 && it.y == 0 })
+    }
+
+    @Test
+    fun `auf einen freien Platz ruecken`() {
+        val neu = TileMove.moveWithin(config, "home", 0, 0, toX = 1, toY = 2)
+        assertNotNull(neu)
+        val screen = neu!!.screens.first { it.id == "home" }
+        assertNull(screen.cellAt(0, 0))
+        assertEquals(
+            ButtonAction.Action(Builtin.DIALER),
+            screen.cellAt(1, 2)?.button?.action,
+        )
+        assertEquals(2, screen.cells.size)
+    }
+
+    /** Der Kern der Zusage: die andere Kachel bleibt, sie wechselt nur den Platz. */
+    @Test
+    fun `zwei Kacheln tauschen`() {
+        val neu = TileMove.moveWithin(config, "home", 0, 0, toX = 1, toY = 0)
+        assertNotNull(neu)
+        val screen = neu!!.screens.first { it.id == "home" }
+        assertEquals(ButtonAction.Action(Builtin.CAMERA), screen.cellAt(0, 0)?.button?.action)
+        assertEquals(ButtonAction.Action(Builtin.DIALER), screen.cellAt(1, 0)?.button?.action)
+        assertEquals(2, screen.cells.size)
+    }
+
+    /** Ungleich grosse Kacheln liessen beim Tausch ein Loch oder eine Ueberdeckung zurueck. */
+    @Test
+    fun `ungleich grosse Kacheln tauschen nicht`() {
+        val breit = Screen(
+            id = "s", name = "S", cols = 2, rows = 3,
+            cells = listOf(
+                Cell(0, 0, w = 2, h = 1, button = Button(action = ButtonAction.Action(Builtin.DIALER))),
+                kachel(0, 1, Builtin.CAMERA),
+            ),
+        )
+        val c = config.copy(screens = listOf(breit))
+        assertTrue(TileMove.spotsFor(breit, breit.cells.first()).none { it.occupant != null })
+        assertNull(TileMove.moveWithin(c, "s", 0, 0, toX = 0, toY = 1))
+    }
+
+    /** Eine breite Kachel behaelt ihre Groesse - und geht nur dorthin, wo sie ganz hinpasst. */
+    @Test
+    fun `eine breite Kachel passt nicht ueberall hin`() {
+        val breit = Screen(
+            id = "s", name = "S", cols = 2, rows = 3,
+            cells = listOf(
+                Cell(0, 0, w = 2, h = 1, button = Button(action = ButtonAction.Action(Builtin.DIALER))),
+                kachel(0, 1, Builtin.CAMERA),
+            ),
+        )
+        val plaetze = TileMove.spotsFor(breit, breit.cells.first())
+        // Nur die ganz freie letzte Zeile; die mittlere ist halb belegt.
+        assertEquals(listOf(0 to 2), plaetze.map { it.x to it.y })
+        val c = config.copy(screens = listOf(breit))
+        assertNull(TileMove.moveWithin(c, "s", 0, 0, toX = 1, toY = 1))
+        val neu = TileMove.moveWithin(c, "s", 0, 0, toX = 0, toY = 2)!!
+        val gerueckt = neu.screens.first().cellAt(0, 2)!!
+        assertEquals(2, gerueckt.w)
+    }
+
+    @Test
+    fun `ein Platz ausserhalb des Rasters geht nicht`() {
+        assertNull(TileMove.moveWithin(config, "home", 0, 0, toX = 5, toY = 5))
+        assertNull(TileMove.moveWithin(config, "home", 0, 0, toX = 0, toY = 0))
+    }
+
+    @Test
+    fun `von einem leeren Platz aus geht nichts`() {
+        assertNull(TileMove.moveWithin(config, "home", 0, 2, toX = 1, toY = 2))
     }
 }

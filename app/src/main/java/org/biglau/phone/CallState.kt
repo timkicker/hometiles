@@ -10,6 +10,8 @@ data class CallView(
     val status: CallStatus,
     val number: String,
     val name: String?,
+    /** Bildadresse des Kontaktfotos, sofern es eines gibt. `PLAN.md` 4.6. */
+    val photoUri: String? = null,
     val startedAtMillis: Long?,
     val muted: Boolean = false,
     val speakerOn: Boolean = false,
@@ -46,9 +48,6 @@ object CallActions {
 
         CallStatus.DISCONNECTING, CallStatus.DISCONNECTED, CallStatus.OTHER -> emptyList()
     }
-
-    /** Ein klingelnder Anruf darf nie ein Auflegen zeigen - das liest sich wie Ablehnen. */
-    fun showsAnswer(view: CallView): Boolean = CallAction.ANSWER in availableFor(view)
 
     /** Gespraechsdauer in Sekunden; null, solange nicht verbunden. */
     fun durationSeconds(view: CallView, nowMillis: Long): Long? {

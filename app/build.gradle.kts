@@ -5,6 +5,11 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
 }
 
+// Der Round-Trip-Test gegen eine echte Konfiguration bekommt ihren Pfad durchgereicht.
+tasks.withType<Test> {
+    System.getenv("BIGLAU_REAL_CONFIG")?.let { environment("BIGLAU_REAL_CONFIG", it) }
+}
+
 android {
     namespace = "org.biglau"
     compileSdk = 35

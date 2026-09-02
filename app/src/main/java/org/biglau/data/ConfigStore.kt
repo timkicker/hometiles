@@ -28,6 +28,15 @@ class ConfigStore private constructor(context: Context) {
     private val _config = MutableStateFlow(storage.read())
     val config: StateFlow<LauncherConfig> = _config.asStateFlow()
 
+    /**
+     * War die gespeicherte Einrichtung beim Start unlesbar?
+     *
+     * Dann steht hier eine Vorgabe statt der eigenen Belegung, und das darf nicht stumm
+     * geschehen: von aussen sieht es aus wie ein frisch installiertes BigLau. Die alte
+     * Datei liegt daneben, siehe [ConfigFile.rescueFile].
+     */
+    val startedFromBrokenFile: Boolean = storage.rescuedBroken
+
     val current: LauncherConfig get() = _config.value
 
     fun update(block: (LauncherConfig) -> LauncherConfig) {

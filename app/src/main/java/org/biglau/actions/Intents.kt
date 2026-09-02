@@ -13,24 +13,24 @@ import org.biglau.ui.Notice
 /** Zentrale Stelle fuer alle System-Intents, die eine Kachel ausloesen kann. */
 object Intents {
 
-    fun openDialer(context: Context) = start(context) {
-        Intent(Intent.ACTION_DIAL)
-    }
-
-    fun openMessages(context: Context) = start(context) {
-        Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_APP_MESSAGING)
-    }
-
-    fun openContacts(context: Context) = start(context) {
-        Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_APP_CONTACTS)
-    }
-
     fun openCamera(context: Context) = start(context) {
         Intent(MediaStore.INTENT_ACTION_STILL_IMAGE_CAMERA)
     }
 
     fun openClock(context: Context) = start(context) {
         Intent(android.provider.AlarmClock.ACTION_SHOW_ALARMS)
+    }
+
+    /**
+     * Der Rechner - ueber die Kategorie, nicht ueber einen Namen.
+     *
+     * Eine feste Anwendungskennung waere herstellerabhaengig: der Rechner heisst auf jedem
+     * zweiten Telefon anders. `CATEGORY_APP_CALCULATOR` fragt das System, welche App diese
+     * Rolle ausfuellt - dieselbe Art, wie Kamera und Wecker schon geoeffnet werden. Gibt es
+     * keine, sagt [start] das, statt still nichts zu tun.
+     */
+    fun openCalculator(context: Context) = start(context) {
+        Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_APP_CALCULATOR)
     }
 
     fun call(context: Context, number: String) = start(context) {
@@ -45,18 +45,18 @@ object Intents {
         Intent(Intent.ACTION_SENDTO, Uri.fromParts("smsto", number, null))
     }
 
-    /** Die Seite dieser App in den Systemeinstellungen - der einzige Weg zurueck, wenn
-     *  Android eine Berechtigung nicht mehr abfragt. */
-    /** Die Systemeinstellungen von Android - nicht unsere. */
     /** Eine Webseite oeffnen - was der Nutzer als Standardbrowser gesetzt hat. */
     fun openLink(context: Context, url: String) = start(context) {
         Intent(Intent.ACTION_VIEW, android.net.Uri.parse(url))
     }
 
+    /** Die Systemeinstellungen von Android - nicht unsere. */
     fun androidSettings(context: Context) = start(context) {
         Intent(android.provider.Settings.ACTION_SETTINGS)
     }
 
+    /** Die Seite dieser App in den Systemeinstellungen - der einzige Weg zurueck, wenn
+     *  Android eine Berechtigung nicht mehr abfragt. */
     fun appSettings(context: Context) = start(context) {
         Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
             .setData(android.net.Uri.fromParts("package", context.packageName, null))
@@ -64,6 +64,21 @@ object Intents {
 
     fun notificationListenerSettings(context: Context) = start(context) {
         Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)
+    }
+
+    /**
+     * Der Absichtsaufruf fuer die Startbildschirm-Frage, damit der Aufrufer auf das
+     * Ergebnis warten kann. Wer den Balken antippt und zurueckkommt, muss den neuen
+     * Zustand sehen - und den beantwortet Android im laufenden Prozess aus dem
+     * Zwischenspeicher, also hilft nur ein Neuaufbau nach der Rueckkehr.
+     */
+    fun homeRoleIntent(context: Context): Intent? {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) return null
+        val roleManager = context.getSystemService(android.app.role.RoleManager::class.java)
+            ?: return null
+        if (!roleManager.isRoleAvailable(android.app.role.RoleManager.ROLE_HOME)) return null
+        if (roleManager.isRoleHeld(android.app.role.RoleManager.ROLE_HOME)) return null
+        return roleManager.createRequestRoleIntent(android.app.role.RoleManager.ROLE_HOME)
     }
 
     /** Oeffnet den Dialog zur Wahl des Standard-Launchers. */

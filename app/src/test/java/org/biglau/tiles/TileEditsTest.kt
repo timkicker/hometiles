@@ -84,11 +84,29 @@ class TileEditsTest {
     }
 
     @Test
-    fun `Farbwahl loescht eine zuvor gesetzte Eigenfarbe`() {
-        val button = Button(ButtonAction.Action(Builtin.DIALER), customColor = 0xFF123456L)
+    fun `ein freier Farbton loescht die Palettenwahl`() {
+        // Sonst gaebe es zwei Antworten auf dieselbe Frage, und welche gilt, haenge an der
+        // Reihenfolge im Zeichencode.
+        val button = Button(ButtonAction.Action(Builtin.DIALER), colorIndex = 3)
+        val next = TileEdits.withColorHue(button, 210f)
+        assertEquals(210f, next.colorHue)
+        assertEquals(-1, next.colorIndex)
+    }
+
+    @Test
+    fun `eine Farbe aus der Palette loescht den freien Ton`() {
+        val button = Button(ButtonAction.Action(Builtin.DIALER), colorHue = 210f)
         val next = TileEdits.withColorIndex(button, 3)
         assertEquals(3, next.colorIndex)
-        assertNull(next.customColor)
+        assertNull(next.colorHue)
+    }
+
+    @Test
+    fun `Farbe automatisch loescht auch den freien Ton`() {
+        val button = Button(ButtonAction.Action(Builtin.DIALER), colorHue = 210f)
+        val next = TileEdits.withColorIndex(button, null)
+        assertEquals(-1, next.colorIndex)
+        assertNull(next.colorHue)
     }
 
     @Test
@@ -103,14 +121,12 @@ class TileEditsTest {
             action = ButtonAction.Contact("Oma", "+43123", mode = ContactMode.SMS),
             label = "Oma",
             colorIndex = 2,
-            customColor = 0xFF112233L,
             longPress = ButtonAction.Action(Builtin.SOS),
         )
-        val cleared = TileEdits.cleared()
+        val cleared = Button()
         assertEquals(ButtonAction.None, cleared.action)
         assertNull(cleared.label)
         assertEquals(-1, cleared.colorIndex)
-        assertNull(cleared.customColor)
         assertNull(cleared.longPress)
         assertEquals("Die Ausgangskachel darf nicht veraendert werden", "Oma", button.label)
     }

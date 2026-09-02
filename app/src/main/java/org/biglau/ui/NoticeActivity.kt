@@ -49,6 +49,7 @@ class NoticeActivity : BigLauActivity() {
                 labelScale = config.appearance.labelScale,
                 iconPercent = config.appearance.iconPercent,
                 icons = config.appearance.icons,
+                hideCutLabels = config.appearance.hideCutLabels,
                 cornerRadiusDp = config.appearance.cornerRadiusDp,
             ) {
                 val palette = LocalBigPalette.current

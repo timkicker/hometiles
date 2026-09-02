@@ -16,6 +16,7 @@ import androidx.compose.material.icons.filled.FlashlightOn
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PhotoCamera
+import androidx.compose.material.icons.filled.Calculate
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Warning
@@ -37,6 +38,7 @@ fun Builtin.icon(): ImageVector = when (this) {
     Builtin.CONTACTS -> Icons.Filled.Person
     Builtin.CAMERA -> Icons.Filled.PhotoCamera
     Builtin.CLOCK -> Icons.Filled.Schedule
+    Builtin.CALCULATOR -> Icons.Filled.Calculate
     Builtin.APP_LIST -> Icons.Filled.Apps
     Builtin.SETTINGS -> Icons.Filled.Settings
     Builtin.FLASHLIGHT -> Icons.Filled.FlashlightOn
@@ -66,6 +68,7 @@ fun Builtin.labelRes(): Int = when (this) {
     Builtin.CONTACTS -> R.string.contacts
     Builtin.CAMERA -> R.string.camera
     Builtin.CLOCK -> R.string.clock
+    Builtin.CALCULATOR -> R.string.calculator
     Builtin.APP_LIST -> R.string.apps
     Builtin.SETTINGS -> R.string.settings
     Builtin.FLASHLIGHT -> R.string.flashlight

@@ -80,8 +80,8 @@ class ShortcutsTest {
 
     @Test
     fun `eine App ohne brauchbare Verknuepfung bietet nichts an`() {
-        assertTrue(!Shortcuts.hasAny(emptyList()))
-        assertTrue(!Shortcuts.hasAny(listOf(row("a", enabled = false))))
-        assertTrue(Shortcuts.hasAny(listOf(row("a"))))
+        assertTrue(Shortcuts.usable(emptyList()).isEmpty())
+        assertTrue(Shortcuts.usable(listOf(row("a", enabled = false))).isEmpty())
+        assertTrue(Shortcuts.usable(listOf(row("a"))).isNotEmpty())
     }
 }

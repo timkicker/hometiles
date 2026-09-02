@@ -43,11 +43,13 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.QuestionMark
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.CropFree
 import androidx.compose.material.icons.filled.Folder
 import org.biglau.ui.theme.LocalCornerRadius
 import org.biglau.ui.BigLauActivity
 import org.biglau.notify.TileNotifications
 import androidx.compose.material.icons.filled.NotificationsActive
+import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material.icons.filled.ViewCarousel
 import androidx.compose.material.icons.automirrored.filled.DriveFileMove
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
@@ -109,6 +111,7 @@ import org.biglau.data.Cell
 import org.biglau.data.ContactMode
 import org.biglau.data.Screen
 import androidx.compose.ui.platform.LocalConfiguration
+import org.biglau.phone.PhoneNumbers
 import org.biglau.ui.BigHeading
 import org.biglau.ui.gridMetrics
 import org.biglau.ui.BigSearchField
@@ -120,9 +123,13 @@ import org.biglau.web.LinkTarget
 import org.biglau.ui.icon
 import org.biglau.ui.labelRes
 import org.biglau.ui.theme.BigLauTheme
+import androidx.compose.ui.graphics.Color
+import kotlin.math.abs
+import org.biglau.ui.theme.FreeTileColor
+import org.biglau.ui.theme.toArgbLong
 import org.biglau.ui.theme.LocalBigPalette
 
-private enum class Mode { MENU, MOVE, EDIT_LINK, PICK_LONG_PRESS, PICK_LONG_PRESS_APP, PICK_LONG_PRESS_BUILTIN, PICK_BUILTIN, PICK_APP, PICK_CONTACT, PICK_NUMBER, PICK_MODE, EDIT_LABEL, PICK_COLOR, RESIZE, PICK_SCREEN, PICK_SHORTCUT_APP, PICK_SHORTCUT, PICK_WIDGET }
+private enum class Mode { MENU, MOVE, EDIT_LINK, PICK_LONG_PRESS, PICK_BUILTIN, PICK_APP, PICK_CONTACT, PICK_NUMBER, PICK_MODE, EDIT_LABEL, PICK_COLOR, PICK_HUE, RESIZE, PICK_SCREEN, EDIT_NUMBER, PICK_SHORTCUT_APP, PICK_SHORTCUT, PICK_WIDGET }
 
 /**
  * Belegt eine einzelne Kachel. Schreibt direkt in den ConfigStore - der Homescreen
@@ -166,6 +173,11 @@ class TileEditorActivity : BigLauActivity() {
             }
             val button = cell?.button ?: Button()
             var mode by remember { mutableStateOf(Mode.MENU) }
+            // Wohin die naechste Wahl geht. PLAN.md 4.3 sagt zu, dass *jede* Aktion auch
+            // auf Langdruck liegen darf; vorher gab es dafuer zwei eigene Auswahllisten
+            // (App und Funktion), und Kontakte, Verknuepfungen, Screens und Webseiten
+            // fehlten. Dieselben Listen fuer beide Wege statt acht weiterer Betriebsarten.
+            var aufLangdruck by remember { mutableStateOf(false) }
             var chosenContact by remember { mutableStateOf<PhoneContact?>(null) }
             var chosenNumber by remember { mutableStateOf<String?>(null) }
             var shortcutApp by remember { mutableStateOf<LaunchableApp?>(null) }
@@ -189,10 +201,40 @@ class TileEditorActivity : BigLauActivity() {
                 }
             }
 
-            fun write(next: Button) {
+            // Eine Kachel neu zu belegen, auf der ein Ordner liegt, liess den Ordner samt
+            // Inhalt zurueck: kein Weg fuehrte mehr hin, in der Screen-Liste steht er nicht
+            // ("Ordner gehoeren ihrer Kachel"), und geloescht werden konnte er auch nicht
+            // mehr. "Kachel leeren" fragte laengst nach - jeder andere Weg auf dieselbe
+            // Kachel nicht.
+            var replacingFolder by remember { mutableStateOf<Pair<ButtonAction.Folder, Button>?>(null) }
+
+            fun writeNow(next: Button) {
                 if (next.action !is ButtonAction.Widget) releaseWidgetIfAny(button)
                 store.setButton(screenId, x, y, next)
             }
+
+            fun write(next: Button) {
+                val ordner = button.action as? ButtonAction.Folder
+                if (ordner != null && next.action != ordner) {
+                    replacingFolder = ordner to next
+                } else {
+                    writeNow(next)
+                }
+            }
+
+            /** Legt die gewaehlte Aktion auf den Kurz- oder den Langdruck - je nachdem, woher der Weg kam. */
+            fun belege(action: ButtonAction) {
+                if (aufLangdruck) {
+                    write(TileEdits.withLongPress(button, action))
+                } else {
+                    write(TileEdits.withAction(button, action))
+                }
+                mode = Mode.MENU
+            }
+
+            // Zurueck im Menue gilt wieder der Kurzdruck - auch nach der Zurueck-Taste,
+            // sonst legte die naechste Wahl stillschweigend wieder auf den Langdruck.
+            LaunchedEffect(mode) { if (mode == Mode.MENU) aufLangdruck = false }
 
             var pendingWidget by remember { mutableStateOf<Pair<Int, WidgetProviderRow>?>(null) }
 
@@ -311,6 +353,7 @@ class TileEditorActivity : BigLauActivity() {
                 labelScale = config.appearance.labelScale,
                 iconPercent = config.appearance.iconPercent,
                 icons = config.appearance.icons,
+                hideCutLabels = config.appearance.hideCutLabels,
                 cornerRadiusDp = config.appearance.cornerRadiusDp,
             ) {
                 BackHandler(enabled = mode != Mode.MENU) { mode = Mode.MENU }
@@ -335,6 +378,27 @@ class TileEditorActivity : BigLauActivity() {
                         return@Box
                     }
 
+                    val zuErsetzen = replacingFolder
+                    if (zuErsetzen != null) {
+                        val (ordner, neu) = zuErsetzen
+                        FolderDeletePanel(
+                            name = FolderEdits.folderFor(config, ordner)?.name.orEmpty(),
+                            count = FolderEdits.contentCount(config, ordner.screenId),
+                            replacing = true,
+                            onKeep = { replacingFolder = null },
+                            onDelete = {
+                                // Erst den Ordner weg, dann die neue Belegung schreiben.
+                                // FolderEdits.delete raeumt auch diese Kachel ab; setButton
+                                // legt sie danach neu an.
+                                store.update { FolderEdits.delete(it, ordner.screenId) }
+                                writeNow(neu)
+                                replacingFolder = null
+                                finish()
+                            },
+                        )
+                        return@Box
+                    }
+
                     val zuLoeschen = clearing
                     if (zuLoeschen != null) {
                         FolderDeletePanel(
@@ -349,6 +413,19 @@ class TileEditorActivity : BigLauActivity() {
                         return@Box
                     }
 
+                    // Ein Band statt sechs zusaetzlicher Ueberschriften: dieselben Listen
+                    // belegen jetzt beide Druckarten. Ohne den Hinweis waere "App waehlen"
+                    // auf dem Langdruckweg nicht von der Hauptbelegung zu unterscheiden -
+                    // und wer sich vertut, ueberschreibt, was die Kachel bisher tat.
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    if (aufLangdruck && mode != Mode.MENU) {
+                        Text(
+                            text = stringResource(R.string.editor_long_press_banner),
+                            color = LocalBigPalette.current.onBackground,
+                            fontSize = 15.sp,
+                            modifier = Modifier.padding(horizontal = 4.dp),
+                        )
+                    }
                     when (mode) {
                         Mode.MENU -> MenuList(
                             button = button,
@@ -363,12 +440,16 @@ class TileEditorActivity : BigLauActivity() {
                                 }
                             },
                             onEditLabel = { mode = Mode.EDIT_LABEL },
-                            moveTargets = cell?.let { TileMove.targetsFor(config, screenId, it).size } ?: 0,
+                            moveTargets = cell?.let {
+                                TileMove.targetsFor(config, screenId, it).size +
+                                    TileMove.spotsFor(screen, it).size
+                            } ?: 0,
                             onMove = { mode = Mode.MOVE },
                             onPickShortcut = { mode = Mode.PICK_SHORTCUT_APP },
                             onPickWidget = { mode = Mode.PICK_WIDGET },
                             onPickScreen = { mode = Mode.PICK_SCREEN },
                             onPickLink = { mode = Mode.EDIT_LINK },
+                            onPickMessage = { mode = Mode.EDIT_NUMBER },
                             onToggleBlink = { write(button.copy(blink = !button.blink)) },
                             onPickLongPress = { mode = Mode.PICK_LONG_PRESS },
                             onClearLongPress = { write(TileEdits.withLongPress(button, null)) },
@@ -401,18 +482,11 @@ class TileEditorActivity : BigLauActivity() {
                         )
 
                         Mode.PICK_BUILTIN -> BuiltinList { builtin ->
-                            write(TileEdits.withAction(button, ButtonAction.Action(builtin)))
-                            mode = Mode.MENU
+                            belege(ButtonAction.Action(builtin))
                         }
 
                         Mode.PICK_APP -> AppList(apps) { app ->
-                            write(
-                                TileEdits.withAction(
-                                    button,
-                                    ButtonAction.App(app.packageName, app.activityName),
-                                )
-                            )
-                            mode = Mode.MENU
+                            belege(ButtonAction.App(app.packageName, app.activityName))
                         }
 
                         Mode.PICK_CONTACT -> ContactList(
@@ -447,19 +521,17 @@ class TileEditorActivity : BigLauActivity() {
                             val contact = chosenContact
                             val number = chosenNumber
                             if (contact != null && number != null) {
-                                write(
-                                    TileEdits.withAction(
-                                        button,
-                                        ButtonAction.Contact(
-                                            name = contact.name,
-                                            number = number,
-                                            photoUri = contact.photoUri,
-                                            mode = contactMode,
-                                        ),
-                                    )
+                                belege(
+                                    ButtonAction.Contact(
+                                        name = contact.name,
+                                        number = number,
+                                        photoUri = contact.photoUri,
+                                        mode = contactMode,
+                                    ),
                                 )
+                            } else {
+                                mode = Mode.MENU
                             }
-                            mode = Mode.MENU
                         }
 
                         Mode.EDIT_LABEL -> {
@@ -516,13 +588,7 @@ class TileEditorActivity : BigLauActivity() {
                             },
                             onBack = { mode = Mode.PICK_SHORTCUT_APP },
                         ) { row ->
-                            write(
-                                TileEdits.withAction(
-                                    button,
-                                    ButtonAction.Shortcut(row.packageName, row.id, Shortcuts.labelOf(row)),
-                                )
-                            )
-                            mode = Mode.MENU
+                            belege(ButtonAction.Shortcut(row.packageName, row.id, Shortcuts.labelOf(row)))
                         }
 
                         Mode.PICK_WIDGET -> WidgetPicker(
@@ -536,18 +602,26 @@ class TileEditorActivity : BigLauActivity() {
                         Mode.PICK_SCREEN -> ScreenPicker(
                             config = config,
                             currentScreenId = screenId,
-                            onPick = { targetId ->
-                                write(TileEdits.withAction(button, ButtonAction.GoToScreen(targetId)))
-                                mode = Mode.MENU
-                            },
+                            onPick = { targetId -> belege(ButtonAction.GoToScreen(targetId)) },
                             onCreate = {
                                 val id = ScreenEdits.freeId(store.current)
                                 val name = getString(R.string.screen_default_name, store.current.screens.size + 1)
                                 store.update { ScreenEdits.add(it, ScreenEdits.newScreen(id, name, screen)) }
-                                write(TileEdits.withAction(button, ButtonAction.GoToScreen(id)))
-                                mode = Mode.MENU
+                                belege(ButtonAction.GoToScreen(id))
                             },
                         )
+
+                        Mode.EDIT_NUMBER -> NumberEditor(
+                            initial = (button.action as? ButtonAction.Contact)
+                                ?.takeIf { it.mode == ContactMode.SMS }?.number.orEmpty(),
+                        ) { eingabe ->
+                            val action = MessageTile.actionFor(eingabe)
+                            if (action == null) {
+                                Notice.show(this@TileEditorActivity, R.string.message_number_invalid)
+                            } else {
+                                belege(action)
+                            }
+                        }
 
                         Mode.EDIT_LINK -> LinkEditor(
                             initial = (button.action as? ButtonAction.Link)?.url.orEmpty(),
@@ -556,38 +630,39 @@ class TileEditorActivity : BigLauActivity() {
                             if (adresse == null) {
                                 Notice.show(this@TileEditorActivity, R.string.link_invalid)
                             } else {
-                                write(TileEdits.withAction(button, ButtonAction.Link(adresse)))
-                                mode = Mode.MENU
+                                belege(ButtonAction.Link(adresse))
                             }
                         }
 
                         // Erst die Art, dann die Sache. Eine Liste, die Apps und Funktionen
                         // vermischt, waere auf diesem Schirm zu lang zum Durchsehen.
                         Mode.PICK_LONG_PRESS -> LongPressKindList(
-                            onApp = { mode = Mode.PICK_LONG_PRESS_APP },
-                            onBuiltin = { mode = Mode.PICK_LONG_PRESS_BUILTIN },
+                            onPick = { gewaehlt ->
+                                aufLangdruck = true
+                                mode = gewaehlt
+                                if (gewaehlt == Mode.PICK_CONTACT && !contactsGranted) {
+                                    askForContacts.launch(Manifest.permission.READ_CONTACTS)
+                                }
+                            },
                         )
 
-                        Mode.PICK_LONG_PRESS_APP -> AppList(
-                            apps,
-                            headingRes = R.string.editor_long_press_pick_app,
-                        ) { app ->
-                            write(
-                                TileEdits.withLongPress(
-                                    button,
-                                    ButtonAction.App(app.packageName, app.activityName),
-                                )
-                            )
-                            mode = Mode.MENU
-                        }
-
-                        Mode.PICK_LONG_PRESS_BUILTIN -> BuiltinList { builtin ->
-                            write(TileEdits.withLongPress(button, ButtonAction.Action(builtin)))
-                            mode = Mode.MENU
-                        }
-
                         Mode.MOVE -> MoveTargetList(
+                            spots = cell?.let { TileMove.spotsFor(screen, it) }.orEmpty(),
                             targets = cell?.let { TileMove.targetsFor(config, screenId, it) }.orEmpty(),
+                            screenName = { id -> config.screenById(id)?.name },
+                            appLabel = { a -> apps.labelFor(a.packageName, a.activityName) },
+                            onSpot = { platz ->
+                                val gerueckt =
+                                    TileMove.moveWithin(store.current, screenId, x, y, platz.x, platz.y)
+                                if (gerueckt != null) {
+                                    store.update { gerueckt }
+                                    // Der Anker wandert mit, sonst bearbeitete der Editor
+                                    // danach den leeren Platz, von dem die Kachel kam.
+                                    x = platz.x
+                                    y = platz.y
+                                }
+                                mode = Mode.MENU
+                            },
                             onPick = { ziel ->
                                 val verschoben = TileMove.move(store.current, screenId, x, y, ziel.id)
                                 if (verschoben != null) {
@@ -622,11 +697,22 @@ class TileEditorActivity : BigLauActivity() {
 
                         Mode.PICK_COLOR -> ColorPicker(
                             selected = button.colorIndex,
+                            hue = button.colorHue,
                             onPick = { index ->
                                 write(TileEdits.withColorIndex(button, index))
                                 mode = Mode.MENU
                             },
+                            onFree = { mode = Mode.PICK_HUE },
                         )
+
+                        Mode.PICK_HUE -> HuePicker(
+                            selected = button.colorHue,
+                            onPick = { ton ->
+                                write(TileEdits.withColorHue(button, ton))
+                                mode = Mode.MENU
+                            },
+                        )
+                    }
                     }
                 }
             }
@@ -658,6 +744,7 @@ private fun MenuList(
     onPickWidget: () -> Unit,
     onPickScreen: () -> Unit,
     onPickLink: () -> Unit,
+    onPickMessage: () -> Unit,
     onToggleBlink: () -> Unit,
     onPickLongPress: () -> Unit,
     onClearLongPress: () -> Unit,
@@ -690,6 +777,13 @@ private fun MenuList(
         item { BigRow(stringResource(R.string.editor_pick_screen), icon = Icons.AutoMirrored.Filled.ArrowForward, onClick = onPickScreen) }
         // In einem Ordner nicht: zwei Ebenen zerstoeren den Ueberblick, den grosse Kacheln
         // herstellen sollen. Siehe PLAN.md 4.9.
+        item {
+            BigRow(
+                stringResource(R.string.editor_pick_message),
+                icon = Icons.AutoMirrored.Filled.Message,
+                onClick = onPickMessage,
+            )
+        }
         item {
             BigRow(
                 stringResource(R.string.editor_pick_link),
@@ -820,22 +914,65 @@ private fun describe(
     )
 }
 
+/**
+ * Was das Halten tun soll.
+ *
+ * `PLAN.md` 4.3 sagt zu: "Jede Aktion zusaetzlich auf Langdruck belegbar, unabhaengig vom
+ * Kurzdruck." Zur Wahl standen aber nur Apps und eingebaute Funktionen - Kontakte,
+ * Verknuepfungen, Screens und Webseiten fehlten, obwohl das Modell sie laengst tragen kann.
+ * Kein Widget und kein Ordner: beide sind kein Griff, sondern der Inhalt einer Zelle.
+ */
 @Composable
-private fun LongPressKindList(onApp: () -> Unit, onBuiltin: () -> Unit) {
+private fun LongPressKindList(onPick: (Mode) -> Unit) {
     LazyColumn(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         item { BigHeading(stringResource(R.string.editor_long_press_kind)) }
         item {
             BigRow(
                 label = stringResource(R.string.editor_long_press_kind_app),
                 icon = Icons.Filled.Apps,
-                onClick = onApp,
+                onClick = { onPick(Mode.PICK_APP) },
+            )
+        }
+        item {
+            BigRow(
+                label = stringResource(R.string.editor_long_press_kind_contact),
+                icon = Icons.Filled.Person,
+                onClick = { onPick(Mode.PICK_CONTACT) },
             )
         }
         item {
             BigRow(
                 label = stringResource(R.string.editor_long_press_kind_builtin),
                 icon = Icons.Filled.TouchApp,
-                onClick = onBuiltin,
+                onClick = { onPick(Mode.PICK_BUILTIN) },
+            )
+        }
+        item {
+            BigRow(
+                label = stringResource(R.string.editor_long_press_kind_shortcut),
+                icon = Icons.Filled.Bolt,
+                onClick = { onPick(Mode.PICK_SHORTCUT_APP) },
+            )
+        }
+        item {
+            BigRow(
+                label = stringResource(R.string.editor_long_press_kind_screen),
+                icon = Icons.AutoMirrored.Filled.ArrowForward,
+                onClick = { onPick(Mode.PICK_SCREEN) },
+            )
+        }
+        item {
+            BigRow(
+                label = stringResource(R.string.editor_long_press_kind_message),
+                icon = Icons.AutoMirrored.Filled.Message,
+                onClick = { onPick(Mode.EDIT_NUMBER) },
+            )
+        }
+        item {
+            BigRow(
+                label = stringResource(R.string.editor_long_press_kind_link),
+                icon = Icons.Filled.Public,
+                onClick = { onPick(Mode.EDIT_LINK) },
             )
         }
     }
@@ -944,7 +1081,7 @@ private fun LabelEditor(
 }
 
 @Composable
-private fun ColorPicker(selected: Int, onPick: (Int?) -> Unit) {
+private fun ColorPicker(selected: Int, hue: Float?, onPick: (Int?) -> Unit, onFree: () -> Unit) {
     val palette = LocalBigPalette.current
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         BigHeading(stringResource(R.string.editor_color))
@@ -994,11 +1131,96 @@ private fun ColorPicker(selected: Int, onPick: (Int?) -> Unit) {
         }
         BigRow(
             label = stringResource(R.string.editor_color_auto),
-            surface = if (selected < 0) palette.surfaceAccent else palette.surfaceDefault,
+            surface = if (selected < 0 && hue == null) palette.surfaceAccent else palette.surfaceDefault,
             onClick = { onPick(null) },
+        )
+
+        // PLAN.md 4.2 nennt drei Arten: Auto, Palette, frei. Die freie steht hier, und sie
+        // fragt nur nach dem Farbton - die Helligkeit dazu rechnet FreeTileColor so aus,
+        // dass beide Schwellen aus 3.3 halten. Ein Farbwaehler, der zu blasse Farben
+        // annimmt, waere schlimmer als keiner.
+        BigRow(
+            label = stringResource(R.string.editor_color_free),
+            secondary = stringResource(R.string.editor_color_free_hint),
+            icon = Icons.Filled.Palette,
+            surface = if (hue != null) palette.surfaceAccent else palette.surfaceDefault,
+            onClick = onFree,
         )
     }
 }
+
+/**
+ * Die freie Farbwahl: vierundzwanzig Farbtöne, jeder in der Fassung, die in diesem Thema
+ * lesbar ist.
+ *
+ * Gewählt wird der Ton, nicht die Helligkeit — die hängt am Thema und an zwei Schwellen,
+ * und das ist nichts, wonach man jemanden mit einem Schieberegler fragt.
+ */
+@Composable
+private fun HuePicker(selected: Float?, onPick: (Float) -> Unit) {
+    val palette = LocalBigPalette.current
+    val grund = palette.background.toArgbLong()
+    val schrift = palette.onTile.toArgbLong()
+    val gewicht = FreeTileColor.targetLuminance(palette.tiles.map { it.toArgbLong() })
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        BigHeading(stringResource(R.string.editor_color_free))
+        LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            items(FreeTileColor.hues.chunked(4)) { reihe ->
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                    reihe.forEach { ton ->
+                        val farbe = Color(FreeTileColor.forHue(ton, grund, schrift, gewicht).toInt())
+                        val chosen = selected != null && abs(selected - ton) < 0.5f
+                        val schlicht = hueName(ton)
+                        // Der Zustand gehoert in den Namen - dieselbe Ueberlegung wie bei
+                        // den sechs Palettenfeldern darueber.
+                        val name = if (chosen) stringResource(R.string.a11y_chosen, schlicht) else schlicht
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .aspectRatio(1f)
+                                .clip(RoundedCornerShape(LocalCornerRadius.current))
+                                .background(farbe)
+                                .then(
+                                    if (chosen) {
+                                        Modifier.border(
+                                            4.dp,
+                                            palette.onBackground,
+                                            RoundedCornerShape(LocalCornerRadius.current),
+                                        )
+                                    } else {
+                                        Modifier
+                                    },
+                                )
+                                .clickable { onPick(ton) }
+                                .semantics {
+                                    contentDescription = name
+                                    if (chosen) this.selected = true
+                                },
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            if (chosen) {
+                                Icon(
+                                    Icons.Filled.Check,
+                                    contentDescription = null,
+                                    tint = palette.onTile,
+                                    modifier = Modifier.size(28.dp),
+                                )
+                            }
+                        }
+                    }
+                    // Eine angefangene Reihe darf die Felder nicht breiter machen.
+                    repeat(4 - reihe.size) { Box(Modifier.weight(1f)) }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Ein Name für den Farbton, damit die Felder für einen Screenreader nicht
+ * vierundzwanzig namenlose Schaltflächen sind.
+ */
+private fun hueName(hue: Float): String = "${hue.toInt()}°"
 
 @Composable
 private fun ContactList(
@@ -1068,7 +1290,8 @@ private fun ContactList(
             items(shown, key = { it.id }) { contact ->
                 BigRow(
                     label = contact.name,
-                    secondary = contact.numbers.firstOrNull()?.number,
+                    secondary = contact.numbers.firstOrNull()?.number
+                        ?.let(PhoneNumbers::forDisplay),
                     leading = { ContactAvatar(contact.name, contact.photoUri) },
                     onClick = { onPick(contact) },
                 )
@@ -1084,7 +1307,7 @@ private fun NumberList(contact: PhoneContact?, onPick: (String) -> Unit) {
         item { BigHeading(stringResource(R.string.contacts_pick_number)) }
         items(contact.numbers) { number ->
             BigRow(
-                label = number.number,
+                label = PhoneNumbers.forDisplay(number.number),
                 secondary = number.label,
                 onClick = { onPick(number.number) },
             )
@@ -1347,6 +1570,8 @@ private fun FolderDeletePanel(
     count: Int,
     onKeep: () -> Unit,
     onDelete: () -> Unit,
+    /** Wird die Kachel neu belegt statt geleert? Dann heisst der Knopf anders. */
+    replacing: Boolean = false,
 ) {
     val palette = LocalBigPalette.current
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -1358,7 +1583,9 @@ private fun FolderDeletePanel(
             modifier = Modifier.padding(horizontal = 4.dp),
         )
         BigRow(
-            label = stringResource(R.string.folder_delete_confirm),
+            label = stringResource(
+                if (replacing) R.string.folder_replace_confirm else R.string.folder_delete_confirm,
+            ),
             icon = Icons.Filled.Delete,
             surface = palette.surfaceDanger,
             onClick = onDelete,
@@ -1379,29 +1606,99 @@ private fun FolderDeletePanel(
  * noch frei ist.
  */
 @Composable
-private fun MoveTargetList(targets: List<Screen>, onPick: (Screen) -> Unit) {
+private fun MoveTargetList(
+    spots: List<TileMove.Spot>,
+    targets: List<Screen>,
+    screenName: (String) -> String?,
+    appLabel: (ButtonAction.App) -> String?,
+    onSpot: (TileMove.Spot) -> Unit,
+    onPick: (Screen) -> Unit,
+) {
     LazyColumn(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         item { BigHeading(stringResource(R.string.editor_move)) }
-        items(targets, key = { it.id }) { ziel ->
-            BigRow(
-                label = ziel.name,
-                secondary = pluralStringResource(
-                    if (ziel.isFolder) R.plurals.move_target_folder else R.plurals.move_target_screen,
-                    ziel.freeSlots().size,
-                    ziel.freeSlots().size,
-                ),
-                icon = if (ziel.isFolder) Icons.Filled.Folder else Icons.Filled.ViewCarousel,
-                onClick = { onPick(ziel) },
-            )
+        // Der eigene Bildschirm zuerst: wer eine Kachel verschiebt, ordnet meistens den
+        // Bildschirm um, auf dem er gerade steht. Zeile und Spalte werden ab 1 gezaehlt -
+        // "Zeile 0" liest sich wie ein Fehler.
+        if (spots.isNotEmpty()) {
+            item { BigHeading(stringResource(R.string.move_on_this_screen)) }
+            items(spots, key = { "platz-${it.x}-${it.y}" }) { platz ->
+                BigRow(
+                    label = stringResource(R.string.move_spot, platz.y + 1, platz.x + 1),
+                    secondary = platz.occupant?.let { belegt ->
+                        stringResource(
+                            R.string.move_spot_swap,
+                            describe(belegt.button, screenName, appLabel),
+                        )
+                    } ?: stringResource(R.string.move_spot_free),
+                    icon = if (platz.occupant == null) Icons.Filled.CropFree else Icons.Filled.SwapHoriz,
+                    onClick = { onSpot(platz) },
+                )
+            }
         }
+        if (targets.isNotEmpty()) {
+            item { BigHeading(stringResource(R.string.move_other_screens)) }
+            items(targets, key = { it.id }) { ziel ->
+                BigRow(
+                    label = ziel.name,
+                    secondary = pluralStringResource(
+                        if (ziel.isFolder) R.plurals.move_target_folder else R.plurals.move_target_screen,
+                        ziel.freeSlots().size,
+                        ziel.freeSlots().size,
+                    ),
+                    icon = if (ziel.isFolder) Icons.Filled.Folder else Icons.Filled.ViewCarousel,
+                    onClick = { onPick(ziel) },
+                )
+            }
+        }
+    }
+}
+
+/**
+ * Die Nummer eintippen, an die diese Kachel eine Nachricht beginnt.
+ *
+ * Die Zifferntastatur statt der vollen: der Empfänger ist eine Nummer, kein Name. Die
+ * Haken-Taste übernimmt, denn mit offener Tastatur ist „Fertig" verdeckt - derselbe Fall
+ * wie beim Webseiten-Feld darunter. Was hier steht, wird nicht verschickt; die Kachel
+ * öffnet später den Schreiben-Bildschirm, siehe [MessageTile].
+ */
+@Composable
+private fun NumberEditor(initial: String, onDone: (String) -> Unit) {
+    var text by remember { mutableStateOf(initial) }
+    val palette = LocalBigPalette.current
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        BigHeading(stringResource(R.string.editor_pick_message))
+        OutlinedTextField(
+            value = text,
+            onValueChange = { text = it },
+            singleLine = true,
+            textStyle = TextStyle(fontSize = 22.sp, fontWeight = FontWeight.Bold),
+            placeholder = { Text(stringResource(R.string.message_number_example), fontSize = 18.sp) },
+            keyboardOptions = KeyboardOptions(
+                keyboardType = KeyboardType.Phone,
+                imeAction = ImeAction.Done,
+            ),
+            keyboardActions = KeyboardActions(onDone = { onDone(text) }),
+            modifier = Modifier.fillMaxWidth(),
+        )
+        Text(
+            text = stringResource(R.string.message_number_hint),
+            color = palette.onBackground,
+            fontSize = 15.sp,
+            modifier = Modifier.padding(horizontal = 4.dp),
+        )
+        BigRow(
+            label = stringResource(R.string.editor_done),
+            surface = palette.surfaceAccent,
+            onClick = { onDone(text) },
+        )
     }
 }
 
 /**
  * Die Adresse einer Webseiten-Kachel eingeben.
  *
- * Ohne „https://" davor - das ergänzt [LinkTarget], weil es auf drei Zoll niemand tippt.
- * Die Haken-Taste der Tastatur übernimmt, denn mit offener Tastatur ist „Fertig" verdeckt.
+ * Ohne „https://" davor - das ergaenzt [LinkTarget], weil es auf drei Zoll niemand tippt.
+ * Die Haken-Taste der Tastatur uebernimmt, denn mit offener Tastatur ist "Fertig" verdeckt.
  */
 @Composable
 private fun LinkEditor(initial: String, onDone: (String) -> Unit) {

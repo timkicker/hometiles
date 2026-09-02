@@ -2,6 +2,8 @@ package org.biglau.phone
 
 import android.content.Intent
 import android.telecom.Call
+import org.biglau.data.AudioRoute
+import org.biglau.data.ConfigStore
 import android.telecom.CallAudioState
 import android.telecom.InCallService
 
@@ -16,13 +18,27 @@ class BigInCallService : InCallService() {
 
     private var audioState: CallAudioState? = null
 
+    /** Gespraeche, deren Ton schon einmal gestellt wurde - siehe [CallAudio]. */
+    private val tonGestellt = mutableSetOf<Call>()
+
     private val callback = object : Call.Callback() {
-        override fun onStateChanged(call: Call, state: Int) = publish(call)
+        override fun onStateChanged(call: Call, state: Int) {
+            stelleTon(call, state)
+            publish(call)
+        }
         override fun onDetailsChanged(call: Call, details: Call.Details) = publish(call)
     }
 
     override fun onCallAdded(call: Call) {
         super.onCallAdded(call)
+        // Gesperrte Nummer: abweisen, bevor der Bildschirm aufgeht. Sonst klingelt es
+        // kurz und der Anrufbildschirm blitzt auf - eine Sperre, die man sieht, ist
+        // fuer den Genervten keine.
+        val nummer = call.details?.handle?.schemeSpecificPart.orEmpty()
+        if (CallBlocking.isBlocked(nummer, ConfigStore.get(this).current.phone.blockedNumbers)) {
+            runCatching { call.reject(false, null) }
+            return
+        }
         InCallRepository.attach(this)
         call.registerCallback(callback)
         publish(call)
@@ -33,8 +49,33 @@ class BigInCallService : InCallService() {
         )
     }
 
+    /**
+     * Beim Verbinden einmal den Ton umstellen, wenn die Einstellung es verlangt.
+     *
+     * Einmal je Gespraech: bei jedem Zustandswechsel nachzuziehen wuerde den Lautsprecher
+     * wieder einschalten, den der Nutzer gerade von Hand ausgemacht hat.
+     */
+    private fun stelleTon(call: Call, state: Int) {
+        if (state != Call.STATE_ACTIVE || !tonGestellt.add(call)) return
+        val ausgehend = call.details?.callDirection == Call.Details.DIRECTION_OUTGOING
+        val weg = CallAudio.routeOnConnect(
+            ConfigStore.get(this).current.phone,
+            outgoing = ausgehend,
+        ) ?: return
+        runCatching {
+            setAudioRoute(
+                when (weg) {
+                    AudioRoute.SPEAKER -> CallAudioState.ROUTE_SPEAKER
+                    AudioRoute.BLUETOOTH -> CallAudioState.ROUTE_BLUETOOTH
+                    AudioRoute.EARPIECE -> CallAudioState.ROUTE_EARPIECE
+                },
+            )
+        }
+    }
+
     override fun onCallRemoved(call: Call) {
         super.onCallRemoved(call)
+        tonGestellt.remove(call)
         call.unregisterCallback(callback)
         if (calls.isEmpty()) {
             InCallRepository.detach()
@@ -56,7 +97,17 @@ class BigInCallService : InCallService() {
             view = CallView(
                 status = statusOf(call.state),
                 number = details?.handle?.schemeSpecificPart.orEmpty(),
-                name = details?.callerDisplayName?.takeIf { it.isNotBlank() },
+                // Erst das Adressbuch, dann was das Netz mitschickt. Der Name aus dem
+                // Netz (CNAP) kommt in Oesterreich praktisch nie, und ohne ihn stand hier
+                // nur eine Ziffernfolge.
+                name = CallerName.lookup(
+                    this,
+                    details?.handle?.schemeSpecificPart.orEmpty(),
+                ) ?: details?.callerDisplayName?.takeIf { it.isNotBlank() },
+                photoUri = CallerName.photo(
+                    this,
+                    details?.handle?.schemeSpecificPart.orEmpty(),
+                ),
                 startedAtMillis = details?.connectTimeMillis?.takeIf { it > 0 },
                 muted = audioState?.isMuted == true,
                 speakerOn = audioState?.route == CallAudioState.ROUTE_SPEAKER,

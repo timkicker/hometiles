@@ -35,4 +35,45 @@ object ClockFormat {
     const val SCALE_MAX = 2.0f
 
     fun scale(value: Float): Float = value.coerceIn(SCALE_MIN, SCALE_MAX)
+
+    /**
+     * Hoehe der Kopfzeile in dp.
+     *
+     * Sie muss mit **beiden** Faktoren wachsen, die die Schrift darin groesser machen: der
+     * globalen Textgroesse und der eigenen Groesse der Uhr. Gerechnet wurde nur mit der
+     * zweiten - wer die Textgroesse auf 150 % stellte, bekam eine Kopfzeile, die ihre
+     * Datumszeile mitten durchschnitt. Am Emulator gesehen, nachdem der Assistent mit
+     * 150 % durchgelaufen war; der Kommentar an der Stelle beschrieb genau diesen Fehler
+     * und die Rechnung deckte nur die Haelfte davon ab.
+     */
+    fun headerHeightDp(hasDate: Boolean, textScale: Float, clockScale: Float): Float =
+        (if (hasDate) 78f else 54f) * textScale * scale(clockScale)
+
+    /** Grob die Breite eines fetten serifenlosen Zeichens, gemessen an der Schriftgroesse. */
+    private const val ZEICHENBREITE = 0.62f
+
+    /**
+     * Wie breit die Ladestandsanzeige rechts in der Kopfzeile wird.
+     *
+     * „100 %" plus Blitz plus Abstand. Sie waechst mit der Textgroesse mit, und genau das
+     * macht sie zum Problem: bei 200 % nimmt sie so viel Platz, dass links nichts mehr
+     * bleibt.
+     */
+    fun batteryWidthDp(textScale: Float): Float =
+        "100 %".length * ZEICHENBREITE * 20f * textScale + 20f * textScale + 8f
+
+    /**
+     * Schriftgroesse der Uhr, damit sie **neben** dem Ladestand Platz hat.
+     *
+     * Bei 200 % Textgroesse liefen die beiden ineinander: die Uhr stand mit
+     * `softWrap = false` da und zeichnete ueber den Ladestand hinweg, „9:37" und „100 %"
+     * uebereinander. Am Emulator gesehen. Die Uhr darf deshalb kleiner werden, als die
+     * Einstellung verlangt - eine Uhr, die man liest, ist mehr wert als eine, die die
+     * gewuenschte Groesse hat und unter dem Ladestand verschwindet.
+     */
+    fun clockSizeSp(text: String, availableDp: Float, textScale: Float, clockScale: Float): Float {
+        val gewuenscht = 26f * textScale * scale(clockScale)
+        val passend = availableDp / (text.length.coerceAtLeast(1) * ZEICHENBREITE)
+        return minOf(gewuenscht, passend).coerceAtLeast(14f)
+    }
 }

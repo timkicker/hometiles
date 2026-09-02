@@ -47,6 +47,47 @@ class ConfigFileTest {
     }
 
     @Test
+    fun `eine unlesbare Datei wird zur Seite gelegt statt ueberschrieben`() {
+        // Sonst ist die Einrichtung eines Menschen mit dem naechsten Schreibvorgang
+        // endgueltig weg - und vorher sah es aus wie ein frisch installiertes BigLau.
+        val (config, file) = store()
+        val inhalt = "{ das ist kein JSON"
+        file.writeText(inhalt)
+        assertEquals(LauncherConfig(), config.read())
+        assertTrue("die kaputte Datei muss gerettet sein", config.rescueFile.exists())
+        assertEquals(inhalt, config.rescueFile.readText())
+        assertTrue(config.rescuedBroken)
+    }
+
+    @Test
+    fun `nach der Rettung ueberschreibt das Schreiben nur die neue Datei`() {
+        val (config, file) = store()
+        file.writeText("{ kaputt")
+        config.read()
+        config.write(LauncherConfig())
+        assertTrue("die neue Datei steht", file.exists())
+        assertEquals("{ kaputt", config.rescueFile.readText())
+    }
+
+    @Test
+    fun `eine lesbare Datei wird nicht angefasst`() {
+        val (config, file) = store()
+        config.write(LauncherConfig())
+        config.read()
+        assertTrue(file.exists())
+        assertTrue("nichts zu retten", !config.rescueFile.exists())
+        assertTrue(!config.rescuedBroken)
+    }
+
+    @Test
+    fun `eine fehlende Datei ist kein Schaden`() {
+        val (config, _) = store()
+        assertEquals(LauncherConfig(), config.read())
+        assertTrue(!config.rescuedBroken)
+        assertTrue(!config.rescueFile.exists())
+    }
+
+    @Test
     fun `ein kuerzeres Dokument laesst keinen Rest des laengeren stehen`() {
         // Genau der Fehler vom Geraet: die Datei endete auf "}}", weil ein kurzer
         // Schreibvorgang einen langen ueberschrieb, ohne ihn abzuschneiden.

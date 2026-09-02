@@ -6,6 +6,7 @@ import android.content.ContentValues
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.provider.ContactsContract
 import androidx.core.content.ContextCompat
 import kotlinx.coroutines.Dispatchers
@@ -22,6 +23,33 @@ class ContactRepository(context: Context) {
     fun hasPermission(): Boolean =
         ContextCompat.checkSelfPermission(appContext, Manifest.permission.READ_CONTACTS) ==
             PackageManager.PERMISSION_GRANTED
+
+    /**
+     * Der Name zu einer Nummer, oder null.
+     *
+     * Ein einzelner Treffer aus `PhoneLookup` statt der ganzen Kontaktliste: das hier läuft
+     * in einem Broadcast-Empfänger, wenn eine Nachricht ankommt, und dort ist kein Platz
+     * für eine Abfrage über alle Kontakte. Ohne Berechtigung oder ohne Treffer steht in der
+     * Meldung eben die Nummer.
+     */
+    fun nameFor(number: String): String? {
+        if (!hasPermission() || number.isBlank()) return null
+        val uri = Uri.withAppendedPath(
+            ContactsContract.PhoneLookup.CONTENT_FILTER_URI,
+            Uri.encode(number),
+        )
+        return runCatching {
+            appContext.contentResolver.query(
+                uri,
+                arrayOf(ContactsContract.PhoneLookup.DISPLAY_NAME),
+                null,
+                null,
+                null,
+            )?.use { cursor ->
+                if (cursor.moveToFirst()) cursor.getString(0) else null
+            }
+        }.getOrNull()?.takeIf { it.isNotBlank() }
+    }
 
     suspend fun load(): List<PhoneContact> = withContext(Dispatchers.IO) {
         if (!hasPermission()) return@withContext emptyList()

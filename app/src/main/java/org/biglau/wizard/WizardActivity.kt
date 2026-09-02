@@ -67,7 +67,6 @@ class WizardActivity : BigLauActivity() {
             val config by store.config.collectAsStateWithLifecycle()
             var step by remember { mutableStateOf(WizardStep.WELCOME) }
             var state by remember { mutableStateOf(readState()) }
-            val palette = LocalBigPalette.current
 
             val askPermissions = rememberLauncherForActivityResult(
                 ActivityResultContracts.RequestMultiplePermissions(),
@@ -86,10 +85,22 @@ class WizardActivity : BigLauActivity() {
                 labelScale = config.appearance.labelScale,
                 iconPercent = config.appearance.iconPercent,
                 icons = config.appearance.icons,
+                hideCutLabels = config.appearance.hideCutLabels,
                 cornerRadiusDp = config.appearance.cornerRadiusDp,
             ) {
+                val palette = LocalBigPalette.current
+                // Zurueck geht einen Schritt zurueck - und aus dem ersten Schritt heraus.
+                // Vorher verschluckte der Assistent die Zurueck-Taste ganz: wer ihn aus den
+                // Einstellungen noch einmal aufrief und wieder heraus wollte, kam nur ueber
+                // die Heim-Taste oder durch alle vier Schritte. Ueberall sonst in der App
+                // fuehrt Zurueck zurueck; eine Ausnahme davon merkt sich niemand.
+                //
+                // Beim allerersten Start ist das Schliessen kein Verlust: `wizardDone`
+                // bleibt falsch, der Assistent kommt beim naechsten Start wieder, und der
+                // Startbildschirm laedt derweil mit "Antippen zum Belegen" zum Belegen ein.
                 BackHandler(enabled = true) {
-                    WizardSteps.previous(step, state)?.let { step = it }
+                    val zurueck = WizardSteps.previous(step, state)
+                    if (zurueck != null) step = zurueck else finish()
                 }
 
                 val (position, total) = WizardSteps.position(step, state)
@@ -110,9 +121,17 @@ class WizardActivity : BigLauActivity() {
                         )
 
                         when (step) {
+                            // Wer hier landet, weil seine gespeicherte Einrichtung nicht
+                            // mehr zu lesen war, sieht sonst einen Willkommensgruss - und
+                            // haelt sein Telefon fuer zurueckgesetzt, ohne zu erfahren,
+                            // dass die alte Datei noch daneben liegt.
                             WizardStep.WELCOME -> Simple(
                                 title = stringResource(R.string.wizard_welcome_title),
-                                body = stringResource(R.string.wizard_welcome_body),
+                                body = if (store.startedFromBrokenFile) {
+                                    stringResource(R.string.wizard_welcome_after_broken)
+                                } else {
+                                    stringResource(R.string.wizard_welcome_body)
+                                },
                                 action = stringResource(R.string.wizard_start),
                                 onAction = ::advance,
                             )
@@ -137,6 +156,7 @@ class WizardActivity : BigLauActivity() {
                                     stringResource(R.string.theme_dark) to ThemeName.DARK,
                                     stringResource(R.string.theme_contrast) to ThemeName.HIGH_CONTRAST,
                                     stringResource(R.string.theme_light) to ThemeName.LIGHT,
+                                    stringResource(R.string.theme_system) to ThemeName.SYSTEM,
                                 ),
                                 selected = config.appearance.theme,
                                 onPick = { value ->

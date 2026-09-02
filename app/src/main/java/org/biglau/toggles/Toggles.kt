@@ -48,8 +48,4 @@ object Toggles {
         ToggleKind.LOCATION -> ToggleAction.SETTINGS
         ToggleKind.BRIGHTNESS -> ToggleAction.SETTINGS
     }
-
-    /** Kann der Nutzer erwarten, dass sich der Zustand sofort aendert? */
-    fun switchesImmediately(kind: ToggleKind, sdkInt: Int): Boolean =
-        actionFor(kind, sdkInt) == ToggleAction.SWITCH
 }

@@ -15,6 +15,11 @@ import androidx.compose.material.icons.filled.RestartAlt
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import org.biglau.ui.theme.BigSurface
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
@@ -48,6 +53,13 @@ fun EmergencyScreen(
     val ink = Color(0xFFF2F4F5)
     val ground = Color(0xFF0A0A0A)
     val surface = Color(0xFF161616)
+    val danger = Color(0xFFC62828)
+    // Der einzige Knopf hier, der etwas wegnimmt - und er nahm es mit einem einzigen Tipp,
+    // waehrend dasselbe Zuruecksetzen in den Einstellungen aufzaehlt, was verlorengeht, und
+    // vorher eine Sicherung anbietet. Wer auf diesem Bildschirm landet, tippt herum, weil
+    // sein Telefon gerade nicht geht; genau dort darf ein Tipp nicht die ganze Einrichtung
+    // kosten. Zweistufig wie ueberall sonst: der erste Tipp sagt, was es kostet.
+    var scharf by remember { mutableStateOf(false) }
 
     Box(
         Modifier
@@ -86,10 +98,15 @@ fun EmergencyScreen(
                 onClick = onChooseOtherLauncher,
             )
             BigRow(
-                label = stringResource(R.string.emergency_reset),
-                secondary = stringResource(R.string.emergency_reset_hint),
+                label = stringResource(
+                    if (scharf) R.string.emergency_reset_now else R.string.emergency_reset,
+                ),
+                secondary = stringResource(
+                    if (scharf) R.string.emergency_reset_warning else R.string.emergency_reset_hint,
+                ),
                 icon = Icons.Filled.RestartAlt,
-                onClick = onResetConfig,
+                surface = BigSurface(if (scharf) danger else surface, ink),
+                onClick = { if (scharf) onResetConfig() else scharf = true },
             )
             if (lastCrash != null) {
                 Text(

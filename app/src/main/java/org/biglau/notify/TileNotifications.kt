@@ -32,7 +32,6 @@ object TileNotifications {
         else -> null
     }
 
-    /** Anzahl fuer diese Kachel; null oder abgeschaltet ergibt null Treffer. */
     /**
      * Kann diese Kachel ueberhaupt blinken?
      *
@@ -50,6 +49,7 @@ object TileNotifications {
         else -> false
     }
 
+    /** Anzahl fuer diese Kachel; null oder abgeschaltet ergibt null Treffer. */
     fun badgeFor(
         button: Button,
         counts: Map<String, Int>,

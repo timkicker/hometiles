@@ -89,6 +89,7 @@ fun ClockContent(
     ) {
         Text(
             text = timeText,
+            style = TabellenZiffern,
             color = palette.onTile,
             fontSize = dpSp(timeSize),
             fontWeight = FontWeight.Bold,
@@ -123,7 +124,6 @@ fun BatteryContent(
     val percent = reading?.let { BatteryInfo.percent(it) }
     val charging = reading?.let { BatteryInfo.isCharging(it) } ?: false
     val fraction = BatteryInfo.fraction(percent)
-    val low = BatteryInfo.isLow(percent)
     val percentText = if (percent == null) "?" else "$percent %"
     val numberSize = singleLineSizeSp(percentText, cellWidth.value, cellHeight.value, scale, maxSp = 64f)
 
@@ -134,7 +134,11 @@ fun BatteryContent(
     ) {
         Text(
             text = percentText,
-            color = if (low) palette.danger else palette.onTile,
+            style = TabellenZiffern,
+            // Nicht in Warnfarbe: gemessen kommt das Rot auf jedem der sechs Kacheltoene
+            // auf 1,4 bis 1,8 zu 1 - unter jeder Schwelle aus PLAN.md 3.3, und das
+            // ausgerechnet bei neun Prozent. Die Zahl selbst ist die Warnung.
+            color = palette.onTile,
             fontSize = dpSp(numberSize),
             fontWeight = FontWeight.Bold,
             maxLines = 1,
@@ -162,7 +166,7 @@ fun BatteryContent(
                         .fillMaxHeight()
                         .fillMaxWidth(fraction)
                         .clip(RoundedCornerShape(50))
-                        .background(if (low) palette.danger else palette.onTile),
+                        .background(palette.onTile),
                 )
             }
         }
@@ -194,7 +198,6 @@ fun SignalContent(
         SignalInfo.State.NO_SERVICE -> stringResource(R.string.signal_no_service)
         else -> zusatz
     }
-    val schwach = zustand == SignalInfo.State.WEAK || zustand == SignalInfo.State.NO_SERVICE
 
     Column(
         modifier = modifier.fillMaxSize().padding(8.dp),
@@ -218,7 +221,7 @@ fun SignalContent(
                         .clip(RoundedCornerShape(50))
                         .background(
                             if (index < balken) {
-                                if (schwach) palette.danger else palette.onTile
+                                palette.onTile
                             } else {
                                 palette.onTile.copy(alpha = 0.25f)
                             },
@@ -229,7 +232,7 @@ fun SignalContent(
         if (wort.isNotEmpty()) {
             Text(
                 text = wort,
-                color = if (schwach) palette.danger else palette.onTile,
+                color = palette.onTile,
                 fontSize = dpSp(singleLineSizeSp(wort, cellWidth.value, cellHeight.value, scale, maxSp = 22f)),
                 fontWeight = FontWeight.Bold,
                 maxLines = 1,

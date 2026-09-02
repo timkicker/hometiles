@@ -26,10 +26,14 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Call
+import androidx.compose.material.icons.filled.Block
+import androidx.compose.material.icons.filled.CallEnd
+import androidx.compose.material.icons.filled.QuestionMark
 import androidx.compose.material.icons.filled.CallMade
 import androidx.compose.material.icons.filled.CallMissed
 import androidx.compose.material.icons.filled.CallReceived
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Dialpad
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -60,13 +64,17 @@ import org.biglau.ui.ContactAvatar
 import org.biglau.ui.BigHeading
 import org.biglau.ui.BigKeypad
 import org.biglau.actions.Intents
+import org.biglau.settings.SettingsActivity
 import org.biglau.security.Pin
 import org.biglau.ui.PinGate
 import org.biglau.ui.Notice
 import org.biglau.ui.PermissionGate
 import org.biglau.ui.PermissionState
+import androidx.compose.material.icons.filled.History
+import org.biglau.ui.BigIconButton
 import org.biglau.ui.BigRow
 import org.biglau.ui.ScrollButtons
+import org.biglau.ui.TabellenZiffern
 import org.biglau.ui.dpSp
 import org.biglau.ui.singleLineSizeSp
 import org.biglau.ui.theme.BigLauTheme
@@ -103,6 +111,8 @@ class DialerActivity : BigLauActivity() {
             var assigningKey by remember { mutableStateOf<Char?>(null) }
             var missedOnly by rememberSaveable { mutableStateOf(intent?.getBooleanExtra(EXTRA_MISSED, false) == true) }
             var pendingDelete by remember { mutableStateOf<Pair<String, List<Long>>?>(null) }
+            // Die Rueckfrage vor einem Anruf aus dem Verlauf. PLAN.md 3.1, Leitsatz 5.
+            var pendingCall by remember { mutableStateOf<Pair<String, String>?>(null) }
             // Erst die Rueckfrage - sie sagt, was verschwindet -, dann die PIN. So steht
             // das Schloss unmittelbar vor dem Schritt, der nicht rueckgaengig zu machen ist,
             // und man weiss beim Eintippen, wofuer.
@@ -111,7 +121,17 @@ class DialerActivity : BigLauActivity() {
             var contacts by remember { mutableStateOf<List<PhoneContact>>(emptyList()) }
             val contactRepo = remember { ContactRepository.get(this@DialerActivity) }
 
-            /** Das eigentliche Loeschen - hinter Rueckfrage und, wenn gesetzt, PIN. */
+            // Das Recht, die Anrufliste zu *aendern*, ist ein zweites neben dem Lesen, und
+            // niemand hat es je erfragt: am Telefon des Nutzers stand es auf granted=false.
+            // Wer dort einen Eintrag loeschte, bestaetigte die Rueckfrage und sah die Zeile
+            // danach unveraendert stehen - eine Sackgasse ohne Ausweg, denn nichts fragte.
+            var writeDeniedOnce by remember { mutableStateOf(false) }
+            var writeCanAskAgain by remember { mutableStateOf(true) }
+            // Wenn Android nicht mehr fragt, bleibt nur der Weg ueber die Systemeinstellungen.
+            var writeGate by remember { mutableStateOf(false) }
+            var wartetAufSchreibrecht by remember { mutableStateOf<Pair<String, List<Long>>?>(null) }
+
+            /** Das eigentliche Loeschen - hinter Rueckfrage, Schreibrecht und, wenn gesetzt, PIN. */
             fun deleteNow(pending: Pair<String, List<Long>>) {
                 scope.launch {
                     val removed = if (pending.second.isEmpty()) {
@@ -119,14 +139,58 @@ class DialerActivity : BigLauActivity() {
                     } else {
                         callLog.delete(pending.second)
                     }
+                    // Die Liste in jedem Fall neu lesen: sie ist die Wahrheit, nicht die
+                    // Zahl, die der Anbieter zurueckgibt.
+                    groups = callLog.load(mode = config.phone.callGrouping)
                     if (removed > 0) {
-                        groups = callLog.load()
                         Notice.show(
                             this@DialerActivity,
-                            getString(R.string.calllog_deleted, removed),
+                            resources.getQuantityString(R.plurals.calllog_deleted, removed, removed),
                         )
                     } else {
-                        Notice.show(this@DialerActivity, R.string.calllog_delete_denied)
+                        Notice.show(this@DialerActivity, R.string.calllog_delete_failed)
+                    }
+                }
+            }
+
+            val askWrite = rememberLauncherForActivityResult(
+                ActivityResultContracts.RequestPermission(),
+            ) { granted ->
+                val pending = wartetAufSchreibrecht
+                wartetAufSchreibrecht = null
+                if (granted) {
+                    pending?.let(::deleteNow)
+                } else {
+                    writeDeniedOnce = true
+                    writeCanAskAgain =
+                        shouldShowRequestPermissionRationale(Manifest.permission.WRITE_CALL_LOG)
+                    writeGate = DeletePermission.next(
+                        canWrite = false,
+                        deniedOnce = true,
+                        canAskAgain = writeCanAskAgain,
+                    ) == DeleteStep.GATE
+                }
+            }
+
+            /**
+             * Erst fragen, dann loeschen.
+             *
+             * Gefragt wird hier und nicht beim Oeffnen der Liste: wer nur nachsieht, wer
+             * angerufen hat, soll nicht gefragt werden, ob BigLau die Liste aendern darf.
+             */
+            fun deleteAfterPermission(pending: Pair<String, List<Long>>) {
+                when (
+                    DeletePermission.next(
+                        canWrite = callLog.canWrite(),
+                        deniedOnce = writeDeniedOnce,
+                        canAskAgain = writeCanAskAgain,
+                    )
+                ) {
+                    DeleteStep.DELETE -> deleteNow(pending)
+                    DeleteStep.GATE -> writeGate = true
+                    DeleteStep.ASK -> {
+                        wartetAufSchreibrecht = pending
+                        askWrite.launch(Manifest.permission.WRITE_CALL_LOG)
                     }
                 }
             }
@@ -164,7 +228,7 @@ class DialerActivity : BigLauActivity() {
             LaunchedEffect(tab, logGranted) {
                 if (tab != Tab.LOG) return@LaunchedEffect
                 if (logGranted) {
-                    groups = callLog.load()
+                    groups = callLog.load(mode = config.phone.callGrouping)
                 } else if (!logDeniedOnce) {
                     askLog.launch(Manifest.permission.READ_CALL_LOG)
                 }
@@ -178,9 +242,19 @@ class DialerActivity : BigLauActivity() {
                 labelScale = config.appearance.labelScale,
                 iconPercent = config.appearance.iconPercent,
                 icons = config.appearance.icons,
+                hideCutLabels = config.appearance.hideCutLabels,
                 cornerRadiusDp = config.appearance.cornerRadiusDp,
             ) {
-                BackHandler(enabled = tab != Tab.KEYPAD) { tab = Tab.KEYPAD }
+                // In Stufen zurueck, wie auf dem Startbildschirm: erst die Rueckfrage weg,
+                // dann die Liste. Vorher sprang Zurueck aus der Rueckfrage gleich zur
+                // Waehltastatur - man landete zwei Schritte weiter weg, als man wollte.
+                BackHandler(enabled = tab != Tab.KEYPAD || pendingCall != null || pendingDelete != null) {
+                    when {
+                        pendingCall != null -> pendingCall = null
+                        pendingDelete != null -> pendingDelete = null
+                        else -> tab = Tab.KEYPAD
+                    }
+                }
 
                 Box(
                     Modifier
@@ -199,7 +273,7 @@ class DialerActivity : BigLauActivity() {
                             onCheck = { eingabe -> Pin.verify(eingabe, config.security.pin) },
                             onAccept = {
                                 pinFor = null
-                                deleteNow(zuBestaetigen)
+                                deleteAfterPermission(zuBestaetigen)
                             },
                             acceptOnComplete = true,
                         )
@@ -259,15 +333,36 @@ class DialerActivity : BigLauActivity() {
 
                         Tab.LOG -> CallList(
                             scrollButtons = config.behaviour.accessibility.scrollButtons,
-                            groups = if (missedOnly) CallLogGrouping.onlyMissed(groups) else groups,
+                            // Ungefiltert hinein: die Liste muss unterscheiden koennen, ob
+                            // sie leer ist oder leer gefiltert wurde.
+                            alle = groups,
+                            allowed = CallLogGrouping.allowedFrom(config.phone.hiddenCallTypes),
                             granted = logGranted,
                             blocked = PermissionState.blocked(logDeniedOnce, logCanAskAgain),
                             onAskLog = { askLog.launch(Manifest.permission.READ_CALL_LOG) },
                             onLogSettings = { Intents.appSettings(this@DialerActivity) },
+                            writeGate = writeGate,
+                            onWriteSettings = { Intents.appSettings(this@DialerActivity) },
+                            onCloseWriteGate = { writeGate = false },
+                            onCallTypeSettings = {
+                                startActivity(
+                                    Intent(this@DialerActivity, SettingsActivity::class.java)
+                                        .putExtra(SettingsActivity.EXTRA_PAGE, SettingsActivity.PAGE_CALL_TYPES),
+                                )
+                            },
                             missedOnly = missedOnly,
                             pendingDelete = pendingDelete,
+                            pendingCall = pendingCall,
                             onToggleFilter = { missedOnly = !missedOnly },
-                            onCall = { number -> dial(number) { askCall.launch(Manifest.permission.CALL_PHONE) } },
+                            onAskCall = { label, number -> pendingCall = label to number },
+                            onCancelCall = { pendingCall = null },
+                            onConfirmCall = {
+                                val gewaehlt = pendingCall?.second
+                                pendingCall = null
+                                if (gewaehlt != null) {
+                                    dial(gewaehlt) { askCall.launch(Manifest.permission.CALL_PHONE) }
+                                }
+                            },
                             onAskDelete = { label, ids -> pendingDelete = label to ids },
                             onCancelDelete = { pendingDelete = null },
                             onConfirmDelete = {
@@ -280,7 +375,7 @@ class DialerActivity : BigLauActivity() {
                                 ) {
                                     pinFor = pending
                                 } else {
-                                    deleteNow(pending)
+                                    deleteAfterPermission(pending)
                                 }
                             },
                         )
@@ -316,6 +411,12 @@ class DialerActivity : BigLauActivity() {
                 Intent(Intent.ACTION_DIAL, Uri.fromParts("tel", PhoneNumbers.clean(number), null))
                     .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
             )
+            return
+        }
+
+        // Erst nach dem Notruf-Zweig: eine gesperrte Nummer haelt niemanden vom Notruf ab.
+        if (CallBlocking.isBlocked(number, ConfigStore.get(this).current.phone.blockedNumbers)) {
+            Notice.show(this, R.string.blocked_outgoing)
             return
         }
 
@@ -370,6 +471,8 @@ private fun Keypad(
                     color = palette.onBackground,
                     fontSize = dpSp(singleLineSizeSp(typed, 330f, 64f, 1f, maxSp = 40f)),
                     fontWeight = FontWeight.Bold,
+                    // Beim Tippen soll die Zahl nicht bei jeder Ziffer springen. PLAN.md 3.7.
+                    style = TabellenZiffern,
                     maxLines = 1,
                     softWrap = false,
                 )
@@ -392,10 +495,13 @@ private fun Keypad(
                 modifier = Modifier.weight(1f),
                 onClick = onCall,
             )
-            BigRow(
-                label = stringResource(R.string.calllog),
-                icon = Icons.Filled.Dialpad,
-                modifier = Modifier.weight(0.7f),
+            // Ein Symbol statt eines Wortes: "Anrufliste" brach hier mitten im Wort um,
+            // sobald eine Kurzwahl die Tastatur hoeher macht. Zwei beschriftete Knoepfe
+            // passen auf drei Zoll nicht nebeneinander - genau der Fall, fuer den es
+            // BigIconButton gibt. Das Wort steht in der Vorlese-Beschreibung.
+            BigIconButton(
+                icon = Icons.Filled.History,
+                description = stringResource(R.string.calllog),
                 onClick = onLog,
             )
         }
@@ -404,23 +510,61 @@ private fun Keypad(
 
 @Composable
 private fun CallList(
-    groups: List<CallGroup>,
+    alle: List<CallGroup>,
+    allowed: Set<CallDirection>,
     granted: Boolean,
     blocked: Boolean,
     onAskLog: () -> Unit,
     onLogSettings: () -> Unit,
     missedOnly: Boolean,
     pendingDelete: Pair<String, List<Long>>?,
+    pendingCall: Pair<String, String>?,
     onToggleFilter: () -> Unit,
-    onCall: (String) -> Unit,
+    onAskCall: (String, String) -> Unit,
+    onCancelCall: () -> Unit,
+    onConfirmCall: () -> Unit,
     onAskDelete: (String, List<Long>) -> Unit,
     onCancelDelete: () -> Unit,
     onConfirmDelete: () -> Unit,
+    writeGate: Boolean,
+    onWriteSettings: () -> Unit,
+    onCloseWriteGate: () -> Unit,
+    onCallTypeSettings: () -> Unit,
     scrollButtons: Boolean,
 ) {
+    // Erst die dauerhafte Auswahl der Arten, dann der schnelle Filter "nur verpasste" -
+    // der ist eine Ansicht, keine Einstellung, und darf die andere nicht ueberschreiben.
+    val groups = CallLogGrouping.visible(
+        if (missedOnly) CallLogGrouping.onlyMissed(alle) else alle,
+        allowed,
+    )
+    val leerWeil = CallLogEmpty.reason(alle, missedOnly, allowed)
     val palette = LocalBigPalette.current
     val locale = currentLocale()
     val format = remember(locale) { SimpleDateFormat("EEE d. MMM, HH:mm", locale) }
+
+    // Android fragt nicht mehr nach dem Schreibrecht. Ohne diesen Bildschirm bliebe es
+    // dabei, dass Loeschen bestaetigt wird und nichts geschieht.
+    if (writeGate) {
+        LazyColumn(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            item {
+                PermissionGate(
+                    title = stringResource(R.string.calllog),
+                    explanation = stringResource(R.string.calllog_write_permission),
+                    blocked = true,
+                    onAsk = onWriteSettings,
+                    onSettings = onWriteSettings,
+                )
+            }
+            item {
+                BigRow(
+                    label = stringResource(R.string.calllog_confirm_keep),
+                    onClick = onCloseWriteGate,
+                )
+            }
+        }
+        return
+    }
 
     // Loeschen ist nicht rueckgaengig zu machen, also wird gefragt - und zwar so, dass
     // die Frage die Liste verdeckt: wer bestaetigt, soll nicht nebenbei auf eine Zeile tippen.
@@ -447,6 +591,32 @@ private fun CallList(
                 )
             }
             item { BigRow(label = stringResource(R.string.calllog_confirm_keep), onClick = onCancelDelete) }
+        }
+        return
+    }
+
+    // Dieselbe Form wie beim Loeschen: die Frage verdeckt die Liste, damit niemand
+    // nebenbei auf eine andere Zeile tippt.
+    if (pendingCall != null) {
+        LazyColumn(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            item { BigHeading(stringResource(R.string.calllog)) }
+            item {
+                Text(
+                    text = stringResource(R.string.calllog_call_confirm, pendingCall.first),
+                    color = palette.onBackground,
+                    fontSize = 17.sp,
+                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 8.dp),
+                )
+            }
+            item {
+                BigRow(
+                    label = stringResource(R.string.calllog_call_yes),
+                    icon = Icons.Filled.Call,
+                    surface = palette.surfaceAccent,
+                    onClick = onConfirmCall,
+                )
+            }
+            item { BigRow(label = stringResource(R.string.calllog_call_no), onClick = onCancelCall) }
         }
         return
     }
@@ -479,14 +649,45 @@ private fun CallList(
                         onSettings = onLogSettings,
                     )
                 }
-            } else if (groups.isEmpty()) {
+            } else if (groups.isNotEmpty()) {
+                // Einen einzelnen Anruf loeschte man bisher nur durch langes Halten, und
+                // das stand nirgends. Der Hinweis sitzt an derselben Stelle wie der fuer
+                // die Kurzwahl auf der Wähltastatur.
                 item {
                     Text(
-                        text = stringResource(R.string.calllog_empty),
+                        text = stringResource(R.string.calllog_delete_hint),
+                        color = palette.onBackground,
+                        fontSize = 14.sp,
+                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp),
+                    )
+                }
+            }
+            if (granted && leerWeil != null) {
+                item {
+                    Text(
+                        text = stringResource(
+                            when (leerWeil) {
+                                EmptyCallLog.NO_CALLS -> R.string.calllog_empty
+                                EmptyCallLog.HIDDEN_BY_TYPE -> R.string.calllog_all_hidden
+                                EmptyCallLog.NO_MISSED -> R.string.calllog_no_missed
+                            },
+                        ),
                         color = palette.onBackground,
                         fontSize = 16.sp,
                         modifier = Modifier.padding(horizontal = 4.dp, vertical = 8.dp),
                     )
+                }
+                // Der Weg zurueck gehoert an die Stelle, an der man merkt, dass man ihn
+                // braucht - nicht in eine Einstellung, die man erst finden muss.
+                if (leerWeil == EmptyCallLog.HIDDEN_BY_TYPE) {
+                    item {
+                        BigRow(
+                            label = stringResource(R.string.calllog_all_hidden_open),
+                            icon = Icons.Filled.Settings,
+                            surface = palette.surfaceAccent,
+                            onClick = onCallTypeSettings,
+                        )
+                    }
                 }
             }
             items(groups, key = { it.latest.id }) { group ->
@@ -497,13 +698,30 @@ private fun CallList(
                     },
                     secondary = format.format(Date(group.latest.timestamp)),
                     secondaryMaxLines = 1,
+                    // Erschoepfend, und zwar aus einem handfesten Grund: der else-Zweig
+                    // gab abgewiesenen und blockierten Anrufen den Pfeil fuer ausgehende.
+                    // Ein Anruf, den man weggedrueckt hat, stand da als einer, den man
+                    // selbst gefuehrt hat - in der einen Liste, in der die Richtung alles
+                    // ist. Aufgefallen erst am Emulator mit einer echten Anrufliste.
                     icon = when (group.latest.direction) {
                         CallDirection.MISSED -> Icons.Filled.CallMissed
                         CallDirection.INCOMING -> Icons.Filled.CallReceived
-                        else -> Icons.Filled.CallMade
+                        CallDirection.OUTGOING -> Icons.Filled.CallMade
+                        CallDirection.REJECTED -> Icons.Filled.CallEnd
+                        CallDirection.BLOCKED -> Icons.Filled.Block
+                        CallDirection.OTHER -> Icons.Filled.QuestionMark
                     },
                     surface = if (group.hasMissed) palette.surfaceDanger else palette.surfaceDefault,
-                    onClick = { onCall(group.number) },
+                    // Nicht sofort waehlen: PLAN.md 3.1, Leitsatz 5 nennt "Anrufen aus dem
+                    // Verlauf" ausdruecklich unter dem, was eine Rueckfrage braucht. In
+                    // einer Liste, die man mit zittriger Hand durchsieht, ist ein Tipp
+                    // daneben sonst ein Anruf bei jemandem.
+                    onClick = {
+                        onAskCall(
+                            group.name ?: PhoneNumbers.forDisplay(group.number),
+                            group.number,
+                        )
+                    },
                     onLongClick = {
                         onAskDelete(
                             group.name ?: PhoneNumbers.forDisplay(group.number),
@@ -555,7 +773,7 @@ private fun AssignList(
         items(contacts, key = { it.id }) { contact ->
             BigRow(
                 label = contact.name,
-                secondary = contact.numbers.firstOrNull()?.number,
+                secondary = contact.numbers.firstOrNull()?.number?.let(PhoneNumbers::forDisplay),
                 secondaryMaxLines = 1,
                 leading = { ContactAvatar(contact.name, contact.photoUri) },
                 onClick = { onPick(contact) },

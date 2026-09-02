@@ -13,7 +13,13 @@ class CallActionsTest {
         muted: Boolean = false,
         name: String? = null,
         number: String = "+436601234567",
-    ) = CallView(status, number, name, started, muted)
+    ) = CallView(
+        status = status,
+        number = number,
+        name = name,
+        startedAtMillis = started,
+        muted = muted,
+    )
 
     @Test
     fun `ein klingelnder Anruf bietet Annehmen und Ablehnen`() {
@@ -33,7 +39,6 @@ class CallActionsTest {
         val actions = CallActions.availableFor(view(CallStatus.ACTIVE))
         assertTrue(CallAction.HANG_UP in actions)
         assertTrue(CallAction.ANSWER !in actions)
-        assertTrue(!CallActions.showsAnswer(view(CallStatus.ACTIVE)))
     }
 
     @Test

@@ -70,7 +70,7 @@ class SosTest {
 
     @Test
     fun `null Sekunden heisst sofort`() {
-        assertTrue(SosCountdown.isDone(1000L, 1000L, 0))
+        assertEquals(0, SosCountdown.remaining(1000L, 1000L, 0))
     }
 
     @Test

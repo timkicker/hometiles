@@ -82,14 +82,12 @@ class SpeedDialTest {
     }
 
     @Test
-    fun `belegte Tasten kommen in aufsteigender Reihenfolge`() {
+    fun `belegte Tasten stehen unter ihrer eigenen Ziffer`() {
+        // Die Wähltastatur fragt je Taste nach - eine Gesamtliste braucht sie nicht.
         var config = SpeedDial.assign(PhoneConfig(), '7', opa)
         config = SpeedDial.assign(config, '3', oma)
-        assertEquals(listOf('3', '7'), SpeedDial.assigned(config).map { it.first })
-    }
-
-    @Test
-    fun `ohne Belegung ist die Liste leer`() {
-        assertTrue(SpeedDial.assigned(PhoneConfig()).isEmpty())
+        assertEquals(oma.name, SpeedDial.targetFor(config, '3')?.name)
+        assertEquals(opa.name, SpeedDial.targetFor(config, '7')?.name)
+        assertEquals(null, SpeedDial.targetFor(config, '5'))
     }
 }

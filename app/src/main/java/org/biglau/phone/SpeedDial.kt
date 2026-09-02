@@ -28,8 +28,4 @@ object SpeedDial {
 
     fun clear(config: PhoneConfig, key: Char): PhoneConfig =
         config.copy(speedDial = config.speedDial - key.toString())
-
-    /** Belegte Tasten in aufsteigender Reihenfolge - so steht es auch in den Einstellungen. */
-    fun assigned(config: PhoneConfig): List<Pair<Char, SpeedDialTarget>> = ASSIGNABLE
-        .mapNotNull { key -> targetFor(config, key)?.let { key to it } }
 }

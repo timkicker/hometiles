@@ -43,10 +43,6 @@ object AppLocale {
         return base.createConfigurationContext(configuration)
     }
 
-    /** Bequemer Weg fuer [BigLauActivity]: liest die Einstellung selbst. */
-    fun wrapFromConfig(base: Context): Context =
-        wrap(base, ConfigStore.get(base).current.appearance.language)
-
     fun needsRecreate(attached: Language, current: Language): Boolean = attached != current
 }
 

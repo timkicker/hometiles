@@ -1,0 +1,71 @@
+package org.biglau.res
+
+import java.io.File
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
+import org.junit.Test
+
+/**
+ * Die Diagnoseseite muss jedes gefährliche Recht nennen.
+ *
+ * Sie ist die Antwort auf „es geht nicht" — auf dem Gerät eines Menschen gibt es kein `adb`.
+ * Ein Recht, das dort fehlt, ist eine fehlende Antwort: in der Nacht vom 02.09.2026 war die
+ * Anrufliste zu sehen, aber nichts daraus zu löschen, weil `WRITE_CALL_LOG` fehlte — und die
+ * Seite, die man dafür aufschlägt, zeigte genau diese Zeile nicht.
+ */
+class DiagnosticsCoverageTest {
+
+    private val manifest = File("src/main/AndroidManifest.xml")
+    private val seite = File("src/main/java/org/biglau/settings/Diagnostics.kt")
+
+    /** Nur diese Gruppe wird zur Laufzeit erteilt; der Rest kommt beim Installieren. */
+    private val gefaehrlich = setOf(
+        "CALL_PHONE", "READ_CALL_LOG", "WRITE_CALL_LOG", "READ_PHONE_STATE",
+        "READ_CONTACTS", "WRITE_CONTACTS", "SEND_SMS", "READ_SMS", "RECEIVE_SMS",
+        "ACCESS_FINE_LOCATION", "ACCESS_COARSE_LOCATION",
+    )
+
+    /**
+     * Rechte, die die Seite nicht einzeln nennen muss.
+     *
+     * `ACCESS_COARSE_LOCATION` steht mit dem feinen zusammen in einer Zeile — beide werden
+     * gemeinsam erfragt, und zwei Zeilen für dieselbe Frage sind auf drei Zoll Ballast.
+     * `WRITE_CONTACTS` und `RECEIVE_SMS` hängen an einer Rolle, die die Seite ohnehin zeigt.
+     */
+    private val ausnahmen = mapOf(
+        "ACCESS_COARSE_LOCATION" to "steht zusammen mit ACCESS_FINE_LOCATION in einer Zeile",
+        "WRITE_CONTACTS" to "haengt an derselben Frage wie READ_CONTACTS",
+        "RECEIVE_SMS" to "haengt an der SMS-Rolle, die die Seite als Standard-SMS-App zeigt",
+        "READ_PHONE_STATE" to "bewusst nicht erteilt, siehe STATUS - die Signalstaerke bleibt draussen",
+    )
+
+    private fun angemeldet(): Set<String> =
+        Regex("""uses-permission android:name="android\.permission\.([A-Z_]+)"""")
+            .findAll(manifest.readText())
+            .map { it.groupValues[1] }
+            .filter { it in gefaehrlich }
+            .toSet()
+
+    @Test
+    fun `jedes gefaehrliche Recht steht auf der Diagnoseseite`() {
+        val text = seite.readText()
+        val fehlt = (angemeldet() - ausnahmen.keys)
+            .filterNot { text.contains("Manifest.permission.$it") }
+            .sorted()
+        assertEquals(
+            "Diese Rechte nennt die Diagnose nicht - wer wissen will, warum etwas nicht " +
+                "geht, findet die Antwort dort nicht: $fehlt",
+            emptyList<String>(),
+            fehlt,
+        )
+    }
+
+    @Test
+    fun `jede Ausnahme nennt ihren Grund und gibt es wirklich`() {
+        val vorhanden = angemeldet()
+        ausnahmen.forEach { (name, grund) ->
+            assertTrue("$name steht nicht mehr im Manifest", name in vorhanden)
+            assertTrue("$name braucht einen Grund", grund.length > 20)
+        }
+    }
+}

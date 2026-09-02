@@ -17,10 +17,6 @@ import org.biglau.data.IconVisibility
 import org.biglau.ui.LocalHaptics
 
 /**
- * Ein Theme besteht aus Hintergrund, Textfarbe und einer Palette fuer die Kacheln.
- * Die Kachelfarben sind bewusst kraeftig und untereinander gut unterscheidbar.
- */
-/**
  * Eine Flaeche samt ihrer Schriftfarbe. Getrennt waren die beiden dreimal auseinandergelaufen -
  * weisser Text auf hellem Akzent und hellem Rot, jeweils unter 3:1. Als Paar ist das nicht
  * mehr moeglich, ohne es absichtlich zu tun.
@@ -28,6 +24,10 @@ import org.biglau.ui.LocalHaptics
 @Immutable
 data class BigSurface(val fill: Color, val ink: Color)
 
+/**
+ * Ein Theme besteht aus Hintergrund, Textfarbe und einer Palette fuer die Kacheln.
+ * Die Kachelfarben sind bewusst kraeftig und untereinander gut unterscheidbar.
+ */
 @Immutable
 data class BigPalette(
     val background: Color,
@@ -99,10 +99,18 @@ private val HighContrast = BigPalette(
     onDanger = c(Tokens.CONTRAST_ON_DANGER),
 )
 
-fun paletteFor(theme: ThemeName): BigPalette = when (theme) {
+/**
+ * Die Palette zu einem Thema.
+ *
+ * [systemIsDark] wird nur fuer [ThemeName.SYSTEM] gebraucht und steht trotzdem ohne
+ * Vorgabewert da: ein stiller Standard haette an jeder Stelle, die ihn vergisst, das
+ * falsche Thema gemalt - und zwar erst auf einem Telefon, das gerade hell steht.
+ */
+fun paletteFor(theme: ThemeName, systemIsDark: Boolean): BigPalette = when (theme) {
     ThemeName.DARK -> Dark
     ThemeName.HIGH_CONTRAST -> HighContrast
     ThemeName.LIGHT -> Light
+    ThemeName.SYSTEM -> if (systemIsDark) Dark else Light
 }
 
 /** Kachelrahmen: nur im Hochkontrast-Theme sichtbar, dort aber tragend. */
@@ -121,6 +129,9 @@ val LocalIconPercent = staticCompositionLocalOf { 40 }
 /** Ob ein Symbol auf der Kachel steht - ja, nein, oder nur wenn Platz. PLAN.md 4.2. */
 val LocalIconVisibility = staticCompositionLocalOf { IconVisibility.ALWAYS }
 
+/** Beschriftung weglassen, wenn sie abgeschnitten wuerde. PLAN.md 3.2. */
+val LocalHideCutLabels = staticCompositionLocalOf { false }
+
 /**
  * Der eine Eckenradius fuer alle Flaechen. PLAN.md 3.7 verbietet einen zweiten Radius
  * daneben - und genau das entstand, als er an fuenfzehn Stellen als 12.dp im Quelltext
@@ -138,10 +149,11 @@ fun BigLauTheme(
     labelScale: Float = 1.0f,
     iconPercent: Int = 40,
     icons: IconVisibility = IconVisibility.ALWAYS,
+    hideCutLabels: Boolean = false,
     cornerRadiusDp: Int = 12,
     content: @Composable () -> Unit,
 ) {
-    val palette = paletteFor(theme)
+    val palette = paletteFor(theme, isSystemInDarkTheme())
     val scheme = if (isSystemInDarkTheme() || palette.background.luminanceIsDark()) {
         darkColorScheme(
             primary = palette.accent,
@@ -168,6 +180,7 @@ fun BigLauTheme(
         LocalLabelScale provides labelScale,
         LocalIconPercent provides iconPercent,
         LocalIconVisibility provides icons,
+        LocalHideCutLabels provides hideCutLabels,
         LocalCornerRadius provides cornerRadiusDp.dp,
     ) {
         MaterialTheme(

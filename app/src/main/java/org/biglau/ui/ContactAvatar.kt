@@ -73,6 +73,17 @@ fun initialsOf(name: String): String {
     }
 }
 
+/**
+ * Initialen fuer eine Kachel - oder `null`, wenn im Namen kein Buchstabe steht.
+ *
+ * Am Emulator gesehen: eine Kachel fuer eine Nummer ohne Kontakt heisst "055 501 00", und
+ * daraus wurden die Initialen "00". Zwei Nullen sagen nichts und sehen nach Fehler aus. Auf
+ * der Kachel ist die Alternative leerer Platz, und leer ist hier besser als falsch - anders
+ * als im [ContactAvatar], wo ein Kaestchen ohne Inhalt schlimmer waere.
+ */
+fun tileInitials(name: String): String? =
+    if (name.any { it.isLetter() }) initialsOf(name) else null
+
 /** Stabile Farbe pro Name - nicht zufaellig, sonst springt sie bei jedem Neuzeichnen. */
 fun colorIndexFor(name: String): Int {
     var hash = 0

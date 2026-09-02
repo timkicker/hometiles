@@ -22,9 +22,6 @@ object SosCountdown {
         return (total - elapsed).coerceAtLeast(0)
     }
 
-    fun isDone(startedAtMillis: Long, nowMillis: Long, seconds: Int): Boolean =
-        remaining(startedAtMillis, nowMillis, seconds) == 0
-
     /** Ist der Ablauf ueberhaupt eingerichtet? Ohne Nummern gibt es nichts zu senden. */
     fun isConfigured(numbers: List<String>): Boolean = numbers.any { it.isNotBlank() }
 }

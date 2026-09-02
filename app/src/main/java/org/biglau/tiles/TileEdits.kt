@@ -31,17 +31,16 @@ object TileEdits {
     fun withLabel(button: Button, label: String?): Button =
         button.copy(label = label?.trim()?.takeIf { it.isNotEmpty() })
 
-    /** index null heisst: Farbe wieder automatisch aus der Position ableiten. */
+    /**
+     * Eine Farbe aus der Palette, oder null fuer "automatisch aus der Position".
+     * Loescht dabei einen frei gewaehlten Ton - sonst gaebe es zwei Antworten.
+     */
     fun withColorIndex(button: Button, index: Int?): Button =
-        button.copy(colorIndex = index ?: -1, customColor = null)
+        button.copy(colorIndex = index ?: -1, colorHue = null)
 
-    fun withCustomColor(button: Button, argb: Long): Button =
-        button.copy(customColor = argb)
-
-    /** Kachel leeren heisst wirklich leeren - auch Beschriftung und Farbe. */
-    fun cleared(): Button = Button()
-
-    fun withBlink(button: Button, blink: Boolean): Button = button.copy(blink = blink)
+    /** Ein frei gewaehlter Farbton. Loescht die Palettenwahl, sonst gaebe es zwei Antworten. */
+    fun withColorHue(button: Button, hue: Float): Button =
+        button.copy(colorHue = hue, colorIndex = -1)
 
     fun withLongPress(button: Button, action: ButtonAction?): Button =
         button.copy(longPress = action?.takeIf { it != ButtonAction.None })

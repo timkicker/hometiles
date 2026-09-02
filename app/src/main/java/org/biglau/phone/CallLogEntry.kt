@@ -1,5 +1,7 @@
 package org.biglau.phone
 
+import org.biglau.data.CallGrouping
+
 enum class CallDirection { INCOMING, OUTGOING, MISSED, REJECTED, BLOCKED, OTHER }
 
 /** Eine Zeile aus der Anrufliste. */
@@ -33,8 +35,9 @@ data class CallGroup(
  */
 object CallLogGrouping {
 
-    fun group(entries: List<CallEntry>): List<CallGroup> {
+    fun group(entries: List<CallEntry>, mode: CallGrouping = CallGrouping.NUMBER): List<CallGroup> {
         val sorted = entries.sortedByDescending { it.timestamp }
+        if (mode == CallGrouping.NONE) return sorted.map { CallGroup(listOf(it)) }
         val groups = mutableListOf<MutableList<CallEntry>>()
         sorted.forEach { entry ->
             val last = groups.lastOrNull()
@@ -42,10 +45,14 @@ object CallLogGrouping {
             // Unterdrueckte Nummern kommen ohne Ziffern an und bereinigen sich zu "".
             // Wuerde man danach gruppieren, erschienen drei verschiedene anonyme Anrufer
             // als ein einziger, dreimal anrufender Mensch.
-            val sameNumber = cleaned.isNotEmpty() && last?.firstOrNull()?.let {
-                PhoneNumbers.clean(it.number) == cleaned
+            val passt = cleaned.isNotEmpty() && last?.firstOrNull()?.let {
+                PhoneNumbers.clean(it.number) == cleaned &&
+                    // Nach Richtung: ein verpasster und ein angenommener Anruf derselben
+                    // Nummer sind zwei verschiedene Ereignisse. Zusammengefasst stuende in
+                    // der Zeile das Symbol des juengeren, und der andere waere verschwunden.
+                    (mode != CallGrouping.DIRECTION || it.direction == entry.direction)
             } ?: false
-            if (sameNumber) last!!.add(entry) else groups.add(mutableListOf(entry))
+            if (passt) last!!.add(entry) else groups.add(mutableListOf(entry))
         }
         return groups.map { CallGroup(it) }
     }
@@ -61,6 +68,15 @@ object CallLogGrouping {
     fun idsOf(group: CallGroup): List<Long> = group.entries.map { it.id }
 
     fun idsOf(groups: List<CallGroup>): List<Long> = groups.flatMap(::idsOf)
+
+    /**
+     * Die erlaubten Arten aus der Ausblendliste der Konfiguration.
+     *
+     * Unbekannte Namen werden ignoriert - eine Sicherung aus einer spaeteren Fassung darf
+     * die Anrufliste nicht leeren, nur weil sie eine Art nennt, die es hier nicht gibt.
+     */
+    fun allowedFrom(hidden: Set<String>): Set<CallDirection> =
+        CallDirection.entries.filterNot { it.name in hidden }.toSet()
 
     /** Sichtbar sind Gruppen, die mindestens einen Anruf der erlaubten Arten enthalten. */
     fun visible(groups: List<CallGroup>, allowed: Set<CallDirection>): List<CallGroup> =

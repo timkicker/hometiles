@@ -32,6 +32,12 @@
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.EXPAND_STATUS_BAR" />
+    <!-- Nur fuer die Meldung ueber eine neue Nachricht, und nur ab Android 13 noetig.
+         Auf dem Zielgeraet (Android 11) erteilt sie das System beim Installieren. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Fuer die Vollbild-Meldung bei einer neuen Nachricht (PLAN.md 4.7). Sie ist von
+         Haus aus aus; ohne diese Anmeldung erschiene sie stumm als gewoehnliche Meldung. -->
+    <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.SET_WALLPAPER" />
 
@@ -212,8 +218,15 @@
         <activity
             android:name=".settings.SettingsActivity"
             android:exported="false"
+            android:launchMode="singleTop"
             android:windowSoftInputMode="adjustResize"
             android:theme="@style/Theme.BigLau" />
+
+        <!-- Der Wecker fuer die wiederholte Erinnerung an ungelesene Nachrichten.
+             Nicht exportiert: nur der eigene Wecker loest ihn aus. -->
+        <receiver
+            android:name=".notify.MessageReminderReceiver"
+            android:exported="false" />
 
         <service
             android:name=".notify.BigNotificationListener"

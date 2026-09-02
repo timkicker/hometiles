@@ -1,6 +1,7 @@
 package org.biglau.toggles
 
 import android.Manifest
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -15,7 +16,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.material3.Text
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -34,6 +38,7 @@ import org.biglau.ui.BigLauActivity
 import org.biglau.R
 import org.biglau.actions.Sos
 import org.biglau.data.ConfigStore
+import org.biglau.settings.SettingsActivity
 import org.biglau.ui.BigHeading
 import org.biglau.ui.BigRow
 import org.biglau.ui.dpSp
@@ -61,13 +66,18 @@ class SosActivity : BigLauActivity() {
             var startedAt by remember { mutableStateOf(System.currentTimeMillis()) }
             var remaining by remember { mutableStateOf(SosCountdown.clamp(sos.countdownSeconds)) }
             var result by remember { mutableStateOf<String?>(null) }
-            val palette = LocalBigPalette.current
 
             val askSms = rememberLauncherForActivityResult(
                 ActivityResultContracts.RequestPermission(),
             ) { }
 
             val configured = SosCountdown.isConfigured(sos.numbers)
+
+            // Der Alarm hoert auf, sobald dieser Bildschirm zu ist. Ein Ton, den man nur
+            // durch Neustart losgeworden waere, macht aus dem Notruf ein Aergernis.
+            DisposableEffect(Unit) {
+                onDispose { SosAlarm.stop(this@SosActivity) }
+            }
 
             LaunchedEffect(configured) {
                 if (!configured) return@LaunchedEffect
@@ -77,6 +87,9 @@ class SosActivity : BigLauActivity() {
                     if (remaining == 0) break
                     delay(200)
                 }
+                // Erst jetzt, nicht schon waehrend des Countdowns: ein abgebrochener
+                // Fehlalarm bleibt still. Siehe SosAlarm.
+                SosAlarm.start(this@SosActivity, sos)
                 val outcome = Sos.send(this@SosActivity, sos)
                 result = when {
                     outcome.ok && outcome.hadLocation ->
@@ -96,8 +109,10 @@ class SosActivity : BigLauActivity() {
                 labelScale = config.appearance.labelScale,
                 iconPercent = config.appearance.iconPercent,
                 icons = config.appearance.icons,
+                hideCutLabels = config.appearance.hideCutLabels,
                 cornerRadiusDp = config.appearance.cornerRadiusDp,
             ) {
+                val palette = LocalBigPalette.current
                 Box(
                     Modifier
                         .fillMaxSize()
@@ -114,6 +129,25 @@ class SosActivity : BigLauActivity() {
                                     color = palette.onBackground,
                                     fontSize = dpSp(17f),
                                     modifier = Modifier.padding(horizontal = 4.dp),
+                                )
+                                // Der Weg dorthin statt der Wegbeschreibung: wer den
+                                // SOS-Knopf drueckt, will nicht lesen, wo etwas einzutragen
+                                // waere. Dieselbe Regel wie bei der Anrufliste, die zu den
+                                // Anrufarten fuehrt.
+                                BigRow(
+                                    label = stringResource(R.string.sos_open_settings),
+                                    icon = Icons.Filled.Settings,
+                                    surface = palette.surfaceAccent,
+                                    onClick = {
+                                        startActivity(
+                                            Intent(this@SosActivity, SettingsActivity::class.java)
+                                                .putExtra(
+                                                    SettingsActivity.EXTRA_PAGE,
+                                                    SettingsActivity.PAGE_SOS,
+                                                ),
+                                        )
+                                        finish()
+                                    },
                                 )
                                 BigRow(stringResource(R.string.dialog_close), onClick = { finish() })
                             }

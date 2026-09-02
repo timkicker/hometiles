@@ -49,14 +49,6 @@ object ConfigTransfer {
     )
 
     /**
-     * Null, wenn der Text keine brauchbare Konfiguration ist - der Aufrufer sagt das dann.
-     *
-     * Wichtig: es reicht nicht, dass sich der Text irgendwie einlesen laesst. Weil jedes Feld
-     * einen Vorgabewert hat, ergaebe `{}` klaglos die Werkseinstellung - der Import wuerde
-     * die gesamte Belegung des Nutzers loeschen und dabei aussehen, als haette er geklappt.
-     * Die Datei muss ihre Screens deshalb ausdruecklich mitbringen.
-     */
-    /**
      * Stammt diese Sicherung aus einer neueren Fassung von BigLau?
      *
      * Dann enthaelt sie Felder, die diese Fassung nicht kennt - und `ignoreUnknownKeys`
@@ -72,6 +64,14 @@ object ConfigTransfer {
         version != null && version > CONFIG_VERSION
     }.getOrDefault(false)
 
+    /**
+     * Null, wenn der Text keine brauchbare Konfiguration ist - der Aufrufer sagt das dann.
+     *
+     * Wichtig: es reicht nicht, dass sich der Text irgendwie einlesen laesst. Weil jedes Feld
+     * einen Vorgabewert hat, ergaebe `{}` klaglos die Werkseinstellung - der Import wuerde
+     * die gesamte Belegung des Nutzers loeschen und dabei aussehen, als haette er geklappt.
+     * Die Datei muss ihre Screens deshalb ausdruecklich mitbringen.
+     */
     fun import(text: String): LauncherConfig? = runCatching {
         val root = json.parseToJsonElement(text) as? kotlinx.serialization.json.JsonObject
             ?: return null

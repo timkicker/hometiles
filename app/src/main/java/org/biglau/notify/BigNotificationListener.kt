@@ -49,8 +49,6 @@ object NotificationRepository {
         _counts.value = value
     }
 
-    fun countFor(packageName: String): Int = _counts.value[packageName] ?: 0
-
     fun isEnabled(context: Context): Boolean {
         val flat = Settings.Secure.getString(
             context.contentResolver,

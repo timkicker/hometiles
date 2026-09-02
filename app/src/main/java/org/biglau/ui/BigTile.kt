@@ -36,11 +36,17 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import coil.compose.AsyncImage
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.Image
@@ -52,10 +58,13 @@ import org.biglau.notify.NotificationCounts
 import org.biglau.ui.theme.LocalBigPalette
 import org.biglau.data.IconVisibility
 import org.biglau.ui.theme.LocalIconPercent
+import org.biglau.ui.theme.LocalHideCutLabels
 import org.biglau.ui.theme.LocalIconVisibility
 import org.biglau.ui.theme.LocalLabelScale
 import org.biglau.ui.theme.LocalTextScale
 import org.biglau.ui.theme.tileBorder
+import org.biglau.R
+import org.biglau.a11y.TileSpeech
 
 /**
  * Eine Kachel im Schild-Entwurf (PLAN.md 3.0): vollflaechige Farbe bis an die Kante,
@@ -90,10 +99,29 @@ fun BigTile(
      * verschluckt - der Ordner braucht beides, sein Inhalt oben und sein Name unten.
      */
     iconContent: (@Composable () -> Unit)? = null,
+    /**
+     * Initialen statt eines Symbols. `PLAN.md` 3.4 sagt sie fuer Kontaktkacheln ohne Foto
+     * zu: "ohne Foto die Initialen auf der Kachelfarbe". Sie stehen hier und nicht beim
+     * Aufrufer, weil nur hier die Symbolgroesse ausgerechnet ist - und weil sie derselben
+     * Regel folgen sollen: ist kein Platz fuer ein Symbol, ist auch keiner fuer Buchstaben.
+     */
+    initials: String? = null,
     contentDescription: String = label,
     onClick: () -> Unit = {},
     onLongClick: () -> Unit = {},
 ) {
+    // Der Zaehler an der Ecke ist gezeichnet und traegt keinen Text. Ohne diese Zeile
+    // hoert ein Screenreader "Nachrichten" und nicht, dass fuenf davon warten - siehe
+    // TileSpeech und PLAN.md 3.6. Hier und nicht bei den Aufrufern, damit keine Kachel
+    // vergessen wird.
+    val gesprochen = TileSpeech.describe(
+        label = contentDescription,
+        badge = if (badgeCount > 0) {
+            pluralStringResource(R.plurals.a11y_badge, badgeCount, badgeCount)
+        } else {
+            null
+        },
+    )
     val palette = LocalBigPalette.current
     val haptik = LocalHapticFeedback.current
     val haptikStaerke = LocalHaptics.current
@@ -103,7 +131,36 @@ fun BigTile(
     val scale by animateFloatAsState(if (pressed) 0.97f else 1f, label = "press")
 
     val labelSp = labelSizeSp(cellWidth.value, cellHeight.value, textScale, LocalLabelScale.current)
-    val labelZone = labelZoneDp(cellHeight.value, labelSp).dp
+    // PLAN.md 3.2: die Beschriftung kann weichen, wenn sie ohnehin abgeschnitten wuerde.
+    // Faellt sie weg, gehoert ihr Platz dem Symbol - sonst bliebe ein Streifen Nichts.
+    //
+    // Gemessen, nicht geschaetzt: eine Rechnung mit mittlerer Zeichenbreite lag daneben
+    // ("Nachrichten" waere ausgeblendet worden, obwohl es passt). Der TextMeasurer misst
+    // vor dem Zeichnen, es blitzt also nichts auf.
+    val messer = rememberTextMeasurer()
+    val dichte = LocalDensity.current
+    val labelStil = TextStyle(
+        fontSize = dpSp(labelSp),
+        lineHeight = dpSp(labelSp * 1.1f),
+        fontWeight = FontWeight.Bold,
+    )
+    val zoneDp = labelZoneDp(cellHeight.value, labelSp)
+    val passt = remember(label, labelSp, cellWidth, cellHeight, labelStil) {
+        val breite = with(dichte) { labelWidthDp(cellWidth.value, cellHeight.value).dp.roundToPx() }
+        // Auch die Hoehe der Beschriftungszone begrenzt: zwei Zeilen passen der Breite nach
+        // oft, aber nicht in die Zone. Am Bildschirm gesehen - "Nachrichten" stand auf vier
+        // Spalten weiter als "Nachrich..." da, obwohl die reine Breitenmessung "passt" sagte.
+        val hoehe = with(dichte) { zoneDp.dp.roundToPx() }
+        !messer.measure(
+            text = AnnotatedString(label),
+            style = labelStil,
+            maxLines = 2,
+            constraints = Constraints(maxWidth = breite, maxHeight = hoehe),
+        ).hasVisualOverflow
+    }
+    val zeigeLabel = labelPosition != LabelPosition.HIDDEN &&
+        (!LocalHideCutLabels.current || passt)
+    val labelZone = if (zeigeLabel) zoneDp.dp else 0.dp
     val iconGewuenscht = iconSizeDp(cellWidth.value, cellHeight.value, LocalIconPercent.current)
     val iconDp = iconSizeDp(
         cellWidth.value,
@@ -134,18 +191,24 @@ fun BigTile(
     } else {
         if (badgeCount > 0) 4f else 0f
     }
+    // PLAN.md 3.1, Leitsatz 3: "Druck = Farbe + Haptik". Da war nur das Schrumpfen um drei
+    // Prozent - und das verdeckt im Moment des Druecken der Finger. Die Flaeche wird
+    // dunkler, nie heller: heller hiesse weniger Abstand zur Beschriftung, und die
+    // Kontrastschwelle gilt auch waehrend eines Drucks. Im Hochkontrast-Thema ist die
+    // Flaeche schon schwarz, deshalb wird dort zusaetzlich der Rand dicker.
+    val gedrueckt = if (pressed) darken(background) else background
     val border = if (badgeCount > 0) palette.onTile else staticBorder
     val borderWidth = when {
         badgeCount > 0 -> pulse.dp
         borderOverride != null -> 2.dp
         else -> 3.dp
-    }
+    } + if (pressed) 2.dp else 0.dp
 
     Box(
         modifier = modifier
             .scale(scale)
             .clip(RoundedCornerShape(cornerRadius))
-            .background(background)
+            .background(gedrueckt)
             .then(
                 if (border != null) {
                     Modifier.border(borderWidth, border, RoundedCornerShape(cornerRadius))
@@ -159,7 +222,7 @@ fun BigTile(
                 onClick = { haptik.tap(haptikStaerke); onClick() },
                 onLongClick = onLongClick?.let { echt -> { haptik.longPress(haptikStaerke); echt() } },
             )
-            .semantics { this.contentDescription = contentDescription },
+            .semantics { this.contentDescription = gesprochen },
     ) {
         if (photoUri != null) {
             AsyncImage(
@@ -214,6 +277,13 @@ fun BigTile(
                     iconContent != null -> iconContent()
                     !zeigeIcon -> Unit
                     photoUri != null -> Unit
+                    initials != null -> Text(
+                        text = initials,
+                        color = palette.onTile,
+                        fontSize = dpSp(iconDp * 0.62f),
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                    )
                     iconBitmap != null -> Image(
                         bitmap = iconBitmap,
                         contentDescription = null,
@@ -229,7 +299,7 @@ fun BigTile(
                 }
             }
 
-            if (labelPosition != LabelPosition.HIDDEN) {
+            if (zeigeLabel) {
                 Box(
                     modifier = Modifier.fillMaxWidth().height(labelZone),
                     contentAlignment = if (labelPosition == LabelPosition.BOTTOM_CENTER) {
@@ -241,9 +311,7 @@ fun BigTile(
                     Text(
                         text = label,
                         color = palette.onTile,
-                        fontSize = dpSp(labelSp),
-                        lineHeight = dpSp(labelSp * 1.1f),
-                        fontWeight = FontWeight.Bold,
+                        style = labelStil,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
                     )
@@ -252,6 +320,21 @@ fun BigTile(
         }
     }
 }
+
+/**
+ * Die Kachelfarbe unter dem Finger: knapp ein Drittel dunkler.
+ *
+ * Dunkler und nicht heller, damit der Abstand zur Beschriftung waehrend des Drucks nicht
+ * kleiner wird - die Schwelle aus `PLAN.md` 3.3 gilt auch in diesem Moment. Nachgerechnet:
+ * mit 0,68 liegt der Unterschied zur ungedrueckten Kachel ueber allen zwoelf Kacheltoenen
+ * bei 1,5 bis 1,7 zu 1 und ist damit zu sehen; die Beschriftung kommt dabei nie unter 9 zu 1.
+ */
+fun darken(color: Color): Color = Color(
+    red = color.red * 0.68f,
+    green = color.green * 0.68f,
+    blue = color.blue * 0.68f,
+    alpha = color.alpha,
+)
 
 /**
  * Respektiert die Systemeinstellung fuer Animationsdauer. Wer sie auf null stellt, will

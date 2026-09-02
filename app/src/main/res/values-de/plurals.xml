@@ -17,7 +17,7 @@
         <item quantity="other">%1$d Kacheln gehen verloren</item>
     </plurals>
     <plurals name="screens_unreachable">
-        <item quantity="one">Zu „%1$s" führt keine Kachel. Legen Sie irgendwo eine Sprungkachel an, sonst finden Sie ihn nicht wieder.</item>
+        <item quantity="one">Zu „%1$s“ führt keine Kachel. Legen Sie irgendwo eine Sprungkachel an, sonst finden Sie ihn nicht wieder.</item>
         <item quantity="other">Zu diesen Screens führt keine Kachel: %1$s. Legen Sie irgendwo Sprungkacheln an, sonst finden Sie sie nicht wieder.</item>
     </plurals>
     <plurals name="search_matches">
@@ -39,5 +39,57 @@
     <plurals name="apps_recent_count_value">
         <item quantity="one">%1$d App</item>
         <item quantity="other">%1$d Apps</item>
+    </plurals>
+    <plurals name="calllog_deleted">
+        <item quantity="one">Ein Eintrag gelöscht.</item>
+        <item quantity="other">%1$d Einträge gelöscht.</item>
+    </plurals>
+    <plurals name="security_applock_would_allow">
+        <item quantity="one">Eine App bliebe ohne PIN offen</item>
+        <item quantity="other">%1$d Apps blieben ohne PIN offen</item>
+    </plurals>
+    <plurals name="security_applock_allowed">
+        <item quantity="one">Eine App geht ohne PIN auf</item>
+        <item quantity="other">%1$d Apps gehen ohne PIN auf</item>
+    </plurals>
+    <plurals name="screen_delete_tiles">
+        <item quantity="one">Eine Kachel geht mit.</item>
+        <item quantity="other">%1$d Kacheln gehen mit.</item>
+    </plurals>
+    <plurals name="screen_delete_folders">
+        <item quantity="one">Dazu ein Ordner mit allem, was darin liegt.</item>
+        <item quantity="other">Dazu %1$d Ordner mit allem, was darin liegt.</item>
+    </plurals>
+    <plurals name="sms_parts">
+        <item quantity="one">Kostet eine SMS</item>
+        <item quantity="other">Kostet %1$d SMS</item>
+    </plurals>
+    <plurals name="sos_message_parts">
+        <item quantity="one">Mit Standort kostet das eine SMS</item>
+        <item quantity="other">Mit Standort kostet das %1$d SMS</item>
+    </plurals>
+    <plurals name="sos_countdown_seconds">
+        <item quantity="one">eine Sekunde</item>
+        <item quantity="other">%1$d Sekunden</item>
+    </plurals>
+    <plurals name="transfer_confirm">
+        <item quantity="one">Diese Sicherung enthält einen Screen mit %2$d Kacheln. Das Einlesen ersetzt Deine jetzige Belegung.</item>
+        <item quantity="other">Diese Sicherung enthält %1$d Screens mit %2$d Kacheln. Das Einlesen ersetzt Deine jetzige Belegung.</item>
+    </plurals>
+    <plurals name="screen_copy_done">
+        <item quantity="one">„%1$s“ steht mit einer Kachel. Eine Kachel dorthin liegt auf diesem Bildschirm.</item>
+        <item quantity="other">„%1$s“ steht mit %2$d Kacheln. Eine Kachel dorthin liegt auf diesem Bildschirm.</item>
+    </plurals>
+    <plurals name="screen_copy_done_partial">
+        <item quantity="one">„%1$s“ steht mit einer Kachel. %3$d blieben leer: Widgets und Ordner gehören an genau eine Stelle.</item>
+        <item quantity="other">„%1$s“ steht mit %2$d Kacheln. %3$d blieben leer: Widgets und Ordner gehören an genau eine Stelle.</item>
+    </plurals>
+    <plurals name="a11y_badge">
+        <item quantity="one">Eine neue Meldung</item>
+        <item quantity="other">%1$d neue Meldungen</item>
+    </plurals>
+    <plurals name="sms_repeat_minutes">
+        <item quantity="one">Jede Minute, bis sie gelesen ist</item>
+        <item quantity="other">Alle %1$d Minuten, bis sie gelesen ist</item>
     </plurals>
 </resources>

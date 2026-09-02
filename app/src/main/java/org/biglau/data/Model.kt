@@ -9,7 +9,7 @@ const val CONFIG_VERSION = 1
 /** Eingebaute Aktionen ohne eigene Parameter. */
 @Serializable
 enum class Builtin {
-    DIALER, MESSAGES, CONTACTS, CAMERA, CLOCK, APP_LIST, SETTINGS,
+    DIALER, MESSAGES, CONTACTS, CAMERA, CLOCK, CALCULATOR, APP_LIST, SETTINGS,
     FLASHLIGHT, SOS, NEXT_SCREEN, PREV_SCREEN, HOME_SCREEN, BATTERY, MISSED_CALLS,
     WIFI, BLUETOOTH, AIRPLANE, RINGER, SIGNAL,
     MOBILE_DATA, LOCATION, BRIGHTNESS, ANDROID_SETTINGS, CALL_LOG,
@@ -90,8 +90,18 @@ data class Button(
     val label: String? = null,
     /** Index in die Kachelpalette; -1 = automatisch aus der Position. */
     val colorIndex: Int = -1,
-    /** Eigene Farbe als ARGB; ueberschreibt colorIndex. */
-    val customColor: Long? = null,
+    /**
+     * Frei gewaehlter Farbton in Grad, die dritte Art aus PLAN.md 4.2 neben Auto und
+     * Palette. Schlaegt [colorIndex], wird aber vom Kontrast-Thema uebergangen.
+     *
+     * Gespeichert wird der Ton und nicht die fertige Farbe: die Helligkeit dazu haengt am
+     * Thema, und ein im dunklen Thema ausgerechneter Wert kann im hellen die Schwelle fuer
+     * die Kachel gegen den Hintergrund verfehlen. Siehe [org.biglau.ui.theme.FreeTileColor].
+     *
+     * Der Vorlaeufer hiess `customColor` und trug einen fertigen ARGB-Wert; er wurde *vor*
+     * der Palette gelesen und waere damit auch im Kontrast-Thema durchgeschlagen.
+     */
+    val colorHue: Float? = null,
     val blink: Boolean = true,
     val longPress: ButtonAction? = null,
 )
@@ -157,7 +167,12 @@ data class Screen(
 }
 
 @Serializable
-enum class ThemeName { DARK, HIGH_CONTRAST, LIGHT }
+/**
+ * SYSTEM ist kein eigenes Aussehen, sondern eine Frage ans Telefon: dunkel oder hell.
+ * Aufgeloest wird es in [org.biglau.ui.theme.paletteFor], damit an keiner Stelle eine
+ * Palette fuer SYSTEM gesucht wird, die es nicht gibt.
+ */
+enum class ThemeName { DARK, HIGH_CONTRAST, LIGHT, SYSTEM }
 
 @Serializable
 enum class LabelPosition { BOTTOM_LEFT, BOTTOM_CENTER, TOP_LEFT, HIDDEN }
@@ -218,6 +233,14 @@ data class Appearance(
      */
     val showIcons: Boolean = true,
     val iconVisibility: IconVisibility? = null,
+    /**
+     * Beschriftung weglassen, wenn sie nicht in zwei Zeilen passt. `PLAN.md` 3.2.
+     *
+     * Von Haus aus aus. Bei vier Spalten schneidet „WhatsApp" ab, und ein abgeschnittenes
+     * Wort ist auf drei Zoll schlimmer als gar keins - aber das ist eine Abwaegung, die
+     * dem Nutzer gehoert: manche erkennen die Kachel lieber an drei Buchstaben als am Bild.
+     */
+    val hideCutLabels: Boolean = false,
     val gutterDp: Int = 4,
     /** Aussenrand in Prozent der Bildschirmbreite. */
     val safeBorderPercent: Int = 2,
@@ -343,7 +366,15 @@ data class SosConfig(
     val message: String = "",
     val countdownSeconds: Int = 5,
     val sendLocation: Boolean = true,
-
+    /**
+     * Lauter Alarmton während des Notrufs. `PLAN.md` 4.8.
+     *
+     * **Von Haus aus aus**: eine Sirene, die man nicht erwartet, ist der Grund, aus dem
+     * Leute den Notrufknopf abschalten. Siehe [org.biglau.toggles.SosAlarm].
+     */
+    val alarmSound: Boolean = false,
+    /** Blinkendes Licht während des Notrufs, aus demselben Grund von Haus aus aus. */
+    val alarmFlash: Boolean = false,
 )
 
 @Serializable
@@ -363,11 +394,109 @@ data class AppsConfig(
 @Serializable
 data class SpeedDialTarget(val name: String, val number: String)
 
+/** Nachrichten (`PLAN.md` 4.7). */
+@Serializable
+data class SmsConfig(
+    /**
+     * Nummern, deren Nachrichten nicht in der Liste stehen.
+     *
+     * Getrennt von der Anrufsperre und nicht mit ihr verschmolzen: wer eine Nummer nicht
+     * mehr sprechen will, will ihre Nachrichten vielleicht trotzdem lesen - und umgekehrt.
+     */
+    val hiddenNumbers: List<String> = emptyList(),
+    /** Woerter, die eine Nachricht aus der Liste nehmen. */
+    val hiddenWords: List<String> = emptyList(),
+    /**
+     * Schriftgroesse **nur** im Gespraech. `PLAN.md` 4.7 nennt sie ausdruecklich getrennt
+     * von der globalen, und das hat einen Grund: eine Nachricht liest man am Stueck und
+     * aus der Hand, eine Kachel erkennt man im Vorbeigehen. Wer die Kacheln gross mag,
+     * braucht deshalb nicht auch grosse Nachrichten - und umgekehrt.
+     */
+    val conversationScale: Float = 1.0f,
+    /**
+     * Wie lange es bei einer neuen Nachricht vibriert, in Millisekunden. `PLAN.md` 4.7.
+     *
+     * Steht im Benachrichtigungskanal und nicht in einem eigenen Vibrationsaufruf - nur so
+     * hält sich die Meldung an „Bitte nicht stören". Siehe
+     * [org.biglau.notify.SmsNotifications].
+     */
+    val vibrationMs: Int = 500,
+    /**
+     * Bei einer neuen Nachricht den ganzen Bildschirm nehmen. `PLAN.md` 4.7.
+     *
+     * **Von Haus aus aus**, und das ist eine Abwägung: eine Meldung, die alles übernimmt und
+     * bei gesperrtem Bildschirm den Text zeigt, sieht auch jeder, der das Telefon in dem
+     * Moment in der Hand hält. Wer sie will, schaltet sie ein - wer sie nicht kennt, wird
+     * nicht überrascht.
+     */
+    val fullScreenAlert: Boolean = false,
+    /**
+     * Alle wie viele Minuten an ungelesene Nachrichten erinnert wird. Null heisst: gar
+     * nicht. `PLAN.md` 4.7, siehe [org.biglau.notify.SmsReminder].
+     */
+    val repeatMinutes: Int = 0,
+    /**
+     * Nachfragen, bevor eine Nachricht hinausgeht. `PLAN.md` 4.7.
+     *
+     * **Von Haus aus aus**, und das ist eine Abwaegung: eine versehentlich gesendete halbe
+     * Nachricht ist peinlich, eine zusaetzliche Frage vor *jeder* Nachricht ist eine
+     * dauernde Muehe. Wer zittrige Haende hat, schaltet sie ein - dann steht sie da, wo sie
+     * gebraucht wird, statt allen im Weg zu sein.
+     */
+    val confirmBeforeSending: Boolean = false,
+    /** Sendeknopf ueber statt unter dem Textfeld. `PLAN.md` 4.7. */
+    val sendButtonAbove: Boolean = false,
+    /** Groesserer Sendeknopf - fuer Haende, die zittern. `PLAN.md` 4.7. */
+    val sendButtonLarge: Boolean = false,
+)
+
 @Serializable
 data class PhoneConfig(
     /** Taste (als Zeichenkette, damit JSON es mag) auf Ziel. */
     val speedDial: Map<String, SpeedDialTarget> = emptyMap(),
+    /**
+     * Anrufarten, die in der Liste nicht erscheinen - als Namen, damit die Datenschicht
+     * nichts von der Telefonschicht wissen muss.
+     *
+     * Ausblendliste und keine Einblendliste: eine Art, die Android spaeter dazunimmt, ist
+     * dann von selbst sichtbar statt still zu fehlen.
+     */
+    val hiddenCallTypes: Set<String> = emptySet(),
+    /** Wie die Anrufliste zusammenfasst. `PLAN.md` 4.6. */
+    val callGrouping: CallGrouping = CallGrouping.NUMBER,
+    /** Wie gross das Foto des Anrufers auf dem Anrufbildschirm ist. `PLAN.md` 4.6. */
+    val callerPhoto: CallerPhoto = CallerPhoto.SMALL,
+    /** Wohin der Ton beim Verbinden geht. `PLAN.md` 4.6. */
+    val audioRoute: AudioRoute = AudioRoute.EARPIECE,
+    /** Lautsprecher bei selbst gewaehlten Anrufen. `PLAN.md` 4.6. */
+    val speakerOnOutgoing: Boolean = false,
+    /** Gesperrte Nummern, eingehend wie ausgehend. `PLAN.md` 4.6. */
+    val blockedNumbers: List<String> = emptyList(),
 )
+
+/** Standard-Audioausgabe (`PLAN.md` 4.6). */
+@Serializable
+enum class AudioRoute { EARPIECE, SPEAKER, BLUETOOTH }
+
+/**
+ * Groesse des Kontaktfotos beim Anruf (`PLAN.md` 4.6).
+ *
+ * Vier Stufen und kein Schalter: wer schlecht sieht, will das Gesicht gross; wer das
+ * Telefon in der Hosentasche hat, will vor allem den Namen lesen koennen, und ein
+ * bildschirmfuellendes Foto draengt ihn nach unten.
+ */
+@Serializable
+enum class CallerPhoto { OFF, SMALL, HALF, FULL }
+
+/**
+ * Wonach die Anrufliste zusammenfasst (`PLAN.md` 4.6).
+ *
+ * Bewusst als Aufzaehlung und nicht als Schalter: „nach nichts" ist kein Aus-Zustand von
+ * „nach Nummer", sondern eine eigene Ansicht - wer wissen will, wann genau jemand dreimal
+ * angerufen hat, braucht die drei Zeilen einzeln.
+ */
+@Serializable
+enum class CallGrouping { NONE, NUMBER, DIRECTION }
 
 @Serializable
 data class ContactsConfig(
@@ -397,6 +526,7 @@ data class LauncherConfig(
     val apps: AppsConfig = AppsConfig(),
     val contacts: ContactsConfig = ContactsConfig(),
     val phone: PhoneConfig = PhoneConfig(),
+    val sms: SmsConfig = SmsConfig(),
     /** Ist der Erststart-Assistent durchlaufen? */
     val wizardDone: Boolean = false,
 ) {

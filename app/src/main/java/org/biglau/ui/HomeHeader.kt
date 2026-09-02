@@ -31,6 +31,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -91,14 +92,24 @@ fun HomeHeader(
     val fraction = BatteryInfo.fraction(percent)
     val low = BatteryInfo.isLow(percent)
 
+    // Was der linken Spalte wirklich bleibt: Bildschirm minus Aussen- und Innenabstand
+    // minus die Ladestandsanzeige rechts.
+    val breiteLinks = (
+        LocalConfiguration.current.screenWidthDp - 2 * 8f - 2 * 12f -
+            ClockFormat.batteryWidthDp(scale)
+        ).coerceAtLeast(40f)
+
     Row(
         modifier = modifier
             .fillMaxWidth()
-            // Die Hoehe waechst mit der Uhr mit, sonst schnitte die Kopfzeile ihre
-            // eigene Zeile ab, sobald jemand sie groesser stellt.
+            // Die Hoehe waechst mit beidem mit: der Textgroesse und der eigenen Groesse
+            // der Uhr. Sonst schneidet die Kopfzeile ihre eigene Zeile ab.
             .height(
-                ((if (ClockFormat.datePattern(clock, onTile = false) != null) 78f else 54f) *
-                    ClockFormat.scale(clockScale)).dp
+                ClockFormat.headerHeightDp(
+                    hasDate = ClockFormat.datePattern(clock, onTile = false) != null,
+                    textScale = scale,
+                    clockScale = clockScale,
+                ).dp,
             )
             .clip(RoundedCornerShape(LocalCornerRadius.current))
             .background(palette.emptyTile)
@@ -107,11 +118,20 @@ fun HomeHeader(
     ) {
         Column(modifier = Modifier.weight(1f)) {
             if (ClockFormat.showsTime(clock, onTile = false)) {
+                val uhrzeit = timeFormat.format(Date(now))
                 Text(
-                    text = timeFormat.format(Date(now)),
+                    text = uhrzeit,
                     color = palette.onBackground,
-                    fontSize = dpSp(26f * scale * ClockFormat.scale(clockScale)),
+                    fontSize = dpSp(
+                        ClockFormat.clockSizeSp(
+                            text = uhrzeit,
+                            availableDp = breiteLinks,
+                            textScale = scale,
+                            clockScale = clockScale,
+                        ),
+                    ),
                     fontWeight = FontWeight.Bold,
+                    style = TabellenZiffern,
                     maxLines = 1,
                     softWrap = false,
                 )
@@ -134,6 +154,7 @@ fun HomeHeader(
                     color = if (low) palette.danger else palette.onBackground,
                     fontSize = dpSp(20f * scale),
                     fontWeight = FontWeight.Bold,
+                    style = TabellenZiffern,
                     maxLines = 1,
                     softWrap = false,
                 )

@@ -86,7 +86,7 @@ class ConfigSerializationTest {
     @Test
     fun `homeScreen faellt auf den ersten Screen zurueck wenn die Id ins Leere zeigt`() {
         val config = LauncherConfig(
-            screens = listOf(Defaults.emptyScreen("a", "A")),
+            screens = listOf(Screen(id = "a", name = "A")),
             homeScreenId = "gibtesnicht",
         )
         assertEquals("a", config.homeScreen.id)

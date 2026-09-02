@@ -21,11 +21,36 @@ class ConfigFile(private val file: File) {
         prettyPrint = true
     }
 
-    /** Gibt die Vorgabe zurueck, wenn nichts da oder nichts lesbar ist. */
-    fun read(): LauncherConfig = runCatching {
-        if (!file.exists()) return@runCatching LauncherConfig()
-        json.decodeFromString<LauncherConfig>(file.readText())
-    }.getOrElse { LauncherConfig() }
+    /**
+     * Wohin eine unlesbare Datei gerettet wird.
+     *
+     * Nicht ueberschreiben, sondern zur Seite legen: sonst ist die Einrichtung eines
+     * Menschen mit dem ersten Schreibvorgang endgueltig weg. Von hier laesst sie sich mit
+     * einem Texteditor oder ueber das Einlesen einer Sicherung wiederholen.
+     */
+    val rescueFile: File get() = File(file.parentFile, "${file.name}.unreadable")
+
+    /** Musste beim letzten [read] eine unlesbare Datei zur Seite gelegt werden? */
+    var rescuedBroken: Boolean = false
+        private set
+
+    /**
+     * Gibt die Vorgabe zurueck, wenn nichts da oder nichts lesbar ist.
+     *
+     * Der Rueckfall selbst ist Absicht - abzustuerzen waere schlimmer. Aber er sah bis
+     * hierher aus wie ein frisch installiertes BigLau: alle Kacheln weg, der Assistent
+     * laeuft wieder, und kein Wort dazu. Beim naechsten Schreiben war die alte Datei
+     * ueberschrieben und die Einrichtung endgueltig verloren. Deshalb wird sie jetzt
+     * vorher [rescueFile] genannt.
+     */
+    fun read(): LauncherConfig {
+        rescuedBroken = false
+        if (!file.exists()) return LauncherConfig()
+        val gelesen = runCatching { json.decodeFromString<LauncherConfig>(file.readText()) }
+        gelesen.getOrNull()?.let { return it }
+        rescuedBroken = runCatching { file.renameTo(rescueFile) }.getOrDefault(false)
+        return LauncherConfig()
+    }
 
     /** Schreibt vollstaendig oder gar nicht - ein halbes Dokument darf nie sichtbar werden. */
     fun write(config: LauncherConfig) {

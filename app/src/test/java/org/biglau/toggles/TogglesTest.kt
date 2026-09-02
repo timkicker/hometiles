@@ -41,9 +41,9 @@ class TogglesTest {
     fun `nur was sofort schaltet darf das auch versprechen`() {
         // Wer die Kachel "WLAN einschalten" nennt, obwohl sich nur eine Blende oeffnet,
         // verspricht etwas, das nicht eintritt.
-        assertTrue(Toggles.switchesImmediately(ToggleKind.FLASHLIGHT, 30))
-        assertTrue(!Toggles.switchesImmediately(ToggleKind.WIFI, 30))
-        assertTrue(!Toggles.switchesImmediately(ToggleKind.AIRPLANE, 30))
+        assertEquals(ToggleAction.SWITCH, Toggles.actionFor(ToggleKind.FLASHLIGHT, 30))
+        assertTrue(Toggles.actionFor(ToggleKind.WIFI, 30) != ToggleAction.SWITCH)
+        assertTrue(Toggles.actionFor(ToggleKind.AIRPLANE, 30) != ToggleAction.SWITCH)
     }
 
     @Test

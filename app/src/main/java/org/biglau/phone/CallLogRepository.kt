@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
 import android.provider.CallLog
+import org.biglau.data.CallGrouping
 import androidx.core.content.ContextCompat
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -16,9 +17,12 @@ class CallLogRepository(context: Context) {
         ContextCompat.checkSelfPermission(appContext, Manifest.permission.READ_CALL_LOG) ==
             PackageManager.PERMISSION_GRANTED
 
-    suspend fun load(limit: Int = 200): List<CallGroup> = withContext(Dispatchers.IO) {
+    suspend fun load(
+        limit: Int = 200,
+        mode: CallGrouping = CallGrouping.NUMBER,
+    ): List<CallGroup> = withContext(Dispatchers.IO) {
         if (!hasPermission()) return@withContext emptyList()
-        CallLogGrouping.group(readEntries(limit))
+        CallLogGrouping.group(readEntries(limit), mode)
     }
 
     private fun readEntries(limit: Int): List<CallEntry> {

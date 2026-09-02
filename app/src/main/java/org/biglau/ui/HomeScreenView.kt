@@ -43,6 +43,8 @@ import android.text.format.DateFormat
 import androidx.compose.ui.platform.LocalContext
 import org.biglau.data.Builtin
 import org.biglau.data.Screen
+import org.biglau.a11y.TileSpeech
+import org.biglau.info.BatteryInfo
 import org.biglau.info.BatteryReading
 import org.biglau.info.SignalInfo
 import org.biglau.info.SignalReading
@@ -51,6 +53,8 @@ import org.biglau.notify.TileNotifications
 import org.biglau.tiles.TileEdits
 import org.biglau.ui.theme.LocalTextScale
 import org.biglau.ui.theme.LocalLabelScale
+import org.biglau.ui.theme.FreeTileColor
+import org.biglau.ui.theme.toArgbLong
 import org.biglau.ui.theme.LocalBigPalette
 
 /**
@@ -72,6 +76,8 @@ fun HomeScreenView(
     signal: SignalReading? = null,
     systemPackages: SystemPackages = SystemPackages(),
     onActivate: (Cell) -> Unit = {},
+    /** Im Bearbeitungsmodus gehoert jede Beruehrung der App, auch auf einem Widget. */
+    editMode: Boolean = false,
     onEdit: (x: Int, y: Int) -> Unit = { _, _ -> },
 ) {
     val palette = LocalBigPalette.current
@@ -142,6 +148,7 @@ fun HomeScreenView(
                         )
                         .size(w, h),
                     onClick = { onActivate(cell) },
+                    editMode = editMode,
                     onLongClick = { onEdit(cell.x, cell.y) },
                 )
             }
@@ -165,6 +172,7 @@ private fun TileFor(
     shortcutIcon: (String, String) -> ImageBitmap?,
     folderOf: (String) -> Screen?,
     modifier: Modifier,
+    editMode: Boolean,
     onClick: () -> Unit,
     onLongClick: () -> Unit,
 ) {
@@ -176,6 +184,16 @@ private fun TileFor(
     when (val action = button.action) {
         is ButtonAction.Action -> BigTile(
             label = button.label ?: stringResource(action.builtin.labelRes()),
+            // Balken und Ladebalken sind gezeichnet; ohne diesen Zusatz hoerte ein
+            // Screenreader nur "Empfang" und nicht, wie gut er ist. Siehe TileSpeech.
+            contentDescription = TileSpeech.describe(
+                label = button.label ?: stringResource(action.builtin.labelRes()),
+                state = when (action.builtin) {
+                    Builtin.SIGNAL -> signalSpeech(signal)
+                    Builtin.BATTERY -> batterySpeech(battery)
+                    else -> null
+                },
+            ),
             background = color,
             cellHeight = cellHeight,
             cellWidth = cellWidth,
@@ -229,11 +247,11 @@ private fun TileFor(
             cellHeight = cellHeight,
             cellWidth = cellWidth,
             photoUri = action.photoUri,
-            icon = if (appearance.icons != IconVisibility.NEVER && action.photoUri == null) {
-                org.biglau.data.Builtin.CONTACTS.icon()
-            } else {
-                null
-            },
+            // PLAN.md 3.4: ohne Foto die Initialen. Vorher stand auf jeder Kontaktkachel
+            // dasselbe Personensymbol - drei Kontakte nebeneinander sahen gleich aus, und
+            // das Symbol sagte nichts, was die Beschriftung nicht schon sagte.
+            initials = if (action.photoUri == null) tileInitials(button.label ?: action.name) else null,
+            icon = null,
             labelPosition = appearance.labelPosition,
             cornerRadius = appearance.cornerRadiusDp.dp,
             modifier = modifier,
@@ -247,6 +265,7 @@ private fun TileFor(
             cellHeight = cellHeight,
             cornerRadius = appearance.cornerRadiusDp.dp,
             modifier = modifier,
+            editMode = editMode,
             onEdit = onLongClick,
         )
 
@@ -320,6 +339,43 @@ private fun TileFor(
 }
 
 /**
+ * Wie gut der Empfang ist, in Worten.
+ *
+ * Die Balken tragen keinen Text - fuer einen Screenreader waere die Kachel sonst so
+ * aussagekraeftig wie eine leere Flaeche mit dem Wort "Empfang" darauf.
+ */
+@Composable
+private fun signalSpeech(reading: SignalReading?): String? {
+    val zustand = reading?.let { SignalInfo.stateOf(it) } ?: return null
+    return when (zustand) {
+        SignalInfo.State.NO_PERMISSION -> stringResource(R.string.signal_no_permission)
+        SignalInfo.State.NO_SIM -> stringResource(R.string.signal_no_sim)
+        SignalInfo.State.NO_SERVICE -> stringResource(R.string.signal_no_service)
+        // Schwach steht als Wort da, nicht als Farbe: die Warnfarbe kommt auf jedem
+        // Kachelton auf unter 2 zu 1 und ist damit ausgerechnet in der Lage unlesbar,
+        // in der sie etwas sagen soll. Siehe TileDangerTest.
+        else -> TileSpeech.describe(
+            label = if (zustand == SignalInfo.State.WEAK) stringResource(R.string.signal_weak) else "",
+            state = stringResource(R.string.a11y_signal_bars, SignalInfo.bars(reading), SignalInfo.MAX_LEVEL),
+            badge = SignalInfo.caption(reading),
+        )
+    }
+}
+
+/**
+ * Ladestand in Worten. Der Blitz neben der Zahl ist ein Symbol ohne Text; am Kabel oder
+ * nicht ist aber genau die Frage, wegen der man auf die Kachel sieht.
+ */
+@Composable
+private fun batterySpeech(reading: BatteryReading?): String? {
+    val prozent = reading?.let { BatteryInfo.percent(it) } ?: return null
+    return TileSpeech.describe(
+        label = "$prozent %",
+        state = if (BatteryInfo.isCharging(reading)) stringResource(R.string.battery_charging) else null,
+    )
+}
+
+/**
  * Ein leerer Platz. Es gibt zwei Wege hierher - ein Rasterplatz ohne Zelle und eine Zelle
  * ohne Aktion - und beide muessen gleich aussehen, sonst wirkt der Homescreen kaputt.
  * Die Fuellung bleibt still, der Rahmen macht den Platz auffindbar.
@@ -355,7 +411,23 @@ private fun EmptyTile(
 @Composable
 private fun tileColor(button: Button, x: Int, y: Int, cols: Int): Color {
     val palette = LocalBigPalette.current
-    button.customColor?.let { return Color(it.toInt()) }
+    // Der freie Ton kommt nach der Palette und vor der Automatik - und nur, wenn das Thema
+    // ueberhaupt Kachelfarben kennt. Im Kontrast-Thema sind alle Palettenplaetze die
+    // Hintergrundfarbe (PLAN.md 3.3: dort zaehlt nur Schwarz/Gelb); eine freie Farbe
+    // dorthin durchzureichen waere genau der Fehler, den der Vorlaeufer gemacht haette.
+    val themaKenntFarben = FreeTileColor.themeUsesTileColours(palette.tiles.map { it.toArgbLong() })
+    if (themaKenntFarben) {
+        button.colorHue?.let { ton ->
+            return Color(
+                FreeTileColor.forHue(
+                    ton,
+                    palette.background.toArgbLong(),
+                    palette.onTile.toArgbLong(),
+                    FreeTileColor.targetLuminance(palette.tiles.map { it.toArgbLong() }),
+                ).toInt(),
+            )
+        }
+    }
     val index = if (button.colorIndex >= 0) {
         button.colorIndex.mod(palette.tiles.size)
     } else {

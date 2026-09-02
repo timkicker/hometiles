@@ -46,13 +46,6 @@ class CrashGuardTest {
     }
 
     @Test
-    fun `erklaert wird erst ab der Schwelle`() {
-        assertTrue(!CrashGuard.shouldExplain(0))
-        assertTrue(!CrashGuard.shouldExplain(1))
-        assertTrue(CrashGuard.shouldExplain(2))
-    }
-
-    @Test
     fun `aus dem Notmodus fuehrt ein erfolgreicher Start wieder heraus`() {
         var count = 0
         repeat(3) { count = CrashGuard.onStart(count) }

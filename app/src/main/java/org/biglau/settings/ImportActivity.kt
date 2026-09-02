@@ -18,6 +18,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -58,7 +59,6 @@ class ImportActivity : BigLauActivity() {
         setContent {
             val config by store.config.collectAsStateWithLifecycle()
             var done by remember { mutableStateOf(false) }
-            val palette = LocalBigPalette.current
 
             BigLauTheme(
                 config.appearance.theme,
@@ -68,8 +68,10 @@ class ImportActivity : BigLauActivity() {
                 labelScale = config.appearance.labelScale,
                 iconPercent = config.appearance.iconPercent,
                 icons = config.appearance.icons,
+                hideCutLabels = config.appearance.hideCutLabels,
                 cornerRadiusDp = config.appearance.cornerRadiusDp,
             ) {
+                val palette = LocalBigPalette.current
                 Box(
                     Modifier
                         .fillMaxSize()
@@ -84,8 +86,9 @@ class ImportActivity : BigLauActivity() {
                                 loaded == null -> stringResource(R.string.transfer_bad_file)
                                 done && vonNeuerer -> stringResource(R.string.transfer_imported_older)
                                 done -> stringResource(R.string.transfer_imported)
-                                else -> stringResource(
-                                    R.string.transfer_confirm,
+                                else -> pluralStringResource(
+                                    R.plurals.transfer_confirm,
+                                    loaded.screens.size,
                                     loaded.screens.size,
                                     loaded.screens.sumOf { it.cells.size },
                                 )

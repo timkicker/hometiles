@@ -36,6 +36,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalConfiguration
+import coil.compose.AsyncImage
+import org.biglau.ui.theme.LocalCornerRadius
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.delay
@@ -44,6 +50,8 @@ import org.biglau.R
 import org.biglau.data.ConfigStore
 import org.biglau.ui.BigKeypad
 import org.biglau.ui.BigRow
+import org.biglau.ui.ContactAvatar
+import org.biglau.ui.TabellenZiffern
 import org.biglau.ui.dpSp
 import org.biglau.ui.theme.BigLauTheme
 import org.biglau.ui.theme.LocalBigPalette
@@ -70,7 +78,6 @@ class InCallActivity : BigLauActivity() {
             val view by InCallRepository.call.collectAsStateWithLifecycle()
             var showKeypad by remember { mutableStateOf(false) }
             var now by remember { mutableStateOf(System.currentTimeMillis()) }
-            val palette = LocalBigPalette.current
 
             LaunchedEffect(Unit) {
                 while (true) {
@@ -96,8 +103,10 @@ class InCallActivity : BigLauActivity() {
                 labelScale = config.appearance.labelScale,
                 iconPercent = config.appearance.iconPercent,
                 icons = config.appearance.icons,
+                hideCutLabels = config.appearance.hideCutLabels,
                 cornerRadiusDp = config.appearance.cornerRadiusDp,
             ) {
+                val palette = LocalBigPalette.current
                 val current = view
                 Box(
                     Modifier
@@ -121,6 +130,36 @@ class InCallActivity : BigLauActivity() {
                             modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
                             horizontalAlignment = Alignment.CenterHorizontally,
                         ) {
+                            // Das Foto steht ueber dem Namen und nimmt nur, was uebrig
+                            // bleibt: CallerPhotoSize haelt fest, was Name, Zustand und
+                            // Knoepfe brauchen. Ein Foto, das den Annehmen-Knopf aus dem
+                            // Bild schiebt, waere auf genau diesem Bildschirm der
+                            // schlimmste Fehler.
+                            val fotoHoehe = CallerPhotoSize.heightDp(
+                                size = config.phone.callerPhoto,
+                                availableDp = LocalConfiguration.current.screenHeightDp.toFloat(),
+                            )
+                            val foto = current.photoUri
+                            val name = current.name?.takeIf { it.isNotBlank() }
+                            when (CallerPhotoSize.imageFor(fotoHoehe, foto, name)) {
+                                CallerPhotoSize.Image.NONE -> Unit
+                                CallerPhotoSize.Image.PHOTO -> AsyncImage(
+                                    model = foto,
+                                    contentDescription = null,
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier
+                                        .height(fotoHoehe.dp)
+                                        .fillMaxWidth()
+                                        .clip(RoundedCornerShape(LocalCornerRadius.current)),
+                                )
+                                // Kein Foto, aber ein Name: die Initialen, wie ueberall sonst
+                                // in der App. Begruendet in CallerPhotoSize.imageFor.
+                                CallerPhotoSize.Image.INITIALS -> ContactAvatar(
+                                    name = name.orEmpty(),
+                                    photoUri = null,
+                                    size = fotoHoehe.dp,
+                                )
+                            }
                             Text(
                                 text = CallActions.headline(current),
                                 color = palette.onBackground,
@@ -135,6 +174,9 @@ class InCallActivity : BigLauActivity() {
                                     ?: stringResource(statusLabel(current.status)),
                                 color = palette.onBackground,
                                 fontSize = dpSp(20f),
+                                // Die Dauer laeuft im Sekundentakt - ohne Tabellenziffern
+                                // wackelt sie bei jeder Sekunde. PLAN.md 3.7.
+                                style = TabellenZiffern,
                             )
                         }
 

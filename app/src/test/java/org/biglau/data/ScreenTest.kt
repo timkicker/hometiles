@@ -52,7 +52,7 @@ class ScreenTest {
 
     @Test
     fun `ein leerer Screen ist vollstaendig frei`() {
-        val screen = Defaults.emptyScreen("s", "Leer", cols = 2, rows = 3)
+        val screen = Screen(id = "s", name = "Leer", cols = 2, rows = 3)
         assertEquals(6, screen.freeSlots().size)
     }
 

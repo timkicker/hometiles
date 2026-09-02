@@ -4,6 +4,9 @@ import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.core.content.ContextCompat
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
@@ -22,9 +25,12 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Call
+import androidx.compose.material.icons.automirrored.filled.Message
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Accessibility
 import androidx.compose.material.icons.filled.Apps
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.FolderOff
 import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.Settings
@@ -34,6 +40,8 @@ import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.NotificationsActive
+import androidx.compose.material.icons.filled.PlayCircle
+import androidx.compose.material.icons.filled.StopCircle
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Replay
 import androidx.compose.material.icons.filled.Schedule
@@ -42,10 +50,12 @@ import androidx.compose.material.icons.filled.ViewCarousel
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -60,7 +70,7 @@ import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.LayoutDirection
-import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -75,6 +85,7 @@ import org.biglau.ui.LABEL_SCALES
 import org.biglau.ui.BigLauActivity
 import org.biglau.R
 import org.biglau.actions.Intents
+import org.biglau.ui.PermissionState
 import org.biglau.apps.AppDrawer
 import org.biglau.apps.AppRepository
 import org.biglau.a11y.LongPress
@@ -91,6 +102,7 @@ import org.biglau.data.ConfigTransfer
 import org.biglau.data.LabelPosition
 import org.biglau.data.Screen
 import org.biglau.data.SosConfig
+import org.biglau.toggles.SosAlarm
 import org.biglau.toggles.SosCountdown
 import org.biglau.toggles.SosMessage
 import org.biglau.toggles.SosNumbers
@@ -98,6 +110,13 @@ import org.biglau.data.ClockDisplay
 import org.biglau.data.FontChoice
 import org.biglau.data.ContactsConfig
 import androidx.compose.material.icons.filled.Person
+import org.biglau.phone.CallBlocking
+import org.biglau.sms.ConversationText
+import org.biglau.notify.MessageReminderReceiver
+import org.biglau.notify.SmsNotifications
+import org.biglau.notify.SmsReminder
+import org.biglau.sms.SmsFilter
+import org.biglau.phone.CallDirection
 import org.biglau.data.ScreenOrientation
 import org.biglau.data.Security
 import org.biglau.data.HapticStrength
@@ -105,6 +124,9 @@ import org.biglau.data.IconVisibility
 import org.biglau.data.Language
 import org.biglau.ui.Haptics
 import org.biglau.data.PressMode
+import org.biglau.data.AudioRoute
+import org.biglau.data.CallGrouping
+import org.biglau.data.CallerPhoto
 import org.biglau.data.ThemeName
 import org.biglau.notify.NotificationRepository
 import org.biglau.security.Pin
@@ -142,13 +164,30 @@ import org.biglau.ui.theme.BigSurface
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.material.icons.filled.Check
 
-private enum class Page { GATE, MAIN, SCREENS, APPEARANCE, BEHAVIOUR, SECURITY, SET_PIN, DIAGNOSTICS, RENAME, HIDDEN_APPS, TRANSFER, SOS, ACCESSIBILITY, RESET , SWIPE_ORDER, ALLOWED_APPS, CONTACTS}
+internal enum class Page { GATE, MAIN, MESSAGES, SCREENS, APPEARANCE, BEHAVIOUR, SECURITY, SET_PIN, DIAGNOSTICS, RENAME, HIDDEN_APPS, TRANSFER, SOS, ACCESSIBILITY, RESET , SWIPE_ORDER, ALLOWED_APPS, CONTACTS, CALL_TYPES}
 
 class SettingsActivity : BigLauActivity() {
+
+    /** Die zuletzt angeforderte Unterseite. Siehe [onNewIntent]. */
+    private val zielAnfrage = mutableStateOf<Page?>(null)
+
+    private fun leseZiel(intent: Intent?): Page? =
+        SettingsDeepLink.ziel(intent?.getStringExtra(EXTRA_PAGE))
+
+    /**
+     * Kommt die Anfrage, waehrend die Einstellungen schon offen sind, aendert Android
+     * `intent` nicht von selbst. Ohne das hier bliebe die Seite von vorhin stehen.
+     */
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        leseZiel(intent)?.let { zielAnfrage.value = it }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        zielAnfrage.value = leseZiel(intent)
         val store = ConfigStore.get(this)
 
         setContent {
@@ -157,7 +196,26 @@ class SettingsActivity : BigLauActivity() {
             // rememberSaveable, damit der Sprachwechsel nicht an den Anfang zurueckwirft:
             // er baut die Activity neu auf, und wer gerade eine Sprache gewaehlt hat, will
             // sehen, dass das Haekchen umgesprungen ist - nicht die oberste Seite.
-            var page by rememberSaveable { mutableStateOf(if (locked) Page.GATE else Page.MAIN) }
+            // Eine Unterseite laesst sich von aussen ansteuern - die Anrufliste schickt
+            // hierher, wenn jede Anrufart ausgeblendet ist. Die PIN kommt trotzdem zuerst;
+            // ein Ziel im Intent darf kein Schloss aufmachen.
+            //
+            // Gelesen wird aus [zielAnfrage] und nicht direkt aus `intent`: die Activity
+            // steht oft schon im Stapel, und dann bringt `startActivity` sie nur nach vorn,
+            // ohne dass sich `intent` aendert. Wer die Einstellungen vorher offen hatte,
+            // landete auf der Seite von damals - am Emulator nachgestellt: erst Diagnose
+            // aufgerufen, dann die Anrufarten angefordert, und es blieb die Diagnose.
+            val ziel = zielAnfrage.value
+            var page by rememberSaveable { mutableStateOf(SettingsDeepLink.start(locked, ziel)) }
+            // Die Probe des Notruf-Alarms. Sie laeuft nur, solange die Einstellungen offen
+            // sind - ein Alarm, der weiterlaeuft, waere schlimmer als keiner.
+            var alarmProbe by remember { mutableStateOf(false) }
+            DisposableEffect(Unit) {
+                onDispose { SosAlarm.stop(this@SettingsActivity) }
+            }
+            LaunchedEffect(ziel) {
+                SettingsDeepLink.sprung(page, ziel)?.let { page = it }
+            }
             var renaming by remember { mutableStateOf<Screen?>(null) }
             var switching by remember { mutableStateOf<Screen?>(null) }
 
@@ -173,10 +231,16 @@ class SettingsActivity : BigLauActivity() {
                         Notice.show(
                             this@SettingsActivity,
                             if (ausgelassen == 0) {
-                                getString(R.string.screen_copy_done, kopieName, ergebnis.copied)
+                                resources.getQuantityString(
+                                    R.plurals.screen_copy_done,
+                                    ergebnis.copied,
+                                    kopieName,
+                                    ergebnis.copied,
+                                )
                             } else {
                                 getString(
-                                    R.string.screen_copy_done_partial,
+                                    R.plurals.screen_copy_done_partial,
+                                    ergebnis.copied,
                                     kopieName,
                                     ergebnis.copied,
                                     ausgelassen,
@@ -189,6 +253,36 @@ class SettingsActivity : BigLauActivity() {
                         Notice.show(this@SettingsActivity, R.string.screen_copy_no_room)
 
                     ScreenCopy.Result.NoSuchScreen -> Unit
+                }
+            }
+
+            // Der Notruf verspricht "mit Standort", pruefte das Recht dafuer - und niemand
+            // hat es je erfragt. Die Nachricht ging still ohne Koordinaten hinaus, und
+            // gemerkt haette man es erst in dem Fall, fuer den der Notruf da ist.
+            // Gefragt wird hier beim Einrichten, nicht im Notfall: ein Systemdialog vor
+            // dem Absenden waere genau die Sekunde, die dann fehlt.
+            var locationGranted by remember {
+                mutableStateOf(
+                    ContextCompat.checkSelfPermission(
+                        this@SettingsActivity,
+                        Manifest.permission.ACCESS_FINE_LOCATION,
+                    ) == PackageManager.PERMISSION_GRANTED ||
+                        ContextCompat.checkSelfPermission(
+                            this@SettingsActivity,
+                            Manifest.permission.ACCESS_COARSE_LOCATION,
+                        ) == PackageManager.PERMISSION_GRANTED,
+                )
+            }
+            var locationDeniedOnce by remember { mutableStateOf(false) }
+            var locationCanAskAgain by remember { mutableStateOf(true) }
+            val askLocation = rememberLauncherForActivityResult(
+                ActivityResultContracts.RequestMultiplePermissions(),
+            ) { result ->
+                locationGranted = result.values.any { it }
+                if (!locationGranted) {
+                    locationDeniedOnce = true
+                    locationCanAskAgain =
+                        shouldShowRequestPermissionRationale(Manifest.permission.ACCESS_FINE_LOCATION)
                 }
             }
 
@@ -244,6 +338,7 @@ class SettingsActivity : BigLauActivity() {
                 labelScale = config.appearance.labelScale,
                 iconPercent = config.appearance.iconPercent,
                 icons = config.appearance.icons,
+                hideCutLabels = config.appearance.hideCutLabels,
                 cornerRadiusDp = config.appearance.cornerRadiusDp,
             ) {
                 BackHandler(enabled = page != Page.MAIN && page != Page.GATE) { page = Page.MAIN }
@@ -262,7 +357,7 @@ class SettingsActivity : BigLauActivity() {
                             wrongText = stringResource(R.string.security_wrong_pin),
                             confirmLabel = stringResource(R.string.editor_done),
                             onCheck = { entered -> Pin.verify(entered, config.security.pin) },
-                            onAccept = { page = Page.MAIN },
+                            onAccept = { page = ziel ?: Page.MAIN },
                             acceptOnComplete = true,
                             onEmergencyExit = { page = Page.MAIN },
                         )
@@ -294,6 +389,8 @@ class SettingsActivity : BigLauActivity() {
                             onDiagnostics = { page = Page.DIAGNOSTICS },
                             onReset = { page = Page.RESET },
                             onContacts = { page = Page.CONTACTS },
+                            onCallTypes = { page = Page.CALL_TYPES },
+                            onMessages = { page = Page.MESSAGES },
                             onHomeApp = { Intents.chooseHomeApp(this@SettingsActivity) },
                             onDialerApp = { Intents.chooseDialerApp(this@SettingsActivity) },
                             onDone = { finish() },
@@ -319,6 +416,15 @@ class SettingsActivity : BigLauActivity() {
                             screens = FolderEdits.plainScreens(config),
                             homeId = config.homeScreenId,
                             unreachable = ScreenEdits.unreachable(config),
+                            // Ordner stehen sonst nicht in dieser Liste ("Ordner gehoeren
+                            // ihrer Kachel"). Einer ohne Kachel gehoert niemandem mehr -
+                            // dann ist das hier die einzige Stelle, an der er noch
+                            // auftauchen kann.
+                            orphanedFolders = FolderEdits.orphaned(config),
+                            lossesFor = { screen -> ScreenEdits.deletionLosses(config, screen.id) },
+                            onDeleteFolder = { folder ->
+                                store.update { FolderEdits.delete(it, folder.id) }
+                            },
                             onRename = { renaming = it; page = Page.RENAME },
                             onDelete = { store.update { current -> ScreenEdits.delete(current, it.id) } },
                             onSwipeOrder = { page = Page.SWIPE_ORDER },
@@ -388,6 +494,16 @@ class SettingsActivity : BigLauActivity() {
                             themeName = config.appearance.theme,
                             textScale = config.appearance.textScale,
                             labelPosition = config.appearance.labelPosition,
+                            hideCutLabels = config.appearance.hideCutLabels,
+                            onToggleHideCutLabels = {
+                                store.update {
+                                    it.copy(
+                                        appearance = it.appearance.copy(
+                                            hideCutLabels = !it.appearance.hideCutLabels,
+                                        ),
+                                    )
+                                }
+                            },
                             icons = config.appearance.icons,
                             onTheme = { next ->
                                 store.update { it.copy(appearance = it.appearance.copy(theme = next)) }
@@ -523,23 +639,37 @@ class SettingsActivity : BigLauActivity() {
                             hasPin = config.security.pin != null,
                             protectsEditor = config.security.pinProtectsEditor,
                             lockOthers = config.apps.lockOthers,
+                            wouldAllow = AppLock.wouldAllow(config),
+                            allowedApps = config.apps.allowed.size,
                             onToggleAppLock = {
-                                store.update { current ->
-                                    // Beim Einschalten die Kachel-Apps von selbst erlauben:
-                                    // wer die Sperre einschaltet und danach vor einem
-                                    // Telefon steht, auf dem nichts mehr aufgeht, hat sich
-                                    // ausgesperrt statt etwas gesichert.
-                                    val an = !current.apps.lockOthers
-                                    current.copy(
-                                        apps = current.apps.copy(
-                                            lockOthers = an,
-                                            allowed = if (an && current.apps.allowed.isEmpty()) {
-                                                AppLock.initialAllowance(current)
-                                            } else {
-                                                current.apps.allowed
-                                            },
-                                        ),
-                                    )
+                                when (AppLock.toggle(config)) {
+                                    // Nicht einschalten, wenn nichts erlaubt waere: das
+                                    // ist kein gesichertes Telefon, sondern ein
+                                    // verschlossenes. Statt dessen die Liste zeigen.
+                                    AppLock.Step.CHOOSE_FIRST -> {
+                                        Notice.show(
+                                            this@SettingsActivity,
+                                            R.string.security_applock_choose_first,
+                                        )
+                                        page = Page.ALLOWED_APPS
+                                    }
+
+                                    AppLock.Step.TURN_ON -> store.update { current ->
+                                        // Die Kachel-Apps von selbst erlauben: die hat der
+                                        // Einrichtende gerade bewusst in Reichweite gelegt.
+                                        current.copy(
+                                            apps = current.apps.copy(
+                                                lockOthers = true,
+                                                allowed = current.apps.allowed.ifEmpty {
+                                                    AppLock.initialAllowance(current)
+                                                },
+                                            ),
+                                        )
+                                    }
+
+                                    AppLock.Step.TURN_OFF -> store.update {
+                                        it.copy(apps = it.apps.copy(lockOthers = false))
+                                    }
                                 }
                             },
                             onAllowedApps = { page = Page.ALLOWED_APPS },
@@ -711,10 +841,47 @@ class SettingsActivity : BigLauActivity() {
                                 }
                             },
                             onToggleLocation = {
-                                store.update {
-                                    it.copy(sos = it.sos.copy(sendLocation = !it.sos.sendLocation))
+                                val an = !config.sos.sendLocation
+                                store.update { it.copy(sos = it.sos.copy(sendLocation = an)) }
+                                if (an && !locationGranted) {
+                                    askLocation.launch(
+                                        arrayOf(
+                                            Manifest.permission.ACCESS_FINE_LOCATION,
+                                            Manifest.permission.ACCESS_COARSE_LOCATION,
+                                        ),
+                                    )
                                 }
                             },
+                            onToggleAlarmSound = {
+                                store.update { it.copy(sos = it.sos.copy(alarmSound = !it.sos.alarmSound)) }
+                            },
+                            onToggleAlarmFlash = {
+                                store.update { it.copy(sos = it.sos.copy(alarmFlash = !it.sos.alarmFlash)) }
+                            },
+                            onTryAlarm = {
+                                if (alarmProbe) {
+                                    SosAlarm.stop(this@SettingsActivity)
+                                    alarmProbe = false
+                                } else {
+                                    SosAlarm.start(this@SettingsActivity, config.sos)
+                                    alarmProbe = true
+                                }
+                            },
+                            alarmRunning = alarmProbe,
+                            locationGranted = locationGranted,
+                            locationBlocked = PermissionState.blocked(
+                                locationDeniedOnce,
+                                locationCanAskAgain,
+                            ),
+                            onAskLocation = {
+                                askLocation.launch(
+                                    arrayOf(
+                                        Manifest.permission.ACCESS_FINE_LOCATION,
+                                        Manifest.permission.ACCESS_COARSE_LOCATION,
+                                    ),
+                                )
+                            },
+                            onLocationSettings = { Intents.appSettings(this@SettingsActivity) },
                         )
 
                         Page.TRANSFER -> TransferList(
@@ -748,6 +915,64 @@ class SettingsActivity : BigLauActivity() {
                             },
                         )
 
+                        Page.MESSAGES -> MessagesSettingsList(
+                            confirmSend = config.sms.confirmBeforeSending,
+                            onToggleConfirmSend = {
+                                store.update {
+                                    it.copy(
+                                        sms = it.sms.copy(
+                                            confirmBeforeSending = !it.sms.confirmBeforeSending,
+                                        ),
+                                    )
+                                }
+                            },
+                            sendAbove = config.sms.sendButtonAbove,
+                            onToggleSendAbove = {
+                                store.update {
+                                    it.copy(sms = it.sms.copy(sendButtonAbove = !it.sms.sendButtonAbove))
+                                }
+                            },
+                            sendLarge = config.sms.sendButtonLarge,
+                            onToggleSendLarge = {
+                                store.update {
+                                    it.copy(sms = it.sms.copy(sendButtonLarge = !it.sms.sendButtonLarge))
+                                }
+                            },
+                            scale = config.sms.conversationScale,
+                            onScale = { wert ->
+                                store.update { it.copy(sms = it.sms.copy(conversationScale = wert)) }
+                            },
+                            numbers = config.sms.hiddenNumbers,
+                            words = config.sms.hiddenWords,
+                            onNumbers = { text ->
+                                store.update {
+                                    it.copy(sms = it.sms.copy(hiddenNumbers = CallBlocking.parse(text)))
+                                }
+                            },
+                            onWords = { text ->
+                                store.update {
+                                    it.copy(sms = it.sms.copy(hiddenWords = SmsFilter.parseWords(text)))
+                                }
+                            },
+                            vibrationMs = config.sms.vibrationMs,
+                            onVibration = { dauer ->
+                                store.update { it.copy(sms = it.sms.copy(vibrationMs = dauer)) }
+                            },
+                            fullScreen = config.sms.fullScreenAlert,
+                            onToggleFullScreen = {
+                                store.update {
+                                    it.copy(sms = it.sms.copy(fullScreenAlert = !it.sms.fullScreenAlert))
+                                }
+                            },
+                            repeatMinutes = config.sms.repeatMinutes,
+                            onRepeat = { minuten ->
+                                store.update { it.copy(sms = it.sms.copy(repeatMinutes = minuten)) }
+                                // Aus heisst sofort aus, nicht erst bei der naechsten
+                                // Nachricht: sonst erinnert ein alter Wecker weiter.
+                                MessageReminderReceiver.schedule(this@SettingsActivity, minuten)
+                            },
+                        )
+
                         Page.CONTACTS -> ContactsSettingsList(
                             contacts = config.contacts,
                             onToggleSort = {
@@ -773,6 +998,56 @@ class SettingsActivity : BigLauActivity() {
                                     it.copy(
                                         contacts = it.contacts.copy(
                                             favouritesFirst = !it.contacts.favouritesFirst,
+                                        ),
+                                    )
+                                }
+                            },
+                        )
+
+                        Page.CALL_TYPES -> CallTypesList(
+                            blocked = config.phone.blockedNumbers,
+                            onBlocked = { text ->
+                                store.update {
+                                    it.copy(
+                                        phone = it.phone.copy(
+                                            blockedNumbers = CallBlocking.parse(text),
+                                        ),
+                                    )
+                                }
+                            },
+                            audioRoute = config.phone.audioRoute,
+                            onAudioRoute = { weg ->
+                                store.update { it.copy(phone = it.phone.copy(audioRoute = weg)) }
+                            },
+                            speakerOnOutgoing = config.phone.speakerOnOutgoing,
+                            onToggleSpeakerOnOutgoing = {
+                                store.update {
+                                    it.copy(
+                                        phone = it.phone.copy(
+                                            speakerOnOutgoing = !it.phone.speakerOnOutgoing,
+                                        ),
+                                    )
+                                }
+                            },
+                            photo = config.phone.callerPhoto,
+                            onPhoto = { groesse ->
+                                store.update { it.copy(phone = it.phone.copy(callerPhoto = groesse)) }
+                            },
+                            grouping = config.phone.callGrouping,
+                            onGrouping = { art ->
+                                store.update { it.copy(phone = it.phone.copy(callGrouping = art)) }
+                            },
+                            hidden = config.phone.hiddenCallTypes,
+                            onToggle = { name ->
+                                store.update {
+                                    val jetzt = it.phone.hiddenCallTypes
+                                    it.copy(
+                                        phone = it.phone.copy(
+                                            hiddenCallTypes = if (name in jetzt) {
+                                                jetzt - name
+                                            } else {
+                                                jetzt + name
+                                            },
                                         ),
                                     )
                                 }
@@ -813,6 +1088,17 @@ class SettingsActivity : BigLauActivity() {
     }
 
     companion object {
+        /** Direkt auf einer Unterseite oeffnen - der Name eines [Page]-Werts. */
+        const val EXTRA_PAGE = "biglau.settings.page"
+
+        /** Die Seite, auf der steht, welche Anrufarten in der Liste erscheinen. */
+        const val PAGE_CALL_TYPES = "CALL_TYPES"
+
+        /** Die Seite mit Sortierung, Nummernsuche und Favoriten. */
+        const val PAGE_CONTACTS = "CONTACTS"
+
+        /** Die Seite mit den Notfallkontakten. */
+        const val PAGE_SOS = "SOS"
     }
 }
 
@@ -831,6 +1117,8 @@ private fun MainList(
     onDiagnostics: () -> Unit,
     onReset: () -> Unit,
     onContacts: () -> Unit,
+    onCallTypes: () -> Unit,
+    onMessages: () -> Unit,
     onHomeApp: () -> Unit,
     onDialerApp: () -> Unit,
     onDone: () -> Unit,
@@ -880,6 +1168,20 @@ private fun MainList(
         }
         item {
             BigRow(
+                stringResource(R.string.settings_call_types),
+                icon = Icons.Filled.History,
+                onClick = onCallTypes,
+            )
+        }
+        item {
+            BigRow(
+                stringResource(R.string.settings_messages),
+                icon = Icons.AutoMirrored.Filled.Message,
+                onClick = onMessages,
+            )
+        }
+        item {
+            BigRow(
                 stringResource(R.string.settings_contacts),
                 icon = Icons.Filled.Person,
                 onClick = onContacts,
@@ -908,6 +1210,9 @@ private fun ScreenList(
     screens: List<Screen>,
     homeId: String,
     unreachable: List<Screen>,
+    orphanedFolders: List<Screen>,
+    onDeleteFolder: (Screen) -> Unit,
+    lossesFor: (Screen) -> Pair<Int, Int>,
     onRename: (Screen) -> Unit,
     onDelete: (Screen) -> Unit,
     onMakeHome: (Screen) -> Unit,
@@ -915,6 +1220,10 @@ private fun ScreenList(
     onDuplicate: (Screen) -> Unit,
 ) {
     val palette = LocalBigPalette.current
+    // Ein Screen mit allen Kacheln war mit einem einzigen Tipp weg - ohne Rueckfrage, ohne
+    // Weg zurueck. Dieselbe Zweistufigkeit wie beim Verkleinern des Rasters: der erste Tipp
+    // sagt, was es kostet, erst der zweite tut es.
+    var scharf by remember { mutableStateOf<String?>(null) }
     LazyColumn(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         item { BigHeading(stringResource(R.string.settings_screens)) }
         // Ein Screen, zu dem keine Kachel fuehrt, ist eingerichtet und unerreichbar. Ohne
@@ -972,11 +1281,58 @@ private fun ScreenList(
                     icon = Icons.Filled.Home,
                     onClick = { onMakeHome(screen) },
                 )
+                val (kacheln, ordner) = lossesFor(screen)
+                val gespannt = scharf == screen.id
                 BigRow(
-                    label = stringResource(R.string.screen_delete, screen.name),
+                    label = if (gespannt) {
+                        stringResource(R.string.screen_delete_now, screen.name)
+                    } else {
+                        stringResource(R.string.screen_delete, screen.name)
+                    },
+                    secondary = if (!gespannt) {
+                        null
+                    } else {
+                        buildString {
+                            append(pluralStringResource(R.plurals.screen_delete_tiles, kacheln, kacheln))
+                            if (ordner > 0) {
+                                append(' ')
+                                append(pluralStringResource(R.plurals.screen_delete_folders, ordner, ordner))
+                            }
+                        }
+                    },
                     icon = Icons.Filled.Delete,
                     surface = palette.surfaceDanger,
-                    onClick = { onDelete(screen) },
+                    onClick = { if (gespannt) onDelete(screen) else scharf = screen.id },
+                )
+            }
+        }
+        // Ein Ordner ohne Kachel ist nirgends zu sehen und nirgends zu oeffnen. Neue
+        // entstehen nicht mehr - das Neubelegen einer Ordnerkachel fragt jetzt nach, und
+        // das Loeschen eines Screens raeumt seine Ordner mit ab. Aeltere gibt es aber, und
+        // sie liegen sonst fuer immer in der Konfiguration und in jeder Sicherung.
+        if (orphanedFolders.isNotEmpty()) {
+            item {
+                Text(
+                    text = stringResource(R.string.folders_orphaned),
+                    color = palette.danger,
+                    fontSize = 15.sp,
+                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 8.dp),
+                )
+            }
+            items(orphanedFolders, key = { "orphan-${it.id}" }) { folder ->
+                BigRow(
+                    label = stringResource(R.string.folder_delete_title, folder.name),
+                    secondary = pluralStringResource(
+                        R.plurals.folder_delete_body,
+                        folder.cells.size,
+                        folder.cells.size,
+                    ),
+                    // Nicht derselbe Papierkorb wie beim Screen darueber: das hier ist
+                    // kein gewoehnliches Loeschen, sondern das Aufraeumen von etwas, das
+                    // sich ohnehin nicht mehr oeffnen laesst.
+                    icon = Icons.Filled.FolderOff,
+                    surface = palette.surfaceDanger,
+                    onClick = { onDeleteFolder(folder) },
                 )
             }
         }
@@ -1020,6 +1376,8 @@ private fun ScreenPanel(
     val rand = fenster.screenWidthDp * borderPercent / 100f
     val usableWidthDp = fenster.screenWidthDp - 2 * rand
     val usableHeightDp = fenster.screenHeightDp - 2 * rand
+    // Ausserhalb der Liste erfragt: in einem items-Aufruf ist kein Composable erlaubt.
+    val hintergrundfarben = ScreenBackground.choicesFor(theme, isSystemInDarkTheme())
     LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         item { BigHeading(stringResource(R.string.screen_edit)) }
         item {
@@ -1093,7 +1451,7 @@ private fun ScreenPanel(
         }
         // Jede Zeile in ihrer eigenen Farbe. Bei einer Farbe ist der Name nutzlos - man
         // will sie sehen, und zwar in der Groesse, in der sie spaeter dasteht.
-        items(ScreenBackground.choicesFor(theme)) { farbe ->
+        items(hintergrundfarben) { farbe ->
             val gewaehlt = (screen.background as? Background.Solid)?.argb == farbe
             BigRow(
                 label = stringResource(R.string.screen_background_colour),
@@ -1164,6 +1522,8 @@ private fun AppearanceList(
     themeName: ThemeName,
     textScale: Float,
     labelPosition: LabelPosition,
+    hideCutLabels: Boolean,
+    onToggleHideCutLabels: () -> Unit,
     icons: IconVisibility,
     showHeader: Boolean,
     appearance: Appearance,
@@ -1212,7 +1572,7 @@ private fun AppearanceList(
         // sagte nichts; die Farben selbst sagen alles. Die Auswahl traegt deshalb ein
         // Haekchen statt einer Akzentflaeche - die Flaeche gehoert hier dem Thema.
         items(ThemeName.entries.toList()) { entry ->
-            val own = paletteFor(entry)
+            val own = paletteFor(entry, isSystemInDarkTheme())
             val chosen = entry == themeName
             BigRow(
                 label = stringResource(themeLabel(entry)),
@@ -1302,6 +1662,21 @@ private fun AppearanceList(
                 surface = if (position == labelPosition) palette.surfaceAccent else palette.surfaceDefault,
                 onClick = { onLabelPosition(position) },
             )
+        }
+        // PLAN.md 3.2: "auf 3 Zoll ist ein abgeschnittenes Wort schlimmer als gar keins."
+        // Nur anbieten, wo die Beschriftung ueberhaupt steht - bei "ohne Beschriftung"
+        // waere es ein Schalter ohne Wirkung.
+        if (labelPosition != LabelPosition.HIDDEN) {
+            item {
+                BigRow(
+                    label = stringResource(
+                        if (hideCutLabels) R.string.appearance_hide_cut_on else R.string.appearance_hide_cut_off,
+                    ),
+                    secondary = stringResource(R.string.appearance_hide_cut_hint),
+                    surface = if (hideCutLabels) palette.surfaceAccent else palette.surfaceDefault,
+                    onClick = onToggleHideCutLabels,
+                )
+            }
         }
         item {
             BigRow(
@@ -1451,20 +1826,6 @@ private fun clockLabel(display: ClockDisplay): Int = when (display) {
 }
 
 /**
- * Ausgeblendete Apps wieder einblenden. Ohne diese Seite waere das Ausblenden eine
- * Einbahnstrasse - eine Aktion ohne Rueckweg ist ein Fehler, auch wenn sie tut, was sie soll.
- */
-/**
- * Sicherung und Wiederherstellung. Gedacht fuer den Wechsel auf ein anderes Telefon,
- * deshalb ueber den System-Dateidialog: die Datei soll dort liegen, wo der Nutzer sie
- * auch wiederfindet, nicht in einem App-Verzeichnis, das beim Deinstallieren verschwindet.
- */
-/**
- * Notruf einrichten. Die Nummern stehen in einer Zeile, weil das auf drei Zoll schneller
- * geht als eine Liste mit Plus-Knopf - und weil [SosNumbers] beim Einlesen streng aussortiert,
- * kostet die Bequemlichkeit nichts.
- */
-/**
  * Barrierefreiheit. Beide Schalter nehmen dem Langdruck den Editor weg - deshalb steht
  * darunter, wo man ihn dann findet. Eine Einstellung, die einen Weg schliesst, muss den
  * neuen Weg nennen.
@@ -1592,6 +1953,11 @@ private fun AccessibilityList(
     }
 }
 
+/**
+ * Notruf einrichten. Die Nummern stehen in einer Zeile, weil das auf drei Zoll schneller
+ * geht als eine Liste mit Plus-Knopf - und weil [SosNumbers] beim Einlesen streng aussortiert,
+ * kostet die Bequemlichkeit nichts.
+ */
 @Composable
 private fun SosSettings(
     config: SosConfig,
@@ -1599,6 +1965,14 @@ private fun SosSettings(
     onMessage: (String) -> Unit,
     onCountdown: (Int) -> Unit,
     onToggleLocation: () -> Unit,
+    locationGranted: Boolean,
+    locationBlocked: Boolean,
+    onAskLocation: () -> Unit,
+    onLocationSettings: () -> Unit,
+    onToggleAlarmSound: () -> Unit,
+    onToggleAlarmFlash: () -> Unit,
+    onTryAlarm: () -> Unit,
+    alarmRunning: Boolean,
 ) {
     val palette = LocalBigPalette.current
     val defaultMessage = stringResource(R.string.sos_message_default)
@@ -1671,7 +2045,11 @@ private fun SosSettings(
                 label = stringResource(R.string.sos_message_save),
                 // Vorschau mit Beispielkoordinaten: der Nutzer soll sehen, was ankommt,
                 // und wie viele SMS es kostet.
-                secondary = stringResource(R.string.sos_message_parts, SosMessage.partsNeeded(preview)),
+                secondary = pluralStringResource(
+                    R.plurals.sos_message_parts,
+                    SosMessage.partsNeeded(preview),
+                    SosMessage.partsNeeded(preview),
+                ),
                 surface = palette.surfaceAccent,
                 onClick = { onMessage(messageText) },
             )
@@ -1683,7 +2061,7 @@ private fun SosSettings(
                 label = if (seconds == 0) {
                     stringResource(R.string.sos_countdown_none)
                 } else {
-                    stringResource(R.string.sos_countdown_seconds, seconds)
+                    pluralStringResource(R.plurals.sos_countdown_seconds, seconds, seconds)
                 },
                 surface = if (seconds == config.countdownSeconds) palette.surfaceAccent else palette.surfaceDefault,
                 onClick = { onCountdown(seconds) },
@@ -1699,9 +2077,80 @@ private fun SosSettings(
                 onClick = onToggleLocation,
             )
         }
+
+        // PLAN.md 4.8: lauter Alarmton und blinkendes Licht. Sie wirken ohne Netz und
+        // erreichen den, der zwei Raeume weiter steht - die Nachricht erreicht den nicht.
+        item { BigHeading(stringResource(R.string.sos_alarm_heading)) }
+        item {
+            BigRow(
+                label = stringResource(
+                    if (config.alarmSound) R.string.sos_alarm_sound_on else R.string.sos_alarm_sound_off,
+                ),
+                secondary = stringResource(R.string.sos_alarm_sound_hint),
+                surface = if (config.alarmSound) palette.surfaceAccent else palette.surfaceDefault,
+                onClick = onToggleAlarmSound,
+            )
+        }
+        item {
+            BigRow(
+                label = stringResource(
+                    if (config.alarmFlash) R.string.sos_alarm_flash_on else R.string.sos_alarm_flash_off,
+                ),
+                surface = if (config.alarmFlash) palette.surfaceAccent else palette.surfaceDefault,
+                onClick = onToggleAlarmFlash,
+            )
+        }
+        // Ausprobieren, bevor es zaehlt: wer den Alarm im Notfall zum ersten Mal hoert,
+        // erschrickt und drueckt ihn weg. Der Knopf loest **keinen** Notruf aus, es geht
+        // dabei keine Nachricht hinaus.
+        if (config.alarmSound || config.alarmFlash) {
+            item {
+                BigRow(
+                    label = stringResource(
+                        if (alarmRunning) R.string.sos_alarm_stop else R.string.sos_alarm_try,
+                    ),
+                    secondary = stringResource(R.string.sos_alarm_try_hint),
+                    icon = if (alarmRunning) Icons.Filled.StopCircle else Icons.Filled.PlayCircle,
+                    surface = if (alarmRunning) palette.surfaceAccent else palette.surfaceDefault,
+                    onClick = onTryAlarm,
+                )
+            }
+        }
+
+        // Der Schalter steht auf "mit Standort", das Recht fehlt: dann geht die Nachricht
+        // ohne Koordinaten hinaus. Das gehoert hier hingeschrieben, nicht erst im Notfall
+        // gemerkt.
+        if (config.sendLocation && !locationGranted) {
+            item {
+                Text(
+                    text = stringResource(R.string.sos_location_missing),
+                    color = palette.danger,
+                    fontSize = 15.sp,
+                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp),
+                )
+            }
+            item {
+                BigRow(
+                    label = stringResource(
+                        if (locationBlocked) {
+                            R.string.permission_open_settings
+                        } else {
+                            R.string.permission_allow
+                        },
+                    ),
+                    surface = palette.surfaceAccent,
+                    onClick = if (locationBlocked) onLocationSettings else onAskLocation,
+                )
+            }
+        }
     }
 }
 
+/**
+ * Sicherung und Wiederherstellung. Gedacht fuer den Wechsel auf ein anderes Telefon,
+ * deshalb ueber den System-Dateidialog: die Datei soll dort liegen, wo der Nutzer sie
+ * auch wiederfindet, nicht in einem App-Verzeichnis, das beim Deinstallieren verschwindet.
+ */
 @Composable
 private fun TransferList(onExport: () -> Unit, onImport: () -> Unit) {
     val palette = LocalBigPalette.current
@@ -1747,6 +2196,10 @@ private fun TransferList(onExport: () -> Unit, onImport: () -> Unit) {
     }
 }
 
+/**
+ * Ausgeblendete Apps wieder einblenden. Ohne diese Seite waere das Ausblenden eine
+ * Einbahnstrasse - eine Aktion ohne Rueckweg ist ein Fehler, auch wenn sie tut, was sie soll.
+ */
 @Composable
 private fun HiddenAppsList(
     hidden: Set<String>,
@@ -1843,6 +2296,8 @@ private fun SecurityList(
     protectsCallLog: Boolean,
     onToggleCallLogProtection: () -> Unit,
     lockOthers: Boolean,
+    wouldAllow: Int,
+    allowedApps: Int,
     onToggleAppLock: () -> Unit,
     onAllowedApps: () -> Unit,
     onSetPin: () -> Unit,
@@ -1906,19 +2361,36 @@ private fun SecurityList(
                     label = stringResource(
                         if (lockOthers) R.string.security_applock_on else R.string.security_applock_off,
                     ),
-                    secondary = stringResource(R.string.security_applock_hint),
+                    // Die Zeile darunter sagte fest "Apps auf Deinen Kacheln sind von
+                    // Anfang an erlaubt" - auch dann, wenn keine einzige App auf einer
+                    // Kachel liegt und der Schalter das Telefon zusperren wuerde.
+                    secondary = when {
+                        lockOthers -> pluralStringResource(
+                            R.plurals.security_applock_allowed,
+                            allowedApps,
+                            allowedApps,
+                        )
+
+                        wouldAllow == 0 -> stringResource(R.string.security_applock_no_tiles)
+
+                        else -> pluralStringResource(
+                            R.plurals.security_applock_would_allow,
+                            wouldAllow,
+                            wouldAllow,
+                        )
+                    },
                     surface = if (lockOthers) palette.surfaceAccent else palette.surfaceDefault,
                     onClick = onToggleAppLock,
                 )
             }
-            if (lockOthers) {
-                item {
-                    BigRow(
-                        label = stringResource(R.string.security_allowed_apps),
-                        icon = Icons.Filled.Apps,
-                        onClick = onAllowedApps,
-                    )
-                }
+            // Auch bei ausgeschalteter Sperre erreichbar: sonst laesst sich die Liste erst
+            // vorbereiten, wenn man sich schon ausgesperrt hat.
+            item {
+                BigRow(
+                    label = stringResource(R.string.security_allowed_apps),
+                    icon = Icons.Filled.Apps,
+                    onClick = onAllowedApps,
+                )
             }
             item {
                 BigRow(
@@ -1959,6 +2431,7 @@ private fun DiagnosticsList(activity: ComponentActivity) {
 }
 
 private fun themeLabel(theme: ThemeName) = when (theme) {
+    ThemeName.SYSTEM -> R.string.theme_system
     ThemeName.DARK -> R.string.theme_dark
     ThemeName.HIGH_CONTRAST -> R.string.theme_contrast
     ThemeName.LIGHT -> R.string.theme_light
@@ -2326,6 +2799,340 @@ private fun ContactsSettingsList(
                     palette.surfaceDefault
                 },
                 onClick = onToggleFavouritesFirst,
+            )
+        }
+    }
+}
+
+/**
+ * Welche Anrufarten in der Liste erscheinen. PLAN.md 4.6.
+ *
+ * Die Logik dafuer stand samt Tests im Quelltext und wurde von der App nie aufgerufen -
+ * ein Filter ohne Schalter. Wer nur die verpassten sehen will, hat dafuer die schnelle
+ * Umschaltung in der Liste selbst; hier steht, was ueberhaupt auftaucht.
+ */
+@Composable
+private fun CallTypesList(
+    blocked: List<String>,
+    onBlocked: (String) -> Unit,
+    audioRoute: AudioRoute,
+    onAudioRoute: (AudioRoute) -> Unit,
+    speakerOnOutgoing: Boolean,
+    onToggleSpeakerOnOutgoing: () -> Unit,
+    photo: CallerPhoto,
+    onPhoto: (CallerPhoto) -> Unit,
+    grouping: CallGrouping,
+    onGrouping: (CallGrouping) -> Unit,
+    hidden: Set<String>,
+    onToggle: (String) -> Unit,
+) {
+    val palette = LocalBigPalette.current
+    var gesperrtText by remember(blocked) { mutableStateOf(CallBlocking.format(blocked)) }
+    val abgewiesen = remember(gesperrtText) { CallBlocking.rejected(gesperrtText) }
+    LazyColumn(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        // Die Anrufliste steht oben, weil der Weg hierher von ihr kommt: aus der Liste
+        // fuehrt "welche Arten erscheinen" hierher, und wer dann als Erstes ein Feld fuer
+        // gesperrte Nummern sieht, glaubt, auf der falschen Seite gelandet zu sein.
+        // Innerhalb davon die Gruppierung vor den Arten: sie betrifft die ganze Liste, das
+        // Aus- und Einblenden einzelner Arten nur ihren Inhalt.
+        item { BigHeading(stringResource(R.string.call_grouping)) }
+        items(CallGrouping.entries.toList()) { art ->
+            BigRow(
+                label = stringResource(groupingLabel(art)),
+                secondary = stringResource(groupingHint(art)),
+                surface = if (art == grouping) palette.surfaceAccent else palette.surfaceDefault,
+                onClick = { onGrouping(art) },
+            )
+        }
+        item { BigHeading(stringResource(R.string.settings_call_types)) }
+        item {
+            Text(
+                text = stringResource(R.string.call_types_hint),
+                color = palette.onBackground,
+                fontSize = 15.sp,
+                modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp),
+            )
+        }
+        items(CallDirection.entries.toList()) { art ->
+            val sichtbar = art.name !in hidden
+            BigRow(
+                label = stringResource(callDirectionLabel(art)),
+                icon = if (sichtbar) Icons.Filled.Check else null,
+                surface = if (sichtbar) palette.surfaceAccent else palette.surfaceDefault,
+                onClick = { onToggle(art.name) },
+            )
+        }
+        // PLAN.md 4.6: Nummernsperre. Die Liste steht in einer Zeile wie bei den
+        // Notrufnummern - auf drei Zoll geht das schneller als eine Liste mit Plus-Knopf,
+        // und CallBlocking sortiert beim Einlesen streng aus.
+        item { BigHeading(stringResource(R.string.blocked_numbers)) }
+        item {
+            Text(
+                text = stringResource(R.string.blocked_numbers_hint),
+                color = palette.onBackground,
+                fontSize = 15.sp,
+                modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp),
+            )
+        }
+        item {
+            OutlinedTextField(
+                value = gesperrtText,
+                onValueChange = { gesperrtText = it },
+                placeholder = { Text(stringResource(R.string.blocked_numbers_placeholder), fontSize = 15.sp) },
+                textStyle = LocalTextStyle.current.copy(fontSize = 17.sp),
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
+            )
+        }
+        if (abgewiesen.isNotEmpty()) {
+            item {
+                Text(
+                    text = stringResource(R.string.blocked_numbers_rejected, abgewiesen.joinToString(", ")),
+                    color = palette.danger,
+                    fontSize = 15.sp,
+                    modifier = Modifier.padding(horizontal = 4.dp),
+                )
+            }
+        }
+        item {
+            BigRow(
+                label = stringResource(R.string.blocked_numbers_save),
+                surface = palette.surfaceAccent,
+                onClick = { onBlocked(gesperrtText) },
+            )
+        }
+        // PLAN.md 4.6: Standard-Audioausgabe und Lautsprecher bei abgehenden Anrufen.
+        item { BigHeading(stringResource(R.string.call_audio)) }
+        items(AudioRoute.entries.toList()) { weg ->
+            BigRow(
+                label = stringResource(audioLabel(weg)),
+                surface = if (weg == audioRoute) palette.surfaceAccent else palette.surfaceDefault,
+                onClick = { onAudioRoute(weg) },
+            )
+        }
+        item {
+            BigRow(
+                label = stringResource(
+                    if (speakerOnOutgoing) R.string.call_speaker_out_on else R.string.call_speaker_out_off,
+                ),
+                secondary = stringResource(R.string.call_speaker_out_hint),
+                surface = if (speakerOnOutgoing) palette.surfaceAccent else palette.surfaceDefault,
+                onClick = onToggleSpeakerOnOutgoing,
+            )
+        }
+        // PLAN.md 4.6: Kontaktfoto beim Anruf.
+        item { BigHeading(stringResource(R.string.caller_photo)) }
+        item {
+            Text(
+                text = stringResource(R.string.caller_photo_hint),
+                color = palette.onBackground,
+                fontSize = 15.sp,
+                modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp),
+            )
+        }
+        items(CallerPhoto.entries.toList()) { groesse ->
+            BigRow(
+                label = stringResource(photoLabel(groesse)),
+                surface = if (groesse == photo) palette.surfaceAccent else palette.surfaceDefault,
+                onClick = { onPhoto(groesse) },
+            )
+        }
+    }
+}
+
+private fun audioLabel(weg: AudioRoute): Int = when (weg) {
+    AudioRoute.EARPIECE -> R.string.call_audio_earpiece
+    AudioRoute.SPEAKER -> R.string.call_audio_speaker
+    AudioRoute.BLUETOOTH -> R.string.call_audio_bluetooth
+}
+
+private fun photoLabel(groesse: CallerPhoto): Int = when (groesse) {
+    CallerPhoto.OFF -> R.string.caller_photo_off
+    CallerPhoto.SMALL -> R.string.caller_photo_small
+    CallerPhoto.HALF -> R.string.caller_photo_half
+    CallerPhoto.FULL -> R.string.caller_photo_full
+}
+
+private fun groupingLabel(art: CallGrouping): Int = when (art) {
+    CallGrouping.NONE -> R.string.call_grouping_none
+    CallGrouping.NUMBER -> R.string.call_grouping_number
+    CallGrouping.DIRECTION -> R.string.call_grouping_direction
+}
+
+private fun groupingHint(art: CallGrouping): Int = when (art) {
+    CallGrouping.NONE -> R.string.call_grouping_none_hint
+    CallGrouping.NUMBER -> R.string.call_grouping_number_hint
+    CallGrouping.DIRECTION -> R.string.call_grouping_direction_hint
+}
+
+private fun callDirectionLabel(direction: CallDirection): Int = when (direction) {
+    CallDirection.INCOMING -> R.string.call_type_incoming
+    CallDirection.OUTGOING -> R.string.call_type_outgoing
+    CallDirection.MISSED -> R.string.call_type_missed
+    CallDirection.REJECTED -> R.string.call_type_rejected
+    CallDirection.BLOCKED -> R.string.call_type_blocked
+    CallDirection.OTHER -> R.string.call_type_other
+}
+
+/** Die Vibrationsdauern in Worten. Siehe [SmsNotifications.VIBRATION_CHOICES]. */
+private fun vibrationLabel(dauer: Int): Int = when (dauer) {
+    0 -> R.string.sms_vibration_off
+    200 -> R.string.sms_vibration_short
+    500 -> R.string.sms_vibration_medium
+    else -> R.string.sms_vibration_long
+}
+
+/**
+ * Nachrichten (`PLAN.md` 4.7).
+ *
+ * Der Filter **verbirgt**, er sperrt nicht: BigLau hält die SMS-Rolle nicht und kann eine
+ * Nachricht weder abweisen noch am Speichern hindern. Sie kommt an und liegt in der
+ * Datenbank des Systems — sie steht nur nicht in dieser Liste. Genau das sagen die Texte
+ * hier auch; eine Sperre, die man für dichter hält, als sie ist, ist gefährlicher als eine,
+ * deren Grenze man kennt.
+ */
+@Composable
+private fun MessagesSettingsList(
+    confirmSend: Boolean,
+    onToggleConfirmSend: () -> Unit,
+    sendAbove: Boolean,
+    onToggleSendAbove: () -> Unit,
+    sendLarge: Boolean,
+    onToggleSendLarge: () -> Unit,
+    scale: Float,
+    onScale: (Float) -> Unit,
+    numbers: List<String>,
+    words: List<String>,
+    onNumbers: (String) -> Unit,
+    onWords: (String) -> Unit,
+    vibrationMs: Int,
+    onVibration: (Int) -> Unit,
+    fullScreen: Boolean,
+    onToggleFullScreen: () -> Unit,
+    repeatMinutes: Int,
+    onRepeat: (Int) -> Unit,
+) {
+    val palette = LocalBigPalette.current
+    var nummernText by remember(numbers) { mutableStateOf(CallBlocking.format(numbers)) }
+    var woerterText by remember(words) { mutableStateOf(SmsFilter.formatWords(words)) }
+    LazyColumn(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        item { BigHeading(stringResource(R.string.settings_messages)) }
+        // PLAN.md 4.7: die Schriftgroesse im Gespraech ist ausdruecklich getrennt von der
+        // globalen. Eine Nachricht liest man am Stueck und aus der Hand.
+        item { BigHeading(stringResource(R.string.sms_scale)) }
+        items(ConversationText.CHOICES) { wert ->
+            BigRow(
+                label = "${(wert * 100).toInt()} %",
+                surface = if (wert == scale) palette.surfaceAccent else palette.surfaceDefault,
+                onClick = { onScale(wert) },
+            )
+        }
+        item {
+            BigRow(
+                label = stringResource(
+                    if (fullScreen) R.string.sms_fullscreen_on else R.string.sms_fullscreen_off,
+                ),
+                secondary = stringResource(R.string.sms_fullscreen_hint),
+                surface = if (fullScreen) palette.surfaceAccent else palette.surfaceDefault,
+                onClick = onToggleFullScreen,
+            )
+        }
+        // PLAN.md 4.7: wiederholte Erinnerung. Eine Meldung, die einmal kommt, verpasst
+        // man - wer das Telefon in der Tasche hat, sieht sie sonst erst am Abend.
+        item { BigHeading(stringResource(R.string.sms_repeat)) }
+        items(SmsReminder.CHOICES) { minuten ->
+            BigRow(
+                label = if (minuten == 0) {
+                    stringResource(R.string.sms_repeat_off)
+                } else {
+                    pluralStringResource(R.plurals.sms_repeat_minutes, minuten, minuten)
+                },
+                surface = if (minuten == repeatMinutes) palette.surfaceAccent else palette.surfaceDefault,
+                onClick = { onRepeat(minuten) },
+            )
+        }
+        // PLAN.md 4.7: Vibrationsdauer. Sie steht im Benachrichtigungskanal, damit die
+        // Meldung sich weiter an "Bitte nicht stoeren" haelt - siehe SmsNotifications.
+        item { BigHeading(stringResource(R.string.sms_vibration)) }
+        items(SmsNotifications.VIBRATION_CHOICES) { dauer ->
+            BigRow(
+                // Kurz, mittel, lang statt Millisekunden: eine Zahl in ms sagt niemandem,
+                // wie sich das anfuehlt, und diese App richtet sich nicht an Techniker.
+                label = stringResource(vibrationLabel(dauer)),
+                surface = if (dauer == vibrationMs) palette.surfaceAccent else palette.surfaceDefault,
+                onClick = { onVibration(dauer) },
+            )
+        }
+        // PLAN.md 4.7: Sendeknopf - Position, Groesse, Bestaetigung vor dem Senden.
+        item { BigHeading(stringResource(R.string.sms_send_heading)) }
+        item {
+            BigRow(
+                label = stringResource(
+                    if (confirmSend) R.string.sms_confirm_on else R.string.sms_confirm_off,
+                ),
+                secondary = stringResource(R.string.sms_confirm_hint),
+                surface = if (confirmSend) palette.surfaceAccent else palette.surfaceDefault,
+                onClick = onToggleConfirmSend,
+            )
+        }
+        item {
+            BigRow(
+                label = stringResource(
+                    if (sendAbove) R.string.sms_send_above else R.string.sms_send_below,
+                ),
+                surface = if (sendAbove) palette.surfaceAccent else palette.surfaceDefault,
+                onClick = onToggleSendAbove,
+            )
+        }
+        item {
+            BigRow(
+                label = stringResource(
+                    if (sendLarge) R.string.sms_send_large else R.string.sms_send_normal,
+                ),
+                surface = if (sendLarge) palette.surfaceAccent else palette.surfaceDefault,
+                onClick = onToggleSendLarge,
+            )
+        }
+        item { BigHeading(stringResource(R.string.sms_filter_numbers_heading)) }
+        item {
+            Text(
+                text = stringResource(R.string.sms_filter_hint),
+                color = palette.onBackground,
+                fontSize = 15.sp,
+                modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp),
+            )
+        }
+        item { BigHeading(stringResource(R.string.sms_filter_numbers)) }
+        item {
+            OutlinedTextField(
+                value = nummernText,
+                onValueChange = { nummernText = it },
+                placeholder = { Text(stringResource(R.string.blocked_numbers_placeholder), fontSize = 15.sp) },
+                textStyle = LocalTextStyle.current.copy(fontSize = 17.sp),
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
+            )
+        }
+        item {
+            BigRow(
+                label = stringResource(R.string.blocked_numbers_save),
+                surface = palette.surfaceAccent,
+                onClick = { onNumbers(nummernText) },
+            )
+        }
+        item { BigHeading(stringResource(R.string.sms_filter_words)) }
+        item {
+            OutlinedTextField(
+                value = woerterText,
+                onValueChange = { woerterText = it },
+                placeholder = { Text(stringResource(R.string.sms_filter_words_placeholder), fontSize = 15.sp) },
+                textStyle = LocalTextStyle.current.copy(fontSize = 17.sp),
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
+            )
+        }
+        item {
+            BigRow(
+                label = stringResource(R.string.blocked_numbers_save),
+                surface = palette.surfaceAccent,
+                onClick = { onWords(woerterText) },
             )
         }
     }

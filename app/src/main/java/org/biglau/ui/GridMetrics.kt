@@ -57,6 +57,20 @@ fun labelSizeSp(
 ): Float = minOf(cellHeightDp * 0.14f, cellWidthDp * 0.16f).coerceIn(14f, 40f) *
     userScale * labelScale.coerceIn(LABEL_SCALE_MIN, LABEL_SCALE_MAX)
 
+/**
+ * Die Breite, die der Beschriftung in der Kachel bleibt - in dp.
+ *
+ * `PLAN.md` 3.2 sagt eine Option zu: „Label ausblenden, wenn es nicht in zwei Zeilen
+ * passt". Ob es passt, wird **gemessen** und nicht geschaetzt. Der erste Versuch rechnete
+ * mit einer mittleren Zeichenbreite und lag daneben: „Nachrichten" haette er auf dem
+ * Standardraster ausgeblendet, obwohl es dort vollstaendig steht (am Bildschirm
+ * nachgesehen). Hier bleibt nur die Rechnung, wie viel Platz da ist.
+ */
+fun labelWidthDp(cellWidthDp: Float, cellHeightDp: Float): Float {
+    val rand = (cellHeightDp * 0.06f).coerceIn(6f, 16f)
+    return (cellWidthDp - 2f * rand).coerceAtLeast(1f)
+}
+
 /** PLAN.md 4.2: Label-Groesse relativ zur Kachel, 50-150 %. */
 const val LABEL_SCALE_MIN = 0.5f
 const val LABEL_SCALE_MAX = 1.5f

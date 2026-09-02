@@ -36,6 +36,7 @@ fun WidgetTile(
     cellHeight: Dp,
     cornerRadius: Dp,
     modifier: Modifier = Modifier,
+    editMode: Boolean = false,
     onEdit: () -> Unit,
 ) {
     val context = LocalContext.current
@@ -60,6 +61,18 @@ fun WidgetTile(
                 }
             },
         )
+
+        // Im Bearbeitungsmodus gehoert die ganze Kachel der App. Der Balken oben sagt
+        // "tippe eine Kachel an, um sie zu aendern" - fuer eine Widget-Kachel stimmte das
+        // nicht: das Widget nahm die Beruehrung und oeffnete seine eigene App. Eine
+        // Anleitung, die fuer eine Kachel nicht gilt, ist schlimmer als keine.
+        if (editMode) {
+            Box(
+                modifier = Modifier
+                    .matchParentSize()
+                    .pointerInput(Unit) { detectTapGestures(onTap = { onEdit() }) },
+            )
+        }
 
         // Der Griff: nur Langdruck, damit gewoehnliche Beruehrungen beim Widget bleiben.
         //

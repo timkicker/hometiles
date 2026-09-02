@@ -74,13 +74,11 @@ object ScreenEdits {
                 if (screen.id != id) {
                     screen
                 } else {
-                    screen.copy(
-                        cols = cols,
-                        rows = rows,
-                        cells = screen.cells
-                            .filter { it.x < cols && it.y < rows }
-                            .map { it.copy(w = minOf(it.w, cols - it.x), h = minOf(it.h, rows - it.y)) },
-                    )
+                    // Dieselbe Rechnung stand hier ein zweites Mal, Zeile fuer Zeile wie
+                    // in CellLayout.fitToGrid - nur dass die getestete Fassung niemand
+                    // aufrief und diese hier lief. Zwei Kopien einer Regel heisst: eine
+                    // wird irgendwann repariert und die andere nicht.
+                    CellLayout.fitToGrid(screen.copy(cols = cols, rows = rows))
                 }
             },
         )
@@ -106,6 +104,28 @@ object ScreenEdits {
     }
 
     /**
+     * Was ein Loeschen kostet: belegte Kacheln des Screens und Ordner, die mit ihm gehen.
+     *
+     * Steht in der Rueckfrage. Seit das Loeschen auch die Ordner des Screens abraeumt, ist
+     * die Zahl groesser als das, was man auf dem Screen sieht - der Inhalt eines Ordners
+     * ist ja zugeklappt. Genau dann muss sie dastehen.
+     */
+    fun deletionLosses(config: LauncherConfig, id: String): Pair<Int, Int> {
+        val screen = config.screens.firstOrNull { it.id == id } ?: return 0 to 0
+        val kacheln = screen.cells.count { it.button.action != ButtonAction.None }
+        val ordner = screen.cells
+            .mapNotNull { (it.button.action as? ButtonAction.Folder)?.screenId }
+            .distinct()
+            .count { ordnerId ->
+                // Nur die, auf die sonst nichts mehr zeigt.
+                config.screens.flatMap { it.cells }.count { zelle ->
+                    (zelle.button.action as? ButtonAction.Folder)?.screenId == ordnerId
+                } == 1
+            }
+        return kacheln to ordner
+    }
+
+    /**
      * Loescht einen Screen und raeumt hinter ihm auf: Kacheln, die dorthin sprangen,
      * werden entfernt, und die Wischreihenfolge verliert den Eintrag. Der Startscreen
      * laesst sich nicht loeschen - sonst haette der Launcher kein Zuhause mehr.
@@ -120,18 +140,28 @@ object ScreenEdits {
             .map { screen ->
                 screen.copy(cells = screen.cells.filterNot { it.button.action == ButtonAction.GoToScreen(id) })
             }
-        return config.copy(
+        val ohneScreen = config.copy(
             screens = remaining,
             swipeOrder = config.swipeOrder.filterNot { it == id },
         )
+        // Trug der geloeschte Screen eine Ordnerkachel, blieb der Ordner liegen - fuer
+        // niemanden erreichbar, in keiner Liste sichtbar, nicht mehr zu loeschen. Er
+        // gehoerte zum Inhalt dieses Screens und geht mit ihm.
+        //
+        // Nur diese: ein Ordner, der schon vorher verwaist war, hat mit diesem Loeschen
+        // nichts zu tun und verschwindet nicht als Nebenwirkung.
+        val ordnerVonHier = config.screens.first { it.id == id }.cells
+            .mapNotNull { (it.button.action as? ButtonAction.Folder)?.screenId }
+            .toSet()
+        return FolderEdits.orphaned(ohneScreen)
+            .filter { it.id in ordnerVonHier }
+            .fold(ohneScreen) { stand, ordner -> FolderEdits.delete(stand, ordner.id) }
     }
 
-    /** Zeigt irgendeine Kachel auf einen Screen, den es nicht gibt? */
     /**
      * Screens, zu denen keine einzige Kachel führt.
      *
-     * Das Gegenstueck zu `danglingReferences`: dort zeigt eine Kachel ins Leere, hier liegt
-     * ein Screen im Leeren. Entstanden ist er meist so - angelegt, die Sprungkachel spaeter
+     * Entstanden ist er meist so - angelegt, die Sprungkachel spaeter
      * mit etwas anderem belegt, und seither ist er nur noch in der Konfiguration. Der
      * Startbildschirm zaehlt nie dazu; zu ihm fuehrt immer die Zurueck-Geste.
      */
@@ -210,14 +240,5 @@ object ScreenEdits {
                 }
             },
         )
-    }
-
-    fun danglingReferences(config: LauncherConfig): List<String> {
-        val known = config.screens.map { it.id }.toSet()
-        return config.screens
-            .flatMap { it.cells }
-            .mapNotNull { (it.button.action as? ButtonAction.GoToScreen)?.screenId }
-            .filterNot { it in known }
-            .distinct()
     }
 }

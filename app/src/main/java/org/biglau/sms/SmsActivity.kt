@@ -1,6 +1,11 @@
 package org.biglau.sms
 
 import android.Manifest
+import androidx.core.content.ContextCompat
+import android.content.pm.PackageManager
+import android.os.Build
+import android.content.ContentValues
+import android.provider.Telephony
 import android.os.Bundle
 import android.telephony.SmsManager
 import androidx.activity.ComponentActivity
@@ -34,9 +39,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.foundation.layout.height
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -55,9 +62,12 @@ import org.biglau.ui.PermissionGate
 import org.biglau.ui.PermissionState
 import org.biglau.ui.BigRow
 import org.biglau.ui.ScrollButtons
+import org.biglau.notify.SmsNotifications
 import org.biglau.ui.dpSp
 import org.biglau.ui.theme.BigLauTheme
 import org.biglau.ui.theme.LocalBigPalette
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.ui.text.style.TextAlign
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -79,6 +89,16 @@ class SmsActivity : BigLauActivity() {
         val contacts = ContactRepository.get(this)
 
         val prefilledAddress = intent?.data?.schemeSpecificPart?.let(PhoneNumbers::clean)
+        // Aus der Meldung ueber eine neue Nachricht: dann soll genau diese Unterhaltung
+        // aufgehen und nicht die Liste, in der man sie erst suchen muss.
+        val gemeldeteNummer = intent?.getStringExtra(EXTRA_ADDRESS)
+        // Nur wenn die Meldung selbst den Bildschirm genommen hat. Fest im Manifest waere
+        // es eine andere Zusage: dann laege jede Unterhaltung ueber dem Sperrbildschirm,
+        // auch die, die jemand von Hand geoeffnet und liegen gelassen hat.
+        if (intent?.getBooleanExtra(EXTRA_FULL_SCREEN, false) == true) {
+            setShowWhenLocked(true)
+            setTurnScreenOn(true)
+        }
 
         setContent {
             val config by store.config.collectAsStateWithLifecycle()
@@ -88,7 +108,12 @@ class SmsActivity : BigLauActivity() {
             var openThread by remember { mutableStateOf<Long?>(null) }
             var draft by remember { mutableStateOf("") }
             var granted by remember { mutableStateOf(repository.hasReadPermission()) }
-            val palette = LocalBigPalette.current
+
+            // Ohne Rueckfrage-Oberflaeche: sagt jemand nein, bleibt die Liste die Stelle,
+            // an der er nachsieht. Ein zweiter Sackgassen-Bildschirm dafuer waere zu viel.
+            val fragenWegenMeldungen = rememberLauncherForActivityResult(
+                ActivityResultContracts.RequestPermission(),
+            ) { }
 
             var deniedOnce by remember { mutableStateOf(false) }
             var canAskAgain by remember { mutableStateOf(true) }
@@ -109,9 +134,29 @@ class SmsActivity : BigLauActivity() {
                 if (!granted && !deniedOnce) ask.launch(Manifest.permission.READ_SMS)
             }
 
+            // Ab Android 13 darf ohne diese Zusage keine Meldung erscheinen - eine neue
+            // Nachricht kaeme dann still an. Das Zielgeraet laeuft auf Android 11, wo das
+            // System sie beim Installieren erteilt; gefragt wird trotzdem, weil die App
+            // auch auf neueren Geraeten laufen soll.
+            LaunchedEffect(Unit) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                    ContextCompat.checkSelfPermission(
+                        this@SmsActivity,
+                        Manifest.permission.POST_NOTIFICATIONS,
+                    ) != PackageManager.PERMISSION_GRANTED
+                ) {
+                    fragenWegenMeldungen.launch(Manifest.permission.POST_NOTIFICATIONS)
+                }
+            }
+
             LaunchedEffect(granted, changes) {
                 if (!granted) return@LaunchedEffect
-                messages = repository.load()
+                // Gefiltertes gar nicht erst in die Liste lassen - PLAN.md 4.7.
+                messages = SmsFilter.apply(
+                    repository.load(),
+                    config.sms.hiddenNumbers,
+                    config.sms.hiddenWords,
+                )
                 names = contacts.load().flatMap { contact ->
                     contact.numbers.map { PhoneNumbers.clean(it.number) to contact.name }
                 }.toMap()
@@ -119,6 +164,31 @@ class SmsActivity : BigLauActivity() {
 
             val threads = remember(messages, names) {
                 SmsThreads.group(messages) { names[PhoneNumbers.clean(it)] }
+            }
+
+            // Gelesen ist gelesen: sonst stuende die Zahl neben dem Namen fuer immer da.
+            // Die Meldung dazu geht mit weg - wer die Unterhaltung offen hat, hat sie
+            // gesehen.
+            LaunchedEffect(openThread) {
+                val offen = openThread ?: return@LaunchedEffect
+                if (repository.markRead(offen)) SmsRepository.notifyChanged()
+                threads.firstOrNull { it.threadId == offen }?.let {
+                    SmsNotifications.clear(this@SmsActivity, it.address)
+                }
+            }
+
+            // Erst wenn die Nachrichten da sind, laesst sich die gemeldete Nummer einer
+            // Unterhaltung zuordnen. Die Meldung selbst geht dabei weg - gesehen ist gesehen.
+            LaunchedEffect(threads, gemeldeteNummer) {
+                val nummer = gemeldeteNummer ?: return@LaunchedEffect
+                if (openThread != null) return@LaunchedEffect
+                val passend = threads.firstOrNull {
+                    PhoneNumbers.clean(it.address) == PhoneNumbers.clean(nummer)
+                }
+                if (passend != null) {
+                    openThread = passend.threadId
+                    SmsNotifications.clear(this@SmsActivity, nummer)
+                }
             }
 
             BigLauTheme(
@@ -129,8 +199,10 @@ class SmsActivity : BigLauActivity() {
                 labelScale = config.appearance.labelScale,
                 iconPercent = config.appearance.iconPercent,
                 icons = config.appearance.icons,
+                hideCutLabels = config.appearance.hideCutLabels,
                 cornerRadiusDp = config.appearance.cornerRadiusDp,
             ) {
+                val palette = LocalBigPalette.current
                 BackHandler(enabled = openThread != null) { openThread = null }
 
                 Box(
@@ -160,6 +232,10 @@ class SmsActivity : BigLauActivity() {
                                 val address = messages.firstOrNull { it.threadId == thread }?.address
                                 if (address != null) send(address, draft) { draft = "" }
                             },
+                            conversationScale = config.sms.conversationScale,
+                            confirmBeforeSending = config.sms.confirmBeforeSending,
+                            sendButtonAbove = config.sms.sendButtonAbove,
+                            sendButtonLarge = config.sms.sendButtonLarge,
                         )
 
                         else -> ThreadList(
@@ -172,6 +248,14 @@ class SmsActivity : BigLauActivity() {
                 }
             }
         }
+    }
+
+    companion object {
+        /** Die Nummer, deren Unterhaltung aufgehen soll. Siehe [org.biglau.notify.SmsNotifications]. */
+        const val EXTRA_ADDRESS = "biglau.sms.address"
+
+        /** Kommt die Nachricht als Vollbild-Meldung, darf sie ueber den Sperrbildschirm. */
+        const val EXTRA_FULL_SCREEN = "biglau.sms.fullscreen"
     }
 
     private fun send(address: String, body: String, onSent: () -> Unit) {
@@ -193,6 +277,26 @@ class SmsActivity : BigLauActivity() {
         }.getOrDefault(false)
 
         if (sent) {
+            // Mit der Rolle legt Android die gesendete Nachricht nicht mehr selbst ab.
+            // Ohne diese Zeilen zeigte die Unterhaltung nur noch die Gegenseite.
+            if (SmsDelivery.mayWrite(Telephony.Sms.getDefaultSmsPackage(this), packageName)) {
+                runCatching {
+                    contentResolver.insert(
+                        Telephony.Sms.Sent.CONTENT_URI,
+                        ContentValues().apply {
+                            SmsOutbox.values(address, body, System.currentTimeMillis())
+                                .forEach { (spalte, wert) ->
+                                    when (wert) {
+                                        is Long -> put(spalte, wert)
+                                        is Int -> put(spalte, wert)
+                                        else -> put(spalte, wert.toString())
+                                    }
+                                }
+                        },
+                    )
+                }
+                SmsRepository.notifyChanged()
+            }
             onSent()
             Notice.show(this, R.string.sms_sent)
         } else {
@@ -264,8 +368,19 @@ private fun Conversation(
     isDefaultApp: Boolean,
     onDraft: (String) -> Unit,
     onSend: () -> Unit,
+    conversationScale: Float,
+    confirmBeforeSending: Boolean,
+    sendButtonAbove: Boolean,
+    sendButtonLarge: Boolean,
 ) {
+    // Die Rueckfrage lebt hier und nicht in der Konfiguration: sie gilt fuer diesen einen
+    // Entwurf. Wer den Text aendert, faengt von vorn an.
+    var fragtNach by remember(draft) { mutableStateOf(false) }
+    val skala = ConversationText.scale(conversationScale)
     val palette = LocalBigPalette.current
+    val locale = currentLocale()
+    val uhrFormat = remember(locale) { SimpleDateFormat("HH:mm", locale) }
+    val tagFormat = remember(locale) { SimpleDateFormat("EEEE, d. MMMM", locale) }
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         BigHeading(title)
         if (!isDefaultApp) {
@@ -277,11 +392,28 @@ private fun Conversation(
                 modifier = Modifier.padding(horizontal = 4.dp),
             )
         }
+        // Eine Unterhaltung faengt unten an. Oeffnete sie oben, muesste man erst zur
+        // neuesten Nachricht scrollen - und die ist der Grund, aus dem man sie oeffnet.
+        val listState = rememberLazyListState()
+        LaunchedEffect(messages.size) {
+            if (messages.isNotEmpty()) listState.scrollToItem(messages.lastIndex)
+        }
         LazyColumn(
+            state = listState,
             modifier = Modifier.weight(1f),
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
-            items(messages, key = { it.id }) { message ->
+            itemsIndexed(messages, key = { _, message -> message.id }) { index, message ->
+                // Der Tag ueber der ersten Nachricht des Tages - nicht an jeder Zeile.
+                if (MessageStamps.startsNewDay(messages.getOrNull(index - 1)?.timestamp, message.timestamp)) {
+                    Text(
+                        text = tagFormat.format(Date(message.timestamp)),
+                        color = palette.onBackground,
+                        fontSize = dpSp(14f),
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth().padding(top = 8.dp, bottom = 4.dp),
+                    )
+                }
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -295,30 +427,72 @@ private fun Conversation(
                         )
                         .padding(12.dp),
                 ) {
-                    Text(
-                        text = message.body,
-                        color = if (message.incoming) palette.onBackground else palette.surfaceAccent.ink,
-                        fontSize = dpSp(18f),
-                    )
+                    Column {
+                        Text(
+                            text = message.body,
+                            color = if (message.incoming) palette.onBackground else palette.surfaceAccent.ink,
+                            fontSize = dpSp(18f * skala),
+                        )
+                        // Die Uhrzeit unter jeder Nachricht: ob sie von eben ist oder von
+                        // letzter Woche, ist bei "bin unterwegs" der ganze Unterschied.
+                        Text(
+                            text = uhrFormat.format(Date(message.timestamp)),
+                            color = if (message.incoming) {
+                                palette.onBackground
+                            } else {
+                                palette.surfaceAccent.ink
+                            },
+                            fontSize = dpSp(13f * skala),
+                        )
+                    }
                 }
             }
         }
-        OutlinedTextField(
-            value = draft,
-            onValueChange = onDraft,
-            textStyle = TextStyle(fontSize = 18.sp),
-            modifier = Modifier.fillMaxWidth(),
-        )
-        BigRow(
-            label = stringResource(R.string.sms_send),
-            secondary = if (draft.isNotBlank()) {
-                stringResource(R.string.sms_parts, SosMessage.partsNeeded(draft))
-            } else {
-                null
-            },
-            icon = Icons.AutoMirrored.Filled.Send,
-            surface = palette.surfaceAccent,
-            onClick = onSend,
-        )
+        val feld = @Composable {
+            OutlinedTextField(
+                value = draft,
+                onValueChange = onDraft,
+                textStyle = TextStyle(fontSize = 18.sp),
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+        val knopf = @Composable {
+            BigRow(
+                label = if (fragtNach) {
+                    stringResource(R.string.sms_send_confirm)
+                } else {
+                    stringResource(R.string.sms_send)
+                },
+                secondary = when {
+                    fragtNach -> stringResource(R.string.sms_send_confirm_hint)
+                    draft.isNotBlank() -> pluralStringResource(
+                        R.plurals.sms_parts,
+                        SosMessage.partsNeeded(draft),
+                        SosMessage.partsNeeded(draft),
+                    )
+                    else -> null
+                },
+                icon = Icons.AutoMirrored.Filled.Send,
+                surface = if (fragtNach) palette.surfaceDanger else palette.surfaceAccent,
+                modifier = if (sendButtonLarge) Modifier.height(96.dp) else Modifier,
+                onClick = {
+                    // Erst fragen, dann senden - und nur, wenn ueberhaupt etwas dasteht.
+                    // Eine Rueckfrage zu einer leeren Nachricht waere eine Frage ohne Folge.
+                    if (confirmBeforeSending && !fragtNach && draft.isNotBlank()) {
+                        fragtNach = true
+                    } else {
+                        fragtNach = false
+                        onSend()
+                    }
+                },
+            )
+        }
+        if (sendButtonAbove) {
+            knopf()
+            feld()
+        } else {
+            feld()
+            knopf()
+        }
     }
 }

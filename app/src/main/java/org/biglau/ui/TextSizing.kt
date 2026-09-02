@@ -3,6 +3,7 @@ package org.biglau.ui
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 
@@ -22,3 +23,14 @@ import androidx.compose.ui.unit.dp
 @Composable
 @ReadOnlyComposable
 fun dpSp(value: Float): TextUnit = with(LocalDensity.current) { value.dp.toSp() }
+
+/**
+ * Tabellenziffern - `PLAN.md` 3.7: „Zahlen (Anrufliste, Waehltastatur, Dauer) mit
+ * Tabellenziffern […], damit Spalten nicht springen."
+ *
+ * Gemessen, bevor es das gab: „11 %" in der Kopfzeile war 64 Pixel breit, „88 %" 74. Die
+ * Anzeige rutschte also bei jedem Prozent hin und her, und dasselbe tat die Uhr zur vollen
+ * Minute und die Gespraechsdauer im Sekundentakt. Die mitgelieferte Schrift kann `tnum`;
+ * sie wurde nur nie danach gefragt.
+ */
+val TabellenZiffern = TextStyle(fontFeatureSettings = "tnum")

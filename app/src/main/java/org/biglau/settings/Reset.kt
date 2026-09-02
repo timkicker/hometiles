@@ -49,6 +49,4 @@ object Reset {
      * ohne Hinweis, was als Nächstes zu tun ist.
      */
     fun fresh(): LauncherConfig = LauncherConfig()
-
-    fun isFresh(config: LauncherConfig): Boolean = config == fresh()
 }

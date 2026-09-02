@@ -49,9 +49,9 @@ object ScreenBackground {
      */
     fun offersChoices(theme: ThemeName): Boolean = theme != ThemeName.HIGH_CONTRAST
 
-    fun choicesFor(theme: ThemeName): List<Long> {
+    fun choicesFor(theme: ThemeName, systemIsDark: Boolean): List<Long> {
         if (!offersChoices(theme)) return emptyList()
-        val grund = paletteFor(theme).background.value.toLong() shr 32
+        val grund = paletteFor(theme, systemIsDark).background.value.toLong() shr 32
         return HUES.map { blend(grund, it, STRENGTH) }
     }
 

@@ -1,6 +1,7 @@
 package org.biglau.sms
 
 import android.Manifest
+import android.content.ContentValues
 import android.content.Context
 import android.content.pm.PackageManager
 import android.provider.Telephony
@@ -25,6 +26,32 @@ class SmsRepository(context: Context) {
 
     fun isDefaultSmsApp(): Boolean =
         Telephony.Sms.getDefaultSmsPackage(appContext) == appContext.packageName
+
+    /**
+     * Merkt sich, dass diese Unterhaltung gelesen wurde.
+     *
+     * Ohne das bleibt die Zahl neben dem Namen für immer stehen: „Oma (3)" auch dann noch,
+     * wenn man alle drei gelesen hat. Am Emulator gesehen - eine geöffnete Unterhaltung
+     * zählte weiter als ungelesen, und damit wäre auch jede Erinnerung an ungelesene
+     * Nachrichten eine, die nie aufhört.
+     *
+     * Schreiben darf nur die Standard-SMS-App. Ist BigLau es nicht, führt eine andere App
+     * diesen Zustand, und dann ist er nicht unserer - siehe [SmsDelivery.mayWrite].
+     */
+    suspend fun markRead(threadId: Long): Boolean = withContext(Dispatchers.IO) {
+        if (!isDefaultSmsApp()) return@withContext false
+        runCatching {
+            appContext.contentResolver.update(
+                Telephony.Sms.CONTENT_URI,
+                ContentValues().apply {
+                    put(Telephony.Sms.READ, 1)
+                    put(Telephony.Sms.SEEN, 1)
+                },
+                "${Telephony.Sms.THREAD_ID} = ? AND ${Telephony.Sms.READ} = 0",
+                arrayOf(threadId.toString()),
+            ) > 0
+        }.getOrDefault(false)
+    }
 
     suspend fun load(limit: Int = 500): List<SmsMessage> = withContext(Dispatchers.IO) {
         if (!hasReadPermission()) return@withContext emptyList()

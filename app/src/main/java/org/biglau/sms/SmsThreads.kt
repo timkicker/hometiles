@@ -44,14 +44,4 @@ object SmsThreads {
     /** Nachrichten eines Gespraechs, aelteste zuerst - so liest man eine Unterhaltung. */
     fun conversation(messages: List<SmsMessage>, threadId: Long): List<SmsMessage> =
         messages.filter { it.threadId == threadId }.sortedBy { it.timestamp }
-
-    /** Gehoeren zwei Adressen zur selben Nummer? Nur fuer die Anzeige, nicht fuers Gruppieren. */
-    fun sameAddress(a: String, b: String): Boolean {
-        val left = PhoneNumbers.clean(a)
-        val right = PhoneNumbers.clean(b)
-        if (left.isEmpty() || right.isEmpty()) return false
-        return left == right
-    }
-
-    fun totalUnread(threads: List<SmsThread>): Int = threads.sumOf { it.unreadCount }
 }

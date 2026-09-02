@@ -18,8 +18,17 @@ object ContactSort {
      * Sortierschluessel. Bei Nachnamen-Sortierung wandert der letzte Namensteil nach vorn,
      * der Rest folgt - "Anna Berger" wird zu "berger anna".
      *
-     * Namenszusaetze wie "van" oder "von" bleiben beim Nachnamen: "Anna van Dijk" gehoert
-     * unter D wie "van Dijk", nicht unter V.
+     * Namenszusaetze wie "van" oder "von" zaehlen fuer die Reihenfolge nicht mit: "Anna van
+     * Dijk" steht unter D, "Bernd von Ackeren" unter A. So haelt es das deutsche
+     * Telefonbuch, und so sucht auch der Mensch, der sich an "Ackeren" erinnert und nicht
+     * an das "von". Angezeigt wird der Name unveraendert - der Zusatz verschwindet nur aus
+     * der Sortierung, und er haengt sich hinten an den Schluessel, damit "Dijk" und "van
+     * Dijk" eine feste Reihenfolge behalten statt sich abzuwechseln.
+     *
+     * Am Emulator aufgefallen: "Bernd von Ackeren" stand unter V, "Emil de Vries" unter D -
+     * jeder an der Stelle, an der man ihn nicht sucht. Der Test dazu behauptete in seinem
+     * eigenen Kommentar "gehoert unter D, nicht unter V" und pruefte danach auf V; er hielt
+     * den Fehler fest, statt ihn zu finden.
      */
     fun sortKey(name: String, order: ContactOrder): String {
         val parts = name.trim().split(Regex("\\s+")).filter { it.isNotBlank() }
@@ -32,9 +41,11 @@ object ContactSort {
         while (surnameStart > 1 && parts[surnameStart - 1].lowercase() in PREFIXES) {
             surnameStart--
         }
-        val surname = parts.subList(surnameStart, parts.size).joinToString(" ")
-        val rest = parts.subList(0, surnameStart).joinToString(" ")
-        return TextSearch.normalize(if (rest.isEmpty()) surname else "$surname $rest")
+        // surnameStart zeigt auf den ersten Zusatz; der Nachname selbst faengt dahinter an.
+        val zusaetze = parts.subList(surnameStart, parts.size - 1)
+        val surname = parts.last()
+        val rest = parts.subList(0, surnameStart)
+        return TextSearch.normalize((listOf(surname) + rest + zusaetze).joinToString(" "))
     }
 
     fun sorted(
@@ -59,6 +70,19 @@ object ContactSort {
         contacts: List<PhoneContact>,
         order: ContactOrder,
     ): List<PhoneContact> = sorted(contacts.filter { it.starred }, order, favouritesFirst = false)
+
+    /**
+     * Ob die Eingabe wie eine Telefonnummer aussieht.
+     *
+     * Gebraucht fuer den Fall, dass jemand eine Nummer eintippt, waehrend die Nummernsuche
+     * abgeschaltet ist: dann steht "Kein Kontakt passt dazu" da, und das ist zwar wahr, aber
+     * es verschweigt den Grund. Drei Ziffern als Untergrenze, damit ein Kontakt namens "X3"
+     * nicht den Hinweis ausloest.
+     */
+    fun looksLikeNumber(query: String): Boolean {
+        val ziffern = query.count { it.isDigit() }
+        return ziffern >= 3 && query.none { it.isLetter() }
+    }
 
     /** Ueber welche Felder gesucht wird. */
     fun searchText(contact: PhoneContact, includeNumbers: Boolean): String = buildString {

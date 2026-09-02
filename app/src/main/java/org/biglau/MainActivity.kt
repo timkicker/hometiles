@@ -10,6 +10,7 @@ import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
@@ -63,6 +64,7 @@ import androidx.compose.runtime.LaunchedEffect
 import org.biglau.data.ConfigStore
 import org.biglau.data.LauncherConfig
 import org.biglau.safety.CrashGuard
+import org.biglau.settings.Reset
 import org.biglau.safety.CrashRecorder
 import org.biglau.safety.EmergencyScreen
 import org.biglau.safety.StartMode
@@ -145,11 +147,23 @@ class MainActivity : BigLauActivity() {
      */
     private val lockedApp = mutableStateOf<ButtonAction.App?>(null)
 
+    /**
+     * Zaehlt jede Rueckkehr auf diesen Bildschirm. Womit etwas ausserhalb der App
+     * beantwortet wird - die Standard-Launcher-Frage etwa -, muss danach neu gelesen
+     * werden; sonst zeigt der Startbildschirm einen Zustand, den es nicht mehr gibt.
+     */
+    private val resumeTick = mutableStateOf(0)
+
     override fun onDestroy() {
         // Die Sprachausgabe haelt eine Verbindung zum System-Dienst; ohne dieses Aufraeumen
         // bliebe sie ueber die Lebenszeit der Activity hinaus offen.
         Speaker.shutdown()
         super.onDestroy()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        resumeTick.value++
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -204,7 +218,15 @@ class MainActivity : BigLauActivity() {
                     onSettings = { startActivity(Intent(this, SettingsActivity::class.java)) },
                     onChooseOtherLauncher = { Intents.chooseHomeApp(this) },
                     onResetConfig = {
-                        ConfigStore.get(this).update { LauncherConfig() }
+                        // Erst die Widget-Kennungen freigeben, dann wegwerfen - genau wie
+                        // beim Zuruecksetzen in den Einstellungen. Ohne diesen Schritt
+                        // hielte der Widget-Host sie fuer immer, und die Anbieter-App
+                        // haelt ein Widget am Leben, das niemand mehr sieht. Dass es hier
+                        // fehlte, faellt nicht auf: man sieht ja gerade gar nichts.
+                        val store = ConfigStore.get(this)
+                        val host = WidgetHostController.get(this)
+                        Reset.widgetIds(store.current).forEach { host.release(it) }
+                        store.update { Reset.fresh() }
                         crashes.clearCrash()
                         recreate()
                     },
@@ -225,6 +247,12 @@ class MainActivity : BigLauActivity() {
         setContent {
             val config by store.config.collectAsStateWithLifecycle()
             SystemBarsEffect(config.appearance.fullScreen)
+            // Nach der Startbildschirm-Frage neu aufbauen: ob wir die Rolle halten,
+            // beantwortet Android im laufenden Prozess aus dem Zwischenspeicher, und der
+            // Balken staende sonst weiter da, obwohl es geklappt hat.
+            val homeRoleAsk = rememberLauncherForActivityResult(
+                ActivityResultContracts.StartActivityForResult(),
+            ) { recreate() }
             val context = LocalContext.current
             val screenId = currentScreen.value ?: config.homeScreenId
             var editMode by editModeRequest
@@ -298,6 +326,7 @@ class MainActivity : BigLauActivity() {
                                 else -> activate(cell, apps) { currentScreen.value = it }
                             }
                         },
+                        editMode = editMode,
                         onEdit = { x, y ->
                             val zelle = gezeigt.cellAt(x, y)
                             LongPress.decide(
@@ -344,6 +373,7 @@ class MainActivity : BigLauActivity() {
                 labelScale = config.appearance.labelScale,
                 iconPercent = config.appearance.iconPercent,
                 icons = config.appearance.icons,
+                hideCutLabels = config.appearance.hideCutLabels,
                 cornerRadiusDp = config.appearance.cornerRadiusDp,
             ) {
                 Column(
@@ -352,8 +382,18 @@ class MainActivity : BigLauActivity() {
                         .background(LocalBigPalette.current.background)
                         .safeDrawingPadding(),
                 ) {
-                    if (!isDefaultHome()) {
-                        HomeRolePrompt()
+                    // Bei jeder Rueckkehr neu fragen. Wer den Balken antippt, waehlt
+                    // BigLau im Systemdialog und kommt zurueck - stand der Balken dann
+                    // immer noch da, haelt er es fuer gescheitert und tippt wieder.
+                    if (!remember(resumeTick.value) { isDefaultHome() }) {
+                        HomeRolePrompt {
+                            val absicht = Intents.homeRoleIntent(this@MainActivity)
+                            if (absicht != null) {
+                                homeRoleAsk.launch(absicht)
+                            } else {
+                                Intents.chooseHomeApp(this@MainActivity)
+                            }
+                        }
                     }
                     if (editMode) {
                         EditModeBanner { editMode = false }
@@ -542,6 +582,7 @@ class MainActivity : BigLauActivity() {
                 Builtin.CONTACTS -> startActivity(Intent(this, ContactsActivity::class.java))
                 Builtin.CAMERA -> Intents.openCamera(this)
                 Builtin.CLOCK -> Intents.openClock(this)
+                Builtin.CALCULATOR -> Intents.openCalculator(this)
                 Builtin.BATTERY -> Unit
                 // Nur die Leseerlaubnis holen. Die Kachel zeigt danach den Empfang; sie
                 // waehlt nichts und meldet sich nirgends an.
@@ -617,8 +658,7 @@ class MainActivity : BigLauActivity() {
 }
 
 @Composable
-private fun HomeRolePrompt() {
-    val context = LocalContext.current
+private fun HomeRolePrompt(onClick: () -> Unit) {
     val palette = LocalBigPalette.current
     Text(
         text = stringResource(R.string.set_as_home),
@@ -628,7 +668,7 @@ private fun HomeRolePrompt() {
         modifier = Modifier
             .fillMaxWidth()
             .background(palette.surfaceAccent.fill)
-            .clickable { Intents.chooseHomeApp(context) }
+            .clickable(onClick = onClick)
             .padding(horizontal = 16.dp, vertical = 12.dp),
     )
 }

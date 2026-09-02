@@ -148,6 +148,37 @@ class GridMetricsTest {
         assertEquals(96f, iconSizeDp(cellWidthDp = 400f, cellHeightDp = 400f), 0.01f)
         assertEquals(24f, iconSizeDp(cellWidthDp = 30f, cellHeightDp = 30f), 0.01f)
     }
+
+    /**
+     * Die beiden Enden, die ein Mensch wirklich einstellt - am Geraet nachgesehen.
+     *
+     * Die Tests darueber pruefen Formen: hohe Zellen, flache Zellen, Grenzwerte. Was
+     * fehlte, war der Fall, den es auf diesem Telefon gibt: das dichteste Raster bei der
+     * kleinsten Schrift und das weiteste bei der groessten. Beides am 02.09.2026 am
+     * Emulator gesehen (3 x 5 mit fuenfzehn Kacheln bei 75 %, deutsch und englisch), und
+     * hier festgehalten, damit eine kuenftige Aenderung es nicht unbemerkt kippt.
+     */
+    @Test
+    fun `das dichteste Raster bleibt bei kleinster Schrift bedienbar`() {
+        val m = gridMetrics(width, height, cols = 3, rows = 5, gutter = gutter, borderPercent = 2)
+        // Beruehrflaeche: 48 dp ist die Untergrenze, unter der man daneben trifft.
+        assertTrue("Zelle ${m.cellWidth} dp breit", m.cellWidth >= 48f)
+        assertTrue("Zelle ${m.cellHeight} dp hoch", m.cellHeight >= 48f)
+        val label = labelSizeSp(m.cellWidth, m.cellHeight, userScale = 0.75f, labelScale = 1.0f)
+        assertTrue("Beschriftung nur $label sp", label >= 14f * 0.75f)
+        val zone = labelZoneDp(m.cellHeight, label)
+        assertTrue("fuer das Symbol bleiben nur ${m.cellHeight - zone} dp", m.cellHeight - zone > 24f)
+    }
+
+    @Test
+    fun `das weiteste Raster traegt die groesste Schrift`() {
+        val m = gridMetrics(width, height, cols = 1, rows = 2, gutter = gutter, borderPercent = 2)
+        val label = labelSizeSp(m.cellWidth, m.cellHeight, userScale = 2.0f, labelScale = 1.0f)
+        // Die Obergrenze greift, sonst risse die Beschriftung die Zelle auseinander.
+        assertTrue("Beschriftung $label sp", label <= 40f * 2.0f)
+        val zone = labelZoneDp(m.cellHeight, label)
+        assertTrue("die Beschriftungszone frisst die Zelle", zone <= m.cellHeight * 0.5f)
+    }
 }
 
 /**

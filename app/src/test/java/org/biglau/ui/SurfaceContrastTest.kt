@@ -25,8 +25,8 @@ class SurfaceContrastTest {
 
     @Test
     fun `jede Flaeche traegt ihre eigene Schrift lesbar`() {
-        ThemeName.entries.forEach { theme ->
-            paletteFor(theme).allSurfaces().forEach { surface ->
+        themenUndSystem().forEach { (theme, systemIsDark) ->
+            paletteFor(theme, systemIsDark).allSurfaces().forEach { surface ->
                 val ratio = surface.ratio()
                 assertTrue(
                     "%s: %s auf %s erreicht nur %.2f:1".format(
@@ -43,8 +43,8 @@ class SurfaceContrastTest {
         // Gilt fuer Fuellungen, die selbst die Aussage tragen: Kacheln, Akzent, Warnung.
         // Die stille Flaeche unter einer Listenzeile ist davon ausgenommen - dort
         // identifiziert der Text die Zeile, nicht die Fuellung.
-        ThemeName.entries.filter { it != ThemeName.HIGH_CONTRAST }.forEach { theme ->
-            val palette = paletteFor(theme)
+        themenUndSystem().filter { it.first != ThemeName.HIGH_CONTRAST }.forEach { (theme, systemIsDark) ->
+            val palette = paletteFor(theme, systemIsDark)
             val background = palette.background.argb()
             val meaningful = palette.tiles.indices.map(palette::surfaceTile) +
                 palette.surfaceAccent + palette.surfaceDanger
@@ -64,8 +64,8 @@ class SurfaceContrastTest {
     fun `die leere Kachel ist ueber ihren Rahmen auffindbar`() {
         // Die Fuellung ist absichtlich still (1,09:1 im dunklen Thema). Damit ein leerer
         // Platz trotzdem sichtbar ist, muss der Rahmen die Flaechenschwelle erreichen.
-        ThemeName.entries.forEach { theme ->
-            val palette = paletteFor(theme)
+        themenUndSystem().forEach { (theme, systemIsDark) ->
+            val palette = paletteFor(theme, systemIsDark)
             val ratio = contrastRatio(palette.emptyTileBorder.argb(), palette.background.argb())
             assertTrue(
                 "%s: Rahmen %s erreicht nur %.2f:1".format(theme, palette.emptyTileBorder.hex(), ratio),
@@ -76,9 +76,9 @@ class SurfaceContrastTest {
 
     @Test
     fun `jedes Thema bietet alle Flaechen an`() {
-        ThemeName.entries.forEach { theme ->
+        themenUndSystem().forEach { (theme, systemIsDark) ->
             // drei benannte Flaechen plus sechs Kachelfarben
-            assertTrue(paletteFor(theme).allSurfaces().size == 9)
+            assertTrue(paletteFor(theme, systemIsDark).allSurfaces().size == 9)
         }
     }
 

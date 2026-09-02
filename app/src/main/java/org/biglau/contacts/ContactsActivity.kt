@@ -25,6 +25,7 @@ import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PersonAdd
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.SortByAlpha
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.StarBorder
@@ -49,7 +50,9 @@ import org.biglau.R
 import kotlinx.coroutines.launch
 import org.biglau.actions.Intents
 import org.biglau.data.ConfigStore
+import org.biglau.settings.SettingsActivity
 import org.biglau.search.TextSearch
+import org.biglau.phone.PhoneNumbers
 import org.biglau.ui.BigHeading
 import org.biglau.ui.BigIconButton
 import org.biglau.ui.Notice
@@ -143,6 +146,7 @@ class ContactsActivity : BigLauActivity() {
                 labelScale = config.appearance.labelScale,
                 iconPercent = config.appearance.iconPercent,
                 icons = config.appearance.icons,
+                hideCutLabels = config.appearance.hideCutLabels,
                 cornerRadiusDp = config.appearance.cornerRadiusDp,
             ) {
                 BackHandler(enabled = selected != null) { selected = null }
@@ -204,6 +208,15 @@ class ContactsActivity : BigLauActivity() {
                             onPick = { selected = it },
                             scrollButtons = config.behaviour.accessibility.scrollButtons,
                             favouritesOnly = favouritesOnly,
+                            searchNumbers = config.contacts.searchNumbers,
+                            onSearchSettings = {
+                                startActivity(
+                                    android.content.Intent(
+                                        this@ContactsActivity,
+                                        SettingsActivity::class.java,
+                                    ).putExtra(SettingsActivity.EXTRA_PAGE, SettingsActivity.PAGE_CONTACTS),
+                                )
+                            },
                             onShowAll = { favouritesOnly = false },
                             onCreate = { startActivity(repository.createIntent()) },
                         )
@@ -227,6 +240,8 @@ private fun ContactList(
     scrollButtons: Boolean,
     favouritesOnly: Boolean,
     onShowAll: () -> Unit,
+    searchNumbers: Boolean,
+    onSearchSettings: () -> Unit,
 ) {
     val palette = LocalBigPalette.current
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -295,6 +310,22 @@ private fun ContactList(
                 fontSize = 18.sp,
                 modifier = Modifier.padding(horizontal = 4.dp, vertical = 16.dp),
             )
+            // Wer eine Nummer eintippt, waehrend nur Namen durchsucht werden, bekommt
+            // sonst eine wahre Auskunft ohne ihren Grund - und sucht den Fehler bei sich.
+            if (!searchNumbers && ContactSort.looksLikeNumber(query)) {
+                Text(
+                    text = stringResource(R.string.contacts_numbers_not_searched),
+                    color = palette.onBackground,
+                    fontSize = 15.sp,
+                    modifier = Modifier.padding(horizontal = 4.dp),
+                )
+                BigRow(
+                    label = stringResource(R.string.contacts_search_numbers_open),
+                    icon = Icons.Filled.Settings,
+                    surface = palette.surfaceAccent,
+                    onClick = onSearchSettings,
+                )
+            }
         }
         val listState = rememberLazyListState()
         LazyColumn(
@@ -305,7 +336,10 @@ private fun ContactList(
             items(contacts, key = { it.id }) { contact ->
                 BigRow(
                     label = contact.name,
-                    secondary = contact.numbers.firstOrNull()?.number,
+                    // In Bloecken, wie in der Anrufliste und in den Nachrichten.
+                    // Dieselbe Nummer sah an drei Stellen verschieden aus.
+                    secondary = contact.numbers.firstOrNull()?.number
+                        ?.let(PhoneNumbers::forDisplay),
                     secondaryMaxLines = 1,
                     leading = { ContactAvatar(contact.name, contact.photoUri) },
                     onClick = { onPick(contact) },
@@ -369,7 +403,8 @@ private fun ContactDetail(
             item {
                 BigRow(
                     label = stringResource(R.string.contacts_action_call),
-                    secondary = listOfNotNull(number.number, number.label).joinToString(" · "),
+                    secondary = listOfNotNull(PhoneNumbers.forDisplay(number.number), number.label)
+                        .joinToString(" · "),
                     icon = Icons.Filled.Call,
                     onClick = { onCall(number.number) },
                 )
@@ -377,7 +412,7 @@ private fun ContactDetail(
             item {
                 BigRow(
                     label = stringResource(R.string.contacts_action_sms),
-                    secondary = number.number,
+                    secondary = PhoneNumbers.forDisplay(number.number),
                     icon = Icons.AutoMirrored.Filled.Message,
                     onClick = { onSms(number.number) },
                 )

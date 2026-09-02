@@ -25,6 +25,48 @@ object AppLock {
         return key !in config.apps.allowed && packageName !in config.apps.allowed
     }
 
+    /** Was das Antippen des Sperr-Schalters bewirken soll. */
+    enum class Step {
+        /** Aus - jede App startet ohne PIN. */
+        TURN_OFF,
+
+        /** An - es ist etwas erlaubt, das offen bleibt. */
+        TURN_ON,
+
+        /**
+         * Nicht einschalten, sondern erst die Erlaubnisliste zeigen.
+         *
+         * Der Fall: keine App liegt auf einer Kachel, also fuellt [initialAllowance] nichts,
+         * und der Schalter wuerde in einen Zustand kippen, in dem **gar nichts** mehr ohne
+         * PIN aufgeht. Am Emulator mit einem Tipp erreicht - und darunter stand weiter
+         * "Apps auf Deinen Kacheln sind von Anfang an erlaubt", was dort schlicht nicht
+         * stimmte.
+         */
+        CHOOSE_FIRST,
+    }
+
+    /**
+     * Wie viele Apps offen blieben, wenn die Sperre jetzt einginge.
+     *
+     * Die Zeile unter dem Schalter soll das sagen und nicht raten. Erst behauptete sie
+     * fest, die Kachel-Apps seien erlaubt (auch bei null Kachel-Apps); danach behauptete
+     * sie "keine App liegt auf einer Kachel" auch dann noch, wenn schon eine
+     * Erlaubnisliste stand. Beides war eine Auskunft, die man nicht nachrechnen musste,
+     * um zu merken, dass sie nicht stimmt.
+     */
+    fun wouldAllow(config: LauncherConfig): Int =
+        if (config.apps.allowed.isNotEmpty()) {
+            config.apps.allowed.size
+        } else {
+            initialAllowance(config).size
+        }
+
+    fun toggle(config: LauncherConfig): Step = when {
+        config.apps.lockOthers -> Step.TURN_OFF
+        wouldAllow(config) > 0 -> Step.TURN_ON
+        else -> Step.CHOOSE_FIRST
+    }
+
     fun toggleAllowed(apps: AppsConfig, key: String): AppsConfig =
         if (key in apps.allowed) {
             apps.copy(allowed = apps.allowed - key)

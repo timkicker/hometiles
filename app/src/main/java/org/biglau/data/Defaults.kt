@@ -24,9 +24,6 @@ object Defaults {
         return Screen(id = MAIN_ID, name = "Start", cols = 2, rows = 3, cells = cells)
     }
 
-    fun emptyScreen(id: String, name: String, cols: Int = 2, rows: Int = 3): Screen =
-        Screen(id = id, name = name, cols = cols, rows = rows, cells = emptyList())
-
     /** Rastervorgaben. Die Zellmasse dahinter stehen in PLAN.md 3.2. */
     val layouts: List<Pair<Int, Int>> = listOf(
         1 to 1,
