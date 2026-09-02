@@ -1,6 +1,7 @@
 package org.biglau.design
 
 import java.io.File
+import org.biglau.Quelltext
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -23,7 +24,7 @@ import org.junit.Test
 class PaletteScopeTest {
 
     private val quellen: List<File> =
-        File("src/main/java").walkTopDown().filter { it.extension == "kt" }.toList()
+        Quelltext.dateien()
 
     /** Zeile des ersten Aufrufs von [name] in dieser Datei, oder null. */
     private fun ersteZeile(zeilen: List<String>, treffer: (String) -> Boolean): Int? =

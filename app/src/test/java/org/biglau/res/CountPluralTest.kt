@@ -32,6 +32,7 @@ class CountPluralTest {
         "screen_grid" to "Maß: Spalten × Zeilen",
         "screen_is_home" to "Maß: Spalten × Zeilen",
         "widget_needs" to "Maß: Spalten × Zeilen",
+        "widget_fixed" to "Maß: Spalten × Zeilen",
         "widget_no_room" to "Maß: Spalten × Zeilen",
         "screen_default_name" to "Name: Screen 1, Screen 2",
         "swipe_order_position" to "Position: Platz 2 von 5",

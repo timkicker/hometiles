@@ -35,6 +35,17 @@ object CallBlocking {
         return blocked.any { key(it) == schluessel }
     }
 
+    /**
+     * Die Frage, die [CallScreening] stellt: abweisen, bevor es klingelt?
+     *
+     * Nur **eingehende** Anrufe. Android fragt den Dienst auch bei abgehenden, und dort
+     * hiesse ein Ja: der Nutzer waehlt eine Nummer, die er selbst gesperrt hat, und der
+     * Anruf kommt nicht zustande, ohne dass ihm jemand sagt warum. Eine Sperre ist gegen
+     * andere gerichtet, nicht gegen die eigene Hand.
+     */
+    fun blocksIncoming(number: String, incoming: Boolean, blocked: Collection<String>): Boolean =
+        incoming && isBlocked(number, blocked)
+
     /** Zerlegt die Eingabezeile; leere und zu kurze Einträge fallen weg. */
     fun parse(text: String): List<String> = text
         .split(',', ';', '\n')

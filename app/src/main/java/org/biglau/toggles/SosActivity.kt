@@ -8,6 +8,9 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -37,6 +40,8 @@ import kotlinx.coroutines.delay
 import org.biglau.ui.BigLauActivity
 import org.biglau.R
 import org.biglau.actions.Sos
+import org.biglau.actions.SosLocation
+import org.biglau.actions.SosFailure
 import org.biglau.data.ConfigStore
 import org.biglau.settings.SettingsActivity
 import org.biglau.ui.BigHeading
@@ -60,12 +65,20 @@ class SosActivity : BigLauActivity() {
         enableEdgeToEdge()
         val store = ConfigStore.get(this)
 
+        // Probe: derselbe Ablauf, aber am Ende geht nichts hinaus. Gedacht zum Zeigen -
+        // wer den Notruf einrichtet, will ihn dem Menschen erklaeren koennen, der ihn
+        // spaeter im Ernst drueckt. Und geprueft werden kann der Bildschirm damit auch.
+        val probe = intent?.getBooleanExtra(EXTRA_PREVIEW, false) == true
+
         setContent {
             val config by store.config.collectAsStateWithLifecycle()
             val sos = config.sos
             var startedAt by remember { mutableStateOf(System.currentTimeMillis()) }
             var remaining by remember { mutableStateOf(SosCountdown.clamp(sos.countdownSeconds)) }
             var result by remember { mutableStateOf<String?>(null) }
+            // Nur in der Probe: der Text, der hinausginge, und ob ein Standort drin steht.
+            var previewText by remember { mutableStateOf<String?>(null) }
+            var previewLocation by remember { mutableStateOf(false) }
 
             val askSms = rememberLauncherForActivityResult(
                 ActivityResultContracts.RequestPermission(),
@@ -75,12 +88,23 @@ class SosActivity : BigLauActivity() {
 
             // Der Alarm hoert auf, sobald dieser Bildschirm zu ist. Ein Ton, den man nur
             // durch Neustart losgeworden waere, macht aus dem Notruf ein Aergernis.
+            // Waehrend der Countdown laeuft, sucht das Telefon nach einer frischen
+            // Position - die zuletzt bekannte ist oft Stunden alt. Siehe SosLocation.
+            val ortung = remember { SosLocation(this@SosActivity) }
             DisposableEffect(Unit) {
-                onDispose { SosAlarm.stop(this@SosActivity) }
+                if (sos.sendLocation) ortung.start()
+                onDispose {
+                    SosAlarm.stop(this@SosActivity)
+                    ortung.stop()
+                }
             }
 
-            LaunchedEffect(configured) {
-                if (!configured) return@LaunchedEffect
+            LaunchedEffect(configured, probe) {
+                // In der Probe laeuft der Countdown auch ohne eingetragene Kontakte: sie
+                // soll den Ablauf zeigen, und wer sie startet, hat den Notruf gerade erst
+                // vor sich. Am Ende steht dann trotzdem, dass ohne Kontakte auch im
+                // Ernstfall nichts hinausginge.
+                if (!configured && !probe) return@LaunchedEffect
                 startedAt = System.currentTimeMillis()
                 while (true) {
                     remaining = SosCountdown.remaining(startedAt, System.currentTimeMillis(), sos.countdownSeconds)
@@ -90,15 +114,32 @@ class SosActivity : BigLauActivity() {
                 // Erst jetzt, nicht schon waehrend des Countdowns: ein abgebrochener
                 // Fehlalarm bleibt still. Siehe SosAlarm.
                 SosAlarm.start(this@SosActivity, sos)
+                if (probe) {
+                    // Kein Sos.send: eine Probe, die sendet, ist keine. Gezeigt wird aber,
+                    // **was** hinausginge - sonst liesse sich der Text nur herausfinden,
+                    // indem man ihn abschickt.
+                    val (text, mitStandort) = Sos.compose(this@SosActivity, sos)
+                    result = listOfNotNull(
+                        getString(R.string.sos_preview_done),
+                        getString(R.string.sos_not_configured).takeIf { !configured },
+                    ).joinToString(" ")
+                    previewText = text
+                    previewLocation = mitStandort
+                    return@LaunchedEffect
+                }
                 val outcome = Sos.send(this@SosActivity, sos)
                 result = when {
                     outcome.ok && outcome.hadLocation ->
                         resources.getQuantityString(R.plurals.sos_sent_location_plural, outcome.sent, outcome.sent)
                     outcome.ok ->
                         resources.getQuantityString(R.plurals.sos_sent_plain_plural, outcome.sent, outcome.sent)
-                    else -> getString(R.string.sos_failed)
+                    else -> getString(Sos.failureText(outcome.failure))
                 }
-                if (!outcome.ok) askSms.launch(Manifest.permission.SEND_SMS)
+                // Nur fragen, wenn die Erlaubnis wirklich fehlt. Nach einem Netzfehler
+                // danach zu fragen, schiebt die Schuld auf etwas, das gar nicht fehlte.
+                if (outcome.failure == SosFailure.NO_PERMISSION) {
+                    askSms.launch(Manifest.permission.SEND_SMS)
+                }
             }
 
             BigLauTheme(
@@ -121,9 +162,13 @@ class SosActivity : BigLauActivity() {
                         .padding(horizontal = 8.dp),
                 ) {
                     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        BigHeading(stringResource(R.string.sos))
+                        // In der Probe heisst der Bildschirm anders - sonst weiss niemand,
+                        // der ihn zufaellig sieht, ob es gerade ernst ist.
+                        BigHeading(
+                            stringResource(if (probe) R.string.sos_preview_title else R.string.sos),
+                        )
                         when {
-                            !configured -> {
+                            !configured && !probe -> {
                                 Text(
                                     text = stringResource(R.string.sos_not_configured),
                                     color = palette.onBackground,
@@ -160,16 +205,48 @@ class SosActivity : BigLauActivity() {
                                     fontWeight = FontWeight.Bold,
                                     modifier = Modifier.padding(horizontal = 4.dp),
                                 )
+                                // Der Text, der hinausginge - Wort fuer Wort, mit dem
+                                // Kartenlink, wenn ein Standort da ist. Wer den Notruf fuer
+                                // jemanden einrichtet, soll ihn lesen koennen, bevor er im
+                                // Ernstfall bei jemand anderem ankommt.
+                                previewText?.let { text ->
+                                    Text(
+                                        text = stringResource(
+                                            if (previewLocation) R.string.sos_preview_text_location
+                                            else R.string.sos_preview_text,
+                                        ),
+                                        color = palette.onBackground,
+                                        fontSize = dpSp(15f),
+                                        modifier = Modifier.padding(horizontal = 4.dp),
+                                    )
+                                    Text(
+                                        text = text,
+                                        color = palette.onBackground,
+                                        fontSize = dpSp(17f),
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .weight(1f, fill = false)
+                                            .verticalScroll(rememberScrollState())
+                                            .padding(horizontal = 4.dp),
+                                    )
+                                }
                                 BigRow(stringResource(R.string.dialog_close), onClick = { finish() })
                             }
 
                             else -> {
                                 Text(
-                                    text = pluralStringResource(
-                                        R.plurals.sos_counting_plural,
-                                        sos.numbers.size,
-                                        sos.numbers.size,
-                                    ),
+                                    // In der Probe steht hier, dass nichts hinausgeht -
+                                    // "Wird an 0 Kontakte gesendet" waere sonst der Satz,
+                                    // und der ist weder wahr noch verstaendlich.
+                                    text = if (probe) {
+                                        stringResource(R.string.sos_preview_hint)
+                                    } else {
+                                        pluralStringResource(
+                                            R.plurals.sos_counting_plural,
+                                            sos.numbers.size,
+                                            sos.numbers.size,
+                                        )
+                                    },
                                     color = palette.onBackground,
                                     fontSize = dpSp(17f),
                                     modifier = Modifier.padding(horizontal = 4.dp),
@@ -197,5 +274,10 @@ class SosActivity : BigLauActivity() {
                 }
             }
         }
+    }
+
+    companion object {
+        /** Probe: derselbe Ablauf, aber es geht nichts hinaus. */
+        const val EXTRA_PREVIEW = "biglau.sos.preview"
     }
 }

@@ -5,15 +5,6 @@ import org.biglau.data.Button
 import org.biglau.data.ButtonAction
 
 /**
- * Welche Standard-Apps das System gerade verwendet. Null heisst: keine gesetzt oder
- * nicht ermittelbar - dann blinkt die zugehoerige Kachel eben nicht.
- */
-data class SystemPackages(
-    val sms: String? = null,
-    val dialer: String? = null,
-)
-
-/**
  * Welches Paket eine Kachel beobachtet.
  *
  * Eine App-Kachel beobachtet ihre eigene App. Die Kacheln "Telefon" und "Nachrichten" zeigen
@@ -27,6 +18,8 @@ object TileNotifications {
         is ButtonAction.Action -> when (action.builtin) {
             Builtin.MESSAGES -> system.sms
             Builtin.DIALER -> system.dialer
+            // MISSED_CALLS steht bewusst nicht hier: die zaehlt die Anrufliste, nicht
+            // fremde Meldungen. Siehe badgeFor.
             else -> null
         }
         else -> null
@@ -49,14 +42,35 @@ object TileNotifications {
         else -> false
     }
 
-    /** Anzahl fuer diese Kachel; null oder abgeschaltet ergibt null Treffer. */
+    /**
+     * Anzahl fuer diese Kachel; null oder abgeschaltet ergibt null Treffer.
+     *
+     * **Verpasste Anrufe zaehlen anders**, und das war ein Fehler: die Kachel sah auf die
+     * Meldungen der Standard-Telefon-App - und das ist BigLau selbst, sobald sie die Rolle
+     * hat. Die Meldung ueber einen verpassten Anruf kommt aber vom System (Telecom), nicht
+     * von der Telefon-App. Am Emulator standen **elf ungesehene verpasste Anrufe** in der
+     * Liste, und auf der Kachel stand nichts.
+     *
+     * Deshalb zaehlt sie jetzt die Anrufliste selbst - das ist ohnehin die Quelle, die der
+     * Nutzer meint, und sie braucht keinen Zugriff auf fremde Meldungen.
+     */
     fun badgeFor(
         button: Button,
         counts: Map<String, Int>,
         system: SystemPackages,
+        missed: Int = 0,
+        unread: Int? = null,
     ): Int {
         if (!button.blink) return 0
-        val watched = watchedPackage(button.action, system) ?: return 0
+        val action = button.action
+        if (action is ButtonAction.Action) {
+            if (action.builtin == Builtin.MISSED_CALLS) return missed
+            // Ungelesene Nachrichten weiss der Anbieter genauer als die Meldungen. Null
+            // heisst: BigLau darf nicht lesen - dann bleiben die Meldungen die beste
+            // Auskunft, die es gibt.
+            if (action.builtin == Builtin.MESSAGES && unread != null) return unread
+        }
+        val watched = watchedPackage(action, system) ?: return 0
         return counts[watched] ?: 0
     }
 }

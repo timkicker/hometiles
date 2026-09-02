@@ -1,6 +1,7 @@
 package org.biglau.design
 
 import java.io.File
+import org.biglau.Quelltext
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -21,7 +22,7 @@ import org.junit.Test
 class ActivityBaseTest {
 
     private val quellen: List<File> =
-        File("src/main/java").walkTopDown().filter { it.extension == "kt" }.toList()
+        Quelltext.dateien()
 
     private fun activityZeilen(): List<Pair<String, String>> =
         quellen.flatMap { datei ->

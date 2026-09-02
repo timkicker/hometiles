@@ -20,13 +20,11 @@ class ScreenTest {
         assertTrue(c.covers(1, 2))
         assertTrue(!c.covers(0, 2))
         assertTrue(!c.covers(1, 3))
-        assertEquals(1, c.area)
     }
 
     @Test
     fun `eine gespannte Zelle deckt alle Plaetze darunter ab`() {
         val c = cell(0, 0, w = 2, h = 2)
-        assertEquals(4, c.area)
         listOf(0 to 0, 1 to 0, 0 to 1, 1 to 1).forEach { (x, y) ->
             assertTrue("($x,$y) muesste belegt sein", c.covers(x, y))
         }

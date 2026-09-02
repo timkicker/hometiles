@@ -71,7 +71,7 @@ class ScreenBackgroundTest {
      */
     @Test
     fun `es gibt genau zwei arten von hintergrund`() {
-        val modell = java.io.File("src/main/java/org/biglau/data/Model.kt").readText()
+        val modell = org.biglau.Quelltext.datei("org/biglau/data/Model.kt").readText()
         val abschnitt = modell.substringAfter("sealed interface Background {")
             .substringBefore("}")
         assertEquals(true, abschnitt.contains("Theme"))

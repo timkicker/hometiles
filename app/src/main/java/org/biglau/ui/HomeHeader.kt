@@ -82,7 +82,7 @@ fun HomeHeader(
     val timeFormat = remember(twentyFourHour, locale) {
         SimpleDateFormat(if (twentyFourHour) "HH:mm" else "h:mm a", locale)
     }
-    val datePattern = ClockFormat.datePattern(clock, onTile = false)
+    val datePattern = bestDatePattern(ClockFormat.dateSkeleton(clock, onTile = false), locale)
     val dateFormat = remember(locale, datePattern) {
         datePattern?.let { SimpleDateFormat(it, locale) }
     }
@@ -106,7 +106,7 @@ fun HomeHeader(
             // der Uhr. Sonst schneidet die Kopfzeile ihre eigene Zeile ab.
             .height(
                 ClockFormat.headerHeightDp(
-                    hasDate = ClockFormat.datePattern(clock, onTile = false) != null,
+                    hasDate = ClockFormat.dateSkeleton(clock, onTile = false) != null,
                     textScale = scale,
                     clockScale = clockScale,
                 ).dp,

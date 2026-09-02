@@ -1,6 +1,7 @@
 package org.biglau.design
 
 import java.io.File
+import org.biglau.Quelltext
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -21,8 +22,7 @@ import org.junit.Test
  */
 class DocPlacementTest {
 
-    private val quellen: List<File> = listOf(File("src/main/java"), File("src/test/java"))
-        .flatMap { it.walkTopDown().filter { datei -> datei.extension == "kt" } }
+    private val quellen: List<File> = Quelltext.dateien() + Quelltext.testDateien()
 
     @Test
     fun `kein Doku-Block steht auf einem anderen`() {

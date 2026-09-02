@@ -1,5 +1,6 @@
 package org.biglau.sms
 
+import org.biglau.notify.RespondNotice
 import android.app.Service
 import android.content.BroadcastReceiver
 import android.content.ContentValues
@@ -99,11 +100,27 @@ class WapPushDeliverReceiver : BroadcastReceiver() {
     }
 }
 
+/**
+ * „Anruf mit Nachricht ablehnen" - der Weg, auf dem eine andere App uns bittet, eine
+ * Nachricht zu schicken.
+ *
+ * **Hier stand ein stummer Leerlauf:** der Dienst nahm die Bitte an, tat nichts und hielt
+ * sich fuer fertig. Wer im System-Dialer „Kann jetzt nicht sprechen" antippte, bekam keine
+ * Fehlermeldung - und der Anrufer bekam keine Nachricht. Das ist die schlimmste Sorte
+ * Fehler in dieser App: eine, die aussieht wie Erfolg.
+ *
+ * BigLau sendet hier **nicht von sich aus**. Eine Nachricht, die eine fremde App auslöst
+ * und die niemand mehr zu sehen bekommt, waere genau das Gegenteil dessen, was diese App
+ * verspricht. Stattdessen fuehrt eine Meldung in die Unterhaltung, mit dem Text schon im
+ * Feld - abschicken tut der Mensch, dem das Telefon gehoert.
+ */
 class RespondViaMessageService : Service() {
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        // Ablehnen mit Nachricht kommt zusammen mit der Anrufuebernahme.
+        val nummer = intent?.data?.schemeSpecificPart.orEmpty()
+        val text = intent?.getStringExtra(Intent.EXTRA_TEXT).orEmpty()
+        RespondNotice.show(this, nummer, text)
         stopSelf(startId)
         return START_NOT_STICKY
     }

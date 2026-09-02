@@ -19,6 +19,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.material.icons.filled.Close
 import org.biglau.apps.AppLock
 import org.biglau.security.Pin
+import org.biglau.sms.SmsRepository
+import org.biglau.ui.bigSp
 import org.biglau.ui.PinGate
 import org.biglau.ui.SystemBarsEffect
 import org.biglau.ui.BigLauActivity
@@ -61,6 +63,8 @@ import org.biglau.data.ButtonAction
 import org.biglau.data.PressMode
 import org.biglau.data.Cell
 import androidx.compose.runtime.LaunchedEffect
+import androidx.core.content.ContextCompat
+import android.content.pm.PackageManager
 import org.biglau.data.ConfigStore
 import org.biglau.data.LauncherConfig
 import org.biglau.safety.CrashGuard
@@ -73,6 +77,7 @@ import org.biglau.data.ContactMode
 import org.biglau.info.BatteryRepository
 import org.biglau.info.SignalRepository
 import org.biglau.notify.NotificationRepository
+import org.biglau.phone.CallLogRepository
 import org.biglau.phone.DialerActivity
 import org.biglau.toggles.SosActivity
 import org.biglau.ui.Notice
@@ -259,6 +264,17 @@ class MainActivity : BigLauActivity() {
             var popupLabel by remember { mutableStateOf<String?>(null) }
             val screen = config.screenById(screenId) ?: config.homeScreen
             val counts by NotificationRepository.counts.collectAsStateWithLifecycle()
+            // Ungesehene verpasste Anrufe, bei jeder Rueckkehr neu gezaehlt: wer die Liste
+            // gerade gelesen hat, soll die Zahl nicht weiter auf der Kachel stehen sehen.
+            var verpasst by remember { mutableStateOf(0) }
+            // Ungelesene Nachrichten aus dem Anbieter; null heisst "darf nicht lesen",
+            // dann bleiben die Meldungen die Auskunft.
+            var ungelesen by remember { mutableStateOf<Int?>(null) }
+            LaunchedEffect(resumeTick.value, counts) {
+                verpasst = CallLogRepository.get(context).newMissedCount()
+                val sms = SmsRepository.get(context)
+                ungelesen = if (sms.hasReadPermission()) sms.unreadCount() else null
+            }
             // Bei jeder Rueckkehr neu lesen: der Nutzer kann die Standard-App
             // zwischendurch in den Systemeinstellungen gewechselt haben.
             val systemPackages = remember(counts) { SystemPackagesReader.read(context) }
@@ -309,6 +325,9 @@ class MainActivity : BigLauActivity() {
                         folderOf = { id -> config.screens.firstOrNull { it.id == id && it.isFolder } },
                         notificationCounts =
                             if (config.behaviour.blinkOnNotification) counts else emptyMap(),
+                        missedCalls = if (config.behaviour.blinkOnNotification) verpasst else 0,
+                        unreadMessages =
+                            if (config.behaviour.blinkOnNotification) ungelesen else null,
                         systemPackages = systemPackages,
                         battery = battery,
                         signal = signal,
@@ -480,7 +499,9 @@ class MainActivity : BigLauActivity() {
                         onCheck = { eingabe -> Pin.verify(eingabe, config.security.pin) },
                         onAccept = {
                             lockedApp.value = null
-                            apps.launch(wartend.packageName, wartend.activityName)
+                            if (!apps.launch(wartend.packageName, wartend.activityName)) {
+                                Notice.show(this@MainActivity, R.string.app_gone)
+                            }
                         },
                         acceptOnComplete = true,
                     )
@@ -547,8 +568,11 @@ class MainActivity : BigLauActivity() {
                 )
                 if (gesperrt) {
                     lockedApp.value = action
-                } else {
-                    apps.launch(action.packageName, action.activityName)
+                } else if (!apps.launch(action.packageName, action.activityName)) {
+                    // Die App ist deinstalliert worden, die Kachel steht noch. Ohne diese
+                    // Meldung tippt man auf eine Kachel, die einfach nichts tut - und haelt
+                    // das Telefon fuer kaputt.
+                    Notice.show(this, R.string.app_gone)
                 }
             }
 
@@ -663,7 +687,7 @@ private fun HomeRolePrompt(onClick: () -> Unit) {
     Text(
         text = stringResource(R.string.set_as_home),
         color = palette.surfaceAccent.ink,
-        fontSize = 18.sp,
+        fontSize = bigSp(18f),
         fontWeight = FontWeight.Bold,
         modifier = Modifier
             .fillMaxWidth()
@@ -680,7 +704,7 @@ private fun EditModeBanner(onLeave: () -> Unit) {
     Text(
         text = stringResource(R.string.edit_mode_banner),
         color = palette.surfaceAccent.ink,
-        fontSize = 16.sp,
+        fontSize = bigSp(16f),
         fontWeight = FontWeight.Bold,
         modifier = Modifier
             .fillMaxWidth()
@@ -849,7 +873,18 @@ private fun SignalPermissionExplainer(onAsk: () -> Unit, onDismiss: () -> Unit) 
             modifier = Modifier.padding(horizontal = 4.dp, vertical = 8.dp),
         )
         Text(
-            text = stringResource(R.string.signal_permission_body),
+            // Der Satz "kann es auch nicht: die Berechtigung dafuer hat es nicht" ist eine
+            // Zusage ueber dieses Geraet - also wird nachgesehen. Haelt die App die
+            // Telefon-Rolle, hat sie CALL_PHONE, und die starke Fassung waere falsch. Am
+            // Emulator aufgefallen, wo genau das der Fall ist.
+            text = if (
+                ContextCompat.checkSelfPermission(LocalContext.current, Manifest.permission.CALL_PHONE) ==
+                PackageManager.PERMISSION_GRANTED
+            ) {
+                stringResource(R.string.signal_permission_body_may_call)
+            } else {
+                stringResource(R.string.signal_permission_body)
+            },
             color = palette.onBackground,
             fontSize = org.biglau.ui.dpSp(16f),
             modifier = Modifier.padding(horizontal = 4.dp, vertical = 8.dp),

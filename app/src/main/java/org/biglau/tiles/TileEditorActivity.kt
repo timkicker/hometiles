@@ -27,6 +27,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
@@ -45,7 +46,9 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.CropFree
 import androidx.compose.material.icons.filled.Folder
+import org.biglau.ui.bigSp
 import org.biglau.ui.theme.LocalCornerRadius
+import org.biglau.ui.theme.LocalIconVisibility
 import org.biglau.ui.BigLauActivity
 import org.biglau.notify.TileNotifications
 import androidx.compose.material.icons.filled.NotificationsActive
@@ -58,6 +61,7 @@ import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.OpenInFull
+import androidx.compose.material.icons.filled.Category
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.TouchApp
 import androidx.compose.material.icons.filled.Tune
@@ -83,6 +87,8 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.material.icons.filled.Public
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -101,6 +107,7 @@ import org.biglau.widgets.WidgetHostController
 import org.biglau.widgets.WidgetProviderRow
 import org.biglau.apps.LaunchableApp
 import org.biglau.data.Builtin
+import org.biglau.data.IconVisibility
 import org.biglau.data.Button
 import org.biglau.data.ButtonAction
 import org.biglau.contacts.ContactRepository
@@ -112,6 +119,7 @@ import org.biglau.data.ContactMode
 import org.biglau.data.Screen
 import androidx.compose.ui.platform.LocalConfiguration
 import org.biglau.phone.PhoneNumbers
+import org.biglau.ui.IconCatalogue
 import org.biglau.ui.BigHeading
 import org.biglau.ui.gridMetrics
 import org.biglau.ui.BigSearchField
@@ -129,7 +137,7 @@ import org.biglau.ui.theme.FreeTileColor
 import org.biglau.ui.theme.toArgbLong
 import org.biglau.ui.theme.LocalBigPalette
 
-private enum class Mode { MENU, MOVE, EDIT_LINK, PICK_LONG_PRESS, PICK_BUILTIN, PICK_APP, PICK_CONTACT, PICK_NUMBER, PICK_MODE, EDIT_LABEL, PICK_COLOR, PICK_HUE, RESIZE, PICK_SCREEN, EDIT_NUMBER, PICK_SHORTCUT_APP, PICK_SHORTCUT, PICK_WIDGET }
+private enum class Mode { MENU, MOVE, EDIT_LINK, PICK_LONG_PRESS, PICK_BUILTIN, PICK_APP, PICK_CONTACT, PICK_NUMBER, PICK_MODE, EDIT_LABEL, PICK_COLOR, PICK_HUE, PICK_ICON, RESIZE, PICK_SCREEN, EDIT_NUMBER, PICK_SHORTCUT_APP, PICK_SHORTCUT, PICK_WIDGET }
 
 /**
  * Belegt eine einzelne Kachel. Schreibt direkt in den ConfigStore - der Homescreen
@@ -422,7 +430,7 @@ class TileEditorActivity : BigLauActivity() {
                         Text(
                             text = stringResource(R.string.editor_long_press_banner),
                             color = LocalBigPalette.current.onBackground,
-                            fontSize = 15.sp,
+                            fontSize = bigSp(15f),
                             modifier = Modifier.padding(horizontal = 4.dp),
                         )
                     }
@@ -464,6 +472,7 @@ class TileEditorActivity : BigLauActivity() {
                                 mode = Mode.MENU
                             },
                             onPickColor = { mode = Mode.PICK_COLOR },
+                            onPickIcon = { mode = Mode.PICK_ICON },
                             onResize = if (cell != null) ({ mode = Mode.RESIZE }) else null,
                             onClear = {
                                 val ordner = button.action as? ButtonAction.Folder
@@ -705,6 +714,14 @@ class TileEditorActivity : BigLauActivity() {
                             onFree = { mode = Mode.PICK_HUE },
                         )
 
+                        Mode.PICK_ICON -> IconPicker(
+                            selected = button.iconName,
+                            onPick = { name ->
+                                write(TileEdits.withIcon(button, name))
+                                mode = Mode.MENU
+                            },
+                        )
+
                         Mode.PICK_HUE -> HuePicker(
                             selected = button.colorHue,
                             onPick = { ton ->
@@ -754,6 +771,7 @@ private fun MenuList(
     moveTargets: Int,
     onMove: () -> Unit,
     onPickColor: () -> Unit,
+    onPickIcon: () -> Unit,
     onResize: (() -> Unit)?,
     onClear: () -> Unit,
     onDone: () -> Unit,
@@ -766,7 +784,6 @@ private fun MenuList(
                 label = stringResource(R.string.editor_current),
                 secondary = describe(button, screenName, appLabel),
                 surface = palette.surfaceDefault,
-                onClick = {},
             )
         }
         item { BigRow(stringResource(R.string.editor_pick_app), icon = Icons.Filled.Apps, onClick = onPickApp) }
@@ -865,6 +882,21 @@ private fun MenuList(
                     )
                 }
             }
+        }
+        item {
+            BigRow(
+                label = stringResource(R.string.editor_pick_icon),
+                // Sind die Symbole global aus, waere die Wahl sonst eine Einstellung ohne
+                // sichtbare Wirkung - der Nutzer waehlt und nichts passiert. Die Zeile
+                // bleibt trotzdem: die Wahl gilt, sobald die Symbole wieder an sind.
+                secondary = if (LocalIconVisibility.current == IconVisibility.NEVER) {
+                    stringResource(R.string.editor_pick_icon_off)
+                } else {
+                    null
+                },
+                icon = Icons.Filled.Category,
+                onClick = onPickIcon,
+            )
         }
         item { BigRow(stringResource(R.string.editor_color), icon = Icons.Filled.Palette, onClick = onPickColor) }
         if (onResize != null) {
@@ -1021,7 +1053,7 @@ private fun AppList(
             Text(
                 text = stringResource(R.string.search_no_match),
                 color = palette.onBackground,
-                fontSize = 18.sp,
+                fontSize = bigSp(18f),
                 modifier = Modifier.padding(horizontal = 4.dp, vertical = 16.dp),
             )
         }
@@ -1054,11 +1086,11 @@ private fun LabelEditor(
             value = text,
             onValueChange = { text = it },
             singleLine = true,
-            textStyle = TextStyle(fontSize = 26.sp, fontWeight = FontWeight.Bold),
+            textStyle = TextStyle(fontSize = bigSp(26f), fontWeight = FontWeight.Bold),
             // Der automatische Name steht blass im leeren Feld. Sonst sieht man nur einen
             // leeren Kasten und weiss nicht, was man da eigentlich ersetzt.
             placeholder = {
-                Text(automatic, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+                Text(automatic, fontSize = bigSp(22f), fontWeight = FontWeight.Bold)
             },
             // Die Haken-Taste der Tastatur uebernimmt. Auf drei Zoll verdeckt die Tastatur
             // den "Fertig"-Knopf vollstaendig - wer tippt, kommt sonst nicht an ihn heran.
@@ -1069,7 +1101,7 @@ private fun LabelEditor(
         Text(
             text = stringResource(hintRes),
             color = palette.onBackground,
-            fontSize = 15.sp,
+            fontSize = bigSp(15f),
             modifier = Modifier.padding(horizontal = 4.dp),
         )
         BigRow(
@@ -1146,6 +1178,77 @@ private fun ColorPicker(selected: Int, hue: Float?, onPick: (Int?) -> Unit, onFr
             surface = if (hue != null) palette.surfaceAccent else palette.surfaceDefault,
             onClick = onFree,
         )
+    }
+}
+
+/**
+ * Die Symbolauswahl. `PLAN.md` 2.2 und 3.4.
+ *
+ * Vier nebeneinander, in Gruppen mit Ueberschrift - dieselbe Aufteilung wie bei den Farben.
+ * Ganz oben "Automatisch", denn das ist der Zustand, in dem jede Kachel anfaengt, und der
+ * Weg zurueck muss so gross sein wie der Weg hin.
+ */
+@Composable
+private fun IconPicker(selected: String?, onPick: (String?) -> Unit) {
+    val palette = LocalBigPalette.current
+    LazyColumn(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        item { BigHeading(stringResource(R.string.editor_pick_icon)) }
+        item {
+            BigRow(
+                label = stringResource(R.string.icon_automatic),
+                secondary = stringResource(R.string.icon_automatic_hint),
+                surface = if (selected == null) palette.surfaceAccent else palette.surfaceDefault,
+                onClick = { onPick(null) },
+            )
+        }
+        IconCatalogue.GROUPS.forEach { gruppe ->
+            item { BigHeading(stringResource(gruppe.titleRes)) }
+            // Drei nebeneinander, nicht vier: bei vier bricht das Wort mitten im Wort
+            // ("Nachrich/t"), und ein zerbrochenes Wort ist schlechter als eine Zeile mehr.
+            // Am Bildschirm nachgesehen.
+            items(gruppe.names.chunked(3)) { reihe ->
+                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    reihe.forEach { name ->
+                        val bild = IconCatalogue.vectorFor(name)
+                        val flaeche =
+                            if (name == selected) palette.surfaceAccent else palette.surfaceDefault
+                        val wort = IconCatalogue.labelFor(name)?.let { stringResource(it) } ?: name
+                        Column(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clip(RoundedCornerShape(LocalCornerRadius.current))
+                                .background(flaeche.fill)
+                                .clickable { onPick(name) }
+                                .padding(vertical = 8.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(4.dp),
+                        ) {
+                            if (bild != null) {
+                                Icon(
+                                    imageVector = bild,
+                                    // Das Wort steht darunter; eine zweite Ansage waere
+                                    // dieselbe Auskunft zweimal.
+                                    contentDescription = null,
+                                    tint = flaeche.ink,
+                                    modifier = Modifier.size(32.dp),
+                                )
+                            }
+                            Text(
+                                text = wort,
+                                color = flaeche.ink,
+                                fontSize = bigSp(13f),
+                                textAlign = TextAlign.Center,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+                    }
+                    // Die letzte Reihe fuellt sich auf, sonst waeren ihre Felder breiter
+                    // als die darueber.
+                    repeat(3 - reihe.size) { Box(Modifier.weight(1f)) }
+                }
+            }
+        }
     }
 }
 
@@ -1248,7 +1351,7 @@ private fun ContactList(
             Text(
                 text = stringResource(R.string.contacts_permission),
                 color = palette.onBackground,
-                fontSize = 18.sp,
+                fontSize = bigSp(18f),
                 modifier = Modifier.padding(horizontal = 4.dp, vertical = 8.dp),
             )
             BigRow(
@@ -1275,14 +1378,14 @@ private fun ContactList(
             Text(
                 text = stringResource(R.string.contacts_loading),
                 color = palette.onBackground,
-                fontSize = 18.sp,
+                fontSize = bigSp(18f),
                 modifier = Modifier.padding(horizontal = 4.dp, vertical = 16.dp),
             )
         } else if (shown.isEmpty()) {
             Text(
                 text = stringResource(R.string.contacts_no_match),
                 color = palette.onBackground,
-                fontSize = 18.sp,
+                fontSize = bigSp(18f),
                 modifier = Modifier.padding(horizontal = 4.dp, vertical = 16.dp),
             )
         }
@@ -1369,7 +1472,6 @@ private fun ResizePanel(
             BigRow(
                 label = stringResource(R.string.resize_current, cell.w, cell.h),
                 surface = palette.surfaceDefault,
-                onClick = {},
             )
         }
         items(grow) { direction ->
@@ -1393,7 +1495,7 @@ private fun ResizePanel(
                 Text(
                     text = stringResource(R.string.resize_no_room),
                     color = palette.onBackground,
-                    fontSize = 16.sp,
+                    fontSize = bigSp(16f),
                     modifier = Modifier.padding(horizontal = 4.dp, vertical = 8.dp),
                 )
             }
@@ -1469,7 +1571,7 @@ private fun NeedsHomeRole(onChoose: () -> Unit) {
         Text(
             text = stringResource(R.string.shortcut_needs_home_role),
             color = palette.onBackground,
-            fontSize = 16.sp,
+            fontSize = bigSp(16f),
             modifier = Modifier.padding(horizontal = 4.dp, vertical = 8.dp),
         )
         BigRow(
@@ -1495,7 +1597,7 @@ private fun ShortcutList(
                 Text(
                     text = stringResource(R.string.shortcut_none),
                     color = palette.onBackground,
-                    fontSize = 16.sp,
+                    fontSize = bigSp(16f),
                     modifier = Modifier.padding(horizontal = 4.dp, vertical = 8.dp),
                 )
             }
@@ -1540,7 +1642,7 @@ private fun WidgetPicker(
                 Text(
                     text = stringResource(R.string.widget_none),
                     color = palette.onBackground,
-                    fontSize = 16.sp,
+                    fontSize = bigSp(16f),
                     modifier = Modifier.padding(horizontal = 4.dp, vertical = 8.dp),
                 )
             }
@@ -1549,7 +1651,13 @@ private fun WidgetPicker(
             val (needX, needY) = WidgetFit.requirement(row, cellWidthDp, cellHeightDp, gutterDp)
             BigRow(
                 label = row.label,
-                secondary = stringResource(R.string.widget_needs, row.appLabel, needX, needY),
+                secondary = stringResource(
+                    if (WidgetFit.fixedSize(row)) R.string.widget_fixed
+                    else R.string.widget_needs,
+                    row.appLabel,
+                    needX,
+                    needY,
+                ),
                 icon = Icons.Filled.Widgets,
                 onClick = { onPick(row) },
             )
@@ -1579,7 +1687,7 @@ private fun FolderDeletePanel(
         Text(
             text = pluralStringResource(R.plurals.folder_delete_body, count, count),
             color = palette.onBackground,
-            fontSize = 17.sp,
+            fontSize = bigSp(17f),
             modifier = Modifier.padding(horizontal = 4.dp),
         )
         BigRow(
@@ -1671,8 +1779,8 @@ private fun NumberEditor(initial: String, onDone: (String) -> Unit) {
             value = text,
             onValueChange = { text = it },
             singleLine = true,
-            textStyle = TextStyle(fontSize = 22.sp, fontWeight = FontWeight.Bold),
-            placeholder = { Text(stringResource(R.string.message_number_example), fontSize = 18.sp) },
+            textStyle = TextStyle(fontSize = bigSp(22f), fontWeight = FontWeight.Bold),
+            placeholder = { Text(stringResource(R.string.message_number_example), fontSize = bigSp(18f)) },
             keyboardOptions = KeyboardOptions(
                 keyboardType = KeyboardType.Phone,
                 imeAction = ImeAction.Done,
@@ -1683,7 +1791,7 @@ private fun NumberEditor(initial: String, onDone: (String) -> Unit) {
         Text(
             text = stringResource(R.string.message_number_hint),
             color = palette.onBackground,
-            fontSize = 15.sp,
+            fontSize = bigSp(15f),
             modifier = Modifier.padding(horizontal = 4.dp),
         )
         BigRow(
@@ -1710,8 +1818,8 @@ private fun LinkEditor(initial: String, onDone: (String) -> Unit) {
             value = text,
             onValueChange = { text = it },
             singleLine = true,
-            textStyle = TextStyle(fontSize = 22.sp, fontWeight = FontWeight.Bold),
-            placeholder = { Text(stringResource(R.string.link_example), fontSize = 18.sp) },
+            textStyle = TextStyle(fontSize = bigSp(22f), fontWeight = FontWeight.Bold),
+            placeholder = { Text(stringResource(R.string.link_example), fontSize = bigSp(18f)) },
             keyboardOptions = KeyboardOptions(
                 keyboardType = KeyboardType.Uri,
                 imeAction = ImeAction.Done,
@@ -1722,7 +1830,7 @@ private fun LinkEditor(initial: String, onDone: (String) -> Unit) {
         Text(
             text = stringResource(R.string.link_hint),
             color = palette.onBackground,
-            fontSize = 15.sp,
+            fontSize = bigSp(15f),
             modifier = Modifier.padding(horizontal = 4.dp),
         )
         BigRow(

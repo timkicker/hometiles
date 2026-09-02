@@ -77,6 +77,9 @@ object Diagnostics {
     private fun granted(context: Context, permission: String): Boolean =
         ContextCompat.checkSelfPermission(context, permission) == PackageManager.PERMISSION_GRANTED
 
+    /** Haelt BigLau die Startbildschirm-Rolle? Auch die Einstellungen fragen danach. */
+    fun isDefaultHome(context: Context): Boolean = holdsHomeRole(context)
+
     private fun holdsHomeRole(context: Context): Boolean {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) return false
         val roles = context.getSystemService(RoleManager::class.java) ?: return false

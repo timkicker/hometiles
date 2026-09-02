@@ -47,6 +47,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import org.biglau.ui.bestDatePattern
+import org.biglau.ui.bigSp
 import org.biglau.ui.theme.LocalCornerRadius
 import org.biglau.ui.BigLauActivity
 import org.biglau.ui.currentLocale
@@ -106,7 +108,14 @@ class SmsActivity : BigLauActivity() {
             var messages by remember { mutableStateOf<List<SmsMessage>>(emptyList()) }
             var names by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
             var openThread by remember { mutableStateOf<Long?>(null) }
-            var draft by remember { mutableStateOf("") }
+            // Eine Unterhaltung mit jemandem, mit dem es noch keine gibt. Vorher fuehrte
+            // dieser Fall nirgendwohin: die Zeile "Neue Nachricht an ..." hatte gar keine
+            // Handlung, und wer BigLau ueber einen smsto:-Verweis oeffnete, stand vor der
+            // Liste.
+            var openAddress by remember { mutableStateOf<String?>(null) }
+            // Vorbelegt, wenn eine andere App uns eine Nachricht zum Senden gegeben hat
+            // ("Anruf mit Nachricht ablehnen") - siehe RespondViaMessageService.
+            var draft by remember { mutableStateOf(intent?.getStringExtra(EXTRA_BODY).orEmpty()) }
             var granted by remember { mutableStateOf(repository.hasReadPermission()) }
 
             // Ohne Rueckfrage-Oberflaeche: sagt jemand nein, bleibt die Liste die Stelle,
@@ -188,6 +197,9 @@ class SmsActivity : BigLauActivity() {
                 if (passend != null) {
                     openThread = passend.threadId
                     SmsNotifications.clear(this@SmsActivity, nummer)
+                } else {
+                    // Noch keine Unterhaltung mit dieser Nummer - dann eine neue.
+                    openAddress = nummer
                 }
             }
 
@@ -203,7 +215,12 @@ class SmsActivity : BigLauActivity() {
                 cornerRadiusDp = config.appearance.cornerRadiusDp,
             ) {
                 val palette = LocalBigPalette.current
-                BackHandler(enabled = openThread != null) { openThread = null }
+                // Zurueck schliesst auch die neue Unterhaltung - sonst fuehrte die
+                // Ruecktaste aus der App heraus, obwohl sichtbar noch etwas offen ist.
+                BackHandler(enabled = openThread != null || openAddress != null) {
+                    openThread = null
+                    openAddress = null
+                }
 
                 Box(
                     Modifier
@@ -213,6 +230,7 @@ class SmsActivity : BigLauActivity() {
                         .padding(horizontal = 8.dp),
                 ) {
                     val thread = openThread
+                    val neueNummer = openAddress
                     when {
                         !granted -> PermissionGate(
                             title = stringResource(R.string.messages),
@@ -224,7 +242,9 @@ class SmsActivity : BigLauActivity() {
 
                         thread != null -> Conversation(
                             messages = SmsThreads.conversation(messages, thread),
-                            title = threads.firstOrNull { it.threadId == thread }?.title.orEmpty(),
+                            title = threads.firstOrNull { it.threadId == thread }
+                                ?.titleOr(stringResource(R.string.call_unknown))
+                                .orEmpty(),
                             draft = draft,
                             isDefaultApp = repository.isDefaultSmsApp(),
                             onDraft = { draft = it },
@@ -238,11 +258,32 @@ class SmsActivity : BigLauActivity() {
                             sendButtonLarge = config.sms.sendButtonLarge,
                         )
 
+                        neueNummer != null -> Conversation(
+                            messages = emptyList(),
+                            title = PhoneNumbers.forDisplay(neueNummer)
+                                .ifBlank { stringResource(R.string.call_unknown) },
+                            draft = draft,
+                            isDefaultApp = repository.isDefaultSmsApp(),
+                            onDraft = { draft = it },
+                            onSend = { send(neueNummer, draft) { draft = "" } },
+                            conversationScale = config.sms.conversationScale,
+                            confirmBeforeSending = config.sms.confirmBeforeSending,
+                            sendButtonAbove = config.sms.sendButtonAbove,
+                            sendButtonLarge = config.sms.sendButtonLarge,
+                        )
+
                         else -> ThreadList(
                             threads = threads,
                             prefilled = prefilledAddress,
                             scrollButtons = config.behaviour.accessibility.scrollButtons,
                             onOpen = { openThread = it },
+                            onCompose = { nummer ->
+                                val passend = threads.firstOrNull {
+                                    PhoneNumbers.clean(it.address) == PhoneNumbers.clean(nummer)
+                                }
+                                if (passend != null) openThread = passend.threadId
+                                else openAddress = nummer
+                            },
                         )
                     }
                 }
@@ -256,6 +297,9 @@ class SmsActivity : BigLauActivity() {
 
         /** Kommt die Nachricht als Vollbild-Meldung, darf sie ueber den Sperrbildschirm. */
         const val EXTRA_FULL_SCREEN = "biglau.sms.fullscreen"
+
+        /** Vorbelegter Text im Eingabefeld. Siehe [org.biglau.sms.RespondViaMessageService]. */
+        const val EXTRA_BODY = "biglau.sms.body"
     }
 
     private fun send(address: String, body: String, onSent: () -> Unit) {
@@ -309,12 +353,16 @@ class SmsActivity : BigLauActivity() {
 private fun ThreadList(
     threads: List<SmsThread>,
     prefilled: String?,
+    onCompose: (String) -> Unit,
     scrollButtons: Boolean,
     onOpen: (Long) -> Unit,
 ) {
     val palette = LocalBigPalette.current
     val locale = currentLocale()
-    val format = remember(locale) { SimpleDateFormat("EEE d. MMM, HH:mm", locale) }
+    val format = remember(locale) {
+        // Bestandteile statt festem Muster - siehe bestDatePattern.
+        SimpleDateFormat(bestDatePattern("EEEdMMMHmm", locale), locale)
+    }
     val listState = rememberLazyListState()
 
     Column {
@@ -329,7 +377,7 @@ private fun ThreadList(
                     BigRow(
                         label = stringResource(R.string.sms_new_to, PhoneNumbers.forDisplay(prefilled)),
                         surface = palette.surfaceAccent,
-                        onClick = {},
+                        onClick = { onCompose(prefilled) },
                     )
                 }
             }
@@ -338,14 +386,15 @@ private fun ThreadList(
                     Text(
                         text = stringResource(R.string.sms_empty),
                         color = palette.onBackground,
-                        fontSize = 17.sp,
+                        fontSize = bigSp(17f),
                         modifier = Modifier.padding(horizontal = 4.dp, vertical = 16.dp),
                     )
                 }
             }
             items(threads, key = { it.threadId }) { thread ->
                 BigRow(
-                    label = thread.title + if (thread.hasUnread) " (${thread.unreadCount})" else "",
+                    label = thread.titleOr(stringResource(R.string.call_unknown)) +
+                        if (thread.hasUnread) " (${thread.unreadCount})" else "",
                     secondary = SmsThreads.preview(thread.lastMessage) + " · " +
                         format.format(Date(thread.lastMessage.timestamp)),
                     secondaryMaxLines = 1,
@@ -380,18 +429,9 @@ private fun Conversation(
     val palette = LocalBigPalette.current
     val locale = currentLocale()
     val uhrFormat = remember(locale) { SimpleDateFormat("HH:mm", locale) }
-    val tagFormat = remember(locale) { SimpleDateFormat("EEEE, d. MMMM", locale) }
+    val tagFormat = remember(locale) { SimpleDateFormat(bestDatePattern("EEEEdMMMM", locale), locale) }
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         BigHeading(title)
-        if (!isDefaultApp) {
-            // Ehrlich sein statt eine Nachricht zu zeigen, die nach dem Neustart weg ist.
-            Text(
-                text = stringResource(R.string.sms_not_default),
-                color = palette.danger,
-                fontSize = 15.sp,
-                modifier = Modifier.padding(horizontal = 4.dp),
-            )
-        }
         // Eine Unterhaltung faengt unten an. Oeffnete sie oben, muesste man erst zur
         // neuesten Nachricht scrollen - und die ist der Grund, aus dem man sie oeffnet.
         val listState = rememberLazyListState()
@@ -403,6 +443,21 @@ private fun Conversation(
             modifier = Modifier.weight(1f),
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
+            if (!isDefaultApp) {
+                // Ehrlich sein statt eine Nachricht zu zeigen, die nach dem Neustart weg
+                // ist - **aber im Blaettern und nicht darueber**: fest gesetzt nahm der
+                // Hinweis bei 200 % Textgroesse fuenf Zeilen, und von der Unterhaltung
+                // blieb ein Streifen von zwei Bildpunkten. Am Emulator gesehen. Der
+                // Hinweis gehoert zur Unterhaltung, nicht vor sie.
+                item {
+                    Text(
+                        text = stringResource(R.string.sms_not_default),
+                        color = palette.danger,
+                        fontSize = bigSp(15f),
+                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp),
+                    )
+                }
+            }
             itemsIndexed(messages, key = { _, message -> message.id }) { index, message ->
                 // Der Tag ueber der ersten Nachricht des Tages - nicht an jeder Zeile.
                 if (MessageStamps.startsNewDay(messages.getOrNull(index - 1)?.timestamp, message.timestamp)) {
@@ -452,7 +507,7 @@ private fun Conversation(
             OutlinedTextField(
                 value = draft,
                 onValueChange = onDraft,
-                textStyle = TextStyle(fontSize = 18.sp),
+                textStyle = TextStyle(fontSize = bigSp(18f)),
                 modifier = Modifier.fillMaxWidth(),
             )
         }

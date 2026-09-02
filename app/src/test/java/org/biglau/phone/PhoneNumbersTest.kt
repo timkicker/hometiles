@@ -65,4 +65,39 @@ class PhoneNumbersTest {
         assertEquals("112", PhoneNumbers.forDisplay("112"))
         assertEquals("123456", PhoneNumbers.forDisplay("123456"))
     }
+
+    // --- Absender, die keine Nummer sind (02.09.2026) ---
+
+    /**
+     * Banken, Paketdienste und Anmeldecodes kommen als Buchstabenkennung. `clean` laesst
+     * davon nichts uebrig - in der Nachrichtenliste stand deshalb eine leere Zeile, und
+     * zwar bei genau den Nachrichten, die man am ehesten sucht.
+     */
+    @Test
+    fun `eine Buchstabenkennung bleibt lesbar`() {
+        assertEquals("ADAC", PhoneNumbers.forDisplay("ADAC"))
+        assertEquals("Bank Austria", PhoneNumbers.forDisplay("Bank Austria"))
+    }
+
+    @Test
+    fun `leerraum um eine Kennung faellt weg`() {
+        assertEquals("ADAC", PhoneNumbers.forDisplay("  ADAC  "))
+    }
+
+    @Test
+    fun `eine gemischte Kennung zeigt ihre Ziffern`() {
+        assertEquals("22580", PhoneNumbers.forDisplay("Info-22580"))
+    }
+
+    @Test
+    fun `ohne alles bleibt es leer`() {
+        assertEquals("", PhoneNumbers.forDisplay(""))
+        assertEquals("", PhoneNumbers.forDisplay("   "))
+    }
+
+    @Test
+    fun `gewoehnliche Nummern bleiben wie sie waren`() {
+        assertEquals("+436 641 110 01", PhoneNumbers.forDisplay("+43664111001"))
+        assertEquals("112", PhoneNumbers.forDisplay("112"))
+    }
 }

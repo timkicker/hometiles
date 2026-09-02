@@ -1,6 +1,7 @@
 package org.biglau.res
 
 import java.io.File
+import org.biglau.Quelltext
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -20,7 +21,6 @@ import org.junit.Test
 class PermissionRequestTest {
 
     private val manifest = File("src/main/AndroidManifest.xml")
-    private val quelltext = File("src/main/java")
 
     /** Nur diese Gruppe fragt Android zur Laufzeit ab; der Rest wird beim Installieren erteilt. */
     private val gefaehrlich = setOf(
@@ -48,7 +48,7 @@ class PermissionRequestTest {
     /** Alles, was irgendwo in einem `launch(…)` steht — einzeln oder im `arrayOf(…)`. */
     private fun erfragt(): Set<String> {
         val treffer = mutableSetOf<String>()
-        quelltext.walkTopDown().filter { it.extension == "kt" }.forEach { datei ->
+        Quelltext.dateien().forEach { datei ->
             val text = datei.readText()
             Regex("""\.launch\(""").findAll(text).forEach { start ->
                 // Bis zur schliessenden Klammer des launch-Aufrufs lesen, damit ein

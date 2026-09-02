@@ -1,6 +1,7 @@
 package org.biglau.design
 
 import java.io.File
+import org.biglau.Quelltext
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
@@ -95,7 +96,7 @@ class HardcodedGermanTest {
 
     @Test
     fun `keine deutschen Zeichenketten im Quelltext`() {
-        val treffer = File("src/main/java/org/biglau").walkTopDown()
+        val treffer = Quelltext.dateien().asSequence()
             .filter { it.extension == "kt" }
             .flatMap { datei ->
                 datei.readLines().asSequence().mapIndexedNotNull { index, roh ->
@@ -128,7 +129,7 @@ class HardcodedGermanTest {
     @Test
     fun `keine Meldung mit festem Text`() {
         val fest = Regex("""Notice\.show\([^,]+,\s*"""")
-        val treffer = File("src/main/java/org/biglau").walkTopDown()
+        val treffer = Quelltext.dateien().asSequence()
             .filter { it.extension == "kt" }
             .flatMap { datei ->
                 datei.readLines().asSequence().mapIndexedNotNull { index, zeile ->
@@ -145,7 +146,7 @@ class HardcodedGermanTest {
      */
     @Test
     fun `kein Toast am Notice vorbei`() {
-        val treffer = File("src/main/java/org/biglau").walkTopDown()
+        val treffer = Quelltext.dateien().asSequence()
             .filter { it.extension == "kt" && it.name != "Notice.kt" }
             .flatMap { datei ->
                 datei.readLines().asSequence().mapIndexedNotNull { index, zeile ->
@@ -197,7 +198,7 @@ class DateLocaleTest {
 
     @Test
     fun `keine anzeige formatiert mit der prozesssprache`() {
-        val treffer = java.io.File("src/main/java/org/biglau").walkTopDown()
+        val treffer = Quelltext.dateien().asSequence()
             .filter { it.extension == "kt" }
             .flatMap { datei ->
                 datei.readLines().asSequence().mapIndexedNotNull { index, zeile ->
@@ -222,7 +223,7 @@ class DateLocaleTest {
      */
     @Test
     fun `Locale US bleibt fuer maschinentexte`() {
-        val mitUS = java.io.File("src/main/java/org/biglau").walkTopDown()
+        val mitUS = Quelltext.dateien().asSequence()
             .filter { it.extension == "kt" }
             .count { it.readText().contains("Locale.US") }
         assertEquals(true, mitUS >= 3)

@@ -1,6 +1,7 @@
 package org.biglau.settings
 
 import java.io.File
+import org.biglau.Quelltext
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
@@ -14,7 +15,6 @@ import org.junit.Test
  */
 class DeadSettingsTest {
 
-    private val quelle = File("src/main/java/org/biglau")
 
     /**
      * Felder, deren Umsetzung noch aussteht. Wer eines umsetzt, streicht es hier - und wer
@@ -33,8 +33,8 @@ class DeadSettingsTest {
     private fun benutztAusserhalbDesModells(feld: String): Int {
         val zugriff = Regex("""\.$feld\b(?!\s*\()""")
         val zuweisung = Regex("""\b$feld\s*=""")
-        return quelle.walkTopDown()
-            .filter { it.extension == "kt" && it.name != "Model.kt" }
+        return Quelltext.dateien()
+            .filter { it.name != "Model.kt" }
             .sumOf { datei ->
                 datei.readLines().count { zugriff.containsMatchIn(it) || zuweisung.containsMatchIn(it) }
             }
@@ -54,7 +54,7 @@ class DeadSettingsTest {
 
     /** Namen der Eigenschaften und Funktionen in Model.kt, deren Rumpf [feld] liest. */
     private fun ableitungen(feld: String): List<String> {
-        val text = File(quelle, "data/Model.kt").readText()
+        val text = Quelltext.datei("org/biglau/data/Model.kt").readText()
         val kopf = Regex("""(?:val|fun) (\w+)[:(]""")
         val treffer = mutableListOf<String>()
         var name: String? = null
@@ -78,8 +78,8 @@ class DeadSettingsTest {
      */
     private fun wirdGesetzt(feld: String): Boolean {
         val zuweisung = Regex("""\b$feld\s*=\s*[^=]""")
-        return quelle.walkTopDown()
-            .filter { it.extension == "kt" && it.name != "Model.kt" && it.name != "Defaults.kt" }
+        return Quelltext.dateien()
+            .filter { it.name != "Model.kt" && it.name != "Defaults.kt" }
             .any { datei -> datei.readLines().any { zuweisung.containsMatchIn(it) } }
     }
 
@@ -101,7 +101,7 @@ class DeadSettingsTest {
     /** Alle Klassen, die Einstellungen tragen - aus Model.kt gelesen, nicht von Hand gepflegt. */
     private fun konfigKlassen(): List<String> =
         Regex("""data class (\w+)\(""")
-            .findAll(File(quelle, "data/Model.kt").readText())
+            .findAll(Quelltext.datei("org/biglau/data/Model.kt").readText())
             .map { it.groupValues[1] }
             .filterNot { it in nutzlast }
             .toList()
@@ -143,8 +143,8 @@ class DeadSettingsTest {
      */
     private fun einstellbar(feld: String): Boolean {
         val imCopy = Regex("""copy\((?:[^()]|\([^()]*\))*\b$feld\s*=""", RegexOption.DOT_MATCHES_ALL)
-        val direkt = quelle.walkTopDown()
-            .filter { it.extension == "kt" && it.name != "Model.kt" }
+        val direkt = Quelltext.dateien()
+            .filter { it.name != "Model.kt" }
             .any { imCopy.containsMatchIn(it.readText()) }
         if (direkt) return true
         // Oder ueber einen Setzer im Modell - `withIcons`, `withClock` und Verwandte -,
@@ -193,7 +193,7 @@ class DeadSettingsTest {
      * falsche Sicherheit, gegen die er antritt; jetzt wird die Klammertiefe gezaehlt.
      */
     private fun modellAbschnitt(kopf: String): String {
-        val text = File(quelle, "data/Model.kt").readText()
+        val text = Quelltext.datei("org/biglau/data/Model.kt").readText()
         val start = text.indexOf(kopf)
         require(start >= 0) { "Kein Abschnitt $kopf in Model.kt" }
         var tiefe = 0

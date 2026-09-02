@@ -71,4 +71,41 @@ class CallBlockingTest {
     fun `eine leere Liste sperrt nichts`() {
         assertFalse(CallBlocking.isBlocked("+436641234567", emptyList()))
     }
+
+    // --- Abweisen, bevor es klingelt (02.09.2026) ---
+
+    /**
+     * Die Sperre lief bis hierher erst in `onCallAdded` - also nachdem Android geklingelt
+     * und die Gespraechsansicht gebunden hatte, und in der Anrufliste stand der Anruf als
+     * **abgelehnt**, so als haette der Nutzer ihn weggedrueckt. Mit `CallScreening` fragt
+     * Android vorher; am Emulator geprueft: `mCallBlockReason = 1`, Eintrag mit
+     * `type=6` (blockiert) statt `type=5` (abgelehnt), kein Klingeln.
+     */
+    @Test
+    fun `eine gesperrte Nummer wird eingehend abgewiesen`() {
+        assertTrue(
+            CallBlocking.blocksIncoming("+436641234567", incoming = true, blocked = liste),
+        )
+    }
+
+    @Test
+    fun `abgehend wird nie abgewiesen`() {
+        // Sonst waehlt der Nutzer eine Nummer, die er selbst gesperrt hat, und nichts
+        // geschieht - ohne dass ihm jemand sagt warum.
+        assertFalse(
+            CallBlocking.blocksIncoming("+436641234567", incoming = false, blocked = liste),
+        )
+    }
+
+    @Test
+    fun `eine freie Nummer kommt durch`() {
+        assertFalse(
+            CallBlocking.blocksIncoming("+436649998888", incoming = true, blocked = liste),
+        )
+    }
+
+    @Test
+    fun `der Notruf kommt auch eingehend durch`() {
+        assertFalse(CallBlocking.blocksIncoming("112", incoming = true, blocked = listOf("112")))
+    }
 }

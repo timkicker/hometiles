@@ -42,6 +42,10 @@ class SosAlarmTest {
     @Test
     fun `der Alarm hoert mit dem Bildschirm auf`() {
         assertTrue("SosAlarm.stop fehlt in SosActivity", "SosAlarm.stop" in sosQuelle)
-        assertTrue("Es fehlt das onDispose dazu", "onDispose { SosAlarm.stop" in sosQuelle)
+        // Nach dem Inhalt gefragt, nicht nach der Schreibweise: im selben Aufraeumen steht
+        // inzwischen auch das Abmelden der Ortung, und daran soll diese Regel nicht
+        // zerbrechen.
+        val aufraeumen = sosQuelle.substringAfter("onDispose {").substringBefore("}")
+        assertTrue("Es fehlt das onDispose dazu: $aufraeumen", "SosAlarm.stop" in aufraeumen)
     }
 }

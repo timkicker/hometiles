@@ -1,5 +1,6 @@
 package org.biglau.apps
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -32,11 +33,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.graphics.drawable.toBitmap
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import org.biglau.ui.bigSp
 import org.biglau.ui.BigLauActivity
 import org.biglau.R
 import org.biglau.data.ConfigStore
 import org.biglau.security.Pin
 import org.biglau.ui.PinGate
+import org.biglau.settings.SettingsActivity
 import org.biglau.ui.BigHeading
 import androidx.compose.material.icons.filled.Apps
 import org.biglau.ui.BigRow
@@ -98,7 +101,10 @@ class AppDrawerActivity : BigLauActivity() {
                         apps = it.apps.copy(recent = AppDrawer.remember(it.apps.recent, AppDrawer.keyOf(app))),
                     )
                 }
-                repository.launch(app.packageName, app.activityName)
+                if (!repository.launch(app.packageName, app.activityName)) {
+                    // Zwischen dem Aufbau der Liste und dem Tippen kann die App verschwinden.
+                    Notice.show(this@AppDrawerActivity, R.string.app_gone)
+                }
             }
 
             // Die Sperre gilt auch hier, nicht nur auf den Kacheln - sonst waere sie ueber
@@ -182,7 +188,7 @@ class AppDrawerActivity : BigLauActivity() {
                             Text(
                                 text = stringResource(R.string.search_no_match),
                                 color = palette.onBackground,
-                                fontSize = 18.sp,
+                                fontSize = bigSp(18f),
                                 modifier = Modifier.padding(horizontal = 4.dp, vertical = 16.dp),
                             )
                         }
@@ -192,7 +198,7 @@ class AppDrawerActivity : BigLauActivity() {
                                 Text(
                                     text = stringResource(R.string.apps_recent_none),
                                     color = palette.onBackground,
-                                    fontSize = 17.sp,
+                                    fontSize = bigSp(17f),
                                     modifier = Modifier.padding(horizontal = 4.dp, vertical = 8.dp),
                                 )
                             }
@@ -241,6 +247,32 @@ class AppDrawerActivity : BigLauActivity() {
                                         )
                                     },
                                 )
+                            }
+                            // Der Weg zurueck zu den ausgeblendeten Apps, und zwar dort, wo
+                            // man sie sucht. Vorher nannte eine Einblendung nur den Pfad
+                            // ("Einstellungen -> Ausgeblendete Apps"), und die war nach zwei
+                            // Sekunden weg. Die Zeile steht nur da, wenn wirklich etwas
+                            // ausgeblendet ist - sonst waere sie eine Zeile ueber nichts.
+                            if (config.apps.hidden.isNotEmpty() && query.isEmpty()) {
+                                item {
+                                    BigRow(
+                                        label = pluralStringResource(
+                                            R.plurals.apps_hidden_count,
+                                            config.apps.hidden.size,
+                                            config.apps.hidden.size,
+                                        ),
+                                        icon = Icons.Filled.VisibilityOff,
+                                        onClick = {
+                                            startActivity(
+                                                Intent(this@AppDrawerActivity, SettingsActivity::class.java)
+                                                    .putExtra(
+                                                        SettingsActivity.EXTRA_PAGE,
+                                                        SettingsActivity.PAGE_HIDDEN_APPS,
+                                                    ),
+                                            )
+                                        },
+                                    )
+                                }
                             }
                         }
                         if (config.behaviour.accessibility.scrollButtons) {

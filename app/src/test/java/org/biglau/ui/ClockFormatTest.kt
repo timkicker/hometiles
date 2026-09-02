@@ -5,6 +5,7 @@ import org.biglau.data.Appearance
 import org.biglau.data.ClockDisplay
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Test
 
@@ -33,15 +34,15 @@ class ClockFormatTest {
 
     @Test
     fun `ohne datum keine datumszeile`() {
-        assertNull(ClockFormat.datePattern(ClockDisplay.OFF, onTile = false))
-        assertNull(ClockFormat.datePattern(ClockDisplay.TIME, onTile = false))
-        assertNull(ClockFormat.datePattern(ClockDisplay.TIME, onTile = true))
+        assertNull(ClockFormat.dateSkeleton(ClockDisplay.OFF, onTile = false))
+        assertNull(ClockFormat.dateSkeleton(ClockDisplay.TIME, onTile = false))
+        assertNull(ClockFormat.dateSkeleton(ClockDisplay.TIME, onTile = true))
     }
 
     @Test
     fun `der wochentag kommt nur in der letzten stufe dazu`() {
-        val kopf = ClockFormat.datePattern(ClockDisplay.TIME_DATE, onTile = false)!!
-        val kopfMitTag = ClockFormat.datePattern(ClockDisplay.TIME_DATE_WEEKDAY, onTile = false)!!
+        val kopf = ClockFormat.dateSkeleton(ClockDisplay.TIME_DATE, onTile = false)!!
+        val kopfMitTag = ClockFormat.dateSkeleton(ClockDisplay.TIME_DATE_WEEKDAY, onTile = false)!!
         assertEquals(false, kopf.contains("E"))
         assertEquals(true, kopfMitTag.contains("E"))
     }
@@ -50,8 +51,8 @@ class ClockFormatTest {
     // passt dort, in der Kopfzeile muss "Di." reichen.
     @Test
     fun `die kachel darf die langen namen`() {
-        assertEquals("EEEE, d. MMMM", ClockFormat.datePattern(ClockDisplay.TIME_DATE_WEEKDAY, onTile = true))
-        assertEquals("EEE, d. MMM", ClockFormat.datePattern(ClockDisplay.TIME_DATE_WEEKDAY, onTile = false))
+        assertEquals("EEEEdMMMM", ClockFormat.dateSkeleton(ClockDisplay.TIME_DATE_WEEKDAY, onTile = true))
+        assertEquals("EEEdMMM", ClockFormat.dateSkeleton(ClockDisplay.TIME_DATE_WEEKDAY, onTile = false))
     }
 
     @Test
@@ -202,5 +203,36 @@ class ClockScaleTest {
     @Test
     fun `der Ladestand waechst mit der Textgroesse`() {
         assertTrue(ClockFormat.batteryWidthDp(2.0f) > ClockFormat.batteryWidthDp(1.0f))
+    }
+
+    /**
+     * Am Jelly 2, das auf Englisch steht, hiess der Wochentag auf der Uhr-Kachel
+     * **„Wednesday, 2. September"** — englischer Name, deutscher Punkt, deutsche
+     * Reihenfolge. Das Muster stand fest im Quelltext und wurde nur mit der jeweiligen
+     * Sprache *gefuellt*. Jetzt sagt die Logik nur noch, **welche Bestandteile** das Datum
+     * hat; wie sie angeordnet werden, weiss die Sprache.
+     */
+    @Test
+    fun `das Skelett enthaelt keine Satzzeichen und keine Reihenfolge`() {
+        listOf(
+            ClockFormat.dateSkeleton(ClockDisplay.TIME_DATE, onTile = true),
+            ClockFormat.dateSkeleton(ClockDisplay.TIME_DATE, onTile = false),
+            ClockFormat.dateSkeleton(ClockDisplay.TIME_DATE_WEEKDAY, onTile = true),
+            ClockFormat.dateSkeleton(ClockDisplay.TIME_DATE_WEEKDAY, onTile = false),
+        ).forEach { skelett ->
+            assertNotNull(skelett)
+            assertEquals("kein Punkt im Skelett: $skelett", false, skelett!!.contains("."))
+            assertEquals("kein Komma im Skelett: $skelett", false, skelett.contains(","))
+            assertEquals("kein Leerzeichen im Skelett: $skelett", false, skelett.contains(" "))
+        }
+    }
+
+    @Test
+    fun `Tag und Monat stehen in jedem Skelett`() {
+        listOf(true, false).forEach { aufKachel ->
+            val skelett = ClockFormat.dateSkeleton(ClockDisplay.TIME_DATE, onTile = aufKachel)!!
+            assertEquals(true, skelett.contains("d"))
+            assertEquals(true, skelett.contains("M"))
+        }
     }
 }

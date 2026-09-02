@@ -1,7 +1,9 @@
 package org.biglau.ui
 
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -10,6 +12,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
+import org.biglau.ui.theme.LocalTextScale
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -24,6 +28,18 @@ import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
 import org.biglau.security.Pin
 import org.biglau.ui.theme.LocalBigPalette
+
+/** Bis hierher wirkt die eingestellte Textgroesse auf der PIN-Eingabe. */
+const val PIN_MAX_TEXT_SCALE = 1.25f
+
+/**
+ * Die Textgroesse, die auf der PIN-Eingabe gilt.
+ *
+ * Gedeckelt, weil auf diesem Bildschirm die Tasten mehr zaehlen als die Worte - die
+ * Begruendung steht bei ihrem Gebrauch. Kleiner als eingestellt wird nie: wer 75 % gewaehlt
+ * hat, bekommt 75 %.
+ */
+fun pinTextScale(current: Float): Float = cappedTextScale(current, PIN_MAX_TEXT_SCALE)
 
 /** Wie lange der Notausstieg gehalten werden muss. */
 const val EMERGENCY_HOLD_MILLIS = 30_000L
@@ -65,8 +81,31 @@ fun PinGate(
         }
     }
 
+    // Auf diesem Bildschirm zaehlen die Tasten mehr als die Worte.
+    //
+    // Bei 200 % Textgroesse wuchsen Ueberschrift und Bestaetigungsknopf so weit, dass fuer
+    // die Tastatur nur ein Streifen blieb: die Zifferntasten waren am Emulator noch
+    // **21 dp** hoch - auf einem Bildschirm, auf dem man genau treffen muss, und fuer
+    // jemanden, der 200 % nicht zum Spass eingestellt hat. Deshalb wirkt die Einstellung
+    // hier nur bis 125 %; die Ziffern selbst sind ohnehin aus der Flaeche gerechnet und
+    // bleiben damit so gross, wie der Platz es zulaesst.
+    val gedeckelt = pinTextScale(LocalTextScale.current)
+    CompositionLocalProvider(LocalTextScale provides gedeckelt) {
     Column(
-        modifier = Modifier.fillMaxSize(),
+        // Deckend: die Sperre wurde sonst ueber den Startbildschirm gezeichnet, und die
+        // Kacheln schienen zwischen den Tasten durch - am Emulator gesehen. Ein Schloss,
+        // durch das man hindurchsieht, sieht nicht nach Schloss aus, und die Tastatur war
+        // ueber den bunten Flaechen kaum zu lesen. Die anderen Aufrufer setzen den
+        // Hintergrund selbst; einer hatte ihn vergessen, und dass es nur einer war, sah man
+        // erst am Bildschirm.
+        // safeDrawingPadding gehoert hierher und nicht nur zu den Aufrufern: auf dem
+        // Startbildschirm lag der Bestaetigungsknopf sonst **hinter der Navigationsleiste**
+        // - am Emulator gesehen, nur die obere Kante schaute hervor. Wo ein Aufrufer die
+        // Abstaende schon gesetzt hat, kommt hier nichts dazu; Compose verbraucht sie.
+        modifier = Modifier
+            .fillMaxSize()
+            .background(palette.background)
+            .safeDrawingPadding(),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         BigHeading(title)
@@ -155,5 +194,6 @@ fun PinGate(
                 }
             },
         )
+    }
     }
 }

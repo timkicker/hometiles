@@ -36,14 +36,14 @@ fun PermissionGate(
         Text(
             text = explanation,
             color = palette.onBackground,
-            fontSize = 17.sp,
+            fontSize = bigSp(17f),
             modifier = Modifier.padding(horizontal = 4.dp),
         )
         if (blocked) {
             Text(
                 text = stringResource(R.string.permission_blocked),
                 color = palette.danger,
-                fontSize = 15.sp,
+                fontSize = bigSp(15f),
                 modifier = Modifier.padding(horizontal = 4.dp),
             )
             BigRow(

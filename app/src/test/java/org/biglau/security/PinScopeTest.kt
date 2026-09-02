@@ -15,7 +15,7 @@ import org.junit.Test
  */
 class PinScopeTest {
 
-    private val mitPin = Security(pin = "irgendein-hash")
+    private val mitPin = Security(pin = Pin.hash("1234"))
 
     /**
      * Ohne gesetzte PIN schützt nichts — auch nicht, wenn der Schalter an ist. Ein

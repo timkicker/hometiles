@@ -78,6 +78,83 @@ class TileNotificationsTest {
         val button = Button(ButtonAction.Action(Builtin.CAMERA))
         assertEquals(0, TileNotifications.badgeFor(button, mapOf("com.sms.app" to 3), system))
     }
+
+    // --- Verpasste Anrufe zaehlen anders (02.09.2026) ---
+
+    /**
+     * Der Fund am Emulator: **elf ungesehene verpasste Anrufe** in der Liste, und auf der
+     * Kachel stand nichts. Der Grund: die Kachel sah auf die Meldungen der
+     * Standard-Telefon-App — und das ist BigLau selbst, sobald sie die Rolle hat. Die
+     * Meldung ueber einen verpassten Anruf kommt aber vom System (Telecom), nicht von der
+     * Telefon-App. Jetzt zaehlt die Kachel die Anrufliste, also das, was der Nutzer meint.
+     */
+    @Test
+    fun `die Kachel fuer verpasste Anrufe zaehlt die Anrufliste`() {
+        val kachel = Button(action = ButtonAction.Action(Builtin.MISSED_CALLS), blink = true)
+        assertEquals(11, TileNotifications.badgeFor(kachel, emptyMap(), system, missed = 11))
+    }
+
+    @Test
+    fun `fremde Meldungen zaehlen dort nicht mit`() {
+        // Sonst stuende die Zahl doppelt da, sobald die Telefon-App selbst meldet.
+        val kachel = Button(action = ButtonAction.Action(Builtin.MISSED_CALLS), blink = true)
+        assertEquals(
+            3,
+            TileNotifications.badgeFor(kachel, mapOf("com.dialer.app" to 7), system, missed = 3),
+        )
+    }
+
+    @Test
+    fun `ohne Blinken bleibt die Kachel auch bei verpassten Anrufen still`() {
+        val kachel = Button(action = ButtonAction.Action(Builtin.MISSED_CALLS), blink = false)
+        assertEquals(0, TileNotifications.badgeFor(kachel, emptyMap(), system, missed = 11))
+    }
+
+
+    /**
+     * Dieselbe Frage bei den Nachrichten: die Kachel zaehlte **Meldungen** der
+     * Standard-SMS-App. Das braucht den Zugriff auf fremde Meldungen — eine eigene
+     * Erlaubnis, die niemand von selbst erteilt — und haengt, sobald BigLau selbst die
+     * Standard-App ist, an der eigenen Meldung statt an dem, was ungelesen ist.
+     */
+    @Test
+    fun `die Nachrichten-Kachel zaehlt ungelesene Nachrichten`() {
+        val kachel = Button(action = ButtonAction.Action(Builtin.MESSAGES), blink = true)
+        assertEquals(
+            3,
+            TileNotifications.badgeFor(kachel, mapOf("com.sms.app" to 9), system, unread = 3),
+        )
+    }
+
+    @Test
+    fun `ohne Leseerlaubnis bleiben die Meldungen die Auskunft`() {
+        // Null heisst nicht "keine ungelesenen", sondern "wir duerfen nicht nachsehen".
+        val kachel = Button(action = ButtonAction.Action(Builtin.MESSAGES), blink = true)
+        assertEquals(
+            9,
+            TileNotifications.badgeFor(kachel, mapOf("com.sms.app" to 9), system, unread = null),
+        )
+    }
+
+    @Test
+    fun `null ungelesene sind eine Aussage`() {
+        // Wer alles gelesen hat, soll keine Zahl mehr sehen - auch wenn die Meldung der
+        // anderen App noch steht.
+        val kachel = Button(action = ButtonAction.Action(Builtin.MESSAGES), blink = true)
+        assertEquals(
+            0,
+            TileNotifications.badgeFor(kachel, mapOf("com.sms.app" to 9), system, unread = 0),
+        )
+    }
+
+    @Test
+    fun `andere Kacheln bleiben bei den Meldungen`() {
+        val kachel = Button(action = ButtonAction.Action(Builtin.MESSAGES), blink = true)
+        assertEquals(
+            4,
+            TileNotifications.badgeFor(kachel, mapOf("com.sms.app" to 4), system, missed = 11),
+        )
+    }
 }
 
 /**
@@ -120,4 +197,5 @@ class CanBlinkTest {
         assertFalse(TileNotifications.canBlink(ButtonAction.Folder("f1")))
         assertFalse(TileNotifications.canBlink(ButtonAction.Link("https://orf.at")))
     }
+
 }

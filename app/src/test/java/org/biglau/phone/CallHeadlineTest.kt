@@ -22,26 +22,26 @@ class CallHeadlineTest {
 
     @Test
     fun `der name geht der nummer vor`() {
-        assertEquals("Oma", CallActions.headline(view("+4366412345", "Oma")))
+        assertEquals("Oma", CallActions.headline(view("+4366412345", "Oma"), "Unbekannt"))
     }
 
     // Ohne Namen bleibt die Nummer - in Bloecken, wie ueberall sonst.
     @Test
     fun `ohne namen steht die nummer in bloecken`() {
-        assertEquals("+436 641 234 5", CallActions.headline(view("+4366412345", null)))
+        assertEquals("+436 641 234 5", CallActions.headline(view("+4366412345", null), "Unbekannt"))
     }
 
     // Ein leerer Name ist kein Name. Sonst stuende auf dem Bildschirm gar nichts, und man
     // wuesste nicht einmal, dass ueberhaupt jemand anruft.
     @Test
     fun `ein leerer name faellt auf die nummer zurueck`() {
-        assertEquals("+436 641 234 5", CallActions.headline(view("+4366412345", "  ")))
+        assertEquals("+436 641 234 5", CallActions.headline(view("+4366412345", "  "), "Unbekannt"))
     }
 
     // Unterdrueckte Nummer: weder Name noch Ziffern. Ein Fragezeichen ist ehrlicher als
     // eine leere Zeile - es sagt "unbekannt", nicht "kaputt".
     @Test
     fun `ohne beides bleibt ein fragezeichen`() {
-        assertEquals("?", CallActions.headline(view("", null)))
+        assertEquals("Unbekannt", CallActions.headline(view("", null), "Unbekannt"))
     }
 }

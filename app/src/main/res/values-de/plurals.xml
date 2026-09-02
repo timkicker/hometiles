@@ -65,16 +65,16 @@
         <item quantity="other">Kostet %1$d SMS</item>
     </plurals>
     <plurals name="sos_message_parts">
-        <item quantity="one">Mit Standort kostet das eine SMS</item>
-        <item quantity="other">Mit Standort kostet das %1$d SMS</item>
+        <item quantity="one">Mit Standort kostet das höchstens eine SMS</item>
+        <item quantity="other">Mit Standort kostet das höchstens %1$d SMS</item>
     </plurals>
     <plurals name="sos_countdown_seconds">
         <item quantity="one">eine Sekunde</item>
         <item quantity="other">%1$d Sekunden</item>
     </plurals>
     <plurals name="transfer_confirm">
-        <item quantity="one">Diese Sicherung enthält einen Screen mit %2$d Kacheln. Das Einlesen ersetzt Deine jetzige Belegung.</item>
-        <item quantity="other">Diese Sicherung enthält %1$d Screens mit %2$d Kacheln. Das Einlesen ersetzt Deine jetzige Belegung.</item>
+        <item quantity="one">Diese Sicherung enthält einen Screen mit %2$d Kacheln. Das Einlesen ersetzt Ihre jetzige Belegung.</item>
+        <item quantity="other">Diese Sicherung enthält %1$d Screens mit %2$d Kacheln. Das Einlesen ersetzt Ihre jetzige Belegung.</item>
     </plurals>
     <plurals name="screen_copy_done">
         <item quantity="one">„%1$s“ steht mit einer Kachel. Eine Kachel dorthin liegt auf diesem Bildschirm.</item>
@@ -84,6 +84,22 @@
         <item quantity="one">„%1$s“ steht mit einer Kachel. %3$d blieben leer: Widgets und Ordner gehören an genau eine Stelle.</item>
         <item quantity="other">„%1$s“ steht mit %2$d Kacheln. %3$d blieben leer: Widgets und Ordner gehören an genau eine Stelle.</item>
     </plurals>
+    <plurals name="a11y_new_calls">
+        <item quantity="one">Einer ist neu</item>
+        <item quantity="other">%1$d sind neu</item>
+    </plurals>
+    <plurals name="a11y_unread">
+        <item quantity="one">Eine ist ungelesen</item>
+        <item quantity="other">%1$d sind ungelesen</item>
+    </plurals>
+    <plurals name="sos_location_age_minutes">
+        <item quantity="one">Standort von vor einer Minute</item>
+        <item quantity="other">Standort von vor %1$d Minuten</item>
+    </plurals>
+    <plurals name="sos_location_age_hours">
+        <item quantity="one">Standort von vor einer Stunde</item>
+        <item quantity="other">Standort von vor %1$d Stunden</item>
+    </plurals>
     <plurals name="a11y_badge">
         <item quantity="one">Eine neue Meldung</item>
         <item quantity="other">%1$d neue Meldungen</item>
@@ -91,5 +107,9 @@
     <plurals name="sms_repeat_minutes">
         <item quantity="one">Jede Minute, bis sie gelesen ist</item>
         <item quantity="other">Alle %1$d Minuten, bis sie gelesen ist</item>
+    </plurals>
+    <plurals name="apps_hidden_count">
+        <item quantity="one">Eine ausgeblendete App</item>
+        <item quantity="other">%1$d ausgeblendete Apps</item>
     </plurals>
 </resources>

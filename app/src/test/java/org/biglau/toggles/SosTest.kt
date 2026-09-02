@@ -123,4 +123,86 @@ class SosLocaleTest {
         withLocale(java.util.Locale.US) { englisch = SosMessage.mapsLink(48.20849, 16.37208) }
         assertEquals(englisch, deutsch)
     }
+
+    // --- Wie alt der Standort ist (02.09.2026) ---
+
+    /**
+     * Ein Standort ohne Alter liest sich wie „hier ist er jetzt". Ist er in Wahrheit von
+     * gestern, fährt die Hilfe an den falschen Ort und sucht dort. Seit der Countdown nach
+     * einer frischen Position sucht, ist der Normalfall frisch — aber wenn keine kommt (im
+     * Keller, im Zug), geht die alte hinaus, und dann muss es dabeistehen.
+     */
+    @Test
+    fun `ein frischer Standort braucht keinen Hinweis`() {
+        assertEquals(null, SosMessage.ageNote(0L))
+        assertEquals(null, SosMessage.ageNote(4L))
+        assertEquals(null, SosMessage.ageNote(null))
+    }
+
+    @Test
+    fun `ab fuenf Minuten steht das Alter dabei`() {
+        assertEquals(SosMessage.AgeUnit.MINUTES to 5, SosMessage.ageNote(5L))
+        assertEquals(SosMessage.AgeUnit.MINUTES to 119, SosMessage.ageNote(119L))
+    }
+
+    @Test
+    fun `ab zwei Stunden in Stunden`() {
+        // "Standort von vor 180 Minuten" muss der Empfaenger erst umrechnen.
+        assertEquals(SosMessage.AgeUnit.HOURS to 2, SosMessage.ageNote(120L))
+        assertEquals(SosMessage.AgeUnit.HOURS to 25, SosMessage.ageNote(1500L))
+    }
+
+    @Test
+    fun `der Hinweis steht in einer eigenen Zeile hinter dem Link`() {
+        val nachricht = SosMessage.compose(
+            text = "Hilfe!",
+            latitude = 48.20849,
+            longitude = 16.37208,
+            fallback = "Notfall",
+            ageNote = "Standort von vor 3 Stunden",
+        )
+        val zeilen = nachricht.lines()
+        assertEquals("Hilfe!", zeilen[0])
+        assertTrue(zeilen[1].startsWith("https://"))
+        assertEquals("Standort von vor 3 Stunden", zeilen[2])
+    }
+
+    @Test
+    fun `ohne Standort steht auch kein Alter da`() {
+        // Sonst stuende in der Nachricht ein Hinweis auf etwas, das gar nicht drinsteht.
+        val nachricht = SosMessage.compose(
+            text = "Hilfe!",
+            latitude = null,
+            longitude = null,
+            fallback = "Notfall",
+            ageNote = "Standort von vor 3 Stunden",
+        )
+        assertEquals("Hilfe!", nachricht)
+    }
+
+    /**
+     * Die Kostenangabe in den Einstellungen rechnet mit Beispielkoordinaten — und seit die
+     * Nachricht das Alter eines alten Standorts nennt, muss sie auch damit rechnen. Sonst
+     * stünde dort „kostet eine SMS", und im Ernstfall wären es zwei. Zu niedrig ist bei
+     * Kosten die falsche Richtung.
+     */
+    @Test
+    fun `die Alterszeile kann eine zweite SMS kosten`() {
+        val text = "Bitte kommt schnell, mir ist schwindlig und ich kann nicht mehr aufstehen."
+        val ohne = SosMessage.compose(text, 48.20849, 16.37208, "Notfall")
+        val mit = SosMessage.compose(
+            text, 48.20849, 16.37208, "Notfall", ageNote = "Standort von vor 24 Stunden",
+        )
+        assertTrue("die Zeile macht die Nachricht nicht laenger", mit.length > ohne.length)
+        assertTrue(
+            "die Rechnung braucht die laengere Fassung",
+            SosMessage.partsNeeded(mit) >= SosMessage.partsNeeded(ohne),
+        )
+    }
+
+    @Test
+    fun `eine kurze Nachricht mit Standort bleibt eine SMS`() {
+        val kurz = SosMessage.compose("Hilfe!", 48.20849, 16.37208, "Notfall")
+        assertEquals(1, SosMessage.partsNeeded(kurz))
+    }
 }

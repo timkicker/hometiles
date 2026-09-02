@@ -67,7 +67,7 @@ class NoticeActivity : BigLauActivity() {
                         Text(
                             text = text,
                             color = palette.onBackground,
-                            fontSize = 19.sp,
+                            fontSize = bigSp(19f),
                             modifier = Modifier.padding(horizontal = 4.dp, vertical = 12.dp),
                         )
                         Spacer(Modifier.weight(1f))

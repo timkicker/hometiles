@@ -20,7 +20,6 @@ class SmsThreadsTest {
     fun `Nachrichten eines Gespraechs werden zusammengefasst`() {
         val threads = SmsThreads.group(listOf(msg(1, 100), msg(1, 200), msg(2, 150)))
         assertEquals(2, threads.size)
-        assertEquals(2, threads.first { it.threadId == 1L }.messageCount)
     }
 
     @Test
@@ -120,5 +119,31 @@ class SmsThreadsTest {
     @Test
     fun `eine leere Liste ergibt keine Gespraeche`() {
         assertTrue(SmsThreads.group(emptyList()).isEmpty())
+    }
+
+    // --- Absender, die keine Nummer sind (02.09.2026) ---
+
+    /**
+     * Banken, Paketdienste und Anmeldecodes kommen als Buchstabenkennung. Bis hierher
+     * blieb davon **nichts** uebrig: `PhoneNumbers.clean` wirft Buchstaben weg, und in der
+     * Liste stand eine leere Zeile - bei genau den Nachrichten, die man am ehesten sucht.
+     */
+    @Test
+    fun `eine Buchstabenkennung steht als Titel da`() {
+        val threads = SmsThreads.group(listOf(msg(1, 100, address = "ADAC")))
+        assertEquals("ADAC", threads.first().title)
+    }
+
+    @Test
+    fun `ohne Absender steht der Ersatztext da`() {
+        val threads = SmsThreads.group(listOf(msg(1, 100, address = "")))
+        assertEquals("", threads.first().title)
+        assertEquals("Unbekannt", threads.first().titleOr("Unbekannt"))
+    }
+
+    @Test
+    fun `mit Absender bleibt der Ersatztext weg`() {
+        val threads = SmsThreads.group(listOf(msg(1, 100)))
+        assertEquals("+436 601 234 567", threads.first().titleOr("Unbekannt"))
     }
 }

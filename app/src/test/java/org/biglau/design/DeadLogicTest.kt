@@ -1,6 +1,7 @@
 package org.biglau.design
 
 import java.io.File
+import org.biglau.Quelltext
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -21,7 +22,6 @@ import org.junit.Test
  */
 class DeadLogicTest {
 
-    private val quelle = File("src/main/java")
 
     /**
      * Was es geben darf, ohne dass die App es aufruft.
@@ -32,7 +32,7 @@ class DeadLogicTest {
     private val begruendeteAusnahmen = emptyMap<String, String>()
 
     private fun dateien(): List<File> =
-        quelle.walkTopDown().filter { it.extension == "kt" }.toList()
+        Quelltext.dateien()
 
     /** Funktionsname → "Objekt.Name", für alle Funktionen direkt in einem `object`. */
     private fun deklarationen(): List<Pair<String, String>> {

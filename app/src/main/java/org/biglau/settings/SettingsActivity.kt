@@ -80,6 +80,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import org.biglau.ui.bigSp
 import org.biglau.ui.ICON_PERCENTS
 import org.biglau.ui.LABEL_SCALES
 import org.biglau.ui.BigLauActivity
@@ -102,6 +103,7 @@ import org.biglau.data.ConfigTransfer
 import org.biglau.data.LabelPosition
 import org.biglau.data.Screen
 import org.biglau.data.SosConfig
+import org.biglau.toggles.SosActivity
 import org.biglau.toggles.SosAlarm
 import org.biglau.toggles.SosCountdown
 import org.biglau.toggles.SosMessage
@@ -111,11 +113,13 @@ import org.biglau.data.FontChoice
 import org.biglau.data.ContactsConfig
 import androidx.compose.material.icons.filled.Person
 import org.biglau.phone.CallBlocking
+import org.biglau.phone.DialerRole
 import org.biglau.sms.ConversationText
 import org.biglau.notify.MessageReminderReceiver
 import org.biglau.notify.SmsNotifications
 import org.biglau.notify.SmsReminder
 import org.biglau.sms.SmsFilter
+import org.biglau.sms.SmsRepository
 import org.biglau.phone.CallDirection
 import org.biglau.data.ScreenOrientation
 import org.biglau.data.Security
@@ -192,7 +196,7 @@ class SettingsActivity : BigLauActivity() {
 
         setContent {
             val config by store.config.collectAsStateWithLifecycle()
-            val locked = config.security.pin != null
+            val locked = Pin.usable(config.security.pin)
             // rememberSaveable, damit der Sprachwechsel nicht an den Anfang zurueckwirft:
             // er baut die Activity neu auf, und wer gerade eine Sprache gewaehlt hat, will
             // sehen, dass das Haekchen umgesprungen ist - nicht die oberste Seite.
@@ -275,6 +279,12 @@ class SettingsActivity : BigLauActivity() {
             }
             var locationDeniedOnce by remember { mutableStateOf(false) }
             var locationCanAskAgain by remember { mutableStateOf(true) }
+            // Ein Rollendialog braucht einen Aufrufer - also ueber einen Launcher und nicht
+            // ueber startActivity. Ohne das bricht er ab, bevor er zu sehen ist.
+            val askDialerRole = rememberLauncherForActivityResult(
+                ActivityResultContracts.StartActivityForResult(),
+            ) { }
+
             val askLocation = rememberLauncherForActivityResult(
                 ActivityResultContracts.RequestMultiplePermissions(),
             ) { result ->
@@ -353,7 +363,11 @@ class SettingsActivity : BigLauActivity() {
                     when (page) {
                         Page.GATE -> PinGate(
                             title = stringResource(R.string.settings_locked),
-                            explainer = stringResource(R.string.security_explainer),
+                            // Auf dem Schloss steht nur der Ausweg, nicht die Begruendung:
+                            // der lange Text passte dort nicht in die drei Zeilen und wurde
+                            // ausgerechnet an der Stelle abgeschnitten, an der der Ausweg
+                            // stand ("Wenn Sie sie ..."). Am Bildschirm gesehen.
+                            explainer = stringResource(R.string.security_forgot),
                             wrongText = stringResource(R.string.security_wrong_pin),
                             confirmLabel = stringResource(R.string.editor_done),
                             onCheck = { entered -> Pin.verify(entered, config.security.pin) },
@@ -391,8 +405,31 @@ class SettingsActivity : BigLauActivity() {
                             onContacts = { page = Page.CONTACTS },
                             onCallTypes = { page = Page.CALL_TYPES },
                             onMessages = { page = Page.MESSAGES },
-                            onHomeApp = { Intents.chooseHomeApp(this@SettingsActivity) },
-                            onDialerApp = { Intents.chooseDialerApp(this@SettingsActivity) },
+                            istStartbildschirm = Diagnostics.isDefaultHome(this@SettingsActivity),
+                            istTelefonApp = DialerRole.held(this@SettingsActivity),
+                            onHomeApp = {
+                                val absicht = Intents.homeRoleIntent(this@SettingsActivity)
+                                if (absicht != null) {
+                                    askDialerRole.launch(absicht)
+                                } else {
+                                    Intents.chooseHomeApp(this@SettingsActivity)
+                                }
+                            },
+                            onDialerApp = {
+                                // Haelt BigLau die Rolle schon, fuehrt der Rollendialog
+                                // nirgendwohin - er schliesst sich sofort wieder. Dann in
+                                // die Systemeinstellungen, wo sie sich zurueckgeben laesst.
+                                val absicht = if (DialerRole.held(this@SettingsActivity)) {
+                                    null
+                                } else {
+                                    Intents.dialerRoleIntent(this@SettingsActivity)
+                                }
+                                if (absicht != null) {
+                                    askDialerRole.launch(absicht)
+                                } else {
+                                    Intents.chooseDialerApp(this@SettingsActivity)
+                                }
+                            },
                             onDone = { finish() },
                         )
 
@@ -636,7 +673,7 @@ class SettingsActivity : BigLauActivity() {
                         )
 
                         Page.SECURITY -> SecurityList(
-                            hasPin = config.security.pin != null,
+                            hasPin = Pin.usable(config.security.pin),
                             protectsEditor = config.security.pinProtectsEditor,
                             lockOthers = config.apps.lockOthers,
                             wouldAllow = AppLock.wouldAllow(config),
@@ -858,6 +895,12 @@ class SettingsActivity : BigLauActivity() {
                             onToggleAlarmFlash = {
                                 store.update { it.copy(sos = it.sos.copy(alarmFlash = !it.sos.alarmFlash)) }
                             },
+                            onPreview = {
+                                startActivity(
+                                    Intent(this@SettingsActivity, SosActivity::class.java)
+                                        .putExtra(SosActivity.EXTRA_PREVIEW, true),
+                                )
+                            },
                             onTryAlarm = {
                                 if (alarmProbe) {
                                     SosAlarm.stop(this@SettingsActivity)
@@ -1006,6 +1049,14 @@ class SettingsActivity : BigLauActivity() {
 
                         Page.CALL_TYPES -> CallTypesList(
                             blocked = config.phone.blockedNumbers,
+                            onDialerApp = {
+                                val absicht = Intents.dialerRoleIntent(this@SettingsActivity)
+                                if (absicht != null) {
+                                    askDialerRole.launch(absicht)
+                                } else {
+                                    Intents.chooseDialerApp(this@SettingsActivity)
+                                }
+                            },
                             onBlocked = { text ->
                                 store.update {
                                     it.copy(
@@ -1099,6 +1150,9 @@ class SettingsActivity : BigLauActivity() {
 
         /** Die Seite mit den Notfallkontakten. */
         const val PAGE_SOS = "SOS"
+
+        /** Die Seite mit den ausgeblendeten Apps. */
+        const val PAGE_HIDDEN_APPS = "HIDDEN_APPS"
     }
 }
 
@@ -1121,6 +1175,8 @@ private fun MainList(
     onMessages: () -> Unit,
     onHomeApp: () -> Unit,
     onDialerApp: () -> Unit,
+    istStartbildschirm: Boolean,
+    istTelefonApp: Boolean,
     onDone: () -> Unit,
 ) {
     val palette = LocalBigPalette.current
@@ -1133,12 +1189,31 @@ private fun MainList(
         item { BigRow(stringResource(R.string.settings_behaviour), icon = Icons.Filled.NotificationsActive, onClick = onBehaviour) }
         item { BigRow(stringResource(R.string.settings_app_list), icon = Icons.Filled.Apps, onClick = onHiddenApps) }
         item { BigRow(stringResource(R.string.settings_security), icon = Icons.Filled.Lock, onClick = onSecurity) }
-        item { BigRow(stringResource(R.string.set_as_home), icon = Icons.Filled.Home, onClick = onHomeApp) }
+        // Beide Zeilen sagen den Zustand, statt eine Aufforderung zu wiederholen, die schon
+        // erfuellt ist. Vorher stand "Als Telefon-App verwenden" auch dann da, wenn BigLau
+        // es laengst war - und ein Tipp darauf tat sichtbar nichts: der Rollendialog schloss
+        // sich sofort wieder ("Application is already a role holder", im Protokoll gesehen).
         item {
             BigRow(
-                label = stringResource(R.string.set_as_dialer),
-                secondary = stringResource(R.string.set_as_dialer_hint),
+                label = stringResource(
+                    if (istStartbildschirm) R.string.is_home else R.string.set_as_home,
+                ),
+                secondary = if (istStartbildschirm) stringResource(R.string.role_change_hint) else null,
+                icon = Icons.Filled.Home,
+                surface = if (istStartbildschirm) palette.surfaceAccent else palette.surfaceDefault,
+                onClick = onHomeApp,
+            )
+        }
+        item {
+            BigRow(
+                label = stringResource(
+                    if (istTelefonApp) R.string.is_dialer else R.string.set_as_dialer,
+                ),
+                secondary = stringResource(
+                    if (istTelefonApp) R.string.role_change_hint else R.string.set_as_dialer_hint,
+                ),
                 icon = Icons.Filled.Call,
+                surface = if (istTelefonApp) palette.surfaceAccent else palette.surfaceDefault,
                 onClick = onDialerApp,
             )
         }
@@ -1237,7 +1312,7 @@ private fun ScreenList(
                         unreachable.joinToString(", ") { it.name },
                     ),
                     color = palette.danger,
-                    fontSize = 15.sp,
+                    fontSize = bigSp(15f),
                     modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp),
                 )
             }
@@ -1315,7 +1390,7 @@ private fun ScreenList(
                 Text(
                     text = stringResource(R.string.folders_orphaned),
                     color = palette.danger,
-                    fontSize = 15.sp,
+                    fontSize = bigSp(15f),
                     modifier = Modifier.padding(horizontal = 4.dp, vertical = 8.dp),
                 )
             }
@@ -1342,7 +1417,7 @@ private fun ScreenList(
             Text(
                 text = stringResource(R.string.screens_where_new),
                 color = palette.onBackground,
-                fontSize = 15.sp,
+                fontSize = bigSp(15f),
                 modifier = Modifier.padding(horizontal = 4.dp, vertical = 12.dp),
             )
         }
@@ -1385,7 +1460,7 @@ private fun ScreenPanel(
                 value = text,
                 onValueChange = { text = it },
                 singleLine = true,
-                textStyle = TextStyle(fontSize = 26.sp, fontWeight = FontWeight.Bold),
+                textStyle = TextStyle(fontSize = bigSp(26f), fontWeight = FontWeight.Bold),
                 // Dieselbe Falle wie beim Kachelnamen: die Tastatur verdeckt "Fertig"
                 // vollstaendig, also uebernimmt ihre eigene Haken-Taste.
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
@@ -1435,7 +1510,7 @@ private fun ScreenPanel(
                     stringResource(R.string.screen_background_contrast)
                 },
                 color = palette.onBackground,
-                fontSize = 15.sp,
+                fontSize = bigSp(15f),
                 modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp),
             )
         }
@@ -1726,7 +1801,7 @@ private fun AppearanceList(
                         },
                     ),
                     color = palette.danger,
-                    fontSize = 15.sp,
+                    fontSize = bigSp(15f),
                     modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp),
                 )
             }
@@ -1945,7 +2020,7 @@ private fun AccessibilityList(
                 Text(
                     text = stringResource(R.string.a11y_editor_moved),
                     color = palette.danger,
-                    fontSize = 15.sp,
+                    fontSize = bigSp(15f),
                     modifier = Modifier.padding(horizontal = 4.dp, vertical = 8.dp),
                 )
             }
@@ -1972,6 +2047,8 @@ private fun SosSettings(
     onToggleAlarmSound: () -> Unit,
     onToggleAlarmFlash: () -> Unit,
     onTryAlarm: () -> Unit,
+    /** Zeigt den Notrufbildschirm als Probe - siehe SosActivity.EXTRA_PREVIEW. */
+    onPreview: () -> Unit,
     alarmRunning: Boolean,
 ) {
     val palette = LocalBigPalette.current
@@ -1990,7 +2067,7 @@ private fun SosSettings(
             Text(
                 text = stringResource(R.string.sos_explainer),
                 color = palette.onBackground,
-                fontSize = 16.sp,
+                fontSize = bigSp(16f),
                 modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp),
             )
         }
@@ -2001,12 +2078,12 @@ private fun SosSettings(
                 value = numbersText,
                 onValueChange = { numbersText = it },
                 singleLine = false,
-                textStyle = TextStyle(fontSize = 20.sp, fontWeight = FontWeight.Bold),
+                textStyle = TextStyle(fontSize = bigSp(20f), fontWeight = FontWeight.Bold),
                 // Der Hinweis gehoert ans Feld, nicht an den Knopf: am Knopf stand er in
                 // einer Zeile, die abgeschnitten wurde, und ein leerer Kasten sagt nichts.
-                placeholder = { Text(stringResource(R.string.sos_numbers_placeholder), fontSize = 17.sp) },
+                placeholder = { Text(stringResource(R.string.sos_numbers_placeholder), fontSize = bigSp(17f)) },
                 supportingText = {
-                    Text(stringResource(R.string.sos_numbers_hint, SosNumbers.MAX), fontSize = 15.sp)
+                    Text(stringResource(R.string.sos_numbers_hint, SosNumbers.MAX), fontSize = bigSp(15f))
                 },
                 modifier = Modifier.fillMaxWidth(),
             )
@@ -2016,7 +2093,7 @@ private fun SosSettings(
                 Text(
                     text = stringResource(R.string.sos_numbers_rejected, rejected.joinToString(", ")),
                     color = palette.danger,
-                    fontSize = 15.sp,
+                    fontSize = bigSp(15f),
                     modifier = Modifier.padding(horizontal = 4.dp),
                 )
             }
@@ -2034,13 +2111,24 @@ private fun SosSettings(
             OutlinedTextField(
                 value = messageText,
                 onValueChange = { messageText = it },
-                textStyle = TextStyle(fontSize = 18.sp),
-                placeholder = { Text(defaultMessage, fontSize = 17.sp) },
+                textStyle = TextStyle(fontSize = bigSp(18f)),
+                placeholder = { Text(defaultMessage, fontSize = bigSp(17f)) },
                 modifier = Modifier.fillMaxWidth(),
             )
         }
         item {
-            val preview = SosMessage.compose(messageText, 48.20849, 16.37208, defaultMessage)
+            // Mit der laengsten Zeile gerechnet, die dazukommen kann: seit die Nachricht
+            // das Alter eines alten Standorts nennt, waere die Zahl sonst im schlechten
+            // Fall um eine SMS zu niedrig - und zu niedrig ist bei Kosten die falsche
+            // Richtung.
+            val laengstesAlter = pluralStringResource(R.plurals.sos_location_age_hours, 24, 24)
+            val preview = SosMessage.compose(
+                text = messageText,
+                latitude = 48.20849,
+                longitude = 16.37208,
+                fallback = defaultMessage,
+                ageNote = laengstesAlter,
+            )
             BigRow(
                 label = stringResource(R.string.sos_message_save),
                 // Vorschau mit Beispielkoordinaten: der Nutzer soll sehen, was ankommt,
@@ -2117,6 +2205,18 @@ private fun SosSettings(
             }
         }
 
+        // Den Ablauf einmal ansehen, ohne dass etwas hinausgeht. Wer den Notruf einrichtet,
+        // will ihn dem Menschen erklaeren koennen, der ihn spaeter im Ernst drueckt - und
+        // eine Erklaerung, die man zeigen kann, ist besser als eine, die man liest.
+        item {
+            BigRow(
+                label = stringResource(R.string.sos_preview),
+                secondary = stringResource(R.string.sos_preview_hint),
+                icon = Icons.Filled.PlayCircle,
+                onClick = onPreview,
+            )
+        }
+
         // Der Schalter steht auf "mit Standort", das Recht fehlt: dann geht die Nachricht
         // ohne Koordinaten hinaus. Das gehoert hier hingeschrieben, nicht erst im Notfall
         // gemerkt.
@@ -2125,7 +2225,7 @@ private fun SosSettings(
                 Text(
                     text = stringResource(R.string.sos_location_missing),
                     color = palette.danger,
-                    fontSize = 15.sp,
+                    fontSize = bigSp(15f),
                     modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp),
                 )
             }
@@ -2163,7 +2263,7 @@ private fun TransferList(onExport: () -> Unit, onImport: () -> Unit) {
             Text(
                 text = stringResource(R.string.transfer_explainer),
                 color = palette.onBackground,
-                fontSize = 16.sp,
+                fontSize = bigSp(16f),
                 modifier = Modifier.padding(horizontal = 4.dp, vertical = 8.dp),
             )
         }
@@ -2231,7 +2331,7 @@ private fun HiddenAppsList(
                 Text(
                     text = stringResource(R.string.hidden_apps_none),
                     color = palette.onBackground,
-                    fontSize = 16.sp,
+                    fontSize = bigSp(16f),
                     modifier = Modifier.padding(horizontal = 4.dp, vertical = 8.dp),
                 )
             }
@@ -2261,7 +2361,7 @@ private fun BehaviourList(
             Text(
                 text = stringResource(R.string.blink_explainer),
                 color = palette.onBackground,
-                fontSize = 16.sp,
+                fontSize = bigSp(16f),
                 modifier = Modifier.padding(horizontal = 4.dp, vertical = 8.dp),
             )
         }
@@ -2310,7 +2410,7 @@ private fun SecurityList(
             Text(
                 text = stringResource(R.string.security_explainer),
                 color = palette.onBackground,
-                fontSize = 16.sp,
+                fontSize = bigSp(16f),
                 modifier = Modifier.padding(horizontal = 4.dp, vertical = 8.dp),
             )
         }
@@ -2425,7 +2525,7 @@ private fun DiagnosticsList(activity: ComponentActivity) {
     LazyColumn(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         item { BigHeading(stringResource(R.string.settings_diagnostics)) }
         items(lines) { line ->
-            BigRow(label = line.first, secondary = line.second, onClick = {})
+            BigRow(label = line.first, secondary = line.second)
         }
     }
 }
@@ -2470,7 +2570,7 @@ private fun NoSettingsWarning(
                 name,
             ),
             color = palette.danger,
-            fontSize = 16.sp,
+            fontSize = bigSp(16f),
             modifier = Modifier.padding(horizontal = 4.dp),
         )
         if (canAddTile) {
@@ -2530,7 +2630,7 @@ private fun ResetPanel(
                     )
                 },
                 color = palette.onBackground,
-                fontSize = 17.sp,
+                fontSize = bigSp(17f),
                 modifier = Modifier.padding(horizontal = 4.dp, vertical = 8.dp),
             )
         }
@@ -2539,7 +2639,7 @@ private fun ResetPanel(
                 Text(
                     text = stringResource(R.string.reset_pin_too),
                     color = palette.onBackground,
-                    fontSize = 17.sp,
+                    fontSize = bigSp(17f),
                     modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp),
                 )
             }
@@ -2586,7 +2686,7 @@ private fun SwipeOrderList(
             Text(
                 text = stringResource(R.string.swipe_order_explainer),
                 color = palette.onBackground,
-                fontSize = 15.sp,
+                fontSize = bigSp(15f),
                 modifier = Modifier.padding(horizontal = 4.dp, vertical = 8.dp),
             )
         }
@@ -2712,7 +2812,7 @@ private fun AllowedAppsList(
         Text(
             text = stringResource(R.string.security_allowed_hint),
             color = palette.onBackground,
-            fontSize = 15.sp,
+            fontSize = bigSp(15f),
             modifier = Modifier.padding(horizontal = 4.dp),
         )
         BigSearchField(
@@ -2815,6 +2915,7 @@ private fun ContactsSettingsList(
 private fun CallTypesList(
     blocked: List<String>,
     onBlocked: (String) -> Unit,
+    onDialerApp: () -> Unit,
     audioRoute: AudioRoute,
     onAudioRoute: (AudioRoute) -> Unit,
     speakerOnOutgoing: Boolean,
@@ -2827,6 +2928,8 @@ private fun CallTypesList(
     onToggle: (String) -> Unit,
 ) {
     val palette = LocalBigPalette.current
+    // Einmal gelesen, zweimal gebraucht: fuer den Hinweis und fuer die Zeile darunter.
+    val hatTelefonRolle = DialerRole.held(LocalContext.current)
     var gesperrtText by remember(blocked) { mutableStateOf(CallBlocking.format(blocked)) }
     val abgewiesen = remember(gesperrtText) { CallBlocking.rejected(gesperrtText) }
     LazyColumn(verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -2849,7 +2952,7 @@ private fun CallTypesList(
             Text(
                 text = stringResource(R.string.call_types_hint),
                 color = palette.onBackground,
-                fontSize = 15.sp,
+                fontSize = bigSp(15f),
                 modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp),
             )
         }
@@ -2868,18 +2971,38 @@ private fun CallTypesList(
         item { BigHeading(stringResource(R.string.blocked_numbers)) }
         item {
             Text(
-                text = stringResource(R.string.blocked_numbers_hint),
+                // "werden abgewiesen, ohne zu klingeln" gilt nur, wenn BigLau die
+                // Telefon-Rolle haelt - nur die Standard-Telefon-App sieht eingehende
+                // Anrufe. Ohne die Rolle wirkt die Sperre allein nach aussen. Siehe
+                // DialerRole; am Telefon des Nutzers haelt die Rolle ein anderes Programm.
+                text = if (hatTelefonRolle) {
+                    stringResource(R.string.blocked_numbers_hint)
+                } else {
+                    stringResource(R.string.blocked_numbers_hint_outgoing)
+                },
                 color = palette.onBackground,
-                fontSize = 15.sp,
+                fontSize = bigSp(15f),
                 modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp),
             )
+        }
+        // Den Weg anbieten, nicht nur den Grund nennen: ohne die Telefon-Rolle wirkt die
+        // Sperre halb, und die Rolle ist zwei Bildschirme weit weg. Die Zeile steht nur da,
+        // solange sie fehlt.
+        if (!hatTelefonRolle) {
+            item {
+                BigRow(
+                    label = stringResource(R.string.blocked_numbers_take_role),
+                    icon = Icons.Filled.Call,
+                    onClick = onDialerApp,
+                )
+            }
         }
         item {
             OutlinedTextField(
                 value = gesperrtText,
                 onValueChange = { gesperrtText = it },
-                placeholder = { Text(stringResource(R.string.blocked_numbers_placeholder), fontSize = 15.sp) },
-                textStyle = LocalTextStyle.current.copy(fontSize = 17.sp),
+                placeholder = { Text(stringResource(R.string.blocked_numbers_placeholder), fontSize = bigSp(15f)) },
+                textStyle = LocalTextStyle.current.copy(fontSize = bigSp(17f)),
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
             )
         }
@@ -2888,7 +3011,7 @@ private fun CallTypesList(
                 Text(
                     text = stringResource(R.string.blocked_numbers_rejected, abgewiesen.joinToString(", ")),
                     color = palette.danger,
-                    fontSize = 15.sp,
+                    fontSize = bigSp(15f),
                     modifier = Modifier.padding(horizontal = 4.dp),
                 )
             }
@@ -2925,7 +3048,7 @@ private fun CallTypesList(
             Text(
                 text = stringResource(R.string.caller_photo_hint),
                 color = palette.onBackground,
-                fontSize = 15.sp,
+                fontSize = bigSp(15f),
                 modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp),
             )
         }
@@ -3095,9 +3218,16 @@ private fun MessagesSettingsList(
         item { BigHeading(stringResource(R.string.sms_filter_numbers_heading)) }
         item {
             Text(
-                text = stringResource(R.string.sms_filter_hint),
+                // Der Satz behauptet etwas ueber dieses Telefon und muss deshalb nachsehen:
+                // haelt BigLau die SMS-Rolle, ist "BigLau ist nicht die SMS-App dieses
+                // Telefons" schlicht falsch. Am Emulator aufgefallen, wo es die Rolle hat.
+                text = if (SmsRepository.get(LocalContext.current).isDefaultSmsApp()) {
+                    stringResource(R.string.sms_filter_hint_default)
+                } else {
+                    stringResource(R.string.sms_filter_hint)
+                },
                 color = palette.onBackground,
-                fontSize = 15.sp,
+                fontSize = bigSp(15f),
                 modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp),
             )
         }
@@ -3106,8 +3236,8 @@ private fun MessagesSettingsList(
             OutlinedTextField(
                 value = nummernText,
                 onValueChange = { nummernText = it },
-                placeholder = { Text(stringResource(R.string.blocked_numbers_placeholder), fontSize = 15.sp) },
-                textStyle = LocalTextStyle.current.copy(fontSize = 17.sp),
+                placeholder = { Text(stringResource(R.string.blocked_numbers_placeholder), fontSize = bigSp(15f)) },
+                textStyle = LocalTextStyle.current.copy(fontSize = bigSp(17f)),
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
             )
         }
@@ -3123,8 +3253,8 @@ private fun MessagesSettingsList(
             OutlinedTextField(
                 value = woerterText,
                 onValueChange = { woerterText = it },
-                placeholder = { Text(stringResource(R.string.sms_filter_words_placeholder), fontSize = 15.sp) },
-                textStyle = LocalTextStyle.current.copy(fontSize = 17.sp),
+                placeholder = { Text(stringResource(R.string.sms_filter_words_placeholder), fontSize = bigSp(15f)) },
+                textStyle = LocalTextStyle.current.copy(fontSize = bigSp(17f)),
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
             )
         }

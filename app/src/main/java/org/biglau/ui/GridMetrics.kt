@@ -58,6 +58,22 @@ fun labelSizeSp(
     userScale * labelScale.coerceIn(LABEL_SCALE_MIN, LABEL_SCALE_MAX)
 
 /**
+ * Die Schriftgroessen, die eine Beschriftung der Reihe nach versucht.
+ *
+ * **Anlass:** bei 200 % App-Schrift auf 1,35-facher Systemschrift stand auf den Kacheln
+ * „Einstellun…" und „Verpasste …". Beides sind Woerter, die diese App braucht - und wer
+ * 200 % einstellt, tut das nicht zum Spass, sondern weil er kleiner nichts liest. Ein
+ * abgeschnittenes Wort hilft ihm nicht, ein etwas kleineres schon.
+ *
+ * Deshalb wird die Beschriftung in Stufen kleiner versucht, bevor sie abgeschnitten oder
+ * (bei eingeschalteter Option) ausgeblendet wird. Die Untergrenze liegt bei 70 % des
+ * Wunsches: darunter waere die Ersparnis gross und die Lesbarkeit dahin - dann ist
+ * Abschneiden die ehrlichere Antwort.
+ */
+fun labelLadder(wishSp: Float): List<Float> =
+    listOf(1f, 0.925f, 0.85f, 0.775f, 0.7f).map { wishSp * it }
+
+/**
  * Die Breite, die der Beschriftung in der Kachel bleibt - in dp.
  *
  * `PLAN.md` 3.2 sagt eine Option zu: „Label ausblenden, wenn es nicht in zwei Zeilen

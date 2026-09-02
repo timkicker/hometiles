@@ -62,15 +62,7 @@ class BigInCallService : InCallService() {
             ConfigStore.get(this).current.phone,
             outgoing = ausgehend,
         ) ?: return
-        runCatching {
-            setAudioRoute(
-                when (weg) {
-                    AudioRoute.SPEAKER -> CallAudioState.ROUTE_SPEAKER
-                    AudioRoute.BLUETOOTH -> CallAudioState.ROUTE_BLUETOOTH
-                    AudioRoute.EARPIECE -> CallAudioState.ROUTE_EARPIECE
-                },
-            )
-        }
+        runCatching { setAudioRoute(AudioRoutes.toTelecom(weg)) }
     }
 
     override fun onCallRemoved(call: Call) {
@@ -90,7 +82,22 @@ class BigInCallService : InCallService() {
         calls.firstOrNull()?.let(::publish)
     }
 
+    /**
+     * Welcher Anruf gezeigt wird.
+     *
+     * Vorher der zuletzt veraenderte - also mal der eine, mal der andere. Die Reihenfolge
+     * steht in [CallForeground] und ist dort geprueft.
+     */
+    private fun vordergrund(): Call? {
+        val liste = calls
+        val index = CallForeground.pick(liste.map { statusOf(it.state) }) ?: return null
+        return liste.getOrNull(index)
+    }
+
     private fun publish(call: Call) {
+        val gezeigt = vordergrund() ?: call
+        if (gezeigt != call) return publish(gezeigt)
+        val zweiter = calls.firstOrNull { it != call }
         val details = call.details
         InCallRepository.publish(
             call = call,
@@ -110,9 +117,17 @@ class BigInCallService : InCallService() {
                 ),
                 startedAtMillis = details?.connectTimeMillis?.takeIf { it > 0 },
                 muted = audioState?.isMuted == true,
-                speakerOn = audioState?.route == CallAudioState.ROUTE_SPEAKER,
-                otherCallWaiting = calls.size > 1,
+                audioRoute = AudioRoutes.fromTelecom(audioState?.route),
+                bluetoothAvailable = AudioRoutes.bluetoothAvailable(
+                    audioState?.supportedRouteMask,
+                ),
+                otherName = zweiter?.let {
+                    val nummer = it.details?.handle?.schemeSpecificPart.orEmpty()
+                    CallerName.lookup(this, nummer) ?: nummer.takeIf { n -> n.isNotBlank() }
+                },
+                otherHeld = zweiter?.state == Call.STATE_HOLDING,
             ),
+            other = zweiter,
         )
     }
 

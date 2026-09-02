@@ -45,6 +45,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import org.biglau.ui.bigSp
 import org.biglau.ui.BigLauActivity
 import org.biglau.R
 import kotlinx.coroutines.launch
@@ -277,7 +278,7 @@ private fun ContactList(
                 Text(
                     text = stringResource(R.string.favourites_none),
                     color = palette.onBackground,
-                    fontSize = 17.sp,
+                    fontSize = bigSp(17f),
                     modifier = Modifier.padding(horizontal = 4.dp, vertical = 8.dp),
                 )
             }
@@ -300,14 +301,14 @@ private fun ContactList(
             Text(
                 text = stringResource(R.string.contacts_loading),
                 color = palette.onBackground,
-                fontSize = 18.sp,
+                fontSize = bigSp(18f),
                 modifier = Modifier.padding(horizontal = 4.dp, vertical = 16.dp),
             )
         } else if (contacts.isEmpty()) {
             Text(
                 text = stringResource(R.string.contacts_no_match),
                 color = palette.onBackground,
-                fontSize = 18.sp,
+                fontSize = bigSp(18f),
                 modifier = Modifier.padding(horizontal = 4.dp, vertical = 16.dp),
             )
             // Wer eine Nummer eintippt, waehrend nur Namen durchsucht werden, bekommt
@@ -316,7 +317,7 @@ private fun ContactList(
                 Text(
                     text = stringResource(R.string.contacts_numbers_not_searched),
                     color = palette.onBackground,
-                    fontSize = 15.sp,
+                    fontSize = bigSp(15f),
                     modifier = Modifier.padding(horizontal = 4.dp),
                 )
                 BigRow(

@@ -74,7 +74,7 @@ fun ClockContent(
     val timeFormat = remember(twentyFourHour, locale) {
         SimpleDateFormat(if (twentyFourHour) "HH:mm" else "h:mm a", locale)
     }
-    val datePattern = ClockFormat.datePattern(clock, onTile = true)
+    val datePattern = bestDatePattern(ClockFormat.dateSkeleton(clock, onTile = true), locale)
     val dateFormat = remember(locale, datePattern) {
         datePattern?.let { SimpleDateFormat(it, locale) }
     }

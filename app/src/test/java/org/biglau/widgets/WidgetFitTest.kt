@@ -89,4 +89,31 @@ class WidgetFitTest {
     fun `derselbe Anbieter erscheint nur einmal`() {
         assertEquals(1, WidgetFit.sorted(listOf(row(1, 1), row(1, 1))).size)
     }
+
+    // --- Feste Groesse (02.09.2026) ---
+
+    /**
+     * Der Anbieter meldet, ob er sich strecken laesst; das lag bis hierher ungelesen im
+     * Modell (gefunden mit `DeadFieldTest`). Wer eine grosse Kachel mit einem Widget
+     * belegt, das nur ein Feld kann, bekommt es trotzdem hineingezogen - und haelt das
+     * Ergebnis fuer einen Fehler der App.
+     */
+    @Test
+    fun `ohne Streckbarkeit ist die Groesse fest`() {
+        assertTrue(WidgetFit.fixedSize(row(100, 100)))
+    }
+
+    @Test
+    fun `wer sich strecken laesst hat keine feste Groesse`() {
+        val quer = WidgetProviderRow(
+            "com.clock", "com.clock.Widget", "Uhr", "Uhr-App", 100, 100,
+            resizeHorizontal = true,
+        )
+        val hoch = WidgetProviderRow(
+            "com.clock", "com.clock.Widget", "Uhr", "Uhr-App", 100, 100,
+            resizeVertical = true,
+        )
+        assertTrue(!WidgetFit.fixedSize(quer))
+        assertTrue(!WidgetFit.fixedSize(hoch))
+    }
 }

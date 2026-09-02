@@ -44,6 +44,20 @@ object AppLocale {
     }
 
     fun needsRecreate(attached: Language, current: Language): Boolean = attached != current
+
+    /**
+     * Der Context in der Sprache der **App** - fuer alles ausserhalb einer Activity.
+     *
+     * [wrap] hing bis hierher nur an `BigLauActivity`. Jede Meldung, jeder Wecker und der
+     * Vorgabetext des Notrufs holten ihre Texte dagegen aus dem rohen Anwendungs-Context -
+     * also in der Sprache des **Telefons**. Am Emulator gesehen: die Oberflaeche auf
+     * Deutsch, die Meldung darueber auf Englisch.
+     *
+     * Das trifft genau den Fall, fuer den es diese Einstellung ueberhaupt gibt: ein Telefon,
+     * dessen Systemsprache jemand anderes gesetzt hat.
+     */
+    fun forApp(context: Context): Context =
+        wrap(context, ConfigStore.get(context).current.appearance.language)
 }
 
 /**

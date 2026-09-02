@@ -46,4 +46,33 @@ class LabelFitTest {
         assertTrue("rememberTextMeasurer fehlt", "rememberTextMeasurer()" in quelle)
         assertTrue("hasVisualOverflow fehlt", "hasVisualOverflow" in quelle)
     }
+
+    // --- Erst kleiner werden, dann abschneiden (02.09.2026) ---
+
+    /**
+     * Bei 200 % App-Schrift auf 1,35-facher Systemschrift stand auf den Kacheln
+     * „Einstellun…" und „Verpasste …". Wer 200 % einstellt, tut das nicht zum Spass — ein
+     * abgeschnittenes Wort hilft ihm nicht, ein etwas kleineres schon.
+     */
+    @Test
+    fun `die Leiter beginnt beim Wunsch und endet bei siebzig Prozent`() {
+        val leiter = labelLadder(40f)
+        assertEquals(40f, leiter.first(), 0.01f)
+        assertEquals(28f, leiter.last(), 0.01f)
+    }
+
+    @Test
+    fun `die Leiter wird Stufe fuer Stufe kleiner`() {
+        val leiter = labelLadder(24f)
+        leiter.zipWithNext().forEach { (gross, klein) ->
+            assertTrue("$klein muesste kleiner sein als $gross", klein < gross)
+        }
+    }
+
+    @Test
+    fun `auch die kleinste Stufe bleibt eine Groesse`() {
+        // Sonst waere die Beschriftung bei winzigen Kacheln rechnerisch weg, statt zu
+        // weichen - und ein Text mit Groesse null ist kein Text, sondern ein Fehler.
+        labelLadder(14f).forEach { assertTrue(it > 0f) }
+    }
 }

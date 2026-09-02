@@ -7,6 +7,7 @@ import org.biglau.data.Cell
 import org.biglau.data.LauncherConfig
 import org.biglau.data.Screen
 import org.biglau.data.Security
+import org.biglau.security.Pin
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
@@ -30,7 +31,7 @@ class AppLockTest {
                 ),
             ),
         ),
-        security = Security(pin = "hash"),
+        security = Security(pin = Pin.hash("1234")),
         apps = AppsConfig(lockOthers = true, allowed = setOf("com.wa/Main")),
     )
 

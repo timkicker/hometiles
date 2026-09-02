@@ -3,6 +3,7 @@ package org.biglau.settings
 import org.biglau.data.ButtonAction
 import org.biglau.data.LauncherConfig
 import org.biglau.data.ScreenKind
+import org.biglau.security.Pin
 
 /**
  * „Alles zurücksetzen" aus PLAN.md 4.9.
@@ -30,7 +31,7 @@ object Reset {
                 screen.cells.count { it.button.action != ButtonAction.None }
             },
             folders = ordner,
-            hasPin = config.security.pin != null,
+            hasPin = Pin.usable(config.security.pin),
         )
     }
 

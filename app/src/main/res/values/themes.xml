@@ -5,5 +5,21 @@
         <item name="android:statusBarColor">#00000000</item>
         <item name="android:navigationBarColor">#00000000</item>
         <item name="android:windowLightStatusBar">false</item>
+        <!--
+            Ausdruecklich undurchsichtig, und das ist kein Schoenheitsfehler:
+
+            Am Jelly 2 blieb die vorherige App **auf dem Bildschirm stehen**, wenn man die
+            Heim-Taste drueckte. Im Task-Auszug stand `type=home … translucent=true`; eine
+            durchsichtige Heim-Aufgabe verdeckt die App dahinter nicht, also blieb sichtbar,
+            was vorher da war. Am Emulator mit derselben Fassung: `translucent=false`, und
+            heim ist heim. Der Unterschied kommt aus dem Thema des Herstellers, nicht aus
+            unserem - deshalb wird es hier hingeschrieben statt geerbt.
+
+            Fuer einen Startbildschirm ist das kein Detail: die Heim-Taste ist der Weg
+            zurueck, auf den sich jemand verlaesst, der sich sonst nirgends zurechtfindet.
+        -->
+        <item name="android:windowIsTranslucent">false</item>
+        <item name="android:windowIsFloating">false</item>
+        <item name="android:windowShowWallpaper">false</item>
     </style>
 </resources>

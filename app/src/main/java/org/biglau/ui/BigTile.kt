@@ -107,6 +107,14 @@ fun BigTile(
      */
     initials: String? = null,
     contentDescription: String = label,
+    /**
+     * Wie der Zaehler an der Ecke vorgelesen wird.
+     *
+     * Vorgabe ist „neue Meldungen" - das stimmt fuer eine App-Kachel. Fuer die verpassten
+     * Anrufe stimmte es **nicht**: die zaehlt keine Meldungen, sondern Anrufe, und die
+     * Vorlesefunktion sagte trotzdem „11 neue Meldungen".
+     */
+    badgeSpeech: Int = R.plurals.a11y_badge,
     onClick: () -> Unit = {},
     onLongClick: () -> Unit = {},
 ) {
@@ -117,7 +125,7 @@ fun BigTile(
     val gesprochen = TileSpeech.describe(
         label = contentDescription,
         badge = if (badgeCount > 0) {
-            pluralStringResource(R.plurals.a11y_badge, badgeCount, badgeCount)
+            pluralStringResource(badgeSpeech, badgeCount, badgeCount)
         } else {
             null
         },
@@ -130,7 +138,8 @@ fun BigTile(
     val pressed by interaction.collectIsPressedAsState()
     val scale by animateFloatAsState(if (pressed) 0.97f else 1f, label = "press")
 
-    val labelSp = labelSizeSp(cellWidth.value, cellHeight.value, textScale, LocalLabelScale.current)
+    val labelWunsch =
+        labelSizeSp(cellWidth.value, cellHeight.value, textScale, LocalLabelScale.current)
     // PLAN.md 3.2: die Beschriftung kann weichen, wenn sie ohnehin abgeschnitten wuerde.
     // Faellt sie weg, gehoert ihr Platz dem Symbol - sonst bliebe ein Streifen Nichts.
     //
@@ -139,24 +148,34 @@ fun BigTile(
     // vor dem Zeichnen, es blitzt also nichts auf.
     val messer = rememberTextMeasurer()
     val dichte = LocalDensity.current
-    val labelStil = TextStyle(
-        fontSize = dpSp(labelSp),
-        lineHeight = dpSp(labelSp * 1.1f),
-        fontWeight = FontWeight.Bold,
-    )
-    val zoneDp = labelZoneDp(cellHeight.value, labelSp)
-    val passt = remember(label, labelSp, cellWidth, cellHeight, labelStil) {
+    val zoneDp = labelZoneDp(cellHeight.value, labelWunsch)
+    // Erst kleiner werden, dann abschneiden: siehe labelLadder. Die Zone bleibt dabei so
+    // hoch wie beim Wunsch - sonst huepfte das Symbol darueber, je nach Wortlaenge.
+    val stufen = labelLadder(labelWunsch).map { groesse ->
+        groesse to TextStyle(
+            fontSize = dpSp(groesse),
+            lineHeight = dpSp(groesse * 1.1f),
+            fontWeight = FontWeight.Bold,
+        )
+    }
+    val (labelSp, labelStil, passt) = remember(label, labelWunsch, cellWidth, cellHeight) {
         val breite = with(dichte) { labelWidthDp(cellWidth.value, cellHeight.value).dp.roundToPx() }
         // Auch die Hoehe der Beschriftungszone begrenzt: zwei Zeilen passen der Breite nach
         // oft, aber nicht in die Zone. Am Bildschirm gesehen - "Nachrichten" stand auf vier
         // Spalten weiter als "Nachrich..." da, obwohl die reine Breitenmessung "passt" sagte.
         val hoehe = with(dichte) { zoneDp.dp.roundToPx() }
-        !messer.measure(
+        fun misst(stil: TextStyle) = !messer.measure(
             text = AnnotatedString(label),
-            style = labelStil,
+            style = stil,
             maxLines = 2,
             constraints = Constraints(maxWidth = breite, maxHeight = hoehe),
         ).hasVisualOverflow
+        val treffer = stufen.firstOrNull { misst(it.second) }
+        Triple(
+            treffer?.first ?: stufen.last().first,
+            treffer?.second ?: stufen.last().second,
+            treffer != null,
+        )
     }
     val zeigeLabel = labelPosition != LabelPosition.HIDDEN &&
         (!LocalHideCutLabels.current || passt)

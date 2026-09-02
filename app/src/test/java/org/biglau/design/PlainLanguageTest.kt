@@ -1,6 +1,7 @@
 package org.biglau.design
 
 import java.io.File
+import org.biglau.Quelltext
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
@@ -12,7 +13,7 @@ import org.junit.Test
  */
 class PlainLanguageTest {
 
-    private val quellen = File("src/main/java").walkTopDown().filter { it.extension == "kt" }
+    private val quellen = Quelltext.dateien()
     private val texte = listOf("src/main/res/values/strings.xml", "src/main/res/values-de/strings.xml")
         .map(::File)
 
@@ -35,6 +36,25 @@ class PlainLanguageTest {
             }
         }.toList()
         assertEquals(emptyList<String>(), treffer)
+    }
+
+    /**
+     * Der Hinweis auf einer leeren Kachel bleibt kurz.
+     *
+     * Er steht in der Beschriftungszone einer Kachel und wird abgeschnitten wie jede andere
+     * Beschriftung. Am Bildschirm gesehen: „Antippen zum Belegen" stand schon auf dem
+     * 2 × 4-Raster als „Antippen zum Beleg…" da — ausgerechnet der eine Text, den ein neuer
+     * Nutzer lesen muss. Bei vier Spalten passen rund zehn bis elf Zeichen in die Zeile;
+     * zwölf sind die Grenze, an der es auf jedem Raster noch steht.
+     */
+    @Test
+    fun `der Hinweis auf einer leeren Kachel bleibt kurz`() {
+        val zulang = texte.mapNotNull { datei ->
+            val text = Regex("""<string name="empty_tile_invite">([^<]*)</string>""")
+                .find(datei.readText())?.groupValues?.get(1)
+            if (text != null && text.length > 12) "${datei.name}: \"$text\" (${text.length})" else null
+        }
+        assertEquals(emptyList<String>(), zulang)
     }
 
     /** „Fehlermeldungen sagen, was passiert ist und was zu tun ist. Kein ‚Ups!'." */

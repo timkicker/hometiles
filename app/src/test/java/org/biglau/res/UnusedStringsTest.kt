@@ -1,6 +1,7 @@
 package org.biglau.res
 
 import java.io.File
+import org.biglau.Quelltext
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -20,7 +21,6 @@ import org.junit.Test
 class UnusedStringsTest {
 
     private val res = File("src/main/res")
-    private val quelltext = File("src/main/java")
 
     /**
      * Namen, die es zu Recht ohne Fundstelle im Quelltext gibt.
@@ -42,7 +42,7 @@ class UnusedStringsTest {
     private fun verwendet(): Set<String> {
         val treffer = mutableSetOf<String>()
         val zeiger = Regex("""R\.(?:string|plurals)\.([A-Za-z0-9_]+)|@(?:string|plurals)/([A-Za-z0-9_]+)""")
-        listOf(quelltext, res, File("src/main/AndroidManifest.xml")).forEach { ort ->
+        (Quelltext.wurzeln + res + File("src/main/AndroidManifest.xml")).forEach { ort ->
             ort.walkTopDown().filter { it.isFile }.forEach { datei ->
                 zeiger.findAll(datei.readText()).forEach {
                     treffer += it.groupValues[1].ifEmpty { it.groupValues[2] }

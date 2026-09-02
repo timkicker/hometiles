@@ -12,6 +12,7 @@ import org.biglau.phone.PhoneNumbers
 import org.biglau.sms.SmsActivity
 import org.biglau.sms.SmsFilter
 import org.biglau.sms.SmsMessage
+import org.biglau.ui.AppLocale
 
 /**
  * Die Meldung über eine neue Nachricht.
@@ -50,12 +51,14 @@ object SmsNotifications {
     fun show(context: Context, message: SmsMessage, name: String?, config: SmsConfig) {
         if (!shouldNotify(message, config)) return
         val manager = context.getSystemService(NotificationManager::class.java) ?: return
+        // Texte in der Sprache der App, nicht der des Telefons. Siehe AppLocale.forApp.
+        val texte = AppLocale.forApp(context)
         val kanal = channelId(config.vibrationMs)
         manager.notificationChannels
             .filter { it.id.startsWith("sms-") && it.id != kanal }
             .forEach { manager.deleteNotificationChannel(it.id) }
         manager.createNotificationChannel(
-            NotificationChannel(kanal, context.getString(R.string.messages), NotificationManager.IMPORTANCE_HIGH).apply {
+            NotificationChannel(kanal, texte.getString(R.string.messages), NotificationManager.IMPORTANCE_HIGH).apply {
                 enableVibration(config.vibrationMs > 0)
                 if (config.vibrationMs > 0) vibrationPattern = longArrayOf(0, config.vibrationMs.toLong())
             },

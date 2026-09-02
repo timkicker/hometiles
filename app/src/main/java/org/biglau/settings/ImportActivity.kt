@@ -23,6 +23,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import org.biglau.ui.bigSp
 import org.biglau.ui.BigLauActivity
 import org.biglau.R
 import org.biglau.data.ConfigStore
@@ -83,6 +84,12 @@ class ImportActivity : BigLauActivity() {
                         BigHeading(stringResource(R.string.settings_transfer))
                         Text(
                             text = when {
+                                // Zwei verschiedene Fehler, zwei verschiedene Saetze: eine
+                                // Datei, die sich nicht oeffnen laesst, ist nicht dasselbe
+                                // wie eine, die keine Sicherung ist. Vorher stand beides
+                                // unter "Das ist keine BigLau-Sicherung" - und wer die Datei
+                                // gerade selbst geschrieben hatte, suchte den Fehler bei ihr.
+                                text == null -> stringResource(R.string.transfer_unreadable)
                                 loaded == null -> stringResource(R.string.transfer_bad_file)
                                 done && vonNeuerer -> stringResource(R.string.transfer_imported_older)
                                 done -> stringResource(R.string.transfer_imported)
@@ -94,7 +101,7 @@ class ImportActivity : BigLauActivity() {
                                 )
                             },
                             color = palette.onBackground,
-                            fontSize = 17.sp,
+                            fontSize = bigSp(17f),
                             modifier = Modifier.padding(horizontal = 4.dp, vertical = 8.dp),
                         )
                         if (loaded != null && !done) {

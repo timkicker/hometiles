@@ -11,6 +11,9 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import org.biglau.ui.bigSp
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -70,6 +73,13 @@ class WizardActivity : BigLauActivity() {
 
             val askPermissions = rememberLauncherForActivityResult(
                 ActivityResultContracts.RequestMultiplePermissions(),
+            ) { state = readState() }
+
+            // Der Rollendialog braucht einen Aufrufer, sonst bricht er ab, bevor er zu sehen
+            // ist - siehe Intents.dialerRoleIntent. Und nach der Rueckkehr muss der Zustand
+            // neu gelesen werden, sonst steht der Schritt noch da, den man gerade erledigt hat.
+            val askHomeRole = rememberLauncherForActivityResult(
+                ActivityResultContracts.StartActivityForResult(),
             ) { state = readState() }
 
             fun advance() {
@@ -185,7 +195,14 @@ class WizardActivity : BigLauActivity() {
                                 title = stringResource(R.string.wizard_home_title),
                                 body = stringResource(R.string.wizard_home_body),
                                 action = stringResource(R.string.set_as_home),
-                                onAction = { Intents.chooseHomeApp(this@WizardActivity) },
+                                onAction = {
+                                    val absicht = Intents.homeRoleIntent(this@WizardActivity)
+                                    if (absicht != null) {
+                                        askHomeRole.launch(absicht)
+                                    } else {
+                                        Intents.chooseHomeApp(this@WizardActivity)
+                                    }
+                                },
                                 secondaryAction = stringResource(R.string.wizard_later),
                                 onSecondary = ::advance,
                             )
@@ -242,14 +259,24 @@ private fun Simple(
     onSecondary: (() -> Unit)? = null,
 ) {
     val palette = LocalBigPalette.current
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxSize()) {
         BigHeading(title)
-        Text(
-            text = body,
-            color = palette.onBackground,
-            fontSize = dpSp(17f),
-            modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp),
-        )
+        // Der Text waechst mit der eingestellten Groesse - hier stellt der Nutzer sie ja
+        // gerade ein, und ein Satz, der die Aenderung nicht mitmacht, zeigt sie auch nicht.
+        // Damit er die Knoepfe nie hinausschiebt, blaettert er in seinem eigenen Feld; die
+        // Knoepfe stehen darunter fest. Dieselbe Aufteilung wie bei der Auswahl darunter.
+        Box(
+            modifier = Modifier
+                .weight(1f, fill = false)
+                .verticalScroll(rememberScrollState()),
+        ) {
+            Text(
+                text = body,
+                color = palette.onBackground,
+                fontSize = bigSp(17f),
+                modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp),
+            )
+        }
         BigRow(label = action, surface = palette.surfaceAccent, onClick = onAction)
         if (secondaryAction != null && onSecondary != null) {
             BigRow(label = secondaryAction, onClick = onSecondary)
@@ -275,7 +302,7 @@ private fun <T> Choice(
         Text(
             text = body,
             color = palette.onBackground,
-            fontSize = dpSp(16f),
+            fontSize = bigSp(16f),
             modifier = Modifier.padding(horizontal = 4.dp),
         )
         val listState = rememberLazyListState()

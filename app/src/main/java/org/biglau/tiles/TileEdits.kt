@@ -42,6 +42,15 @@ object TileEdits {
     fun withColorHue(button: Button, hue: Float): Button =
         button.copy(colorHue = hue, colorIndex = -1)
 
+    /**
+     * Ein selbst gewaehltes Symbol, oder null fuer "automatisch aus der Aktion".
+     *
+     * Ein leerer Name zaehlt als keiner - sonst legte ein Fehlgriff eine Kachel ohne Symbol
+     * an, und der Weg zurueck waere nicht zu erraten.
+     */
+    fun withIcon(button: Button, name: String?): Button =
+        button.copy(iconName = name?.takeIf { it.isNotBlank() })
+
     fun withLongPress(button: Button, action: ButtonAction?): Button =
         button.copy(longPress = action?.takeIf { it != ButtonAction.None })
 

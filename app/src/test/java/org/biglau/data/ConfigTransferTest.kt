@@ -135,4 +135,20 @@ class ConfigTransferTest {
         assertTrue(ConfigTransfer.export(sample).contains("\n"))
         assertTrue(ConfigTransfer.export(sample).contains("\"version\""))
     }
+
+    /**
+     * Nach dem Einlesen traegt die Konfiguration die **eigene** Nummer.
+     *
+     * Am Emulator gesehen: eine Sicherung mit `version: 2` wurde eingelesen — richtig mit
+     * dem Hinweis „was diese Fassung nicht kennt, blieb weg" —, aber die Zwei blieb stehen.
+     * Damit haette jede spaetere Sicherung dieses Telefons behauptet, sie stamme aus einem
+     * neueren BigLau, und die Warnung erschiene fuer immer.
+     */
+    @Test
+    fun `eine Sicherung aus einer neueren Fassung bekommt die eigene Nummer`() {
+        val text = ConfigTransfer.export(sample).replace("\"version\": 1", "\"version\": 2")
+        assertTrue("Vorbedingung: die Datei nennt Fassung 2", ConfigTransfer.isFromNewerVersion(text))
+        val gelesen = ConfigTransfer.import(text)
+        assertEquals(CONFIG_VERSION, gelesen?.version)
+    }
 }

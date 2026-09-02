@@ -141,6 +141,18 @@
             </intent-filter>
         </activity>
 
+        <!-- Gesperrte Nummern abweisen, bevor Android klingelt. Nur die
+             Standard-Telefon-App wird gefragt; ohne die Rolle greift der Rueckfall in
+             BigInCallService. -->
+        <service
+            android:name=".phone.CallScreening"
+            android:exported="true"
+            android:permission="android.permission.BIND_SCREENING_SERVICE">
+            <intent-filter>
+                <action android:name="android.telecom.CallScreeningService" />
+            </intent-filter>
+        </service>
+
         <service
             android:name=".phone.BigInCallService"
             android:exported="true"

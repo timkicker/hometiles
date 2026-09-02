@@ -9,6 +9,7 @@ import org.biglau.data.LauncherConfig
 import org.biglau.data.Screen
 import org.biglau.data.ScreenKind
 import org.biglau.data.Security
+import org.biglau.security.Pin
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -70,7 +71,7 @@ class ResetTest {
     @Test
     fun `die pin wird eigens genannt`() {
         assertEquals(false, Reset.losses(config).hasPin)
-        val mitPin = config.copy(security = Security(pin = "abc"))
+        val mitPin = config.copy(security = Security(pin = Pin.hash("1234")))
         assertEquals(true, Reset.losses(mitPin).hasPin)
     }
 

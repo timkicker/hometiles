@@ -72,6 +72,10 @@ fun HomeScreenView(
     /** Der Ordner zu einer Kennung - fuer die Vorschau auf der Ordnerkachel. */
     folderOf: (String) -> Screen? = { null },
     notificationCounts: Map<String, Int> = emptyMap(),
+    /** Ungesehene verpasste Anrufe - die Kachel dafuer zaehlt die Anrufliste, nicht Meldungen. */
+    missedCalls: Int = 0,
+    /** Ungelesene Nachrichten, oder null, wenn BigLau sie nicht lesen darf. */
+    unreadMessages: Int? = null,
     battery: BatteryReading? = null,
     signal: SignalReading? = null,
     systemPackages: SystemPackages = SystemPackages(),
@@ -134,6 +138,8 @@ fun HomeScreenView(
                     cellHeight = h,
                     cellWidth = w,
                     notificationCounts = notificationCounts,
+                    missedCalls = missedCalls,
+                    unreadMessages = unreadMessages,
                     systemPackages = systemPackages,
                     battery = battery,
                     signal = signal,
@@ -164,6 +170,8 @@ private fun TileFor(
     cellHeight: androidx.compose.ui.unit.Dp,
     cellWidth: androidx.compose.ui.unit.Dp,
     notificationCounts: Map<String, Int>,
+    missedCalls: Int,
+    unreadMessages: Int?,
     systemPackages: SystemPackages,
     battery: BatteryReading?,
     signal: SignalReading?,
@@ -179,7 +187,13 @@ private fun TileFor(
     val palette = LocalBigPalette.current
     val button = cell.button
     val color = tileColor(button, cell.x, cell.y, cols)
-    val badge = TileNotifications.badgeFor(button, notificationCounts, systemPackages)
+    val badge = TileNotifications.badgeFor(
+        button,
+        notificationCounts,
+        systemPackages,
+        missedCalls,
+        unreadMessages,
+    )
 
     when (val action = button.action) {
         is ButtonAction.Action -> BigTile(
@@ -198,6 +212,11 @@ private fun TileFor(
             cellHeight = cellHeight,
             cellWidth = cellWidth,
             badgeCount = badge,
+            badgeSpeech = when (action.builtin) {
+                Builtin.MISSED_CALLS -> R.plurals.a11y_new_calls
+                Builtin.MESSAGES -> R.plurals.a11y_unread
+                else -> R.plurals.a11y_badge
+            },
             content = when (action.builtin) {
                 Builtin.CLOCK -> {
                     {
@@ -219,7 +238,12 @@ private fun TileFor(
             },
             // Hier faellt nur die harte Entscheidung "gar keine Symbole". Ob eines auf
             // diese eine Kachel passt, weiss erst BigTile - dort stehen die Zellmasse.
-            icon = if (appearance.icons != IconVisibility.NEVER) action.builtin.icon() else null,
+            // Selbst gewaehltes Symbol schlaegt das abgeleitete. PLAN.md 2.2.
+            icon = if (appearance.icons != IconVisibility.NEVER) {
+                IconCatalogue.vectorFor(button.iconName) ?: action.builtin.icon()
+            } else {
+                null
+            },
             labelPosition = appearance.labelPosition,
             cornerRadius = appearance.cornerRadiusDp.dp,
             modifier = modifier,
@@ -232,7 +256,18 @@ private fun TileFor(
             background = color,
             cellHeight = cellHeight,
             cellWidth = cellWidth,
-            iconBitmap = if (appearance.icons != IconVisibility.NEVER) appIcon(action.packageName, action.activityName) else null,
+            // Ein selbst gewaehltes Symbol schlaegt auch das App-Bild - wer eines waehlt,
+            // hat sich das ueberlegt.
+            icon = if (appearance.icons != IconVisibility.NEVER) {
+                IconCatalogue.vectorFor(button.iconName)
+            } else {
+                null
+            },
+            iconBitmap = if (appearance.icons != IconVisibility.NEVER && button.iconName == null) {
+                appIcon(action.packageName, action.activityName)
+            } else {
+                null
+            },
             badgeCount = badge,
             labelPosition = appearance.labelPosition,
             cornerRadius = appearance.cornerRadiusDp.dp,
@@ -250,8 +285,12 @@ private fun TileFor(
             // PLAN.md 3.4: ohne Foto die Initialen. Vorher stand auf jeder Kontaktkachel
             // dasselbe Personensymbol - drei Kontakte nebeneinander sahen gleich aus, und
             // das Symbol sagte nichts, was die Beschriftung nicht schon sagte.
-            initials = if (action.photoUri == null) tileInitials(button.label ?: action.name) else null,
-            icon = null,
+            initials = if (action.photoUri == null && button.iconName == null) {
+                tileInitials(button.label ?: action.name)
+            } else {
+                null
+            },
+            icon = if (appearance.icons != IconVisibility.NEVER) IconCatalogue.vectorFor(button.iconName) else null,
             labelPosition = appearance.labelPosition,
             cornerRadius = appearance.cornerRadiusDp.dp,
             modifier = modifier,
@@ -288,7 +327,11 @@ private fun TileFor(
             background = color,
             cellHeight = cellHeight,
             cellWidth = cellWidth,
-            icon = if (appearance.icons != IconVisibility.NEVER) org.biglau.data.Builtin.NEXT_SCREEN.icon() else null,
+            icon = if (appearance.icons != IconVisibility.NEVER) {
+                IconCatalogue.vectorFor(button.iconName) ?: org.biglau.data.Builtin.NEXT_SCREEN.icon()
+            } else {
+                null
+            },
             labelPosition = appearance.labelPosition,
             cornerRadius = appearance.cornerRadiusDp.dp,
             modifier = modifier,
@@ -303,6 +346,7 @@ private fun TileFor(
             // Bewusst nicht button.label: der Ordner hat genau einen Namen, und der steht
             // am Ordner selbst - sonst hiesse dasselbe Ding auf der Kachel anders als darin.
             label = folderOf(action.screenId)?.name ?: stringResource(R.string.folder),
+            iconName = button.iconName,
             preview = folderOf(action.screenId)?.let { FolderEdits.preview(it) }.orEmpty(),
             appIcon = appIcon,
             background = color,
@@ -319,7 +363,11 @@ private fun TileFor(
             background = color,
             cellHeight = cellHeight,
             cellWidth = cellWidth,
-            icon = if (appearance.icons != IconVisibility.NEVER) Icons.Filled.Public else null,
+            icon = if (appearance.icons != IconVisibility.NEVER) {
+                IconCatalogue.vectorFor(button.iconName) ?: Icons.Filled.Public
+            } else {
+                null
+            },
             labelPosition = appearance.labelPosition,
             cornerRadius = appearance.cornerRadiusDp.dp,
             modifier = modifier,
@@ -447,6 +495,8 @@ private fun tileColor(button: Button, x: Int, y: Int, cols: Int): Color {
 @Composable
 private fun FolderTile(
     label: String,
+    /** Selbst gewaehltes Symbol, siehe [org.biglau.ui.IconCatalogue]. */
+    iconName: String?,
     preview: List<Cell>,
     appIcon: (String, String) -> ImageBitmap?,
     background: Color,
@@ -466,7 +516,14 @@ private fun FolderTile(
         cornerRadius = appearance.cornerRadiusDp.dp,
         // Leer: das Ordnersymbol. Gefuellt: der Inhalt selbst - das ist die Auskunft, die
         // man vor dem Oeffnen braucht.
-        icon = if (appearance.icons != IconVisibility.NEVER && preview.isEmpty()) Icons.Filled.Folder else null,
+        icon = when {
+            appearance.icons == IconVisibility.NEVER -> null
+            // Ein gewaehltes Symbol geht der Vorschau vor: wer der Bank-Kachel eine Karte
+            // gibt, will die Karte sehen und nicht vier winzige App-Symbole.
+            iconName != null -> IconCatalogue.vectorFor(iconName)
+            preview.isEmpty() -> Icons.Filled.Folder
+            else -> null
+        },
         // "Keine Symbole" gilt auch hier. Die Vorschau besteht aus Symbolen; sie stehen zu
         // lassen, waehrend ueberall sonst keine mehr sind, sieht nach einem Fehler aus.
         // Der Ordnername allein sagt dann, was drin ist.

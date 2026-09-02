@@ -28,7 +28,6 @@ object SmsThreads {
                     address = last.address,
                     contactName = nameFor(last.address),
                     lastMessage = last,
-                    messageCount = sorted.size,
                     unreadCount = sorted.count { it.incoming && !it.read },
                 )
             }

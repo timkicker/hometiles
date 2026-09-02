@@ -81,20 +81,26 @@ object Intents {
         return roleManager.createRequestRoleIntent(android.app.role.RoleManager.ROLE_HOME)
     }
 
+    /**
+     * Der Absichtsaufruf fuer die Telefon-Rolle - wie [homeRoleIntent], und aus demselben
+     * Grund als Absicht statt als fertiger Start.
+     *
+     * **Ein Rollendialog muss mit `startActivityForResult` geoeffnet werden.** Sonst steht
+     * dort kein Aufrufer, und der Dialog bricht ab, bevor er zu sehen ist: im Protokoll
+     * „RequestRoleActivity: Package name cannot be null or empty: null", auf dem Bildschirm
+     * gar nichts. Der Knopf sah aus, als haette man danebengetippt - und genau so war er
+     * seit dem ersten Tag. Am Emulator gefunden.
+     */
+    fun dialerRoleIntent(context: Context): Intent? {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) return null
+        val roleManager = context.getSystemService(android.app.role.RoleManager::class.java)
+            ?: return null
+        if (!roleManager.isRoleAvailable(android.app.role.RoleManager.ROLE_DIALER)) return null
+        return roleManager.createRequestRoleIntent(android.app.role.RoleManager.ROLE_DIALER)
+    }
+
     /** Oeffnet den Dialog zur Wahl des Standard-Launchers. */
     fun chooseHomeApp(context: Context) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            val roleManager = context.getSystemService(android.app.role.RoleManager::class.java)
-            if (roleManager != null &&
-                roleManager.isRoleAvailable(android.app.role.RoleManager.ROLE_HOME) &&
-                !roleManager.isRoleHeld(android.app.role.RoleManager.ROLE_HOME)
-            ) {
-                val intent = roleManager
-                    .createRequestRoleIntent(android.app.role.RoleManager.ROLE_HOME)
-                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                if (runCatching { context.startActivity(intent) }.isSuccess) return
-            }
-        }
         start(context) { Intent(Settings.ACTION_HOME_SETTINGS) }
     }
 
@@ -103,17 +109,6 @@ object Intents {
      * gibt BigLau die Gespraechsansicht - und ein Fehler darin macht Telefonieren unmoeglich.
      */
     fun chooseDialerApp(context: Context) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            val roleManager = context.getSystemService(android.app.role.RoleManager::class.java)
-            if (roleManager != null &&
-                roleManager.isRoleAvailable(android.app.role.RoleManager.ROLE_DIALER)
-            ) {
-                val intent = roleManager
-                    .createRequestRoleIntent(android.app.role.RoleManager.ROLE_DIALER)
-                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                if (runCatching { context.startActivity(intent) }.isSuccess) return
-            }
-        }
         start(context) { Intent(Settings.ACTION_MANAGE_DEFAULT_APPS_SETTINGS) }
     }
 

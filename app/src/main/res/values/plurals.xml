@@ -67,8 +67,8 @@
         <item quantity="other">Costs %1$d text messages</item>
     </plurals>
     <plurals name="sos_message_parts">
-        <item quantity="one">With a location this costs one text message</item>
-        <item quantity="other">With a location this costs %1$d text messages</item>
+        <item quantity="one">With a location this costs at most one text message</item>
+        <item quantity="other">With a location this costs at most %1$d text messages</item>
     </plurals>
     <plurals name="sos_countdown_seconds">
         <item quantity="one">one second</item>
@@ -86,6 +86,22 @@
         <item quantity="one">“%1$s” is ready with one tile. %3$d were left empty: widgets and folders belong to one place only.</item>
         <item quantity="other">“%1$s” is ready with %2$d tiles. %3$d were left empty: widgets and folders belong to one place only.</item>
     </plurals>
+    <plurals name="a11y_new_calls">
+        <item quantity="one">One is new</item>
+        <item quantity="other">%1$d are new</item>
+    </plurals>
+    <plurals name="a11y_unread">
+        <item quantity="one">One is unread</item>
+        <item quantity="other">%1$d are unread</item>
+    </plurals>
+    <plurals name="sos_location_age_minutes">
+        <item quantity="one">Location from one minute ago</item>
+        <item quantity="other">Location from %1$d minutes ago</item>
+    </plurals>
+    <plurals name="sos_location_age_hours">
+        <item quantity="one">Location from one hour ago</item>
+        <item quantity="other">Location from %1$d hours ago</item>
+    </plurals>
     <plurals name="a11y_badge">
         <item quantity="one">One new notification</item>
         <item quantity="other">%1$d new notifications</item>
@@ -93,5 +109,9 @@
     <plurals name="sms_repeat_minutes">
         <item quantity="one">Every minute until it is read</item>
         <item quantity="other">Every %1$d minutes until it is read</item>
+    </plurals>
+    <plurals name="apps_hidden_count">
+        <item quantity="one">One hidden app</item>
+        <item quantity="other">%1$d hidden apps</item>
     </plurals>
 </resources>

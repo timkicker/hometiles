@@ -61,6 +61,18 @@ object WidgetFit {
         cellsNeeded(row.minHeightDp, cellHeightDp, gutterDp),
     )
 
+    /**
+     * Hat das Widget eine feste Groesse?
+     *
+     * Der Anbieter meldet, ob er sich strecken laesst. Wer eine 2 x 2 grosse Kachel mit
+     * einem Widget belegt, das nur 1 x 1 kann, bekommt es trotzdem hineingezogen - und
+     * dann sieht es aus wie ein Fehler der App. Deshalb steht es vor dem Antippen da,
+     * genau wie die Mindestgroesse. (Die Angabe kam vom System und lag bis hierher
+     * ungelesen im Modell.)
+     */
+    fun fixedSize(row: WidgetProviderRow): Boolean =
+        !row.resizeHorizontal && !row.resizeVertical
+
     /** Sortiert nach App, dann nach Widgetname - so sucht man auch. */
     fun sorted(rows: List<WidgetProviderRow>): List<WidgetProviderRow> = rows
         .filter { it.label.isNotBlank() }

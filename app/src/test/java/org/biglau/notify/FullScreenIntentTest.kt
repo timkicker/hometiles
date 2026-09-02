@@ -1,6 +1,7 @@
 package org.biglau.notify
 
 import java.io.File
+import org.biglau.Quelltext
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -13,7 +14,7 @@ import org.junit.Test
  */
 class FullScreenIntentTest {
 
-    private val quellen = File("src/main/java").walkTopDown().filter { it.extension == "kt" }
+    private val quellen = Quelltext.dateien()
     private val manifest = File("src/main/AndroidManifest.xml").readText()
 
     @Test

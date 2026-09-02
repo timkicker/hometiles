@@ -1,5 +1,9 @@
 package org.biglau.ui
 
+import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -20,6 +24,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -35,6 +40,7 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import org.biglau.ui.theme.LocalCornerRadius
@@ -65,7 +71,15 @@ fun BigRow(
     fontFamily: androidx.compose.ui.text.font.FontFamily? = null,
     /** Nur fuer die Radius-Auswahl: dort zeigt jede Zeile ihre eigene Ecke. */
     cornerRadius: androidx.compose.ui.unit.Dp? = null,
-    onClick: () -> Unit,
+    /**
+     * Was beim Antippen geschieht - oder `null` fuer eine Zeile, die **nur etwas sagt**.
+     *
+     * Der Unterschied ist nicht nur Zierde: eine Zeile mit leerer Handlung (`onClick = {}`)
+     * sieht aus wie ein Knopf, schluckt den Tipp still, und die Vorlesefunktion sagt sie
+     * als „Schaltflaeche" an. Wer sich darauf verlaesst, tippt und wartet auf etwas, das
+     * nie kommt. Ohne Handlung ist die Zeile weder anklickbar noch ein Knopf.
+     */
+    onClick: (() -> Unit)? = null,
     onLongClick: (() -> Unit)? = null,
     /**
      * Zwei Zeilen als Vorgabe: erklaerende Zweitzeilen sind fast immer laenger als eine
@@ -94,11 +108,19 @@ fun BigRow(
             .clip(RoundedCornerShape(cornerRadius ?: LocalCornerRadius.current))
             .background(paint.fill)
             .then(if (border != null) Modifier.border(3.dp, border, RoundedCornerShape(cornerRadius ?: LocalCornerRadius.current)) else Modifier)
-            .combinedClickable(
-                interactionSource = interaction,
-                indication = null,
-                onClick = { haptik.tap(haptikStaerke); onClick() },
-                onLongClick = onLongClick?.let { echt -> { haptik.longPress(haptikStaerke); echt() } },
+            .then(
+                if (onClick == null) {
+                    Modifier
+                } else {
+                    Modifier.combinedClickable(
+                        interactionSource = interaction,
+                        indication = null,
+                        onClick = { haptik.tap(haptikStaerke); onClick() },
+                        onLongClick = onLongClick?.let { echt ->
+                            { haptik.longPress(haptikStaerke); echt() }
+                        },
+                    )
+                },
             )
             .heightIn(min = 72.dp)
             .padding(horizontal = 16.dp, vertical = 12.dp),
@@ -112,25 +134,96 @@ fun BigRow(
                 icon != null -> Icon(icon, contentDescription = null, tint = paint.ink, modifier = Modifier.size(36.dp))
             }
         }
-        Column(Modifier.weight(1f)) {
-            Text(
-                text = label,
-                color = paint.ink,
-                fontSize = (22f * scale).sp,
-                fontFamily = fontFamily,
-                fontWeight = FontWeight.Bold,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-            )
+        // Die Randbedingungen gelten fuer beide Zeilen: Beschriftung und Zweitzeile teilen
+        // sich die Hoehe, also muss beides an derselben Stelle gemessen werden.
+        BoxWithConstraints(Modifier.weight(1f)) {
+          val breite = constraints.maxWidth
+          val maxHoehe = constraints.maxHeight
+          Column {
+            // Erst kleiner werden, dann trennen oder abschneiden. Bei 200 % stand in der
+            // Liste "Nachrichte / n" und "Alles zurückset…" - beides an Zeilen, die man
+            // antippt, um irgendwohin zu kommen. Gemessen wird das laengste Wort; daran
+            // bricht die Zeile. Siehe BigHeading, dort dasselbe.
+            val messer = rememberTextMeasurer()
+            val grundstil = LocalTextStyle.current
+            val stufen = labelLadder(22f * scale).map { groesse ->
+                    // `fontFamily` ist meist null und heisst dann "die des Themas". Als
+                    // Feld einer Kopie gesetzt heisst dasselbe null aber "keine" - dann
+                    // waere in einer anderen Schrift gemessen worden als gezeichnet wird.
+                    val stufe = grundstil.copy(
+                        fontSize = groesse.sp,
+                        fontWeight = FontWeight.Bold,
+                    )
+                    if (fontFamily != null) stufe.copy(fontFamily = fontFamily) else stufe
+                }
+                val stil = remember(label, scale, breite, fontFamily) {
+                    val wort = AnnotatedString(longestWord(label))
+                    stufen.firstOrNull { messer.measure(wort, it).size.width <= breite }
+                        ?: stufen.last()
+                }
+                // Drei Zeilen, wenn drei Zeilen Platz haben - gemessen, nicht geraten.
+                // In Listen ist die Hoehe offen; auf dem Notrufbildschirm ist sie begrenzt,
+                // aber reichlich (dort stand "Kontakte jetzt eintr…"); im Gespraech steht
+                // sie fest bei 72 dp, und eine dritte Zeile waere abgeschnitten statt
+                // gekuerzt - also schlechter als das Kuerzen.
+                val darfWachsen = remember(label, stil, breite, maxHoehe) {
+                    val hoch = messer.measure(
+                        text = AnnotatedString(label),
+                        style = stil,
+                        maxLines = 3,
+                        constraints = Constraints(maxWidth = breite),
+                    ).size.height
+                    hoch <= maxHoehe
+                }
+                // Dieselben Angaben wie vor der Stufenleiter, nur die Groesse kommt aus
+                // ihr: ein ganzer TextStyle ersetzt die geerbte Schrift und veraendert
+                // dabei Kleinigkeiten wie den Zeichenabstand - bei 100 % war die Zeile
+                // danach ein paar Bildpunkte schmaler als vorher.
+                Text(
+                    text = label,
+                    color = paint.ink,
+                    fontSize = stil.fontSize,
+                    fontFamily = fontFamily,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = if (darfWachsen) 3 else 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
             if (secondary != null) {
+                // Auch die Zweitzeile darf eine dritte bekommen, wenn Platz ist: die
+                // Warnung vor einem verwaisten Ordner endete sonst mit "Das laesst sich
+                // nicht rueck…", und ausgerechnet dieser Halbsatz ist der Grund, warum man
+                // vorher nachdenkt. Zeilen, die Daten tragen (secondaryMaxLines = 1),
+                // bleiben einzeilig - dort haelt die gleiche Zeilenhoehe die Liste ruhig.
+                val zweitStil = TextStyle(fontSize = (15f * scale).sp)
+                val zweitZeilen = remember(secondary, scale, breite, maxHoehe) {
+                    if (secondaryMaxLines < 2) {
+                        secondaryMaxLines
+                    } else {
+                        val hoch = messer.measure(
+                            text = AnnotatedString(secondary),
+                            style = zweitStil,
+                            maxLines = 3,
+                            constraints = Constraints(maxWidth = breite),
+                        ).size.height
+                        // Die Beschriftung darueber braucht ihren Platz auch noch.
+                        val labelHoch = messer.measure(
+                            text = AnnotatedString(label),
+                            style = stil,
+                            maxLines = 3,
+                            constraints = Constraints(maxWidth = breite),
+                        ).size.height
+                        if (hoch + labelHoch <= maxHoehe) 3 else secondaryMaxLines
+                    }
+                }
                 Text(
                     text = secondary,
                     color = paint.ink,
                     fontSize = (15f * scale).sp,
-                    maxLines = secondaryMaxLines,
+                    maxLines = zweitZeilen,
                     overflow = TextOverflow.Ellipsis,
                 )
             }
+          }
         }
     }
 }
@@ -173,11 +266,25 @@ fun BigIconButton(
 fun BigHeading(text: String, modifier: Modifier = Modifier) {
     val palette = LocalBigPalette.current
     val scale = LocalTextScale.current
-    Text(
-        text = text,
-        color = palette.onBackground,
-        fontSize = (26f * scale).sp,
-        fontWeight = FontWeight.Bold,
-        modifier = modifier.padding(horizontal = 4.dp, vertical = 8.dp),
-    )
+    val messer = rememberTextMeasurer()
+    // Erst kleiner werden, dann trennen: bei 200 % stand ueber der Ruecksetzen-Seite
+    // „Alles zuruecksetze / n". Compose trennt ein Wort mitten hindurch, sobald es allein
+    // nicht in die Zeile passt - und eine mitten im Wort getrennte Ueberschrift liest sich
+    // wie ein Fehler. Gemessen wird das **laengste Wort**; daran bricht die Zeile.
+    BoxWithConstraints(modifier = modifier.padding(horizontal = 4.dp, vertical = 8.dp)) {
+        val breite = constraints.maxWidth
+        // Auf der Schrift des Themas aufgebaut, nicht auf der Vorgabe: mit der falschen
+        // Schrift gemessen fiel die Ueberschrift eine Stufe zu klein aus - und sie wurde
+        // auch in der falschen Schrift gezeichnet, weil `style` die geerbte ersetzt.
+        val grundstil = LocalTextStyle.current
+        val stufen = labelLadder(26f * scale).map { groesse ->
+            groesse to grundstil.copy(fontSize = groesse.sp, fontWeight = FontWeight.Bold)
+        }
+        val stil = remember(text, scale, breite) {
+            val wort = AnnotatedString(longestWord(text))
+            stufen.firstOrNull { messer.measure(wort, it.second).size.width <= breite }?.second
+                ?: stufen.last().second
+        }
+        Text(text = text, color = palette.onBackground, style = stil)
+    }
 }

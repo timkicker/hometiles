@@ -19,13 +19,25 @@ object ClockFormat {
     fun showsTime(display: ClockDisplay, onTile: Boolean): Boolean =
         onTile || display != ClockDisplay.OFF
 
-    /** null heisst: keine Datumszeile. */
-    fun datePattern(display: ClockDisplay, onTile: Boolean): String? = when (display) {
+    /**
+     * Welche **Bestandteile** das Datum hat - nicht, wie sie angeordnet sind.
+     *
+     * Hier stand vorher ein fertiges deutsches Muster („EEEE, d. MMMM"). Mit einer anderen
+     * Sprache kam damit Unsinn heraus: am Jelly 2, das auf Englisch steht, hiess der
+     * Wochentag „Wednesday, 2. September" - englischer Name, deutscher Punkt, deutsche
+     * Reihenfolge. Ein Datum, das man zweimal lesen muss, ist auf einer Uhr das Gegenteil
+     * dessen, wofuer sie da ist.
+     *
+     * Ein Skelett sagt nur „Wochentag, Tag, Monat"; die Anordnung holt sich die Anzeige
+     * ueber `DateFormat.getBestDateTimePattern` aus der Sprache. Null heisst: keine
+     * Datumszeile.
+     */
+    fun dateSkeleton(display: ClockDisplay, onTile: Boolean): String? = when (display) {
         ClockDisplay.OFF -> null
         ClockDisplay.TIME -> null
         // Auf der Kachel ist Platz fuer die langen Namen, in der Kopfzeile nicht.
-        ClockDisplay.TIME_DATE -> if (onTile) "d. MMMM" else "d. MMM"
-        ClockDisplay.TIME_DATE_WEEKDAY -> if (onTile) "EEEE, d. MMMM" else "EEE, d. MMM"
+        ClockDisplay.TIME_DATE -> if (onTile) "dMMMM" else "dMMM"
+        ClockDisplay.TIME_DATE_WEEKDAY -> if (onTile) "EEEEdMMMM" else "EEEdMMM"
     }
 
     /** PLAN.md 4.2 „Groesse frei". Die Stufen, die die Kopfzeile noch traegt. */

@@ -52,6 +52,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import org.biglau.ui.bestDatePattern
+import org.biglau.ui.bigSp
 import org.biglau.ui.BigLauActivity
 import org.biglau.ui.currentLocale
 import org.biglau.R
@@ -77,6 +79,7 @@ import org.biglau.ui.ScrollButtons
 import org.biglau.ui.TabellenZiffern
 import org.biglau.ui.dpSp
 import org.biglau.ui.singleLineSizeSp
+import org.biglau.ui.theme.LocalTextScale
 import org.biglau.ui.theme.BigLauTheme
 import org.biglau.ui.theme.LocalBigPalette
 import java.text.SimpleDateFormat
@@ -229,6 +232,9 @@ class DialerActivity : BigLauActivity() {
                 if (tab != Tab.LOG) return@LaunchedEffect
                 if (logGranted) {
                     groups = callLog.load(mode = config.phone.callGrouping)
+                    // Gesehen ist gesehen: sonst stuende die Zahl weiter auf der Kachel,
+                    // obwohl der Nutzer die Liste gerade gelesen hat.
+                    callLog.markMissedSeen()
                 } else if (!logDeniedOnce) {
                     askLog.launch(Manifest.permission.READ_CALL_LOG)
                 }
@@ -344,6 +350,12 @@ class DialerActivity : BigLauActivity() {
                             writeGate = writeGate,
                             onWriteSettings = { Intents.appSettings(this@DialerActivity) },
                             onCloseWriteGate = { writeGate = false },
+                            onNotCallable = {
+                                Notice.show(
+                                    this@DialerActivity,
+                                    R.string.calllog_not_callable,
+                                )
+                            },
                             onCallTypeSettings = {
                                 startActivity(
                                     Intent(this@DialerActivity, SettingsActivity::class.java)
@@ -453,6 +465,11 @@ private fun Keypad(
                     Text(
                         text = stringResource(R.string.dialer_hint),
                         color = palette.onBackground,
+                        // Bewusst **ohne** die eingestellte Textgroesse: dieser Kopf sitzt
+                        // in einem festen Aufbau ueber der Tastatur, seine 28 dp sind aus
+                        // der Flaeche gerechnet. Mit 200 % ausprobiert - dann stand dort
+                        // "Nummer" und der Rest lag ausserhalb des Bildes, und der Hinweis
+                        // darunter war ganz verschwunden.
                         fontSize = dpSp(28f),
                         fontWeight = FontWeight.Bold,
                         maxLines = 1,
@@ -530,8 +547,12 @@ private fun CallList(
     onWriteSettings: () -> Unit,
     onCloseWriteGate: () -> Unit,
     onCallTypeSettings: () -> Unit,
+    /** Angetippt wurde ein Eintrag ohne waehlbare Nummer - eine unterdrueckte etwa. */
+    onNotCallable: () -> Unit,
     scrollButtons: Boolean,
 ) {
+    // Steht in der Zeile, wenn die Nummer unterdrueckt war - vorher ein festes "?".
+    val unbekannt = stringResource(R.string.call_unknown)
     // Erst die dauerhafte Auswahl der Arten, dann der schnelle Filter "nur verpasste" -
     // der ist eine Ansicht, keine Einstellung, und darf die andere nicht ueberschreiben.
     val groups = CallLogGrouping.visible(
@@ -541,7 +562,10 @@ private fun CallList(
     val leerWeil = CallLogEmpty.reason(alle, missedOnly, allowed)
     val palette = LocalBigPalette.current
     val locale = currentLocale()
-    val format = remember(locale) { SimpleDateFormat("EEE d. MMM, HH:mm", locale) }
+    val format = remember(locale) {
+        // Bestandteile statt festem Muster - siehe bestDatePattern.
+        SimpleDateFormat(bestDatePattern("EEEdMMMHmm", locale), locale)
+    }
 
     // Android fragt nicht mehr nach dem Schreibrecht. Ohne diesen Bildschirm bliebe es
     // dabei, dass Loeschen bestaetigt wird und nichts geschieht.
@@ -579,7 +603,7 @@ private fun CallList(
                         stringResource(R.string.calllog_confirm_one, pendingDelete.first)
                     },
                     color = palette.onBackground,
-                    fontSize = 17.sp,
+                    fontSize = bigSp(17f),
                     modifier = Modifier.padding(horizontal = 4.dp, vertical = 8.dp),
                 )
             }
@@ -604,7 +628,7 @@ private fun CallList(
                 Text(
                     text = stringResource(R.string.calllog_call_confirm, pendingCall.first),
                     color = palette.onBackground,
-                    fontSize = 17.sp,
+                    fontSize = bigSp(17f),
                     modifier = Modifier.padding(horizontal = 4.dp, vertical = 8.dp),
                 )
             }
@@ -657,7 +681,7 @@ private fun CallList(
                     Text(
                         text = stringResource(R.string.calllog_delete_hint),
                         color = palette.onBackground,
-                        fontSize = 14.sp,
+                        fontSize = bigSp(14f),
                         modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp),
                     )
                 }
@@ -673,7 +697,7 @@ private fun CallList(
                             },
                         ),
                         color = palette.onBackground,
-                        fontSize = 16.sp,
+                        fontSize = bigSp(16f),
                         modifier = Modifier.padding(horizontal = 4.dp, vertical = 8.dp),
                     )
                 }
@@ -693,7 +717,7 @@ private fun CallList(
             items(groups, key = { it.latest.id }) { group ->
                 BigRow(
                     label = buildString {
-                        append(group.name ?: PhoneNumbers.forDisplay(group.number).ifBlank { "?" })
+                        append(group.name ?: PhoneNumbers.forDisplay(group.number).ifBlank { unbekannt })
                         if (group.count > 1) append(" (${group.count})")
                     },
                     secondary = format.format(Date(group.latest.timestamp)),
@@ -717,10 +741,17 @@ private fun CallList(
                     // einer Liste, die man mit zittriger Hand durchsieht, ist ein Tipp
                     // daneben sonst ein Anruf bei jemandem.
                     onClick = {
-                        onAskCall(
-                            group.name ?: PhoneNumbers.forDisplay(group.number),
-                            group.number,
-                        )
+                        // Eine unterdrueckte Nummer laesst sich nicht zurueckrufen. Vorher
+                        // stand hier die Rueckfrage `„" jetzt anrufen?` - mit leeren
+                        // Anfuehrungszeichen, und ein Ja haette nichts gewaehlt.
+                        if (!PhoneNumbers.isDialable(group.number)) {
+                            onNotCallable()
+                        } else {
+                            onAskCall(
+                                group.name ?: PhoneNumbers.forDisplay(group.number),
+                                group.number,
+                            )
+                        }
                     },
                     onLongClick = {
                         onAskDelete(
