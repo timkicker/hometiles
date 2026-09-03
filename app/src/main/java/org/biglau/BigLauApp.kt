@@ -1,6 +1,8 @@
 package org.biglau
 
 import android.app.Application
+import org.biglau.sms.SmsReminder
+import org.biglau.sms.MessageReminderReceiver
 import org.biglau.apps.AppRepository
 import org.biglau.data.ConfigStore
 import org.biglau.phone.SystemNumbers
@@ -29,6 +31,23 @@ class BigLauApp : Application() {
             // Laendervorwahl klebt am Ortsnetz - siehe PhoneNumbers.forDisplay.
             // Braucht keine Berechtigung.
             SystemNumbers.install(this)
+            // Den Wecker fuer die wiederholte Erinnerung wieder stellen.
+            //
+            // Er haengt an `ELAPSED_REALTIME_WAKEUP` und ist nach einem Neustart des
+            // Telefons weg - ein `BOOT_COMPLETED`-Empfaenger stuende dafuer im Manifest und
+            // braeuchte eine weitere Berechtigung. Die braucht es nicht: BigLau **ist** der
+            // Startbildschirm und laeuft nach jedem Neustart ohnehin. Ohne diese Zeile
+            // erinnerte eine Nachricht, die vor dem Neustart ungelesen war, nie wieder -
+            // lautlos, und das ist genau das, was die Einstellung verspricht.
+            //
+            // Gefahrlos, wenn nichts ansteht: `MessageReminderReceiver` prueft selbst, ob
+            // die Erinnerung an ist, ob BigLau die Standard-SMS-App ist und ob ueberhaupt
+            // etwas ungelesen ist - sonst tut der Weckruf nichts und stellt sich auch nicht
+            // neu.
+            val sms = ConfigStore.get(this).current.sms
+            if (SmsReminder.active(sms)) {
+                MessageReminderReceiver.schedule(this, sms.repeatMinutes)
+            }
         }.start()
     }
 }

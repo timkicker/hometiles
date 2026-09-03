@@ -2,6 +2,9 @@ package org.biglau.res
 
 import java.io.File
 import org.biglau.Quelltext
+import org.biglau.ui.gridMetrics
+import org.biglau.ui.labelSizeSp
+import org.biglau.ui.labelZoneDp
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -86,5 +89,67 @@ class DeviceMetricsTest {
         listOf("ITYPE_STATUS_BAR", "ITYPE_NAVIGATION_BAR").forEach {
             assertTrue("$it fehlt in der Tabelle von 3.2", it in plan)
         }
+    }
+
+    /**
+     * Die Zellmass-Tabelle rechnet sich aus den Funktionen, die sie beschreibt.
+     *
+     * Vier Zeilen mit Zelle, Labelzone und Schriftgroesse - und zwei davon standen am
+     * 3.9.2026 falsch da. Die 2×2-Zeile nannte 79 dp Zone und 39 sp Schrift; richtig sind
+     * 58 dp und 26 sp. Der Grund ist derselbe, den `labelSizeSp` in seinem eigenen KDoc
+     * beschreibt: die Schrift kommt aus dem **Minimum beider Kanten**, seit „Contacts" auf
+     * einer hohen schmalen Kachel mitten im Wort brach. Die Tabelle war auf dem Stand davor
+     * stehengeblieben - der Plan beschrieb einen Fehler, den es nicht mehr gab.
+     *
+     * Gerechnet wird hier mit **den echten Funktionen**, nicht mit nachgebauten Formeln.
+     * Eine nachgebaute Formel prueft, ob ich zweimal dasselbe gedacht habe.
+     */
+    @Test
+    fun `die Zellmasse im Plan kommen aus den echten Funktionen`() {
+        val breite = 349f
+        val hoehe = Regex("""\| Nutzbar nach den Systemleisten \| \*\*\d+ × (\d+) dp\*\*""")
+            .find(plan)!!.groupValues[1].toFloat()
+
+        val zeilen = Regex(
+            """^\| \*{0,2}(\d)×(\d)[^|]*\| \*{0,2}(\d+) × (\d+) dp\*{0,2} \| \*{0,2}(\d+) dp\*{0,2} \| \*{0,2}(\d+) sp\*{0,2} \|$""",
+            RegexOption.MULTILINE,
+        ).findAll(plan).toList()
+        assertEquals("Die Zellmass-Tabelle in PLAN.md 3.2 ist nicht mehr zu finden", 4, zeilen.size)
+
+        zeilen.forEach { treffer ->
+            val (c, r, pb, ph, pz, ps) = treffer.destructured
+            val masse = gridMetrics(breite, hoehe, c.toInt(), r.toInt(), gutter = 4f, borderPercent = 2)
+            val sp = labelSizeSp(masse.cellWidth, masse.cellHeight, userScale = 1f)
+            val zone = labelZoneDp(masse.cellHeight, sp)
+            val raster = "${c}×${r}"
+            assertEquals("$raster: Zellbreite", pb.toInt(), Math.round(masse.cellWidth))
+            assertEquals("$raster: Zellhoehe", ph.toInt(), Math.round(masse.cellHeight))
+            assertEquals("$raster: Labelzone", pz.toInt(), Math.round(zone))
+            assertEquals("$raster: Schriftgroesse", ps.toInt(), Math.round(sp))
+        }
+    }
+
+    /**
+     * Der Plan widerspricht sich nicht selbst: das AVD hat die Dichte des Geraets.
+     *
+     * Abschnitt 7 nannte bis zum 3.9.2026 „480×854, 240 dpi" fuer das Emulator-AVD, waehrend
+     * 3.2 zwei Absaetze weiter festhaelt: „220 dpi statt der angenommenen 240". Das AVD
+     * selbst steht auf 220. Wer nach dem Plan ein AVD anlegt, baut sich damit ein Geraet,
+     * das es nicht gibt - und prueft Layouts gegen falsche Masse.
+     */
+    @Test
+    fun `das AVD im Plan hat die Dichte des Geraets`() {
+        val geraet = Regex("""\| Physisch \| (\d+) × (\d+) px bei \*\*(\d+) dpi\*\*""")
+            .find(plan) ?: throw AssertionError("Die Zeile Physisch fehlt in PLAN.md 3.2")
+        val avd = Regex("""\*\*Emulator-AVD\*\* `jelly2` mit (\d+)×(\d+), \*\*(\d+) dpi\*\*""")
+            .find(plan) ?: throw AssertionError("Die AVD-Zeile fehlt in PLAN.md 7")
+        assertEquals("Breite", geraet.groupValues[1], avd.groupValues[1])
+        assertEquals("Hoehe", geraet.groupValues[2], avd.groupValues[2])
+        assertEquals(
+            "Das AVD im Plan hat eine andere Dichte als das Geraet - dann prueft man " +
+                "Layouts gegen Masse, die es nicht gibt.",
+            geraet.groupValues[3],
+            avd.groupValues[3],
+        )
     }
 }

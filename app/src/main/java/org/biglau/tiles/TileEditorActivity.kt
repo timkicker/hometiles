@@ -98,6 +98,7 @@ import org.biglau.R
 import org.biglau.actions.Intents
 import org.biglau.apps.AppRepository
 import org.biglau.search.TextSearch
+import org.biglau.shortcuts.ShortcutAnswer
 import org.biglau.shortcuts.ShortcutRepository
 import org.biglau.shortcuts.ShortcutRow
 import org.biglau.shortcuts.Shortcuts
@@ -344,7 +345,12 @@ class TileEditorActivity : BigLauActivity() {
                     }
                 }
             }
-            var contactsGranted by remember { mutableStateOf(contacts.hasPermission()) }
+                        // `fortsetzungen` als Schluessel: dieser Bildschirm schickt den Nutzer bei
+            // dauerhaft verweigerter Berechtigung in die **App-Einstellungen**, und von dort
+            // kommt kein Ergebnis zurueck. Ohne das Neulesen beim Wiederkommen stuende hier
+            // weiter „keine Berechtigung" - auf einem Bildschirm, der einen selbst dorthin
+            // geschickt hat. Siehe `BigLauActivity.fortsetzungen`.
+var contactsGranted by remember(fortsetzungen.intValue) { mutableStateOf(contacts.hasPermission()) }
             val askForContacts = rememberLauncherForActivityResult(
                 ActivityResultContracts.RequestPermission(),
             ) { granted ->
@@ -590,10 +596,10 @@ class TileEditorActivity : BigLauActivity() {
 
                         Mode.PICK_SHORTCUT -> ShortcutList(
                             app = shortcutApp,
-                            rows = remember(shortcutApp) {
+                            answer = remember(shortcutApp) {
                                 shortcutApp?.let {
                                     ShortcutRepository.get(this@TileEditorActivity).forPackage(it.packageName)
-                                }.orEmpty()
+                                } ?: ShortcutAnswer.Failed
                             },
                             onBack = { mode = Mode.PICK_SHORTCUT_APP },
                         ) { row ->
@@ -1589,17 +1595,26 @@ private fun NeedsHomeRole(onChoose: () -> Unit) {
 @Composable
 private fun ShortcutList(
     app: LaunchableApp?,
-    rows: List<ShortcutRow>,
+    answer: ShortcutAnswer,
     onBack: () -> Unit,
     onPick: (ShortcutRow) -> Unit,
 ) {
     val palette = LocalBigPalette.current
+    val rows = (answer as? ShortcutAnswer.Rows)?.rows.orEmpty()
     LazyColumn(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         item { BigHeading(app?.label ?: stringResource(R.string.editor_pick_shortcut)) }
         if (rows.isEmpty()) {
+            // Zwei verschiedene Saetze fuer zwei verschiedene Zustaende: die App hat keine,
+            // oder wir konnten nicht nachsehen. Der Ausweg darunter ist derselbe.
             item {
                 Text(
-                    text = stringResource(R.string.shortcut_none),
+                    text = stringResource(
+                        if (answer is ShortcutAnswer.Failed) {
+                            R.string.shortcut_unreadable
+                        } else {
+                            R.string.shortcut_none
+                        },
+                    ),
                     color = palette.onBackground,
                     fontSize = bigSp(16f),
                     modifier = Modifier.padding(horizontal = 4.dp, vertical = 8.dp),

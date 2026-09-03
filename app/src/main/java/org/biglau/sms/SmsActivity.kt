@@ -4,9 +4,14 @@ import android.Manifest
 import androidx.core.content.ContextCompat
 import android.content.pm.PackageManager
 import android.os.Build
+import android.app.PendingIntent
 import android.content.ContentValues
+import android.content.Intent
+import android.database.ContentObserver
 import android.provider.Telephony
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.telephony.SmsManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
@@ -31,11 +36,13 @@ import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -47,6 +54,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import org.biglau.ui.ClockFormat
 import org.biglau.ui.bestDatePattern
 import org.biglau.ui.bigSp
 import org.biglau.ui.theme.LocalCornerRadius
@@ -104,9 +112,29 @@ class SmsActivity : BigLauActivity() {
         setContent {
             val config by store.config.collectAsStateWithLifecycle()
             val changes by SmsRepository.changes.collectAsStateWithLifecycle()
+            // **Auf die Datenbank horchen, nicht nur auf sich selbst.**
+            //
+            // `changes` tickte nur, wenn BigLau schrieb. Wurde eine Nachricht von woanders
+            // geloescht - eine andere App, ein Aufraeumen -, stand sie hier weiter in der
+            // Liste, bis jemand die App neu startete. Am 03.09.2026 genau so gesehen: zwei
+            // Probenachrichten waren aus der Datenbank weg und standen noch da.
+            DisposableEffect(Unit) {
+                val beobachter = object : ContentObserver(Handler(Looper.getMainLooper())) {
+                    override fun onChange(selfChange: Boolean) = SmsRepository.notifyChanged()
+                }
+                contentResolver.registerContentObserver(Telephony.Sms.CONTENT_URI, true, beobachter)
+                onDispose { contentResolver.unregisterContentObserver(beobachter) }
+            }
+            // Die SMS-Rolle vergibt das **System**, und von dort kommt kein Ergebnis
+            // zurueck. Einmal beim Zeichnen gelesen bliebe der Hinweis „BigLau ist nicht
+            // deine Nachrichten-App" stehen, nachdem man sie gerade erteilt hat. Siehe
+            // `BigLauActivity.fortsetzungen`.
+            val istStandardApp = remember(fortsetzungen.intValue) { repository.isDefaultSmsApp() }
             var messages by remember { mutableStateOf<List<SmsMessage>>(emptyList()) }
             var names by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
             var openThread by remember { mutableStateOf<Long?>(null) }
+            // An wen gerade die erste Nachricht ging. Siehe den Effekt weiter unten.
+            var geradeGesendetAn by remember { mutableStateOf<String?>(null) }
             // Eine Unterhaltung mit jemandem, mit dem es noch keine gibt. Vorher fuehrte
             // dieser Fall nirgendwohin: die Zeile "Neue Nachricht an ..." hatte gar keine
             // Handlung, und wer BigLau ueber einen smsto:-Verweis oeffnete, stand vor der
@@ -115,7 +143,12 @@ class SmsActivity : BigLauActivity() {
             // Vorbelegt, wenn eine andere App uns eine Nachricht zum Senden gegeben hat
             // ("Anruf mit Nachricht ablehnen") - siehe RespondViaMessageService.
             var draft by remember { mutableStateOf(intent?.getStringExtra(EXTRA_BODY).orEmpty()) }
-            var granted by remember { mutableStateOf(repository.hasReadPermission()) }
+                        // `fortsetzungen` als Schluessel: dieser Bildschirm schickt den Nutzer bei
+            // dauerhaft verweigerter Berechtigung in die **App-Einstellungen**, und von dort
+            // kommt kein Ergebnis zurueck. Ohne das Neulesen beim Wiederkommen stuende hier
+            // weiter „keine Berechtigung" - auf einem Bildschirm, der einen selbst dorthin
+            // geschickt hat. Siehe `BigLauActivity.fortsetzungen`.
+var granted by remember(fortsetzungen.intValue) { mutableStateOf(repository.hasReadPermission()) }
 
             // Ohne Rueckfrage-Oberflaeche: sagt jemand nein, bleibt die Liste die Stelle,
             // an der er nachsieht. Ein zweiter Sackgassen-Bildschirm dafuer waere zu viel.
@@ -157,8 +190,19 @@ class SmsActivity : BigLauActivity() {
                 }
             }
 
+            // Solange gelesen wird, sagt die Liste nicht „noch keine Nachrichten".
+            //
+            // Der Ladevorgang unten holt die Nachrichten **und alle Kontakte** - auf einem
+            // Telefon mit 338 Kontakten dauert das sichtbar lange. Bis zum 3.9.2026 stand
+            // in dieser Zeit „Noch keine Nachrichten. Hier erscheinen, was du bekommst."
+            // da, und danach sprang die volle Liste hinein. Ein wahrer Satz zum falschen
+            // Zeitpunkt ist eine Falschaussage.
+            var laedt by remember { mutableStateOf(true) }
             LaunchedEffect(granted, changes) {
-                if (!granted) return@LaunchedEffect
+                if (!granted) {
+                    laedt = false
+                    return@LaunchedEffect
+                }
                 // Gefiltertes gar nicht erst in die Liste lassen - PLAN.md 4.7.
                 messages = SmsFilter.apply(
                     repository.load(),
@@ -168,6 +212,7 @@ class SmsActivity : BigLauActivity() {
                 names = contacts.load(resources).flatMap { contact ->
                     contact.numbers.map { PhoneNumbers.clean(it.number) to contact.name }
                 }.toMap()
+                laedt = false
             }
 
             val threads = remember(messages, names) {
@@ -187,6 +232,26 @@ class SmsActivity : BigLauActivity() {
 
             // Erst wenn die Nachrichten da sind, laesst sich die gemeldete Nummer einer
             // Unterhaltung zuordnen. Die Meldung selbst geht dabei weg - gesehen ist gesehen.
+            /**
+             * Nach der ersten Nachricht ist die neue Unterhaltung eine richtige.
+             *
+             * Am 03.09.2026 am Geraet gesehen: erste Nachricht an eine Nummer geschickt,
+             * das Feld leerte sich, eine kurze Meldung kam - und der Bildschirm blieb
+             * **leer**. Die Nachricht stand da, aber in einer Unterhaltung, die dieser
+             * Bildschirm nicht kannte: er hing noch an der Nummer und nicht an der
+             * Unterhaltung, die es jetzt gibt. Wer gerade etwas abgeschickt hat und danach
+             * vor einem leeren Bildschirm steht, schickt es noch einmal.
+             */
+            LaunchedEffect(threads, geradeGesendetAn) {
+                val nummer = geradeGesendetAn ?: return@LaunchedEffect
+                val passend = threads.firstOrNull {
+                    PhoneNumbers.clean(it.address) == PhoneNumbers.clean(nummer)
+                } ?: return@LaunchedEffect
+                openThread = passend.threadId
+                openAddress = null
+                geradeGesendetAn = null
+            }
+
             LaunchedEffect(threads, gemeldeteNummer) {
                 val nummer = gemeldeteNummer ?: return@LaunchedEffect
                 if (openThread != null) return@LaunchedEffect
@@ -245,7 +310,7 @@ class SmsActivity : BigLauActivity() {
                                 ?.titleOr(stringResource(R.string.call_unknown))
                                 .orEmpty(),
                             draft = draft,
-                            isDefaultApp = repository.isDefaultSmsApp(),
+                            isDefaultApp = istStandardApp,
                             onDraft = { draft = it },
                             onSend = {
                                 val address = messages.firstOrNull { it.threadId == thread }?.address
@@ -262,9 +327,14 @@ class SmsActivity : BigLauActivity() {
                             title = PhoneNumbers.forDisplay(neueNummer)
                                 .ifBlank { stringResource(R.string.call_unknown) },
                             draft = draft,
-                            isDefaultApp = repository.isDefaultSmsApp(),
+                            isDefaultApp = istStandardApp,
                             onDraft = { draft = it },
-                            onSend = { send(neueNummer, draft) { draft = "" } },
+                            onSend = {
+                                send(neueNummer, draft) {
+                                    draft = ""
+                                    geradeGesendetAn = neueNummer
+                                }
+                            },
                             conversationScale = config.sms.conversationScale,
                             confirmBeforeSending = config.sms.confirmBeforeSending,
                             sendButtonAbove = config.sms.sendButtonAbove,
@@ -272,8 +342,16 @@ class SmsActivity : BigLauActivity() {
                         )
 
                         else -> ThreadList(
+                            laedt = laedt,
                             threads = threads,
-                            prefilled = prefilledAddress,
+                            // Sobald es die Unterhaltung gibt, ist diese Zeile ein
+                            // zweiter Eintrag fuer dieselbe Person - und der eine traegt
+                            // den Namen aus den Kontakten, der andere die Nummer. Am
+                            // 03.09.2026 genau so dagestanden: „New message to +43 650
+                            // 7654321" ueber „Tim Kicker".
+                            prefilled = prefilledAddress?.takeIf { nummer ->
+                                threads.none { PhoneNumbers.clean(it.address) == PhoneNumbers.clean(nummer) }
+                            },
                             scrollButtons = config.behaviour.accessibility.scrollButtons,
                             onOpen = { openThread = it },
                             onCompose = { nummer ->
@@ -306,44 +384,88 @@ class SmsActivity : BigLauActivity() {
         val manager = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
             getSystemService(SmsManager::class.java)
         } else {
+            // Wie in `Sos.smsManager`: vor Android 12 gibt es nur `getDefault()`.
             @Suppress("DEPRECATION")
             SmsManager.getDefault()
         }
+        // **Erst schreiben, dann senden.** Die Quittung des Netzes kommt Sekunden spaeter
+        // und muss sagen koennen, *welche* Nachricht nicht durchkam - dafuer braucht es die
+        // Zeile schon vorher. Mit der Rolle legt Android die gesendete Nachricht ohnehin
+        // nicht mehr selbst ab; ohne diese Zeilen zeigte die Unterhaltung nur noch die
+        // Gegenseite.
+        val zeile = if (SmsDelivery.mayWrite(Telephony.Sms.getDefaultSmsPackage(this), packageName)) {
+            runCatching {
+                contentResolver.insert(
+                    Telephony.Sms.Sent.CONTENT_URI,
+                    ContentValues().apply {
+                        SmsOutbox.values(address, body, System.currentTimeMillis())
+                            .forEach { (spalte, wert) ->
+                                when (wert) {
+                                    is Long -> put(spalte, wert)
+                                    is Int -> put(spalte, wert)
+                                    else -> put(spalte, wert.toString())
+                                }
+                            }
+                    },
+                )
+            }.getOrNull()
+        } else {
+            null
+        }
+
+        // Die Quittung. Ohne sie hiess „gesendet" nur, dass der Aufruf nicht geworfen hat -
+        // siehe `SmsSentReceiver`.
+        val quittung = zeile?.let {
+            PendingIntent.getBroadcast(
+                this,
+                it.hashCode(),
+                Intent(this, SmsSentReceiver::class.java).setData(it),
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+            )
+        }
+
         val sent = runCatching {
             val parts = manager.divideMessage(body)
             if (parts.size > 1) {
-                manager.sendMultipartTextMessage(address, null, parts, null, null)
+                // Eine Quittung je Teil - schon ein einzelner abgelehnter Teil macht die
+                // Nachricht unvollstaendig, und das ist ein Fehlschlag.
+                manager.sendMultipartTextMessage(
+                    address,
+                    null,
+                    parts,
+                    ArrayList(List(parts.size) { quittung }),
+                    null,
+                )
             } else {
-                manager.sendTextMessage(address, null, body, null, null)
+                manager.sendTextMessage(address, null, body, quittung, null)
             }
             true
         }.getOrDefault(false)
 
         if (sent) {
-            // Mit der Rolle legt Android die gesendete Nachricht nicht mehr selbst ab.
-            // Ohne diese Zeilen zeigte die Unterhaltung nur noch die Gegenseite.
-            if (SmsDelivery.mayWrite(Telephony.Sms.getDefaultSmsPackage(this), packageName)) {
-                runCatching {
-                    contentResolver.insert(
-                        Telephony.Sms.Sent.CONTENT_URI,
-                        ContentValues().apply {
-                            SmsOutbox.values(address, body, System.currentTimeMillis())
-                                .forEach { (spalte, wert) ->
-                                    when (wert) {
-                                        is Long -> put(spalte, wert)
-                                        is Int -> put(spalte, wert)
-                                        else -> put(spalte, wert.toString())
-                                    }
-                                }
-                        },
-                    )
-                }
-                SmsRepository.notifyChanged()
-            }
+            SmsRepository.notifyChanged()
             onSent()
             Notice.show(this, R.string.sms_sent)
         } else {
-            Notice.show(this, R.string.sms_send_failed)
+            // Der Aufruf selbst ist gescheitert - dann steht die Zeile umsonst da.
+            zeile?.let { runCatching { contentResolver.delete(it, null, null) } }
+            SmsRepository.notifyChanged()
+            // `runCatching` schluckt jeden Grund. Der eine, den der Nutzer beheben kann,
+            // ist die fehlende Berechtigung - dann wirft `sendTextMessage` eine
+            // `SecurityException`. „Konnte nicht gesendet werden" waere hier die halbe
+            // Antwort: es sagt nicht, dass es an etwas liegt, das man erteilen kann.
+            //
+            // **Bewusst kein Berechtigungsdialog von hier aus.** Diese Stelle sendet; sie
+            // soll nicht auch noch das Recht dazu beschaffen. Der Satz nennt den Ort, der
+            // Mensch entscheidet.
+            val darfSenden = ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.SEND_SMS,
+            ) == PackageManager.PERMISSION_GRANTED
+            Notice.show(
+                this,
+                if (darfSenden) R.string.sms_send_failed else R.string.sms_send_no_permission,
+            )
         }
     }
 }
@@ -351,6 +473,8 @@ class SmsActivity : BigLauActivity() {
 @Composable
 private fun ThreadList(
     threads: List<SmsThread>,
+    /** Wird noch gelesen? Dann ist „noch keine Nachrichten" nicht wahr, nur noch nicht da. */
+    laedt: Boolean,
     prefilled: String?,
     onCompose: (String) -> Unit,
     scrollButtons: Boolean,
@@ -359,8 +483,12 @@ private fun ThreadList(
     val palette = LocalBigPalette.current
     val locale = currentLocale()
     val format = remember(locale) {
-        // Bestandteile statt festem Muster - siehe bestDatePattern.
-        SimpleDateFormat(bestDatePattern("EEEdMMMHmm", locale), locale)
+        // Bestandteile statt festem Muster - siehe bestDatePattern. Das "j" ist die
+        // Stunde **in der Schreibweise der Sprache**: ein "H" erzwaengt 24 Stunden, und
+        // genau das stand hier bis zum 03.09.2026. Auf diesem Telefon, das auf
+        // 12 Stunden steht, hiess dieselbe Minute in der Kopfzeile "5:39 PM" und in der
+        // Liste "17:39".
+        SimpleDateFormat(bestDatePattern("EEEdMMMjmm", locale), locale)
     }
     val listState = rememberLazyListState()
 
@@ -383,7 +511,7 @@ private fun ThreadList(
             if (threads.isEmpty()) {
                 item {
                     Text(
-                        text = stringResource(R.string.sms_empty),
+                        text = stringResource(if (laedt) R.string.sms_loading else R.string.sms_empty),
                         color = palette.onBackground,
                         fontSize = bigSp(17f),
                         modifier = Modifier.padding(horizontal = 4.dp, vertical = 16.dp),
@@ -427,7 +555,12 @@ private fun Conversation(
     val skala = ConversationText.scale(conversationScale)
     val palette = LocalBigPalette.current
     val locale = currentLocale()
-    val uhrFormat = remember(locale) { SimpleDateFormat("HH:mm", locale) }
+    // Dieselbe Uhr wie oben in der Kopfzeile. Hier stand bis zum 03.09.2026 fest "HH:mm" -
+    // auf einem Telefon in 12-Stunden-Anzeige stand oben "2:30 PM" und hier "14:30".
+    val zwoelfStunden = !android.text.format.DateFormat.is24HourFormat(LocalContext.current)
+    val uhrFormat = remember(locale, zwoelfStunden) {
+        SimpleDateFormat(ClockFormat.timePattern(!zwoelfStunden), locale)
+    }
     val tagFormat = remember(locale) { SimpleDateFormat(bestDatePattern("EEEEdMMMM", locale), locale) }
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         BigHeading(title)
@@ -477,24 +610,42 @@ private fun Conversation(
                         )
                         .clip(RoundedCornerShape(LocalCornerRadius.current))
                         .background(
-                            if (message.incoming) palette.emptyTile else palette.surfaceAccent.fill,
+                            when {
+                                // Eine nicht angekommene Nachricht darf nicht aussehen wie
+                                // eine angekommene. Sie steht in derselben Reihe, an
+                                // derselben Stelle - der einzige Unterschied waere sonst,
+                                // dass keine Antwort kommt.
+                                message.failed -> palette.surfaceDanger.fill
+                                message.incoming -> palette.emptyTile
+                                else -> palette.surfaceAccent.fill
+                            },
                         )
                         .padding(12.dp),
                 ) {
                     Column {
                         Text(
                             text = message.body,
-                            color = if (message.incoming) palette.onBackground else palette.surfaceAccent.ink,
+                            color = when {
+                                message.failed -> palette.surfaceDanger.ink
+                                message.incoming -> palette.onBackground
+                                else -> palette.surfaceAccent.ink
+                            },
                             fontSize = dpSp(18f * skala),
                         )
                         // Die Uhrzeit unter jeder Nachricht: ob sie von eben ist oder von
                         // letzter Woche, ist bei "bin unterwegs" der ganze Unterschied.
+                        // Und bei einer, die nicht hinausging, steht das statt der Uhrzeit:
+                        // die Uhrzeit einer Nachricht, die es nie gab, sagt nichts.
                         Text(
-                            text = uhrFormat.format(Date(message.timestamp)),
-                            color = if (message.incoming) {
-                                palette.onBackground
+                            text = if (message.failed) {
+                                stringResource(R.string.sms_not_sent)
                             } else {
-                                palette.surfaceAccent.ink
+                                uhrFormat.format(Date(message.timestamp))
+                            },
+                            color = when {
+                                message.failed -> palette.surfaceDanger.ink
+                                message.incoming -> palette.onBackground
+                                else -> palette.surfaceAccent.ink
                             },
                             fontSize = dpSp(13f * skala),
                         )

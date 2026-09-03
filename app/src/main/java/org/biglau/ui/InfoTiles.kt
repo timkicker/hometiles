@@ -78,7 +78,7 @@ fun ClockContent(
 
     val locale = currentLocale()
     val timeFormat = remember(twentyFourHour, locale) {
-        SimpleDateFormat(if (twentyFourHour) "HH:mm" else "h:mm a", locale)
+        SimpleDateFormat(ClockFormat.timePattern(twentyFourHour), locale)
     }
     val timeText = timeFormat.format(Date(now))
     val timeSize = singleLineSizeSp(timeText, cellWidth.value, cellHeight.value, scale)

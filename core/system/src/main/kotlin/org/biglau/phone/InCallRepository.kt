@@ -1,6 +1,7 @@
 package org.biglau.phone
 
 import android.telecom.Call
+import android.telecom.InCallService
 import org.biglau.data.AudioRoute
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -22,9 +23,12 @@ object InCallRepository {
 
     /** Der zweite Anruf, falls es einen gibt - fuer [switchCall]. */
     private var other: Call? = null
-    private var service: BigInCallService? = null
+    // `InCallService` und nicht `BigInCallService`: gebraucht werden nur `setMuted` und
+    // `setAudioRoute`, und die kommen vom System. Mit der eigenen Klasse im Typ hing die
+    // Ablage am Programmodul fest - als einzige von acht.
+    private var service: InCallService? = null
 
-    fun attach(inCallService: BigInCallService) {
+    fun attach(inCallService: InCallService) {
         service = inCallService
     }
 

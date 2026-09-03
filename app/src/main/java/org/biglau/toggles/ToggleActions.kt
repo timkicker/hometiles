@@ -42,13 +42,22 @@ object ToggleActions {
                 } else {
                     AudioManager.RINGER_MODE_NORMAL
                 }
+                // Bei eingeschaltetem „Bitte nicht stoeren" wirft das System hier eine
+                // SecurityException: der Klingelmodus gehoert dann nicht mehr uns. Ohne
+                // ein Wort dazu tippt man auf den Schalter und es geschieht nichts.
                 runCatching { audio.ringerMode = next }
+                    .onFailure { Notice.show(context, R.string.toggle_ringer_blocked) }
             }
 
             ToggleKind.BLUETOOTH -> {
+                // `getDefaultAdapter` ist seit Android 13 abgelöst; `BluetoothManager` gibt es
+                // zwar länger, liefert vor Android 12 aber keinen Adapter ohne Berechtigung.
                 @Suppress("DEPRECATION")
                 val adapter = BluetoothAdapter.getDefaultAdapter() ?: return
                 runCatching {
+                    // `enable`/`disable` sind seit Android 13 abgelöst und wirkungslos. Auf
+                    // Android 11 schalten sie noch; schlagen sie fehl, öffnen wir die
+                    // Einstellungen - der Rückfall steht direkt darunter.
                     @Suppress("DEPRECATION")
                     if (adapter.isEnabled) adapter.disable() else adapter.enable()
                 }.onFailure { openSettings(context, kind) }
@@ -88,7 +97,15 @@ object ToggleActions {
         start(context, Intent(action))
     }
 
+    /**
+     * Der letzte Halt: hier gibt es keinen weiteren Rueckfall mehr.
+     *
+     * Nicht jedes Geraet hat jede Einstellungsseite - `ACTION_DATA_ROAMING_SETTINGS` etwa
+     * fehlt auf manchen Fassungen. Schlaegt das fehl und wir schweigen, dann tippt jemand
+     * auf eine Kachel, und das Telefon tut ueberhaupt nichts. Genau das darf nicht sein.
+     */
     private fun start(context: Context, intent: Intent) {
         runCatching { context.startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
+            .onFailure { Notice.show(context, R.string.toggle_no_settings) }
     }
 }

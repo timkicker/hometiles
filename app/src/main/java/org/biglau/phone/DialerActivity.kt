@@ -111,7 +111,12 @@ class DialerActivity : BigLauActivity() {
                 mutableStateOf(intent?.data?.schemeSpecificPart?.let(PhoneNumbers::clean).orEmpty())
             }
             var groups by remember { mutableStateOf<List<CallGroup>>(emptyList()) }
-            var logGranted by remember { mutableStateOf(callLog.hasPermission()) }
+                        // `fortsetzungen` als Schluessel: dieser Bildschirm schickt den Nutzer bei
+            // dauerhaft verweigerter Berechtigung in die **App-Einstellungen**, und von dort
+            // kommt kein Ergebnis zurueck. Ohne das Neulesen beim Wiederkommen stuende hier
+            // weiter „keine Berechtigung" - auf einem Bildschirm, der einen selbst dorthin
+            // geschickt hat. Siehe `BigLauActivity.fortsetzungen`.
+var logGranted by remember(fortsetzungen.intValue) { mutableStateOf(callLog.hasPermission()) }
             var assigningKey by remember { mutableStateOf<Char?>(null) }
             var missedOnly by rememberSaveable { mutableStateOf(intent?.getBooleanExtra(EXTRA_MISSED, false) == true) }
             var pendingDelete by remember { mutableStateOf<Pair<String, List<Long>>?>(null) }
@@ -428,6 +433,10 @@ class DialerActivity : BigLauActivity() {
     private fun dial(number: String, onMissingPermission: () -> Unit) {
         if (!PhoneNumbers.isDialable(number)) return
         val platformSaysEmergency = runCatching {
+            // `isEmergencyNumber` ist seit Android 12 zugunsten von
+            // `TelephonyManager.isEmergencyNumber` abgelöst - das braucht READ_PHONE_STATE
+            // und gibt es auf Android 11 noch nicht. Das Ergebnis ist ohnehin nur ein
+            // Hinweis, siehe `PhoneNumbers.looksLikeEmergency`.
             @Suppress("DEPRECATION")
             PhoneNumberUtils.isEmergencyNumber(PhoneNumbers.clean(number))
         }.getOrDefault(false)
@@ -587,8 +596,12 @@ private fun CallList(
     val palette = LocalBigPalette.current
     val locale = currentLocale()
     val format = remember(locale) {
-        // Bestandteile statt festem Muster - siehe bestDatePattern.
-        SimpleDateFormat(bestDatePattern("EEEdMMMHmm", locale), locale)
+        // Bestandteile statt festem Muster - siehe bestDatePattern. Das "j" ist die
+        // Stunde **in der Schreibweise der Sprache**: ein "H" erzwaengt 24 Stunden, und
+        // genau das stand hier bis zum 03.09.2026. Auf diesem Telefon, das auf
+        // 12 Stunden steht, hiess dieselbe Minute in der Kopfzeile "5:39 PM" und in der
+        // Liste "17:39".
+        SimpleDateFormat(bestDatePattern("EEEdMMMjmm", locale), locale)
     }
 
     // Android fragt nicht mehr nach dem Schreibrecht. Ohne diesen Bildschirm bliebe es

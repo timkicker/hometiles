@@ -38,6 +38,7 @@
     <string name="contacts_permission">BigLau needs access to your contacts to put one on a tile.</string>
     <string name="contacts_grant">Allow access</string>
     <string name="contacts_loading">Reading contacts…</string>
+    <string name="contacts_none">No contacts are stored on this phone yet.</string>
     <string name="contacts_no_match">No contact matches that.</string>
     <string name="contacts_numbers_not_searched">That looks like a number, and right now search only looks at names.</string>
     <string name="contacts_search_numbers_open">Search in numbers too</string>
@@ -252,9 +253,11 @@
     <string name="apps_hidden_hint">“%1$s” is hidden. The row at the end of the list brings it back.</string>
     <string name="shortcut_gone">That shortcut is gone. Assign the tile again.</string>
     <string name="app_gone">That app is no longer on this phone. Assign the tile again.</string>
+    <string name="app_gone_list">That app is no longer on this phone. The list has been refreshed.</string>
     <string name="editor_pick_shortcut">Choose shortcut</string>
     <string name="shortcut_needs_home_role">Android only hands shortcuts to the app that runs the home screen. Make BigLau your home screen to use them.</string>
     <string name="shortcut_none">This app offers no shortcuts.</string>
+    <string name="shortcut_unreadable">The shortcuts could not be read.</string>
     <string name="editor_pick_widget">Choose widget</string>
     <string name="widget_none">No widgets are installed.</string>
     <string name="widget_needs">%1$s · needs %2$d × %3$d fields</string>
@@ -315,6 +318,9 @@
     <string name="toggle_airplane">Flight mode</string>
     <string name="toggle_ringer">Ring / vibrate</string>
     <string name="toggle_no_flashlight">This phone has no flashlight.</string>
+    <string name="toggle_ringer_blocked">The ring setting cannot be changed right now. Do not disturb is on.</string>
+    <string name="toggle_no_settings">This phone has no settings page for that.</string>
+    <string name="call_action_failed">That did not get through to the call.</string>
     <string name="sos_cancel">Cancel</string>
     <string name="sos_failed">Nothing could be sent.</string>
     <string name="sos_failed_permission">BigLau is not allowed to send messages. Please allow it in the settings.</string>
@@ -374,13 +380,22 @@
     <string name="incall_ended">Call ended</string>
     <string name="set_as_dialer">Use as phone app</string>
     <string name="set_as_dialer_hint">BigLau then shows the call screen itself</string>
+    <string name="is_sms">BigLau is your messaging app</string>
+    <string name="set_as_sms">Use as messaging app</string>
+    <string name="set_as_sms_hint">BigLau then receives and stores your messages itself</string>
     <string name="sms_permission">BigLau needs access to your messages to show them.</string>
+    <string name="sms_loading">Reading messages…</string>
     <string name="sms_empty">No messages yet. Messages you receive appear here.</string>
     <string name="sms_send">Send</string>
     <string name="sms_send_confirm">Really send?</string>
     <string name="sms_send_confirm_hint">Tap again — it cannot be taken back</string>
     <string name="sms_sent">Sent.</string>
     <string name="sms_send_failed">That could not be sent.</string>
+    <string name="sms_not_sent">Not sent</string>
+    <string name="sms_send_no_service">No network coverage right now. BigLau will not resend it by itself — try again once you have a signal.</string>
+    <string name="sms_send_radio_off">The phone is in flight mode. Turn it off, then send again.</string>
+    <string name="sms_send_generic">The network did not accept the message. Try again.</string>
+    <string name="sms_send_no_permission">BigLau is not allowed to send messages. You can grant that in the app settings, under Permissions.</string>
     <string name="sms_new_to">New message to %1$s</string>
     <string name="sms_not_default">BigLau is not your messaging app: messages you send are not stored here, and reading one here does not mark it as read.</string>
     <string name="wizard_position">Step %1$d of %2$d</string>
@@ -399,6 +414,7 @@
     <string name="wizard_next">Next</string>
     <string name="wizard_done_title">That is everything</string>
     <string name="wizard_done_body">Hold any tile to change what it does.</string>
+    <string name="wizard_done_body_edit_mode">To change what a tile does, open the settings and tap “Change the tiles”.</string>
     <string name="wizard_finish">Done</string>
     <string name="wizard_again">Run the setup again</string>
     <string name="edit_mode_banner">Editing — tap a tile to change it. Tap here to finish.</string>
@@ -437,6 +453,8 @@
     <string name="contact_without_number">“%1$s” has no phone number, so a tile for them could not do anything.</string>
     <string name="emergency_title">BigLau could not start</string>
     <string name="emergency_body">The home screen stopped twice in a row. This view works without your settings, so that you can get back.</string>
+    <string name="emergency_phone">Phone</string>
+    <string name="emergency_contacts">Contacts</string>
     <string name="emergency_retry">Try again</string>
     <string name="emergency_settings">Open the settings</string>
     <string name="emergency_other_launcher">Use another home screen</string>
@@ -472,6 +490,7 @@
     <string name="diag_read_call_log">Read the call list</string>
     <string name="diag_write_call_log">Change the call list</string>
     <string name="diag_location">Location</string>
+    <string name="diag_crash_net">Crash net</string>
     <string name="diag_failed_starts">Failed starts</string>
     <string name="diag_last_crash">Last crash</string>
     <string name="diag_yes">yes</string>
@@ -665,4 +684,11 @@
     <string name="diag_battery_saving">Battery saving</string>
     <string name="diag_battery_saving_on">On — short reminder intervals can be late</string>
     <string name="diag_battery_saving_off">Off for BigLau</string>
+    <string name="sms_no_mms">Picture and group messages (MMS) do not show up here. BigLau has no network access, and an MMS is fetched from the network — the phone’s own messaging app can still open it.</string>
+    <string name="mms_arrived_title">Picture message</string>
+    <string name="mms_arrived_body">BigLau cannot show picture or group messages — it has no network access. Open it in the messaging app that came with the phone.</string>
+    <string name="screens_add_jump">Put a tile to “%1$s” on the start screen</string>
+    <string name="screens_add_jump_full">The start screen is full — clear a tile there first, then this offer comes back.</string>
+    <string name="sos_call_now">Call %1$s</string>
+    <string name="sos_call_hint">The keypad opens with the number. BigLau never dials on its own.</string>
 </resources>

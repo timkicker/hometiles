@@ -23,6 +23,8 @@ import org.biglau.sms.SmsRepository
 import org.biglau.ui.bigSp
 import org.biglau.ui.PinGate
 import org.biglau.ui.SystemBarsEffect
+import java.util.Locale
+import org.biglau.ui.AppLocale
 import org.biglau.ui.BigLauActivity
 import org.biglau.ui.BigRow
 import androidx.compose.material.icons.automirrored.filled.Message
@@ -146,11 +148,25 @@ class MainActivity : BigLauActivity() {
     private val openFolder = mutableStateOf<String?>(null)
 
     /**
+     * Die gesperrte App **und die Kachel, von der sie kam**.
+     *
+     * Die Kachel muss mit: ist die App nach dem Entsperren verschwunden, sagt die Meldung
+     * „Kachel neu belegen" - und dann soll der Editor auch aufgehen, genau wie beim Tipp
+     * ohne Sperre. Bis zum 3.9.2026 stand hier nur die App, und der Rat blieb an dieser
+     * einen Stelle im Raum stehen.
+     *
+     * Seit dem 03.09.2026 steht hier die Aktion und nicht mehr die App: eine
+     * **Verknuepfung** startete bis dahin ganz ohne Frage, und damit war die Sperre zu
+     * umgehen, indem man die App als Verknuepfung auf eine Kachel legte.
+     */
+    private data class GesperrterTipp(val action: ButtonAction, val x: Int, val y: Int)
+
+    /**
      * Eine App, die auf die PIN wartet. PLAN.md 4.5 - siehe [org.biglau.apps.AppLock].
      * Auf der Activity und nicht in der Komposition, damit die Frage einen Wechsel in eine
      * andere App und zurueck ueberlebt.
      */
-    private val lockedApp = mutableStateOf<ButtonAction.App?>(null)
+    private val lockedApp = mutableStateOf<GesperrterTipp?>(null)
 
     /**
      * Zaehlt jede Rueckkehr auf diesen Bildschirm. Womit etwas ausserhalb der App
@@ -374,6 +390,10 @@ class MainActivity : BigLauActivity() {
                                     LongPressAction.SPEAK -> Speaker.say(
                                         context,
                                         labelAt(config, gezeigt.id, x, y, apps),
+                                        // Die Sprache kommt von hier: der Speaker soll sie
+                                        // nicht selbst suchen muessen. Siehe Speaker.
+                                        AppLocale.localeFor(config.appearance.language)
+                                            ?: Locale.getDefault(),
                                     )
                                     LongPressAction.POPUP -> popupLabel =
                                         labelAt(config, gezeigt.id, x, y, apps)
@@ -499,9 +519,7 @@ class MainActivity : BigLauActivity() {
                         onCheck = { eingabe -> Pin.verify(eingabe, config.security.pin) },
                         onAccept = {
                             lockedApp.value = null
-                            if (!apps.launch(wartend.packageName, wartend.activityName)) {
-                                Notice.show(this@MainActivity, R.string.app_gone)
-                            }
+                            starten(wartend.action, wartend.x, wartend.y, apps)
                         },
                         acceptOnComplete = true,
                     )
@@ -558,27 +576,52 @@ class MainActivity : BigLauActivity() {
     private fun currentScreenId(): String =
         currentScreen.value ?: ConfigStore.get(this).current.homeScreenId
 
+    /**
+     * Braucht diese Aktion die PIN?
+     *
+     * App und Verknuepfung fragen dieselbe Sperre - eine Verknuepfung fuehrt in dieselbe
+     * App. Der Schluessel unterscheidet sich nur darin, wie genau er zeigt: die App nennt
+     * ihre Activity mit, die Verknuepfung hat keine.
+     */
+    private fun gesperrt(action: ButtonAction): Boolean {
+        val (paket, schluessel) = when (action) {
+            is ButtonAction.App -> action.packageName to "${action.packageName}/${action.activityName}"
+            is ButtonAction.Shortcut -> action.packageName to action.packageName
+            else -> return false
+        }
+        return AppLock.needsPin(ConfigStore.get(this).current, schluessel, paket)
+    }
+
+    /**
+     * Startet App oder Verknuepfung - und sagt es, wenn nichts mehr da ist.
+     *
+     * Die Meldung sagt „Kachel neu belegen", also steht der Editor gleich dahinter: der
+     * Weg statt der Wegbeschreibung. Wer das nicht will, kommt mit der Zurueck-Geste
+     * heraus. Ohne die Meldung tippt man auf eine Kachel, die einfach nichts tut - und
+     * haelt das Telefon fuer kaputt.
+     */
+    private fun starten(action: ButtonAction, x: Int, y: Int, apps: AppRepository) {
+        val geklappt = when (action) {
+            is ButtonAction.App -> apps.launch(action.packageName, action.activityName)
+            is ButtonAction.Shortcut ->
+                ShortcutRepository.get(this).launch(action.packageName, action.shortcutId)
+            else -> true
+        }
+        if (geklappt) return
+        Notice.show(
+            this,
+            if (action is ButtonAction.Shortcut) R.string.shortcut_gone else R.string.app_gone,
+        )
+        startActivity(TileEditorActivity.intent(this, currentScreenId(), x, y))
+    }
+
     private fun activate(cell: Cell, apps: AppRepository, goToScreen: (String) -> Unit) {
         when (val action = cell.button.action) {
-            is ButtonAction.App -> {
-                val gesperrt = AppLock.needsPin(
-                    ConfigStore.get(this).current,
-                    "${action.packageName}/${action.activityName}",
-                    action.packageName,
-                )
-                if (gesperrt) {
-                    lockedApp.value = action
-                } else if (!apps.launch(action.packageName, action.activityName)) {
-                    // Die App ist deinstalliert worden, die Kachel steht noch. Ohne diese
-                    // Meldung tippt man auf eine Kachel, die einfach nichts tut - und haelt
-                    // das Telefon fuer kaputt.
-                    Notice.show(this, R.string.app_gone)
-                }
-            }
-
-            is ButtonAction.Shortcut ->
-                if (!ShortcutRepository.get(this).launch(action.packageName, action.shortcutId)) {
-                    Notice.show(this, R.string.shortcut_gone)
+            is ButtonAction.App, is ButtonAction.Shortcut ->
+                if (gesperrt(action)) {
+                    lockedApp.value = GesperrterTipp(action, cell.x, cell.y)
+                } else {
+                    starten(action, cell.x, cell.y, apps)
                 }
 
             is ButtonAction.Contact -> when (action.mode) {

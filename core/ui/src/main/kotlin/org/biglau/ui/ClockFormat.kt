@@ -12,6 +12,17 @@ import org.biglau.data.ClockDisplay
 object ClockFormat {
 
     /**
+     * Das Muster fuer eine Uhrzeit - mit oder ohne AM/PM.
+     *
+     * Stand bis zum 3.9.2026 an drei Stellen: zweimal richtig (Kopfzeile und Infokachel
+     * fragten `is24HourFormat`) und einmal falsch - die Nachrichtenliste schrieb fest
+     * `"HH:mm"`. Auf einem Telefon in 12-Stunden-Anzeige stand oben „2:30 PM" und in der
+     * Liste derselben Minute „14:30". Fuer jemanden, der schlecht liest, sind das zwei
+     * verschiedene Uhrzeiten.
+     */
+    fun timePattern(twentyFourHour: Boolean): String = if (twentyFourHour) "HH:mm" else "h:mm a"
+
+    /**
      * Auf der Kachel gibt es kein „aus": eine Uhr-Kachel ohne Uhrzeit waere eine leere
      * Kachel, die aussieht, als sei etwas kaputt. „Aus" betrifft die Kopfzeile - dort
      * bleibt der Ladestand stehen, wenn die Uhr geht.

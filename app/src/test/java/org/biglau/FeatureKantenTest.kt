@@ -75,10 +75,7 @@ class FeatureKantenTest {
                 "gezählt. Weniger ist gut - dann diese Liste kürzen. Mehr macht die " +
                 "offene Frage aus STATUS.md teurer.",
             sortedSetOf(
-                "AppDrawer", "AppLock", "WidgetHostController",
-                "ConversationText", "MessageReminderReceiver", "NotificationRepository",
-                "SmsFilter", "SmsNotifications", "SmsReminder",
-                "SosActivity", "SosAlarm", "SosCountdown", "SosNumbers",
+                "MessagesSettingsList", "NotificationRepository", "SosSettings",
             ),
             ausSettings,
         )

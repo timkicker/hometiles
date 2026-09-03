@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.material3.Text
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -37,6 +38,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.delay
+import org.biglau.phone.PhoneNumbers
+import org.biglau.actions.Intents
 import org.biglau.ui.BigLauActivity
 import org.biglau.R
 import org.biglau.actions.Sos
@@ -223,6 +226,24 @@ class SosActivity : BigLauActivity() {
                                 // dorthin da, ausgerechnet an der Stelle, an der jemand den
                                 // Notruf gerade einrichtet.
                                 if (!configured) NotrufEinrichtenZeile()
+                                // PLAN.md 4.8: "Danach ein Anruf-Knopf, kein automatischer
+                                // Anruf." Der Satz "Es konnte nichts gesendet werden" war
+                                // bis zum 03.09.2026 das Ende des Bildschirms - im
+                                // schlimmsten Fall der ganzen App. `Intents.dial` oeffnet
+                                // die Waehltastatur mit der Nummer und waehlt **nicht**:
+                                // ein Tipp entfernt, und nie von selbst. In der Probe steht
+                                // der Knopf nicht, dort ist nichts passiert.
+                                if (!probe && configured) {
+                                    sos.numbers.firstOrNull()?.let { nummer ->
+                                        BigRow(
+                                            label = stringResource(R.string.sos_call_now, PhoneNumbers.forDisplay(nummer)),
+                                            secondary = stringResource(R.string.sos_call_hint),
+                                            icon = Icons.Filled.Call,
+                                            surface = palette.surfaceAccent,
+                                            onClick = { Intents.dial(this@SosActivity, nummer) },
+                                        )
+                                    }
+                                }
                                 BigRow(stringResource(R.string.dialog_close), onClick = { finish() })
                             }
 

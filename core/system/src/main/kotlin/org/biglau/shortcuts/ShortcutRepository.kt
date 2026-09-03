@@ -1,6 +1,5 @@
 package org.biglau.shortcuts
 
-import android.content.ComponentName
 import android.content.Context
 import android.content.pm.LauncherApps
 import android.content.pm.ShortcutInfo
@@ -28,8 +27,13 @@ class ShortcutRepository(context: Context) {
         Build.VERSION.SDK_INT >= Build.VERSION_CODES.N_MR1 &&
             runCatching { launcherApps.hasShortcutHostPermission() }.getOrDefault(false)
 
-    fun forPackage(packageName: String): List<ShortcutRow> {
-        if (!available()) return emptyList()
+    /**
+     * Die Verknuepfungen einer App - oder [ShortcutAnswer.Failed], wenn wir nicht fragen
+     * durften oder Android nichts geantwortet hat. `getShortcuts` liefert selbst null,
+     * wenn die Berechtigung fehlt; auch das ist keine Antwort, sondern keine.
+     */
+    fun forPackage(packageName: String): ShortcutAnswer {
+        if (!available()) return ShortcutAnswer.Failed
         val query = LauncherApps.ShortcutQuery()
             .setPackage(packageName)
             .setQueryFlags(
@@ -37,8 +41,9 @@ class ShortcutRepository(context: Context) {
                     LauncherApps.ShortcutQuery.FLAG_MATCH_DYNAMIC or
                     LauncherApps.ShortcutQuery.FLAG_MATCH_PINNED,
             )
-        val infos = runCatching { launcherApps.getShortcuts(query, user) }.getOrNull().orEmpty()
-        return Shortcuts.usable(infos.map { it.toRow() })
+        val infos = runCatching { launcherApps.getShortcuts(query, user) }.getOrNull()
+            ?: return ShortcutAnswer.Failed
+        return ShortcutAnswer.Rows(Shortcuts.usable(infos.map { it.toRow() }))
     }
 
     fun launch(packageName: String, shortcutId: String): Boolean = runCatching {
@@ -74,10 +79,6 @@ class ShortcutRepository(context: Context) {
             else -> ShortcutKind.STATIC
         },
     )
-
-    @Suppress("unused")
-    private fun component(packageName: String, activityName: String) =
-        ComponentName(packageName, activityName)
 
     companion object {
         @Volatile

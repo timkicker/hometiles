@@ -38,9 +38,17 @@ class LaunchFailureTest {
                 if (!ruf) return@forEachIndexed
                 // Nur die Startfunktionen der beiden Verzeichnisse, nicht coroutine `launch`.
                 if (!zeile.contains("packageName")) return@forEachIndexed
+                // Der Rueckgabewert darf auch der Wert eines `when` sein, das ein paar
+                // Zeilen darueber einem `val` zugewiesen wird. Am 03.09.2026 zogen die
+                // beiden Startwege in eine gemeinsame Funktion; die Regel las weiter nur
+                // die eine Zeile und meldete einen Fehler, den es nicht gab. Zum dritten
+                // Mal an einem Tag: sie hing an der Form, nicht an der Sache.
+                val zeilen = datei.readLines()
                 val ausgewertet = zeile.contains("if (!") ||
                     zeile.contains("val ") ||
-                    zeile.contains("return ")
+                    zeile.contains("return ") ||
+                    zeilen.subList(maxOf(0, index - 4), index)
+                        .any { Regex("""(val \w+ =|return) when""").containsMatchIn(it) }
                 if (!ausgewertet) ungeprueft += "${datei.name}:${index + 1}: ${zeile.trim()}"
             }
         }

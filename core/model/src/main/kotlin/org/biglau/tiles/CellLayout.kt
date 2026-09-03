@@ -1,5 +1,6 @@
 package org.biglau.tiles
 
+import org.biglau.data.Button
 import org.biglau.data.Cell
 import org.biglau.data.Screen
 
@@ -112,6 +113,37 @@ object CellLayout {
         (after.y until after.y + after.h).flatMap { y ->
             (after.x until after.x + after.w).map { x -> x to y }
         }.filterNot { (x, y) -> before.covers(x, y) }
+
+    /**
+     * Belegt den Platz, den (x, y) ueberdeckt - oder legt dort eine neue 1x1-Zelle an.
+     *
+     * Stand bis zum 03.09.2026 in `ConfigStore.setButton`, im Modul `core:data`, das als
+     * einziges **keinen einzigen Test** hatte. Es ist die Rechnung, die eine Kachel des
+     * Nutzers ueberschreibt; sie gehoert dorthin, wo sie geprueft werden kann.
+     */
+    fun withButton(screen: Screen, x: Int, y: Int, button: Button): Screen {
+        val vorhanden = screen.cellAt(x, y)
+        val zellen = screen.cells.toMutableList()
+        if (vorhanden == null) {
+            zellen.add(Cell(x = x, y = y, button = button))
+        } else {
+            zellen[zellen.indexOf(vorhanden)] = vorhanden.copy(button = button)
+        }
+        return screen.copy(cells = zellen)
+    }
+
+    /**
+     * Leert einen Platz, indem die Zelle **verschwindet**.
+     *
+     * Nicht, indem sie eine Zelle ohne Aktion zuruecklaesst: sonst gaebe es „leer" zweimal
+     * im Modell, und die zweite Sorte blockiert stillschweigend das Vergroessern der
+     * Nachbarn. Ein leerer Platz, der sich nicht wie ein leerer Platz verhaelt, ist genau
+     * die Sorte Fehler, die niemand findet.
+     */
+    fun withoutButton(screen: Screen, x: Int, y: Int): Screen {
+        val vorhanden = screen.cellAt(x, y) ?: return screen
+        return screen.copy(cells = screen.cells - vorhanden)
+    }
 
     private fun replace(screen: Screen, old: Cell, new: Cell): Screen =
         screen.copy(cells = screen.cells.map { if (it == old) new else it })

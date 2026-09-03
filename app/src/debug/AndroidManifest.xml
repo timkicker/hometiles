@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Nur im Debug-Bau: der Probeanruf.
+
+  Was hier steht, kommt nie in ein ausgeliefertes Programm - AGP mischt diese Datei nur in
+  den Debug-Bau. Eine Moeglichkeit, einen Anruf vorzutaeuschen, gehoert nicht in die Hand
+  von jemandem, der die App bloss installiert hat.
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!--
+      Nur damit die Probe selbst abheben kann und gar nicht erst klingelt. Ein Programm,
+      das Anrufe annehmen darf, ist etwas anderes als ein Startbildschirm - deshalb steht
+      das Recht hier und nicht im Haupt-Manifest.
+    -->
+    <uses-permission android:name="android.permission.ANSWER_PHONE_CALLS" />
+
+    <application>
+
+        <service
+            android:name=".phone.probe.ProbeConnectionService"
+            android:exported="true"
+            android:permission="android.permission.BIND_TELECOM_CONNECTION_SERVICE">
+            <intent-filter>
+                <action android:name="android.telecom.ConnectionService" />
+            </intent-filter>
+        </service>
+
+        <activity
+            android:name=".sms.probe.ProbeNachrichtActivity"
+            android:exported="true"
+            android:excludeFromRecents="true"
+            android:noHistory="true"
+            android:theme="@android:style/Theme.NoDisplay" />
+
+        <activity
+            android:name=".phone.probe.ProbeActivity"
+            android:exported="true"
+            android:excludeFromRecents="true"
+            android:noHistory="true"
+            android:theme="@android:style/Theme.NoDisplay" />
+
+    </application>
+</manifest>

@@ -1,6 +1,7 @@
 package org.biglau.data
 
 import android.content.Context
+import org.biglau.tiles.CellLayout
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -64,26 +65,18 @@ class ConfigStore private constructor(context: Context) {
         cfg.copy(screens = cfg.screens.toMutableList().also { it[index] = block(it[index]) })
     }
 
+    // Die beiden Rechnungen dahinter stehen in `CellLayout`, im Modul ohne Android: dieses
+    // Modul hier hatte als einziges keinen Test, und es sind die Rechnungen, die eine Kachel
+    // des Nutzers ueberschreiben oder loeschen.
+
     /** Setzt die Zelle, die (x, y) ueberdeckt, oder legt eine neue 1x1-Zelle dort an. */
-    fun setButton(screenId: String, x: Int, y: Int, button: Button) = updateScreen(screenId) { screen ->
-        val existing = screen.cellAt(x, y)
-        val cells = screen.cells.toMutableList()
-        if (existing == null) {
-            cells.add(Cell(x = x, y = y, button = button))
-        } else {
-            cells[cells.indexOf(existing)] = existing.copy(button = button)
-        }
-        screen.copy(cells = cells)
+    fun setButton(screenId: String, x: Int, y: Int, button: Button) = updateScreen(screenId) {
+        CellLayout.withButton(it, x, y, button)
     }
 
-    /**
-     * Leert einen Platz, indem die Zelle verschwindet - nicht, indem sie eine Zelle ohne
-     * Aktion zuruecklaesst. Sonst gaebe es "leer" zweimal im Modell, und die zweite Sorte
-     * blockiert stillschweigend das Vergroessern der Nachbarn.
-     */
-    fun clearButton(screenId: String, x: Int, y: Int) = updateScreen(screenId) { screen ->
-        val existing = screen.cellAt(x, y) ?: return@updateScreen screen
-        screen.copy(cells = screen.cells - existing)
+    /** Leert einen Platz. */
+    fun clearButton(screenId: String, x: Int, y: Int) = updateScreen(screenId) {
+        CellLayout.withoutButton(it, x, y)
     }
 
     companion object {

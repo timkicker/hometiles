@@ -104,6 +104,7 @@ class SmsRepository(context: Context) {
                         timestamp = cursor.getLong(4),
                         incoming = cursor.getInt(5) == Telephony.Sms.MESSAGE_TYPE_INBOX,
                         read = cursor.getInt(6) == 1,
+                        failed = cursor.getInt(5) == Telephony.Sms.MESSAGE_TYPE_FAILED,
                     )
                 }
             }

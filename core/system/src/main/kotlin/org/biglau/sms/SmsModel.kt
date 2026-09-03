@@ -9,6 +9,16 @@ data class SmsMessage(
     val timestamp: Long,
     val incoming: Boolean,
     val read: Boolean,
+    /**
+     * Das Netz hat die Nachricht nicht genommen.
+     *
+     * Bis zum 03.09.2026 gab es diesen Zustand nicht: `sendTextMessage` bekam keine
+     * Quittung, und „gesendet" hiess nur, dass der Aufruf keine Ausnahme geworfen hat. Eine
+     * Nachricht, die das Netz ablehnt - kein Empfang, Funk aus, kein Guthaben -, stand
+     * danach genauso da wie eine angekommene. Wer sich darauf verlaesst, wartet auf eine
+     * Antwort auf etwas, das nie losgegangen ist.
+     */
+    val failed: Boolean = false,
 )
 
 /** Ein Gespraech, wie es in der Liste steht. */

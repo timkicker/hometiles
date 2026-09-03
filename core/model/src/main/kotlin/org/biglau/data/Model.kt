@@ -1,5 +1,6 @@
 package org.biglau.data
 
+import org.biglau.toggles.SosCountdown
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -384,7 +385,14 @@ data class SosConfig(
     val numbers: List<String> = emptyList(),
     /** Leer heisst: noch nicht gesetzt - dann gilt der Text in der Sprache des Telefons. */
     val message: String = "",
-    val countdownSeconds: Int = 5,
+    /**
+     * Der Vorgabewert steht in [SosCountdown], nicht hier.
+     *
+     * Bis zum 3.9.2026 stand die 5 an beiden Stellen, und `SosCountdown.DEFAULT_SECONDS`
+     * hatte keinen einzigen Aufrufer: eine benannte Zahl, die niemand benutzt, neben
+     * derselben Zahl ohne Namen. Wer die eine ändert, ändert die andere nicht mit.
+     */
+    val countdownSeconds: Int = SosCountdown.DEFAULT_SECONDS,
     val sendLocation: Boolean = true,
     /**
      * Lauter Alarmton während des Notrufs. `PLAN.md` 4.8.

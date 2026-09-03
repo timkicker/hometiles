@@ -86,7 +86,12 @@ class ContactsActivity : BigLauActivity() {
 
         setContent {
             val config by store.config.collectAsStateWithLifecycle()
-            var granted by remember { mutableStateOf(repository.hasPermission()) }
+                        // `fortsetzungen` als Schluessel: dieser Bildschirm schickt den Nutzer bei
+            // dauerhaft verweigerter Berechtigung in die **App-Einstellungen**, und von dort
+            // kommt kein Ergebnis zurueck. Ohne das Neulesen beim Wiederkommen stuende hier
+            // weiter „keine Berechtigung" - auf einem Bildschirm, der einen selbst dorthin
+            // geschickt hat. Siehe `BigLauActivity.fortsetzungen`.
+var granted by remember(fortsetzungen.intValue) { mutableStateOf(repository.hasPermission()) }
             var all by remember { mutableStateOf<List<PhoneContact>>(emptyList()) }
             var query by rememberSaveable { mutableStateOf("") }
             // Von der Favoritenkachel aus: nur die mit Stern, ohne Suche davor.
@@ -193,6 +198,9 @@ class ContactsActivity : BigLauActivity() {
                     } else {
                         ContactList(
                             contacts = shown,
+                            // `all` und nicht `shown`: ob es ueberhaupt Kontakte gibt,
+                            // entscheidet ueber den Satz bei leerer Liste.
+                            hatKontakte = all.isNotEmpty(),
                             loading = loading,
                             query = query,
                             sortBySurname = config.contacts.sortBySurname,
@@ -243,6 +251,14 @@ private fun ContactList(
     onShowAll: () -> Unit,
     searchNumbers: Boolean,
     onSearchSettings: () -> Unit,
+    /**
+     * Steht im Adressbuch ueberhaupt etwas?
+     *
+     * Getrennt von [contacts], das schon gefiltert ist. Sonst sagt eine leere Liste immer
+     * „kein Kontakt passt dazu" - auch wenn niemand gesucht hat und das Telefon schlicht
+     * keine Kontakte kennt. Wer das liest, sucht den Fehler bei sich oder bei der App.
+     */
+    hatKontakte: Boolean,
 ) {
     val palette = LocalBigPalette.current
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -306,7 +322,11 @@ private fun ContactList(
             )
         } else if (contacts.isEmpty()) {
             Text(
-                text = stringResource(R.string.contacts_no_match),
+                // „Kein Treffer" nur, wenn es etwas zu treffen gab. Genau so macht es die
+                // App-Liste (`all.isNotEmpty() && shown.isEmpty()`); hier fehlte es.
+                text = stringResource(
+                    if (hatKontakte) R.string.contacts_no_match else R.string.contacts_none,
+                ),
                 color = palette.onBackground,
                 fontSize = bigSp(18f),
                 modifier = Modifier.padding(horizontal = 4.dp, vertical = 16.dp),

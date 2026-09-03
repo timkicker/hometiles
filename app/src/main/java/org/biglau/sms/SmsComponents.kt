@@ -95,6 +95,11 @@ private fun melden(context: Context, ganz: SmsDelivery.Incoming) {
 class WapPushDeliverReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         SmsRepository.notifyChanged()
+        // `PLAN.md` 6, Zeile MMS: „bei Fehlschlag sichtbar an den Nutzer melden statt still
+        // schlucken". Bis zum 3.9.2026 stand hier nur die Zeile darueber - eine Bildnachricht
+        // kam an, BigLau merkte sich, dass sich etwas geaendert hat, und sagte nichts. Wer
+        // ein Bild erwartet, wartet dann auf etwas, das nie kommt.
+        SmsNotifications.showMmsHint(context, ConfigStore.get(context).current.sms)
     }
 }
 

@@ -22,7 +22,9 @@ import org.junit.Test
  */
 class SettingsReachableFromDrawerTest {
 
-    private val liste = Quelltext.datei("org/biglau/apps/AppDrawerActivity.kt").readText()
+    private val datei = Quelltext.datei("org/biglau/apps/AppDrawerActivity.kt")
+    private val liste = datei.readText()
+    private val zeilen = datei.readLines()
 
     @Test
     fun `die app-liste bietet den weg in die einstellungen an`() {
@@ -33,19 +35,42 @@ class SettingsReachableFromDrawerTest {
         )
     }
 
+    /**
+     * Die Bedingung davor darf **nur** von der Suche handeln.
+     *
+     * Die erste Fassung dieser Regel verlangte wörtlich `query.isEmpty()` - sie schrieb
+     * damit die Umsetzung fest statt der Absicht. Am 3.9.2026 wurde die Zeile verbessert
+     * (sie steht jetzt auch da, wenn die **Suche sie trifft**), und die Regel fiel um,
+     * obwohl die Sache besser geworden war. Jetzt prüft sie, worum es geht: die Bedingung
+     * darf von `query` handeln und von sonst nichts - nicht von ausgeblendeten Apps, nicht
+     * von einer Rolle, nicht von etwas, das die meisten Leute nie haben.
+     */
     @Test
     fun `der weg haengt an keiner bedingung ausser der suche`() {
-        val stelle = liste.indexOf("SettingsLink.toRoot")
-        assertTrue("SettingsLink.toRoot nicht gefunden", stelle > 0)
-        // Der Block davor: die Zeile darf höchstens beim Suchen verschwinden, nicht an
-        // etwas hängen, das die meisten Leute nie haben - wie ausgeblendete Apps.
-        val davor = liste.substring(maxOf(0, stelle - 900), stelle)
-        val letzteBedingung = davor.substringAfterLast("if (")
+        // Gefragt ist die **Zeile**, nicht irgendein Aufruf von `SettingsLink.toRoot` -
+        // seit dem 03.09.2026 gibt es einen zweiten (die Lupentaste), und `indexOf` fand
+        // ihn zuerst. Damit las die Regel eine Bedingung, die gar nicht zur Zeile gehoerte.
+        val beiZeile = zeilen.indexOfFirst { "label = einstellungen" in it }
+        assertTrue("Die Zeile in die Einstellungen gibt es nicht mehr", beiZeile > 0)
+        val bedingung = zeilen.subList(maxOf(0, beiZeile - 8), beiZeile)
+            .reversed()
+            .firstNotNullOfOrNull { Regex("""if \((.+?)\) \{""").find(it)?.groupValues?.get(1) }
+        assertTrue("Die Zeile haengt an keiner Bedingung mehr", bedingung != null)
+
+        // Ein Name ist keine Bedingung, sondern zeigt auf eine. Die zweite Fassung dieser
+        // Regel las den Wortlaut und fiel um, als die Bedingung einen Namen bekam - die
+        // Sache war dieselbe geblieben. Also wird der Name jetzt aufgeloest.
+        val wortlaut = if (Regex("""^\w+$""").matches(bedingung!!)) {
+            zeilen.firstOrNull { it.trim().startsWith("val $bedingung ") }
+                ?: bedingung
+        } else {
+            bedingung
+        }
         assertTrue(
-            "Der Weg in die Einstellungen hängt an einer Bedingung: " +
-                "\"if (${letzteBedingung.substringBefore(')')})\". Er soll immer da sein; " +
-                "nur während einer laufenden Suche darf er weichen.",
-            letzteBedingung.startsWith("query.isEmpty()"),
+            "Der Weg in die Einstellungen hängt an einer Bedingung, die nicht von der " +
+                "Suche handelt: \"if ($bedingung)\" → $wortlaut. Er soll immer da sein; " +
+                "nur eine Suche, die ihn nicht trifft, darf ihn weglassen.",
+            "query" in wortlaut,
         )
     }
 }

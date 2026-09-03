@@ -11,6 +11,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import org.biglau.a11y.LongPress
 import org.biglau.ui.bigSp
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -69,7 +70,13 @@ class WizardActivity : BigLauActivity() {
         setContent {
             val config by store.config.collectAsStateWithLifecycle()
             var step by remember { mutableStateOf(WizardStep.WELCOME) }
-            var state by remember { mutableStateOf(readState()) }
+            // **Bei jeder Rueckkehr neu nachgesehen.** Der Zustand kam bisher nur von den
+            // beiden Dialogen zurueck. Wer aber „Spaeter" tippte, die Berechtigung dann in
+            // den Systemeinstellungen erteilte und zurueckkam, sah den erledigten Schritt
+            // weiter stehen - und dasselbe gilt fuer den Rueckfallweg bei der
+            // Startbildschirm-Rolle, der ueber `startActivity` geht und gar kein Ergebnis
+            // liefert. Siehe `BigLauActivity.fortsetzungen` und `SystemzustandTest`.
+            var state by remember(fortsetzungen.intValue) { mutableStateOf(readState()) }
 
             val askPermissions = rememberLauncherForActivityResult(
                 ActivityResultContracts.RequestMultiplePermissions(),
@@ -209,7 +216,24 @@ class WizardActivity : BigLauActivity() {
 
                             WizardStep.DONE -> Simple(
                                 title = stringResource(R.string.wizard_done_title),
-                                body = stringResource(R.string.wizard_done_body),
+                                // Der letzte Satz des Assistenten ist der, den man behaelt -
+                                // und er stimmt nicht immer. Wer sich das Vorlesen oder das
+                                // Popup beim Langdruck einschaltet (also genau die
+                                // Zielgruppe dieser App), erreicht den Editor so nicht
+                                // mehr; `LongPress.needsEditModeEntry` sagt das, und die
+                                // Einstellungen bieten dann den anderen Weg an. Der
+                                // Assistent versprach trotzdem den Langdruck.
+                                body = stringResource(
+                                    if (LongPress.needsEditModeEntry(
+                                            config.behaviour.accessibility,
+                                            config.behaviour.pressMode,
+                                        )
+                                    ) {
+                                        R.string.wizard_done_body_edit_mode
+                                    } else {
+                                        R.string.wizard_done_body
+                                    },
+                                ),
                                 action = stringResource(R.string.wizard_finish),
                                 onAction = { finishWizard(store) },
                             )

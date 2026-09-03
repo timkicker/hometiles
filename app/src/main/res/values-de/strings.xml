@@ -37,6 +37,7 @@
     <string name="contacts_permission">BigLau braucht Zugriff auf die Kontakte, um einen auf eine Kachel zu legen.</string>
     <string name="contacts_grant">Zugriff erlauben</string>
     <string name="contacts_loading">Kontakte werden gelesen…</string>
+    <string name="contacts_none">Auf diesem Telefon sind noch keine Kontakte gespeichert.</string>
     <string name="contacts_no_match">Kein Kontakt passt dazu.</string>
     <string name="contacts_numbers_not_searched">Das sieht nach einer Nummer aus, und die Suche schaut gerade nur auf Namen.</string>
     <string name="contacts_search_numbers_open">Auch in Nummern suchen</string>
@@ -251,9 +252,11 @@
     <string name="apps_hidden_hint">„%1$s“ ist ausgeblendet. Die Zeile am Ende der Liste holt sie zurück.</string>
     <string name="shortcut_gone">Diese Verknüpfung gibt es nicht mehr. Kachel neu belegen.</string>
     <string name="app_gone">Diese App ist nicht mehr auf dem Telefon. Kachel neu belegen.</string>
+    <string name="app_gone_list">Diese App ist nicht mehr auf dem Telefon. Die Liste ist neu geladen.</string>
     <string name="editor_pick_shortcut">Verknüpfung wählen</string>
     <string name="shortcut_needs_home_role">Android gibt Verknüpfungen nur an die App heraus, die den Startbildschirm stellt. Machen Sie BigLau zum Startbildschirm, um sie zu nutzen.</string>
     <string name="shortcut_none">Diese App bietet keine Verknüpfungen an.</string>
+    <string name="shortcut_unreadable">Die Verknüpfungen konnten nicht gelesen werden.</string>
     <string name="editor_pick_widget">Widget wählen</string>
     <string name="widget_none">Es sind keine Widgets installiert.</string>
     <string name="widget_needs">%1$s · braucht %2$d × %3$d Felder</string>
@@ -314,6 +317,9 @@
     <string name="toggle_airplane">Flugmodus</string>
     <string name="toggle_ringer">Klingeln / Vibrieren</string>
     <string name="toggle_no_flashlight">Dieses Telefon hat keine Taschenlampe.</string>
+    <string name="toggle_ringer_blocked">Der Klingelton lässt sich gerade nicht umstellen. „Bitte nicht stören“ ist an.</string>
+    <string name="toggle_no_settings">Dieses Telefon hat dafür keine Einstellungsseite.</string>
+    <string name="call_action_failed">Das kam beim Anruf nicht an.</string>
     <string name="sos_cancel">Abbrechen</string>
     <string name="sos_failed">Es konnte nichts gesendet werden.</string>
     <string name="sos_failed_permission">BigLau darf keine SMS senden. Bitte in den Einstellungen erlauben.</string>
@@ -373,13 +379,22 @@
     <string name="incall_ended">Anruf beendet</string>
     <string name="set_as_dialer">Als Telefon-App verwenden</string>
     <string name="set_as_dialer_hint">BigLau zeigt dann die Gesprächsansicht selbst</string>
+    <string name="is_sms">BigLau ist Ihre Nachrichten-App</string>
+    <string name="set_as_sms">Als Nachrichten-App verwenden</string>
+    <string name="set_as_sms_hint">BigLau empfängt und speichert Ihre Nachrichten dann selbst</string>
     <string name="sms_permission">BigLau braucht Zugriff auf die Nachrichten, um sie zu zeigen.</string>
+    <string name="sms_loading">Nachrichten werden gelesen…</string>
     <string name="sms_empty">Noch keine Nachrichten. Was Sie bekommen, erscheint hier.</string>
     <string name="sms_send">Senden</string>
     <string name="sms_send_confirm">Wirklich senden?</string>
     <string name="sms_send_confirm_hint">Nochmal tippen — zurückholen geht nicht</string>
     <string name="sms_sent">Gesendet.</string>
     <string name="sms_send_failed">Das ließ sich nicht senden.</string>
+    <string name="sms_not_sent">Nicht gesendet</string>
+    <string name="sms_send_no_service">Gerade kein Netz. BigLau schickt sie nicht von selbst noch einmal — versuchen Sie es, sobald Sie Empfang haben.</string>
+    <string name="sms_send_radio_off">Das Telefon ist im Flugmodus. Schalten Sie ihn aus und senden Sie noch einmal.</string>
+    <string name="sms_send_generic">Das Netz hat die Nachricht nicht angenommen. Versuchen Sie es noch einmal.</string>
+    <string name="sms_send_no_permission">BigLau darf keine Nachrichten senden. Die Berechtigung dafür steht in den App-Einstellungen unter „Berechtigungen“.</string>
     <string name="sms_new_to">Neue Nachricht an %1$s</string>
     <string name="sms_not_default">BigLau ist nicht Ihre Nachrichten-App: gesendete Nachrichten werden hier nicht gespeichert, und Lesen setzt sie hier nicht auf gelesen.</string>
     <string name="wizard_position">Schritt %1$d von %2$d</string>
@@ -398,6 +413,7 @@
     <string name="wizard_next">Weiter</string>
     <string name="wizard_done_title">Das war alles</string>
     <string name="wizard_done_body">Halten Sie eine Kachel gedrückt, um zu ändern, was sie tut.</string>
+    <string name="wizard_done_body_edit_mode">Um zu ändern, was eine Kachel tut, öffnen Sie die Einstellungen und tippen auf „Kacheln ändern“.</string>
     <string name="wizard_finish">Fertig</string>
     <string name="wizard_again">Einrichtung erneut durchlaufen</string>
     <string name="edit_mode_banner">Bearbeiten — tippen Sie eine Kachel an. Hier tippen zum Beenden.</string>
@@ -436,6 +452,8 @@
     <string name="contact_without_number">„%1$s“ hat keine Rufnummer — eine Kachel dafür könnte nichts tun.</string>
     <string name="emergency_title">BigLau konnte nicht starten</string>
     <string name="emergency_body">Der Startbildschirm ist zweimal hintereinander abgebrochen. Diese Ansicht kommt ohne Ihre Einstellungen aus, damit Sie zurückkommen.</string>
+    <string name="emergency_phone">Telefon</string>
+    <string name="emergency_contacts">Kontakte</string>
     <string name="emergency_retry">Noch einmal versuchen</string>
     <string name="emergency_settings">Einstellungen öffnen</string>
     <string name="emergency_other_launcher">Anderen Startbildschirm nehmen</string>
@@ -471,6 +489,7 @@
     <string name="diag_read_call_log">Anrufliste lesen</string>
     <string name="diag_write_call_log">Anrufliste ändern</string>
     <string name="diag_location">Standort</string>
+    <string name="diag_crash_net">Absturz-Fangnetz</string>
     <string name="diag_failed_starts">Fehlgeschlagene Starts</string>
     <string name="diag_last_crash">Letzter Absturz</string>
     <string name="diag_yes">ja</string>
@@ -664,4 +683,11 @@
     <string name="diag_battery_saving">Akku-Sparen</string>
     <string name="diag_battery_saving_on">An — kurze Erinnerungsabstände können sich verspäten</string>
     <string name="diag_battery_saving_off">Für BigLau aus</string>
+    <string name="sms_no_mms">Bild- und Gruppennachrichten (MMS) erscheinen hier nicht. BigLau hat keinen Netzzugang, und eine MMS wird aus dem Netz geholt — die Nachrichten-App des Telefons kann sie weiterhin öffnen.</string>
+    <string name="mms_arrived_title">Bildnachricht</string>
+    <string name="mms_arrived_body">BigLau kann Bild- und Gruppennachrichten nicht anzeigen — es hat keinen Netzzugang. Öffne sie in der Nachrichten-App des Telefons.</string>
+    <string name="screens_add_jump">Kachel zu „%1$s“ auf den Startbildschirm legen</string>
+    <string name="screens_add_jump_full">Der Startbildschirm ist voll — erst dort eine Kachel frei machen, dann kommt dieses Angebot zurück.</string>
+    <string name="sos_call_now">%1$s anrufen</string>
+    <string name="sos_call_hint">Die Wähltastatur geht mit der Nummer auf. BigLau wählt nie von selbst.</string>
 </resources>

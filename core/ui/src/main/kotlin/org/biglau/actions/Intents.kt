@@ -37,6 +37,41 @@ object Intents {
         Intent(Intent.ACTION_CALL, Uri.fromParts("tel", number, null))
     }
 
+    /**
+     * Eine Wähltastatur, die **nicht** BigLau ist - ohne Nummer.
+     *
+     * Fuer den Notfall-Auffang: wenn BigLau zweimal hintereinander nicht startet, ist die
+     * eigene Wähltastatur genau das, worauf man sich nicht verlassen sollte. `ACTION_DIAL`
+     * waehlt von sich aus nie - es oeffnet nur.
+     *
+     * **Bis zum 03.09.2026 stand hier ein nacktes `ACTION_DIAL`**, und darueber genau
+     * dieser Satz. Ein nacktes `ACTION_DIAL` geht an die Standard-Telefon-App - und sobald
+     * BigLau die ist, fuehrte der Notausgang zurueck in die App, die gerade zweimal
+     * abgestuerzt war. Am Geraet fiel es nur deshalb nicht auf, weil das System an dem Tag
+     * seinen eigenen Dialer nahm; verlassen kann man sich darauf nicht.
+     *
+     * Also wird ausdruecklich eine andere App gesucht. Gibt es keine, bleibt das nackte
+     * Intent - eine Waehltastatur, die vielleicht BigLau ist, ist immer noch besser als
+     * keine.
+     */
+    fun openDialer(context: Context) = start(context) {
+        val nackt = Intent(Intent.ACTION_DIAL)
+        val fremd = context.packageManager
+            .queryIntentActivities(nackt, 0)
+            .firstOrNull { it.activityInfo?.packageName != context.packageName }
+            ?.activityInfo
+        if (fremd != null) {
+            Intent(nackt).setClassName(fremd.packageName, fremd.name)
+        } else {
+            nackt
+        }
+    }
+
+    /** Die Kontakte des Systems - aus demselben Grund wie [openDialer]. */
+    fun openContacts(context: Context) = start(context) {
+        Intent(Intent.ACTION_VIEW, android.provider.ContactsContract.Contacts.CONTENT_URI)
+    }
+
     fun dial(context: Context, number: String) = start(context) {
         Intent(Intent.ACTION_DIAL, Uri.fromParts("tel", number, null))
     }
@@ -99,6 +134,22 @@ object Intents {
         return roleManager.createRequestRoleIntent(android.app.role.RoleManager.ROLE_DIALER)
     }
 
+    /**
+     * Fragt die Nachrichten-Rolle an.
+     *
+     * Dieselbe Ueberlegung wie bei [dialerRoleIntent]: der Dialog braucht einen Aufrufer.
+     * Und dieselbe Zurueckhaltung - wer die Rolle annimmt, uebernimmt die Verantwortung,
+     * eingehende Nachrichten selbst zu speichern; schreibt BigLau sie nicht, hat sie
+     * niemand. Siehe `SmsDeliverReceiver`.
+     */
+    fun smsRoleIntent(context: Context): Intent? {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) return null
+        val roleManager = context.getSystemService(android.app.role.RoleManager::class.java)
+            ?: return null
+        if (!roleManager.isRoleAvailable(android.app.role.RoleManager.ROLE_SMS)) return null
+        return roleManager.createRequestRoleIntent(android.app.role.RoleManager.ROLE_SMS)
+    }
+
     /** Oeffnet den Dialog zur Wahl des Standard-Launchers. */
     fun chooseHomeApp(context: Context) {
         start(context) { Intent(Settings.ACTION_HOME_SETTINGS) }
@@ -109,6 +160,11 @@ object Intents {
      * gibt BigLau die Gespraechsansicht - und ein Fehler darin macht Telefonieren unmoeglich.
      */
     fun chooseDialerApp(context: Context) {
+        start(context) { Intent(Settings.ACTION_MANAGE_DEFAULT_APPS_SETTINGS) }
+    }
+
+    /** Der Rueckfall, wenn es den Rollendialog nicht gibt: die Liste der Standard-Apps. */
+    fun chooseSmsApp(context: Context) {
         start(context) { Intent(Settings.ACTION_MANAGE_DEFAULT_APPS_SETTINGS) }
     }
 

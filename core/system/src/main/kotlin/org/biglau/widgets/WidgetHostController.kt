@@ -51,12 +51,6 @@ class WidgetHostController(context: Context) {
         return WidgetFit.sorted(rows)
     }
 
-    fun infoFor(component: String): AppWidgetProviderInfo? {
-        val target = component.toComponent() ?: return null
-        return runCatching { manager.installedProviders }.getOrNull()
-            ?.firstOrNull { it.provider == target }
-    }
-
     fun allocateId(): Int = host.allocateAppWidgetId()
 
     fun release(widgetId: Int) {
@@ -94,6 +88,8 @@ class WidgetHostController(context: Context) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                 view.updateAppWidgetSize(android.os.Bundle.EMPTY, widthDp, heightDp, widthDp, heightDp)
             } else {
+                // `updateAppWidgetSize(Bundle, …)` ist seit Android 12 durch die Fassung mit
+                // Größenliste abgelöst; auf Android 11 gibt es nur diese.
                 @Suppress("DEPRECATION")
                 view.updateAppWidgetSize(null, widthDp, heightDp, widthDp, heightDp)
             }
@@ -122,10 +118,3 @@ class WidgetHostController(context: Context) {
             }
     }
 }
-
-/** Wie ein Widget bereitgestellt wird - fuer TypedValue-Umrechnung an einer Stelle. */
-fun dpToPx(context: Context, dp: Float): Int = TypedValue.applyDimension(
-    TypedValue.COMPLEX_UNIT_DIP,
-    dp,
-    context.resources.displayMetrics,
-).toInt()

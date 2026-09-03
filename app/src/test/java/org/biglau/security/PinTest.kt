@@ -111,6 +111,37 @@ class EmergencyHoldTest {
         assertEquals(30_000L, EMERGENCY_HOLD_MILLIS)
     }
 
+    /**
+     * Und `PLAN.md` sagt dieselbe Zahl - an **allen** Stellen, an denen sie vorkommt.
+     *
+     * Bis zum 3.9.2026 stand die 30 hier als Zahl im Test und dreimal im Plan, ohne
+     * Verbindung dazwischen. Wer den Plan auf 20 Sekunden ändert, bekommt von keinem Test
+     * ein Wort — und die Sperre bliebe bei 30. Das ist dieselbe Klasse wie der Erklärtext:
+     * wer nach 20 Sekunden loslässt, weil es dort steht, hält sich für ausgesperrt.
+     */
+    @Test
+    fun `der Plan nennt dieselbe Dauer`() {
+        val plan = java.io.File("../PLAN.md").readText()
+        val zahlen = Regex("""(\d+)[ -]Sekunden?-?Notausstieg|Notausstieg[^.\n]*?(\d+) ?s(?:ekunden)?\b""")
+            .findAll(plan)
+            .mapNotNull { treffer ->
+                treffer.groupValues.drop(1).firstOrNull { it.isNotEmpty() }?.toLong()
+            }
+            .toList()
+        org.junit.Assert.assertTrue(
+            "Im Plan steht keine Dauer mehr zum Notausstieg - dann kann sie auch nicht " +
+                "mehr auseinanderlaufen, aber gemeint war das nicht.",
+            zahlen.isNotEmpty(),
+        )
+        zahlen.forEach {
+            assertEquals(
+                "PLAN.md nennt $it Sekunden, die Sperre hält ${EMERGENCY_HOLD_MILLIS / 1000}",
+                EMERGENCY_HOLD_MILLIS / 1000,
+                it,
+            )
+        }
+    }
+
     @Test
     fun `die Dauer geht glatt in Sekunden auf`() {
         // Der Countdown zählt in ganzen Sekunden herunter; ein krummer Wert ließe ihn

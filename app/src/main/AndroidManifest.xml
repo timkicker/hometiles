@@ -31,7 +31,6 @@
     <uses-permission android:name="android.permission.RECEIVE_SMS" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
-    <uses-permission android:name="android.permission.EXPAND_STATUS_BAR" />
     <!-- Nur fuer die Meldung ueber eine neue Nachricht, und nur ab Android 13 noetig.
          Auf dem Zielgeraet (Android 11) erteilt sie das System beim Installieren. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
@@ -39,7 +38,6 @@
          Haus aus aus; ohne diese Anmeldung erschiene sie stumm als gewoehnliche Meldung. -->
     <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
     <uses-permission android:name="android.permission.VIBRATE" />
-    <uses-permission android:name="android.permission.SET_WALLPAPER" />
 
     <uses-feature android:name="android.hardware.camera.flash" android:required="false" />
     <uses-feature android:name="android.hardware.telephony" android:required="false" />
@@ -144,6 +142,12 @@
         <!-- Gesperrte Nummern abweisen, bevor Android klingelt. Nur die
              Standard-Telefon-App wird gefragt; ohne die Rolle greift der Rueckfall in
              BigInCallService. -->
+        <!-- Die Quittung des Netzes fuer eine gesendete Nachricht. Nicht exportiert: den
+             Rundruf schickt das System an genau diesen PendingIntent. -->
+        <receiver
+            android:name=".sms.SmsSentReceiver"
+            android:exported="false" />
+
         <service
             android:name=".phone.CallScreening"
             android:exported="true"

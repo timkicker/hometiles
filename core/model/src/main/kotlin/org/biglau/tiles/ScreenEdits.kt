@@ -259,4 +259,37 @@ object ScreenEdits {
             },
         )
     }
+
+    /**
+     * Eine Sprungkachel auf den Startbildschirm legen, die zu [zielId] führt.
+     *
+     * Das Gegenstück zur Warnung „Auf ‚Screen 2' führt keine Kachel". Die sagte bisher, was
+     * zu tun ist — „legen Sie irgendwo eine Sprungkachel an" —, und liess den Nutzer damit
+     * allein. Dieselbe Regel wie beim Notruf ohne Kontakte und bei der Anrufliste: **der Weg
+     * dorthin statt der Wegbeschreibung.**
+     *
+     * Die Kachel kommt auf den **Startbildschirm**, nicht irgendwohin: von dort aus ist sie
+     * mit Sicherheit erreichbar. Ist er voll, gibt es `null` — dann bleibt nur, erst eine
+     * Kachel frei zu machen, und genau das sagt die Oberfläche dann auch.
+     */
+    fun withJumpTile(config: LauncherConfig, zielId: String): LauncherConfig? {
+        if (config.screens.none { it.id == zielId }) return null
+        val heim = config.screens.firstOrNull { it.id == config.homeScreenId } ?: return null
+        val platz = heim.freeSlots().firstOrNull() ?: return null
+        return config.copy(
+            screens = config.screens.map {
+                if (it.id != heim.id) {
+                    it
+                } else {
+                    it.copy(
+                        cells = it.cells + Cell(
+                            x = platz.first,
+                            y = platz.second,
+                            button = Button(action = ButtonAction.GoToScreen(zielId)),
+                        ),
+                    )
+                }
+            },
+        )
+    }
 }

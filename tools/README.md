@@ -76,6 +76,94 @@ Aufmerksamkeit dessen, der tippt. Jetzt hängt sie an einem Programm.
 
 Nachgestellt: derselbe Griff mit diesem Werkzeug verweigert den Tipp.
 
+### Wischen
+
+```sh
+tools/tippen.py <seriennummer> wischen AppDrawerActivity 14
+```
+
+Rollt in einer langen Liste nach unten und sieht vor **jedem** Zug nach, ob noch dieselbe
+Activity offen ist. Anfang und Ende bleiben im mittleren Drittel des Bildschirms, die Dauer
+ist 350 ms.
+
+Der Grund steht in beiden Zahlen: unten sitzt die Gestenzone des Systems, oben die
+Benachrichtigungsleiste, und ein schneller Wisch wird als Geste gelesen statt als Rollen.
+Am 03.09.2026 um 09:52 schickte ich zehn Wischer ab y=750 mit 80 ms — die
+Benachrichtigungsleiste ging auf, der Bildschirm aus, das Telefon sperrte sich, und danach
+stand eine fremde App im Vordergrund.
+
+## `status-eintrag.py`
+
+Schreibt einen Abschnitt in `STATUS.md` — und sieht nach, ob er wirklich dasteht.
+
+```sh
+echo "Rumpf des Abschnitts" | tools/status-eintrag.py "## 🔧 Ueberschrift (03.09.2026, 14:05)"
+```
+
+Der Abschnitt kommt direkt unter die Marke `<!-- chronik:` in `STATUS.md`; dort fängt die
+Chronik an. Danach liest das Skript die Datei **neu** und zählt die Überschrift: genau
+einmal, sonst Rückgabewert 1 und kein Wort davon, dass es geklappt hätte. Es weigert sich
+auch bei leerem Rumpf, bei einer Überschrift ohne `##`, bei einer Überschrift, die schon
+dasteht, und wenn die Marke fehlt.
+
+Entstanden am 03.09.2026 um 14:05 aus einem stillen Verlust: ein Bash-Aufruf mit deutschen
+Anführungszeichen in einem Python-Schnipsel scheiterte an der Shell (`unmatched '`) —
+**bevor irgendetwas lief**. Danach nur den Rest wiederholt und committet; dabei fehlten zwei
+README-Korrekturen und ein ganzer STATUS-Abschnitt. Aufgefallen erst einen Takt später, weil
+eine Überschrift nicht zu finden war. Ein fehlgeschlagener Befehl sieht einem erledigten zum
+Verwechseln ähnlich, wenn man nur auf den Commit schaut.
+
+Die erste Fassung suchte nach dem „ersten datierten Abschnitt" statt nach einer Marke und
+traf daneben: die bleibenden Abschnitte oben (Sperre, Geräteliste, Übergabe) tragen selbst
+Daten. Eine ausdrückliche Marke ist langweiliger und richtig.
+
+## `echte-fassung.sh`
+
+Prüft die **echte** Konfiguration vom Telefon gegen den Import-Weg.
+
+```sh
+tools/echte-fassung.sh <seriennummer>
+```
+
+`RealConfigRoundTripTest` braucht eine gewachsene Konfiguration — mehrere Bildschirme, ein
+Ordner, eigene Beschriftungen, Farben. Die entsteht nicht im Testquelltext, sondern über
+Wochen auf einem Telefon, und sie darf nicht ins Repository: sie enthält die App-Liste und
+die Bildschirmnamen eines Menschen. Das Skript holt sie sich, legt sie **ausserhalb** des
+Projekts ab (`mktemp`) und löscht sie wieder.
+
+Am Ende sieht es im Testbericht nach `skipped="0"`. Das ist der eigentliche Punkt: ein
+übersprungener Test ist auch grün. Bis zum 03.09.2026 hat dieser sich seit seiner
+Entstehung jedes Mal selbst übersprungen, ohne dass es auffiel — der Umzug auf ein neues
+Telefon, der Grund für die ganze Sicherungsfunktion, war ungeprüft. Am 03.09.2026 um 11:10
+zum ersten Mal wirklich gelaufen, mit der Fassung des Jelly 2 (13 194 Bytes, drei
+Bildschirme, vierzehn Kacheln): bestanden.
+
+## `nachbauen.sh`
+
+Baut die Release-Fassung zweimal ohne Build-Cache und vergleicht die Prüfsummen.
+
+```sh
+tools/nachbauen.sh
+```
+
+Der Nachweis, den der README des Projekts behauptet: derselbe Quelltext ergibt dieselbe
+Datei. Wer das nachrechnet, will nicht zwei Befehle abtippen und Zeichenketten mit dem Auge
+vergleichen — dabei übersieht man genau die eine Stelle, an der sie sich unterscheiden. Am
+Ende steht ausserdem der Commit, zu dem die Zahl gehört, und ob im Arbeitsverzeichnis noch
+ungespeicherte Änderungen liegen.
+
+Seit dem 03.09.2026 passt das Skript auf sich selbst auf: es merkt sich vor dem ersten Lauf
+`HEAD` und `git status --porcelain` und vergleicht danach. Hat sich dazwischen etwas
+geändert, sagt es „das Ergebnis sagt nichts aus" statt einer Prüfsumme. Und wenn die beiden
+Läufe wirklich verschieden sind, fragt es zurück, ob nebenher ein anderer `./gradlew` lief.
+
+Der Grund steht in der Datei: um 10:57 meldete es „nicht reproduzierbar", weil ich daneben
+Tests laufen liess und zur Gegenprobe kurz das README verbog. Allein wiederholt, derselbe
+Commit, zweimal dieselbe Prüfsumme
+(`cd262f2a9f451c605b49eca93a039e98ca9fb0ad5badc58dbfd3df433f8c6ec2`, 1 790 879 Bytes für
+`0c3915e`). Ein falsches „nicht reproduzierbar" ist die schlimmste Antwort von allen: sie
+lässt an einer Zusage zweifeln, die stimmt.
+
 ## `fassung-anonymisieren.py`
 
 Macht aus der Konfiguration eines echten Telefons eine Prüfdatei fürs Repository.

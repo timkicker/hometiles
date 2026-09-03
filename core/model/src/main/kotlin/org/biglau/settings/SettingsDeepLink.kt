@@ -8,7 +8,10 @@ package org.biglau.settings
  * muesste man den Pfad durch die Einstellungen selbst finden, und der Hinweis "das laesst
  * sich einstellen" waere ein Versprechen ohne Weg.
  */
-internal object SettingsDeepLink {
+// `internal` ging beim Umzug nach core:model verloren: quer ueber Modulgrenzen gibt es das
+// nicht. Wer das zurueckhaben will, muss den Bereich zum eigenen Modul machen - genau der
+// offene Punkt in PLAN.md 2.1.
+object SettingsDeepLink {
 
     /** Die zu [name] gehoerende Seite. Unbekannte Namen ergeben null statt einer Ausnahme. */
     fun ziel(name: String?): Page? = name?.let { gesucht ->

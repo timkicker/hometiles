@@ -54,14 +54,32 @@ class DeadLogicTest {
 
     private val quelltext: String by lazy { dateien().joinToString("\n") { it.readText() } }
 
-    /** Aufrufe minus Deklarationen, plus Methodenverweise (`::name`). */
-    private fun wirdAufgerufen(name: String): Boolean {
-        val aufrufe = Regex("""\b${Regex.escape(name)}\s*\(""").findAll(quelltext).count()
-        val deklarationen =
-            Regex("""fun\s+(?:<[^>]*>\s*)?${Regex.escape(name)}\s*\(""").findAll(quelltext).count()
-        val verweise = Regex("""::${Regex.escape(name)}\b""").findAll(quelltext).count()
-        return aufrufe - deklarationen + verweise > 0
+    /**
+     * Drei Zaehlungen ueber den ganzen Quelltext - **einmal**, nicht je Name.
+     *
+     * Die erste Fassung baute fuer jeden Namen drei eigene `Regex` und liess sie ueber den
+     * gesamten Quelltext laufen. Am 3.9.2026 gemessen: **26 Sekunden**, ein Viertel des
+     * Testlaufs von `:app`, fuer eine Regel, die nichts findet. Jetzt wird dreimal
+     * durchgezaehlt und danach nur noch nachgeschlagen.
+     */
+    private val aufrufe: Map<String, Int> by lazy {
+        Regex("""([A-Za-z_][A-Za-z0-9_]*)\s*\(""").findAll(quelltext)
+            .groupingBy { it.groupValues[1] }.eachCount()
     }
+
+    private val funktionen: Map<String, Int> by lazy {
+        Regex("""fun\s+(?:<[^>]*>\s*)?([A-Za-z_][A-Za-z0-9_]*)\s*\(""").findAll(quelltext)
+            .groupingBy { it.groupValues[1] }.eachCount()
+    }
+
+    private val verweise: Map<String, Int> by lazy {
+        Regex("""::([A-Za-z_][A-Za-z0-9_]*)""").findAll(quelltext)
+            .groupingBy { it.groupValues[1] }.eachCount()
+    }
+
+    /** Aufrufe minus Deklarationen, plus Methodenverweise (`::name`). */
+    private fun wirdAufgerufen(name: String): Boolean =
+        (aufrufe[name] ?: 0) - (funktionen[name] ?: 0) + (verweise[name] ?: 0) > 0
 
     @Test
     fun `jede Funktion in einem object wird auch aufgerufen`() {

@@ -80,7 +80,7 @@ fun HomeHeader(
     val locale = currentLocale()
     val twentyFourHour = remember(context) { DateFormat.is24HourFormat(context) }
     val timeFormat = remember(twentyFourHour, locale) {
-        SimpleDateFormat(if (twentyFourHour) "HH:mm" else "h:mm a", locale)
+        SimpleDateFormat(ClockFormat.timePattern(twentyFourHour), locale)
     }
     val datePattern = bestDatePattern(ClockFormat.dateSkeleton(clock, onTile = false), locale)
     val dateFormat = remember(locale, datePattern) {

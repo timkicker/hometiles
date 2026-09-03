@@ -26,6 +26,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Call
+import androidx.compose.material.icons.filled.Sms
 import androidx.compose.material.icons.automirrored.filled.Message
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Accessibility
@@ -93,6 +94,8 @@ import org.biglau.apps.AppDrawer
 import org.biglau.apps.AppRepository
 import org.biglau.a11y.LongPress
 import org.biglau.data.Accessibility
+import org.biglau.data.PhoneConfig
+import org.biglau.data.Behaviour
 import org.biglau.data.ConfigStore
 import org.biglau.ui.GridLooks
 import org.biglau.data.Appearance
@@ -105,22 +108,15 @@ import org.biglau.data.ConfigTransfer
 import org.biglau.data.LabelPosition
 import org.biglau.data.Screen
 import org.biglau.data.SosConfig
-import org.biglau.toggles.SosActivity
-import org.biglau.toggles.SosAlarm
-import org.biglau.toggles.SosCountdown
+import org.biglau.toggles.SosSettings
 import org.biglau.actions.SosMessage
-import org.biglau.toggles.SosNumbers
 import org.biglau.data.ClockDisplay
 import org.biglau.data.FontChoice
 import org.biglau.data.ContactsConfig
 import androidx.compose.material.icons.filled.Person
 import org.biglau.phone.CallBlocking
 import org.biglau.phone.DialerRole
-import org.biglau.sms.ConversationText
-import org.biglau.sms.MessageReminderReceiver
-import org.biglau.sms.SmsNotifications
-import org.biglau.sms.SmsReminder
-import org.biglau.sms.SmsFilter
+import org.biglau.sms.MessagesSettingsList
 import org.biglau.sms.SmsRepository
 import org.biglau.phone.CallDirection
 import org.biglau.data.ScreenOrientation
@@ -171,7 +167,6 @@ import org.biglau.ui.theme.BigSurface
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.material.icons.filled.Check
 
-internal enum class Page { GATE, MAIN, MESSAGES, SCREENS, APPEARANCE, BEHAVIOUR, SECURITY, SET_PIN, DIAGNOSTICS, RENAME, HIDDEN_APPS, TRANSFER, SOS, ACCESSIBILITY, RESET , SWIPE_ORDER, ALLOWED_APPS, CONTACTS, CALL_TYPES}
 
 class SettingsActivity : BigLauActivity() {
 
@@ -214,12 +209,10 @@ class SettingsActivity : BigLauActivity() {
             // aufgerufen, dann die Anrufarten angefordert, und es blieb die Diagnose.
             val ziel = zielAnfrage.value
             var page by rememberSaveable { mutableStateOf(SettingsDeepLink.start(locked, ziel)) }
-            // Die Probe des Notruf-Alarms. Sie laeuft nur, solange die Einstellungen offen
-            // sind - ein Alarm, der weiterlaeuft, waere schlimmer als keiner.
-            var alarmProbe by remember { mutableStateOf(false) }
-            DisposableEffect(Unit) {
-                onDispose { SosAlarm.stop(this@SettingsActivity) }
-            }
+            // Die Probe des Notruf-Alarms steht seit dem 03.09.2026 in `SosSettings`
+            // selbst, samt ihrem `onDispose`. Das ist strenger, nicht lockerer: die Seite
+            // liegt **innerhalb** dieser Komposition, ihr Aufraeumen kommt also immer zuerst -
+            // und zusaetzlich schon dann, wenn man nur die Unterseite verlaesst.
             LaunchedEffect(ziel) {
                 SettingsDeepLink.sprung(page, ziel)?.let { page = it }
             }
@@ -408,14 +401,37 @@ class SettingsActivity : BigLauActivity() {
                             onContacts = { page = Page.CONTACTS },
                             onCallTypes = { page = Page.CALL_TYPES },
                             onMessages = { page = Page.MESSAGES },
-                            istStartbildschirm = Diagnostics.isDefaultHome(this@SettingsActivity),
-                            istTelefonApp = DialerRole.held(this@SettingsActivity),
+                            istStartbildschirm = remember(fortsetzungen.intValue) {
+                                Diagnostics.isDefaultHome(this@SettingsActivity)
+                            },
+                            istTelefonApp = remember(fortsetzungen.intValue) {
+                                DialerRole.held(this@SettingsActivity)
+                            },
+                            istNachrichtenApp = remember(fortsetzungen.intValue) {
+                                SmsRepository.get(this@SettingsActivity).isDefaultSmsApp()
+                            },
                             onHomeApp = {
                                 val absicht = Intents.homeRoleIntent(this@SettingsActivity)
                                 if (absicht != null) {
                                     askDialerRole.launch(absicht)
                                 } else {
                                     Intents.chooseHomeApp(this@SettingsActivity)
+                                }
+                            },
+                            onSmsApp = {
+                                // Wie beim Telefon: haelt BigLau die Rolle schon, fuehrt der
+                                // Rollendialog nirgendwohin.
+                                val absicht = if (
+                                    SmsRepository.get(this@SettingsActivity).isDefaultSmsApp()
+                                ) {
+                                    null
+                                } else {
+                                    Intents.smsRoleIntent(this@SettingsActivity)
+                                }
+                                if (absicht != null) {
+                                    askDialerRole.launch(absicht)
+                                } else {
+                                    Intents.chooseSmsApp(this@SettingsActivity)
                                 }
                             },
                             onDialerApp = {
@@ -456,6 +472,14 @@ class SettingsActivity : BigLauActivity() {
                             screens = FolderEdits.plainScreens(config),
                             homeId = config.homeScreenId,
                             unreachable = ScreenEdits.unreachable(config),
+                            onAddJumpTile = { ziel ->
+                                store.update { current ->
+                                    ScreenEdits.withJumpTile(current, ziel.id) ?: current
+                                }
+                            },
+                            jumpTilePossible = { ziel ->
+                                ScreenEdits.withJumpTile(config, ziel.id) != null
+                            },
                             // Ordner stehen sonst nicht in dieser Liste ("Ordner gehoeren
                             // ihrer Kachel"). Einer ohne Kachel gehoert niemandem mehr -
                             // dann ist das hier die einzige Stelle, an der er noch
@@ -518,132 +542,24 @@ class SettingsActivity : BigLauActivity() {
                             },
                         )
 
+                        // Wie bei den Nachrichten und beim Notruf: die Seite bekommt ihren
+                        // Teil und gibt ihn geaendert zurueck. Vorher standen hier 123 Zeilen
+                        // mit siebzehn Rueckrufen, die alle dasselbe taten. Hier bleibt nur,
+                        // was eine Activity braucht - sich neu aufbauen und sich drehen.
                         Page.APPEARANCE -> AppearanceList(
-                            language = config.appearance.language,
-                            onLanguage = { next ->
-                                // Sofort neu aufbauen. Wer hier "Deutsch" antippt und
-                                // nichts geschieht, tippt noch einmal und noch einmal -
-                                // und das ist die Seite, auf der man gerade nicht lesen
-                                // kann, was los ist.
-                                val anders = next != config.appearance.language
-                                store.update {
-                                    it.copy(appearance = it.appearance.copy(language = next))
-                                }
-                                if (anders) recreate()
-                            },
-                            themeName = config.appearance.theme,
-                            textScale = config.appearance.textScale,
-                            labelPosition = config.appearance.labelPosition,
-                            hideCutLabels = config.appearance.hideCutLabels,
-                            onToggleHideCutLabels = {
-                                store.update {
-                                    it.copy(
-                                        appearance = it.appearance.copy(
-                                            hideCutLabels = !it.appearance.hideCutLabels,
-                                        ),
-                                    )
-                                }
-                            },
-                            icons = config.appearance.icons,
-                            onTheme = { next ->
-                                store.update { it.copy(appearance = it.appearance.copy(theme = next)) }
-                            },
-                            onTextScale = { next ->
-                                store.update { it.copy(appearance = it.appearance.copy(textScale = next)) }
-                            },
-                            fullScreen = config.appearance.fullScreen,
-                            font = config.appearance.font,
-                            labelScale = config.appearance.labelScale,
-                            onLabelScale = { next ->
-                                store.update {
-                                    it.copy(appearance = it.appearance.copy(labelScale = next))
-                                }
-                            },
-                            iconPercent = config.appearance.iconPercent,
-                            onIconPercent = { next ->
-                                store.update {
-                                    it.copy(appearance = it.appearance.copy(iconPercent = next))
-                                }
-                            },
-                            onFont = { next ->
-                                store.update { it.copy(appearance = it.appearance.copy(font = next)) }
-                            },
-                            onToggleFullScreen = {
-                                store.update {
-                                    it.copy(
-                                        appearance = it.appearance.copy(
-                                            fullScreen = !it.appearance.fullScreen,
-                                        ),
-                                    )
-                                }
-                            },
-                            onLabelPosition = { next ->
-                                store.update { it.copy(appearance = it.appearance.copy(labelPosition = next)) }
-                            },
-                            showHeader = config.appearance.showHeader,
                             appearance = config.appearance,
-                            onToggleHeader = {
-                                store.update {
-                                    it.copy(appearance = it.appearance.copy(showHeader = !it.appearance.showHeader))
-                                }
-                            },
-                            clock = config.appearance.clock,
-                            gutterDp = config.appearance.gutterDp,
-                            onGutter = { next ->
-                                store.update {
-                                    it.copy(appearance = it.appearance.copy(gutterDp = GridLooks.gutter(next)))
-                                }
-                            },
-                            borderPercent = config.appearance.safeBorderPercent,
-                            onBorder = { next ->
-                                store.update {
-                                    it.copy(
-                                        appearance = it.appearance.copy(
-                                            safeBorderPercent = GridLooks.border(next),
-                                        ),
-                                    )
-                                }
-                            },
-                            cornerRadiusDp = config.appearance.cornerRadiusDp,
-                            onCornerRadius = { next ->
-                                store.update {
-                                    it.copy(
-                                        appearance = it.appearance.copy(
-                                            cornerRadiusDp = GridLooks.radius(next),
-                                        ),
-                                    )
-                                }
-                            },
-                            orientation = config.appearance.orientation,
-                            onOrientation = { next ->
-                                store.update {
-                                    it.copy(appearance = it.appearance.copy(orientation = next))
-                                }
-                                // Sofort umsetzen: eine Drehung, die erst beim naechsten
-                                // Start kaeme, sieht aus wie ein Schalter, der klemmt.
-                                requestedOrientation = Orientation.requested(next)
-                            },
-                            onClock = { next ->
-                                store.update { it.copy(appearance = it.appearance.withClock(next)) }
-                            },
-                            onIcons = { next ->
-                                store.update { it.copy(appearance = it.appearance.withIcons(next)) }
-                            },
-                            clockScale = config.appearance.clockScale,
-                            onClockScale = { next ->
-                                store.update {
-                                    it.copy(
-                                        appearance = it.appearance.copy(
-                                            clockScale = ClockFormat.scale(next),
-                                        ),
-                                    )
-                                }
-                            },
+                            onChange = { neu -> store.update { it.copy(appearance = neu) } },
+                            onLanguageChanged = { recreate() },
+                            onOrientationChanged = { requestedOrientation = Orientation.requested(it) },
                         )
+
 
                         Page.BEHAVIOUR -> BehaviourList(
                             blinkOn = config.behaviour.blinkOnNotification,
-                            accessGranted = NotificationRepository.isEnabled(this@SettingsActivity),
+                            // Beim Wiederkommen neu nachsehen - siehe `fortsetzungen`.
+                            accessGranted = remember(fortsetzungen.intValue) {
+                                NotificationRepository.isEnabled(this@SettingsActivity)
+                            },
                             onToggleBlink = {
                                 store.update {
                                     it.copy(
@@ -778,142 +694,26 @@ class SettingsActivity : BigLauActivity() {
                             acceptOnComplete = false,
                         )
 
+                        // Diese Seite stellt das **Verhalten** ein, also bekommt sie
+                        // `behaviour` und gibt es geaendert zurueck. Vorher: 94 Zeilen mit
+                        // acht Rueckrufen, jeder eine Kopie einer Kopie.
                         Page.ACCESSIBILITY -> AccessibilityList(
-                            config = config.behaviour.accessibility,
-                            haptics = config.behaviour.haptics,
-                            confirmMessages = config.behaviour.confirmMessages,
-                            homeKeyReturns = config.behaviour.homeKeyReturnsToStart,
-                            swipeScreens = config.behaviour.swipeBetweenScreens,
-                            pressMode = config.behaviour.pressMode,
-                            onTogglePressMode = {
-                                store.update {
-                                    val jetzt = it.behaviour.pressMode
-                                    it.copy(
-                                        behaviour = it.behaviour.copy(
-                                            pressMode = if (jetzt == PressMode.SHORT) {
-                                                PressMode.LONG
-                                            } else {
-                                                PressMode.SHORT
-                                            },
-                                        ),
-                                    )
-                                }
-                            },
-                            onToggleSwipe = {
-                                store.update {
-                                    it.copy(
-                                        behaviour = it.behaviour.copy(
-                                            swipeBetweenScreens = !it.behaviour.swipeBetweenScreens,
-                                        ),
-                                    )
-                                }
-                            },
-                            onToggleHaptics = {
-                                store.update {
-                                    it.copy(
-                                        behaviour = it.behaviour.withHaptics(
-                                            Haptics.next(it.behaviour.haptics),
-                                        ),
-                                    )
-                                }
-                            },
-                            onToggleConfirmMessages = {
-                                store.update {
-                                    it.copy(
-                                        behaviour = it.behaviour.copy(
-                                            confirmMessages = !it.behaviour.confirmMessages,
-                                        ),
-                                    )
-                                }
-                            },
-                            onToggleHomeKey = {
-                                store.update {
-                                    it.copy(
-                                        behaviour = it.behaviour.copy(
-                                            homeKeyReturnsToStart = !it.behaviour.homeKeyReturnsToStart,
-                                        ),
-                                    )
-                                }
-                            },
-                            onToggleSpeak = {
-                                store.update {
-                                    val a = it.behaviour.accessibility
-                                    it.copy(
-                                        behaviour = it.behaviour.copy(
-                                            accessibility = a.copy(speakOnLongPress = !a.speakOnLongPress),
-                                        ),
-                                    )
-                                }
-                            },
-                            onToggleScroll = {
-                                store.update {
-                                    val a = it.behaviour.accessibility
-                                    it.copy(
-                                        behaviour = it.behaviour.copy(
-                                            accessibility = a.copy(scrollButtons = !a.scrollButtons),
-                                        ),
-                                    )
-                                }
-                            },
-                            onTogglePopup = {
-                                store.update {
-                                    val a = it.behaviour.accessibility
-                                    it.copy(
-                                        behaviour = it.behaviour.copy(
-                                            accessibility = a.copy(popupOnLongPress = !a.popupOnLongPress),
-                                        ),
-                                    )
-                                }
-                            },
+                            behaviour = config.behaviour,
+                            onChange = { neu -> store.update { it.copy(behaviour = neu) } },
                         )
+
 
                         Page.SOS -> SosSettings(
                             config = config.sos,
-                            onNumbers = { text ->
-                                store.update { it.copy(sos = it.sos.copy(numbers = SosNumbers.parse(text))) }
-                            },
-                            onMessage = { text ->
-                                store.update { it.copy(sos = it.sos.copy(message = text.trim())) }
-                            },
-                            onCountdown = { seconds ->
-                                store.update {
-                                    it.copy(sos = it.sos.copy(countdownSeconds = SosCountdown.clamp(seconds)))
-                                }
-                            },
-                            onToggleLocation = {
-                                val an = !config.sos.sendLocation
-                                store.update { it.copy(sos = it.sos.copy(sendLocation = an)) }
-                                if (an && !locationGranted) {
-                                    askLocation.launch(
-                                        arrayOf(
-                                            Manifest.permission.ACCESS_FINE_LOCATION,
-                                            Manifest.permission.ACCESS_COARSE_LOCATION,
-                                        ),
-                                    )
-                                }
-                            },
-                            onToggleAlarmSound = {
-                                store.update { it.copy(sos = it.sos.copy(alarmSound = !it.sos.alarmSound)) }
-                            },
-                            onToggleAlarmFlash = {
-                                store.update { it.copy(sos = it.sos.copy(alarmFlash = !it.sos.alarmFlash)) }
-                            },
-                            onPreview = {
-                                startActivity(
-                                    Intent(this@SettingsActivity, SosActivity::class.java)
-                                        .putExtra(SosActivity.EXTRA_PREVIEW, true),
+                            onChange = { neu -> store.update { it.copy(sos = neu) } },
+                            onNeedLocation = {
+                                askLocation.launch(
+                                    arrayOf(
+                                        Manifest.permission.ACCESS_FINE_LOCATION,
+                                        Manifest.permission.ACCESS_COARSE_LOCATION,
+                                    ),
                                 )
                             },
-                            onTryAlarm = {
-                                if (alarmProbe) {
-                                    SosAlarm.stop(this@SettingsActivity)
-                                    alarmProbe = false
-                                } else {
-                                    SosAlarm.start(this@SettingsActivity, config.sos)
-                                    alarmProbe = true
-                                }
-                            },
-                            alarmRunning = alarmProbe,
                             locationGranted = locationGranted,
                             locationBlocked = PermissionState.blocked(
                                 locationDeniedOnce,
@@ -961,61 +761,15 @@ class SettingsActivity : BigLauActivity() {
                             },
                         )
 
+                        // Die Seite bekommt ihren Teil der Einstellungen und gibt ihn
+                        // geaendert zurueck. Vorher standen hier 56 Zeilen mit fuenfzehn
+                        // Rueckrufen, die alle dasselbe taten - und der Wecker fuer die
+                        // Erinnerung stand mitten drin, obwohl er zu den Nachrichten gehoert.
                         Page.MESSAGES -> MessagesSettingsList(
-                            confirmSend = config.sms.confirmBeforeSending,
-                            onToggleConfirmSend = {
-                                store.update {
-                                    it.copy(
-                                        sms = it.sms.copy(
-                                            confirmBeforeSending = !it.sms.confirmBeforeSending,
-                                        ),
-                                    )
-                                }
-                            },
-                            sendAbove = config.sms.sendButtonAbove,
-                            onToggleSendAbove = {
-                                store.update {
-                                    it.copy(sms = it.sms.copy(sendButtonAbove = !it.sms.sendButtonAbove))
-                                }
-                            },
-                            sendLarge = config.sms.sendButtonLarge,
-                            onToggleSendLarge = {
-                                store.update {
-                                    it.copy(sms = it.sms.copy(sendButtonLarge = !it.sms.sendButtonLarge))
-                                }
-                            },
-                            scale = config.sms.conversationScale,
-                            onScale = { wert ->
-                                store.update { it.copy(sms = it.sms.copy(conversationScale = wert)) }
-                            },
-                            numbers = config.sms.hiddenNumbers,
-                            words = config.sms.hiddenWords,
-                            onNumbers = { text ->
-                                store.update {
-                                    it.copy(sms = it.sms.copy(hiddenNumbers = CallBlocking.parse(text)))
-                                }
-                            },
-                            onWords = { text ->
-                                store.update {
-                                    it.copy(sms = it.sms.copy(hiddenWords = SmsFilter.parseWords(text)))
-                                }
-                            },
-                            vibrationMs = config.sms.vibrationMs,
-                            onVibration = { dauer ->
-                                store.update { it.copy(sms = it.sms.copy(vibrationMs = dauer)) }
-                            },
-                            fullScreen = config.sms.fullScreenAlert,
-                            onToggleFullScreen = {
-                                store.update {
-                                    it.copy(sms = it.sms.copy(fullScreenAlert = !it.sms.fullScreenAlert))
-                                }
-                            },
-                            repeatMinutes = config.sms.repeatMinutes,
-                            onRepeat = { minuten ->
-                                store.update { it.copy(sms = it.sms.copy(repeatMinutes = minuten)) }
-                                // Aus heisst sofort aus, nicht erst bei der naechsten
-                                // Nachricht: sonst erinnert ein alter Wecker weiter.
-                                MessageReminderReceiver.schedule(this@SettingsActivity, minuten)
+                            sms = config.sms,
+                            onChange = { neu -> store.update { it.copy(sms = neu) } },
+                            istStandardApp = remember(fortsetzungen.intValue) {
+                                SmsRepository.get(this@SettingsActivity).isDefaultSmsApp()
                             },
                         )
 
@@ -1050,8 +804,15 @@ class SettingsActivity : BigLauActivity() {
                             },
                         )
 
+                        // Fünfte Seite nach demselben Muster. Der Wechsel der
+                        // Standard-Telefon-App bleibt hier: dafür braucht es eine Activity,
+                        // die auf die Antwort des Systems wartet.
                         Page.CALL_TYPES -> CallTypesList(
-                            blocked = config.phone.blockedNumbers,
+                            phone = config.phone,
+                            onChange = { neu -> store.update { it.copy(phone = neu) } },
+                            hatTelefonRolle = remember(fortsetzungen.intValue) {
+                                DialerRole.held(this@SettingsActivity)
+                            },
                             onDialerApp = {
                                 val absicht = Intents.dialerRoleIntent(this@SettingsActivity)
                                 if (absicht != null) {
@@ -1060,53 +821,8 @@ class SettingsActivity : BigLauActivity() {
                                     Intents.chooseDialerApp(this@SettingsActivity)
                                 }
                             },
-                            onBlocked = { text ->
-                                store.update {
-                                    it.copy(
-                                        phone = it.phone.copy(
-                                            blockedNumbers = CallBlocking.parse(text),
-                                        ),
-                                    )
-                                }
-                            },
-                            audioRoute = config.phone.audioRoute,
-                            onAudioRoute = { weg ->
-                                store.update { it.copy(phone = it.phone.copy(audioRoute = weg)) }
-                            },
-                            speakerOnOutgoing = config.phone.speakerOnOutgoing,
-                            onToggleSpeakerOnOutgoing = {
-                                store.update {
-                                    it.copy(
-                                        phone = it.phone.copy(
-                                            speakerOnOutgoing = !it.phone.speakerOnOutgoing,
-                                        ),
-                                    )
-                                }
-                            },
-                            photo = config.phone.callerPhoto,
-                            onPhoto = { groesse ->
-                                store.update { it.copy(phone = it.phone.copy(callerPhoto = groesse)) }
-                            },
-                            grouping = config.phone.callGrouping,
-                            onGrouping = { art ->
-                                store.update { it.copy(phone = it.phone.copy(callGrouping = art)) }
-                            },
-                            hidden = config.phone.hiddenCallTypes,
-                            onToggle = { name ->
-                                store.update {
-                                    val jetzt = it.phone.hiddenCallTypes
-                                    it.copy(
-                                        phone = it.phone.copy(
-                                            hiddenCallTypes = if (name in jetzt) {
-                                                jetzt - name
-                                            } else {
-                                                jetzt + name
-                                            },
-                                        ),
-                                    )
-                                }
-                            },
                         )
+
 
                         Page.DIAGNOSTICS -> DiagnosticsList(this@SettingsActivity)
 
@@ -1174,8 +890,10 @@ private fun MainList(
     onMessages: () -> Unit,
     onHomeApp: () -> Unit,
     onDialerApp: () -> Unit,
+    onSmsApp: () -> Unit,
     istStartbildschirm: Boolean,
     istTelefonApp: Boolean,
+    istNachrichtenApp: Boolean,
     onDone: () -> Unit,
 ) {
     val palette = LocalBigPalette.current
@@ -1214,6 +932,26 @@ private fun MainList(
                 icon = Icons.Filled.Call,
                 surface = if (istTelefonApp) palette.surfaceAccent else palette.surfaceDefault,
                 onClick = onDialerApp,
+            )
+        }
+        // Die dritte Rolle stand nirgends. Startbildschirm und Telefon liessen sich hier
+        // sehen und aendern, die Nachrichten-Rolle nur im Nachrichten-Bildschirm - und dort
+        // nur, solange BigLau sie **nicht** hatte. Wer sie hatte, erfuhr es nirgends und
+        // kam von hier aus nicht mehr davon los. Drei Rollen, ein Ort.
+        item {
+            BigRow(
+                label = stringResource(
+                    if (istNachrichtenApp) R.string.is_sms else R.string.set_as_sms,
+                ),
+                secondary = stringResource(
+                    if (istNachrichtenApp) R.string.role_change_hint else R.string.set_as_sms_hint,
+                ),
+                // Nicht dasselbe Symbol wie die Nachrichten-Zeile weiter unten: zwei
+                // gleiche Symbole in einer Liste sind zwei Zeilen, die man verwechselt.
+                // SlopRulesTest hat es gemeldet.
+                icon = Icons.Filled.Sms,
+                surface = if (istNachrichtenApp) palette.surfaceAccent else palette.surfaceDefault,
+                onClick = onSmsApp,
             )
         }
         item {
@@ -1284,6 +1022,9 @@ private fun ScreenList(
     screens: List<Screen>,
     homeId: String,
     unreachable: List<Screen>,
+    /** Legt eine Sprungkachel auf den Startbildschirm; null heisst: dort ist kein Platz. */
+    onAddJumpTile: (Screen) -> Unit,
+    jumpTilePossible: (Screen) -> Boolean,
     orphanedFolders: List<Screen>,
     onDeleteFolder: (Screen) -> Unit,
     lossesFor: (Screen) -> Pair<Int, Int>,
@@ -1314,6 +1055,26 @@ private fun ScreenList(
                     fontSize = bigSp(15f),
                     modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp),
                 )
+            }
+            // Der Weg dorthin statt der Wegbeschreibung - dieselbe Regel wie beim Notruf
+            // ohne Kontakte und bei der Anrufliste. Der Satz darueber sagte bis zum
+            // 03.09.2026 nur, was zu tun waere.
+            items(unreachable, key = { "sprung-${it.id}" }) { schirm ->
+                if (jumpTilePossible(schirm)) {
+                    BigRow(
+                        label = stringResource(R.string.screens_add_jump, schirm.name),
+                        icon = Icons.Filled.Add,
+                        surface = palette.surfaceAccent,
+                        onClick = { onAddJumpTile(schirm) },
+                    )
+                } else {
+                    Text(
+                        text = stringResource(R.string.screens_add_jump_full),
+                        color = palette.onBackground,
+                        fontSize = bigSp(15f),
+                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp),
+                    )
+                }
             }
         }
         if (screens.size > 1) {
@@ -1594,41 +1355,12 @@ private fun languageLabel(language: Language): Int = when (language) {
 
 @Composable
 private fun AppearanceList(
-    language: Language,
-    onLanguage: (Language) -> Unit,
-    themeName: ThemeName,
-    textScale: Float,
-    labelPosition: LabelPosition,
-    hideCutLabels: Boolean,
-    onToggleHideCutLabels: () -> Unit,
-    icons: IconVisibility,
-    showHeader: Boolean,
     appearance: Appearance,
-    clock: ClockDisplay,
-    clockScale: Float,
-    onClockScale: (Float) -> Unit,
-    orientation: ScreenOrientation,
-    onOrientation: (ScreenOrientation) -> Unit,
-    gutterDp: Int,
-    onGutter: (Int) -> Unit,
-    borderPercent: Int,
-    onBorder: (Int) -> Unit,
-    cornerRadiusDp: Int,
-    onCornerRadius: (Int) -> Unit,
-    fullScreen: Boolean,
-    onToggleFullScreen: () -> Unit,
-    font: FontChoice,
-    onFont: (FontChoice) -> Unit,
-    labelScale: Float,
-    onLabelScale: (Float) -> Unit,
-    iconPercent: Int,
-    onIconPercent: (Int) -> Unit,
-    onToggleHeader: () -> Unit,
-    onClock: (ClockDisplay) -> Unit,
-    onTheme: (ThemeName) -> Unit,
-    onTextScale: (Float) -> Unit,
-    onLabelPosition: (LabelPosition) -> Unit,
-    onIcons: (IconVisibility) -> Unit,
+    onChange: (Appearance) -> Unit,
+    /** Nach einem Sprachwechsel baut die Activity sich neu auf. */
+    onLanguageChanged: () -> Unit,
+    /** Eine Drehung setzt die Activity sofort um. */
+    onOrientationChanged: (ScreenOrientation) -> Unit,
 ) {
     val palette = LocalBigPalette.current
     LazyColumn(verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -1640,9 +1372,17 @@ private fun AppearanceList(
         items(Language.entries.toList()) { entry ->
             BigRow(
                 label = stringResource(languageLabel(entry)),
-                icon = if (entry == language) Icons.Filled.Check else null,
-                surface = if (entry == language) palette.surfaceAccent else palette.surfaceDefault,
-                onClick = { onLanguage(entry) },
+                icon = if (entry == appearance.language) Icons.Filled.Check else null,
+                surface = if (entry == appearance.language) palette.surfaceAccent else palette.surfaceDefault,
+                onClick = {
+                        if (entry != appearance.language) {
+                            onChange(appearance.copy(language = entry))
+                            // Sofort neu aufbauen. Wer hier „Deutsch" antippt und nichts
+                            // geschieht, tippt noch einmal und noch einmal - und das ist die
+                            // Seite, auf der man gerade nicht lesen kann, was los ist.
+                            onLanguageChanged()
+                        }
+                    },
             )
         }
         // Jede Zeile ist in ihrem eigenen Thema gemalt. Dreimal dasselbe Paletten-Symbol
@@ -1650,13 +1390,13 @@ private fun AppearanceList(
         // Haekchen statt einer Akzentflaeche - die Flaeche gehoert hier dem Thema.
         items(ThemeName.entries.toList()) { entry ->
             val own = paletteFor(entry, isSystemInDarkTheme())
-            val chosen = entry == themeName
+            val chosen = entry == appearance.theme
             BigRow(
                 label = stringResource(themeLabel(entry)),
                 icon = if (chosen) Icons.Filled.Check else null,
                 surface = BigSurface(own.emptyTile, own.onBackground),
                 borderColor = if (chosen) palette.accent else null,
-                onClick = { onTheme(entry) },
+                onClick = { onChange(appearance.copy(theme = entry)) },
             )
         }
         item { BigHeading(stringResource(R.string.appearance_font)) }
@@ -1671,10 +1411,10 @@ private fun AppearanceList(
                 } else {
                     null
                 },
-                icon = if (entry == font) Icons.Filled.Check else null,
-                surface = if (entry == font) palette.surfaceAccent else palette.surfaceDefault,
+                icon = if (entry == appearance.font) Icons.Filled.Check else null,
+                surface = if (entry == appearance.font) palette.surfaceAccent else palette.surfaceDefault,
                 fontFamily = familyFor(entry),
-                onClick = { onFont(entry) },
+                onClick = { onChange(appearance.copy(font = entry)) },
             )
         }
         item { BigHeading(stringResource(R.string.appearance_text_size)) }
@@ -1683,9 +1423,9 @@ private fun AppearanceList(
             CompositionLocalProvider(LocalTextScale provides scale) {
                 BigRow(
                     label = "${(scale * 100).toInt()} %",
-                    icon = if (scale == textScale) Icons.Filled.Check else null,
-                    surface = if (scale == textScale) palette.surfaceAccent else palette.surfaceDefault,
-                    onClick = { onTextScale(scale) },
+                    icon = if (scale == appearance.textScale) Icons.Filled.Check else null,
+                    surface = if (scale == appearance.textScale) palette.surfaceAccent else palette.surfaceDefault,
+                    onClick = { onChange(appearance.copy(textScale = scale)) },
                 )
             }
         }
@@ -1697,13 +1437,13 @@ private fun AppearanceList(
             CompositionLocalProvider(LocalTextScale provides scale) {
                 BigRow(
                     label = "${(scale * 100).toInt()} %",
-                    icon = if (scale == labelScale) Icons.Filled.Check else null,
-                    surface = if (scale == labelScale) {
+                    icon = if (scale == appearance.labelScale) Icons.Filled.Check else null,
+                    surface = if (scale == appearance.labelScale) {
                         palette.surfaceAccent
                     } else {
                         palette.surfaceDefault
                     },
-                    onClick = { onLabelScale(scale) },
+                    onClick = { onChange(appearance.copy(labelScale = scale)) },
                 )
             }
         }
@@ -1714,7 +1454,7 @@ private fun AppearanceList(
                 label = "$percent %",
                 leading = {
                     Icon(
-                        imageVector = if (percent == iconPercent) {
+                        imageVector = if (percent == appearance.iconPercent) {
                             Icons.Filled.Check
                         } else {
                             Icons.Filled.Apps
@@ -1724,45 +1464,45 @@ private fun AppearanceList(
                         modifier = Modifier.size((16 + percent / 2).dp),
                     )
                 },
-                surface = if (percent == iconPercent) {
+                surface = if (percent == appearance.iconPercent) {
                     palette.surfaceAccent
                 } else {
                     palette.surfaceDefault
                 },
-                onClick = { onIconPercent(percent) },
+                onClick = { onChange(appearance.copy(iconPercent = percent)) },
             )
         }
         item { BigHeading(stringResource(R.string.appearance_label_position)) }
         items(LabelPosition.entries.toList()) { position ->
             BigRow(
                 label = stringResource(labelPositionLabel(position)),
-                surface = if (position == labelPosition) palette.surfaceAccent else palette.surfaceDefault,
-                onClick = { onLabelPosition(position) },
+                surface = if (position == appearance.labelPosition) palette.surfaceAccent else palette.surfaceDefault,
+                onClick = { onChange(appearance.copy(labelPosition = position)) },
             )
         }
         // PLAN.md 3.2: "auf 3 Zoll ist ein abgeschnittenes Wort schlimmer als gar keins."
         // Nur anbieten, wo die Beschriftung ueberhaupt steht - bei "ohne Beschriftung"
         // waere es ein Schalter ohne Wirkung.
-        if (labelPosition != LabelPosition.HIDDEN) {
+        if (appearance.labelPosition != LabelPosition.HIDDEN) {
             item {
                 BigRow(
                     label = stringResource(
-                        if (hideCutLabels) R.string.appearance_hide_cut_on else R.string.appearance_hide_cut_off,
+                        if (appearance.hideCutLabels) R.string.appearance_hide_cut_on else R.string.appearance_hide_cut_off,
                     ),
                     secondary = stringResource(R.string.appearance_hide_cut_hint),
-                    surface = if (hideCutLabels) palette.surfaceAccent else palette.surfaceDefault,
-                    onClick = onToggleHideCutLabels,
+                    surface = if (appearance.hideCutLabels) palette.surfaceAccent else palette.surfaceDefault,
+                    onClick = { onChange(appearance.copy(hideCutLabels = !appearance.hideCutLabels)) },
                 )
             }
         }
         item {
             BigRow(
                 label = stringResource(
-                    if (fullScreen) R.string.appearance_fullscreen_on else R.string.appearance_fullscreen_off,
+                    if (appearance.fullScreen) R.string.appearance_fullscreen_on else R.string.appearance_fullscreen_off,
                 ),
                 secondary = stringResource(R.string.appearance_fullscreen_hint),
-                surface = if (fullScreen) palette.surfaceAccent else palette.surfaceDefault,
-                onClick = onToggleFullScreen,
+                surface = if (appearance.fullScreen) palette.surfaceAccent else palette.surfaceDefault,
+                onClick = { onChange(appearance.copy(fullScreen = !appearance.fullScreen)) },
             )
         }
         item { BigHeading(stringResource(R.string.appearance_icons)) }
@@ -1774,19 +1514,19 @@ private fun AppearanceList(
                 } else {
                     null
                 },
-                icon = if (entry == icons) Icons.Filled.Check else null,
-                surface = if (entry == icons) palette.surfaceAccent else palette.surfaceDefault,
-                onClick = { onIcons(entry) },
+                icon = if (entry == appearance.icons) Icons.Filled.Check else null,
+                surface = if (entry == appearance.icons) palette.surfaceAccent else palette.surfaceDefault,
+                onClick = { onChange(appearance.withIcons(entry)) },
             )
         }
         item { BigHeading(stringResource(R.string.appearance_header)) }
         item {
             BigRow(
-                label = stringResource(if (showHeader) R.string.header_on else R.string.header_off),
+                label = stringResource(if (appearance.showHeader) R.string.header_on else R.string.header_off),
                 secondary = stringResource(R.string.header_explainer),
                 icon = Icons.Filled.Schedule,
-                surface = if (showHeader) palette.surfaceAccent else palette.surfaceDefault,
-                onClick = onToggleHeader,
+                surface = if (appearance.showHeader) palette.surfaceAccent else palette.surfaceDefault,
+                onClick = { onChange(appearance.copy(showHeader = !appearance.showHeader)) },
             )
         }
         // Vollbild nimmt die Systemleiste weg, die Kopfzeile traegt den Rest. Beides aus
@@ -1812,22 +1552,22 @@ private fun AppearanceList(
         items(GridLooks.GUTTERS) { wert ->
             BigRow(
                 label = "$wert dp",
-                icon = if (wert == gutterDp) Icons.Filled.Check else null,
-                surface = if (wert == gutterDp) palette.surfaceAccent else palette.surfaceDefault,
-                onClick = { onGutter(wert) },
+                icon = if (wert == appearance.gutterDp) Icons.Filled.Check else null,
+                surface = if (wert == appearance.gutterDp) palette.surfaceAccent else palette.surfaceDefault,
+                onClick = { onChange(appearance.copy(gutterDp = GridLooks.gutter(wert))) },
             )
         }
         item { BigHeading(stringResource(R.string.appearance_border)) }
         items(GridLooks.BORDERS) { wert ->
             BigRow(
                 label = "$wert %",
-                icon = if (wert == borderPercent) Icons.Filled.Check else null,
-                surface = if (wert == borderPercent) {
+                icon = if (wert == appearance.safeBorderPercent) Icons.Filled.Check else null,
+                surface = if (wert == appearance.safeBorderPercent) {
                     palette.surfaceAccent
                 } else {
                     palette.surfaceDefault
                 },
-                onClick = { onBorder(wert) },
+                onClick = { onChange(appearance.copy(safeBorderPercent = GridLooks.border(wert))) },
             )
         }
         item { BigHeading(stringResource(R.string.appearance_corner)) }
@@ -1835,14 +1575,14 @@ private fun AppearanceList(
         items(GridLooks.RADII) { wert ->
             BigRow(
                 label = "$wert dp",
-                icon = if (wert == cornerRadiusDp) Icons.Filled.Check else null,
-                surface = if (wert == cornerRadiusDp) {
+                icon = if (wert == appearance.cornerRadiusDp) Icons.Filled.Check else null,
+                surface = if (wert == appearance.cornerRadiusDp) {
                     palette.surfaceAccent
                 } else {
                     palette.surfaceDefault
                 },
                 cornerRadius = wert.dp,
-                onClick = { onCornerRadius(wert) },
+                onClick = { onChange(appearance.copy(cornerRadiusDp = GridLooks.radius(wert))) },
             )
         }
         item { BigHeading(stringResource(R.string.appearance_orientation)) }
@@ -1854,22 +1594,27 @@ private fun AppearanceList(
                 } else {
                     null
                 },
-                icon = if (entry == orientation) Icons.Filled.Check else null,
-                surface = if (entry == orientation) {
+                icon = if (entry == appearance.orientation) Icons.Filled.Check else null,
+                surface = if (entry == appearance.orientation) {
                     palette.surfaceAccent
                 } else {
                     palette.surfaceDefault
                 },
-                onClick = { onOrientation(entry) },
+                onClick = {
+                        onChange(appearance.copy(orientation = entry))
+                        // Sofort umsetzen: eine Drehung, die erst beim naechsten Start
+                        // kaeme, sieht aus wie ein Schalter, der klemmt.
+                        onOrientationChanged(entry)
+                    },
             )
         }
         item { BigHeading(stringResource(R.string.appearance_clock_size)) }
         items(ClockFormat.SCALES) { wert ->
             BigRow(
                 label = "${(wert * 100).toInt()} %",
-                icon = if (wert == clockScale) Icons.Filled.Check else null,
-                surface = if (wert == clockScale) palette.surfaceAccent else palette.surfaceDefault,
-                onClick = { onClockScale(wert) },
+                icon = if (wert == appearance.clockScale) Icons.Filled.Check else null,
+                surface = if (wert == appearance.clockScale) palette.surfaceAccent else palette.surfaceDefault,
+                onClick = { onChange(appearance.copy(clockScale = ClockFormat.scale(wert))) },
             )
         }
         item { BigHeading(stringResource(R.string.appearance_clock)) }
@@ -1881,9 +1626,9 @@ private fun AppearanceList(
                 } else {
                     null
                 },
-                icon = if (entry == clock) Icons.Filled.Check else null,
-                surface = if (entry == clock) palette.surfaceAccent else palette.surfaceDefault,
-                onClick = { onClock(entry) },
+                icon = if (entry == appearance.clock) Icons.Filled.Check else null,
+                surface = if (entry == appearance.clock) palette.surfaceAccent else palette.surfaceDefault,
+                onClick = { onChange(appearance.withClock(entry)) },
             )
         }
     }
@@ -1909,20 +1654,8 @@ private fun clockLabel(display: ClockDisplay): Int = when (display) {
  */
 @Composable
 private fun AccessibilityList(
-    config: Accessibility,
-    haptics: HapticStrength,
-    confirmMessages: Boolean,
-    homeKeyReturns: Boolean,
-    swipeScreens: Boolean,
-    pressMode: PressMode,
-    onTogglePressMode: () -> Unit,
-    onToggleSwipe: () -> Unit,
-    onToggleHaptics: () -> Unit,
-    onToggleConfirmMessages: () -> Unit,
-    onToggleHomeKey: () -> Unit,
-    onToggleSpeak: () -> Unit,
-    onTogglePopup: () -> Unit,
-    onToggleScroll: () -> Unit,
+    behaviour: Behaviour,
+    onChange: (Behaviour) -> Unit,
 ) {
     val palette = LocalBigPalette.current
     LazyColumn(verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -1930,94 +1663,113 @@ private fun AccessibilityList(
         item {
             BigRow(
                 label = stringResource(
-                    if (config.speakOnLongPress) R.string.a11y_speak_on else R.string.a11y_speak_off,
+                    if (behaviour.accessibility.speakOnLongPress) R.string.a11y_speak_on else R.string.a11y_speak_off,
                 ),
                 secondary = stringResource(R.string.a11y_speak_hint),
-                surface = if (config.speakOnLongPress) palette.surfaceAccent else palette.surfaceDefault,
-                onClick = onToggleSpeak,
+                surface = if (behaviour.accessibility.speakOnLongPress) palette.surfaceAccent else palette.surfaceDefault,
+                onClick = {
+                    val a = behaviour.accessibility
+                    onChange(behaviour.copy(accessibility = a.copy(speakOnLongPress = !a.speakOnLongPress)))
+                },
             )
         }
         item {
             BigRow(
                 label = stringResource(
-                    if (config.popupOnLongPress) R.string.a11y_popup_on else R.string.a11y_popup_off,
+                    if (behaviour.accessibility.popupOnLongPress) R.string.a11y_popup_on else R.string.a11y_popup_off,
                 ),
                 secondary = stringResource(R.string.a11y_popup_hint),
-                surface = if (config.popupOnLongPress) palette.surfaceAccent else palette.surfaceDefault,
-                onClick = onTogglePopup,
+                surface = if (behaviour.accessibility.popupOnLongPress) palette.surfaceAccent else palette.surfaceDefault,
+                onClick = {
+                    val a = behaviour.accessibility
+                    onChange(behaviour.copy(accessibility = a.copy(popupOnLongPress = !a.popupOnLongPress)))
+                },
             )
         }
         item {
             BigRow(
                 label = stringResource(
-                    if (config.scrollButtons) R.string.a11y_scroll_on else R.string.a11y_scroll_off,
+                    if (behaviour.accessibility.scrollButtons) R.string.a11y_scroll_on else R.string.a11y_scroll_off,
                 ),
                 secondary = stringResource(R.string.a11y_scroll_hint),
-                surface = if (config.scrollButtons) palette.surfaceAccent else palette.surfaceDefault,
-                onClick = onToggleScroll,
+                surface = if (behaviour.accessibility.scrollButtons) palette.surfaceAccent else palette.surfaceDefault,
+                onClick = {
+                    val a = behaviour.accessibility
+                    onChange(behaviour.copy(accessibility = a.copy(scrollButtons = !a.scrollButtons)))
+                },
             )
         }
         item {
             BigRow(
                 label = stringResource(
-                    when (haptics) {
+                    when (behaviour.haptics) {
                         HapticStrength.OFF -> R.string.haptics_off
                         HapticStrength.LIGHT -> R.string.haptics_light
                         HapticStrength.STRONG -> R.string.haptics_strong
                     }
                 ),
                 secondary = stringResource(R.string.haptics_hint),
-                surface = if (haptics != HapticStrength.OFF) {
+                surface = if (behaviour.haptics != HapticStrength.OFF) {
                     palette.surfaceAccent
                 } else {
                     palette.surfaceDefault
                 },
-                onClick = onToggleHaptics,
+                onClick = { onChange(behaviour.withHaptics(Haptics.next(behaviour.haptics))) },
             )
         }
         item {
             BigRow(
                 label = stringResource(
-                    if (confirmMessages) {
+                    if (behaviour.confirmMessages) {
                         R.string.confirm_messages_on
                     } else {
                         R.string.confirm_messages_off
                     }
                 ),
                 secondary = stringResource(R.string.confirm_messages_hint),
-                surface = if (confirmMessages) palette.surfaceAccent else palette.surfaceDefault,
-                onClick = onToggleConfirmMessages,
+                surface = if (behaviour.confirmMessages) palette.surfaceAccent else palette.surfaceDefault,
+                onClick = { onChange(behaviour.copy(confirmMessages = !behaviour.confirmMessages)) },
             )
         }
         item {
             BigRow(
                 label = stringResource(
-                    if (homeKeyReturns) R.string.home_key_on else R.string.home_key_off,
+                    if (behaviour.homeKeyReturnsToStart) R.string.home_key_on else R.string.home_key_off,
                 ),
                 secondary = stringResource(R.string.home_key_hint),
-                surface = if (homeKeyReturns) palette.surfaceAccent else palette.surfaceDefault,
-                onClick = onToggleHomeKey,
+                surface = if (behaviour.homeKeyReturnsToStart) palette.surfaceAccent else palette.surfaceDefault,
+                onClick = { onChange(behaviour.copy(homeKeyReturnsToStart = !behaviour.homeKeyReturnsToStart)) },
             )
         }
         item {
             BigRow(
                 label = stringResource(
-                    if (pressMode == PressMode.LONG) R.string.press_long else R.string.press_short,
+                    if (behaviour.pressMode == PressMode.LONG) R.string.press_long else R.string.press_short,
                 ),
                 secondary = stringResource(R.string.press_hint),
-                surface = if (pressMode == PressMode.LONG) palette.surfaceAccent else palette.surfaceDefault,
-                onClick = onTogglePressMode,
+                surface = if (behaviour.pressMode == PressMode.LONG) palette.surfaceAccent else palette.surfaceDefault,
+                onClick = {
+                    onChange(
+                        behaviour.copy(
+                            pressMode = if (behaviour.pressMode == PressMode.SHORT) {
+                                PressMode.LONG
+                            } else {
+                                PressMode.SHORT
+                            },
+                        ),
+                    )
+                },
             )
         }
         item {
             BigRow(
-                label = stringResource(if (swipeScreens) R.string.swipe_on else R.string.swipe_off),
+                label = stringResource(if (behaviour.swipeBetweenScreens) R.string.swipe_on else R.string.swipe_off),
                 secondary = stringResource(R.string.swipe_hint),
-                surface = if (swipeScreens) palette.surfaceAccent else palette.surfaceDefault,
-                onClick = onToggleSwipe,
+                surface = if (behaviour.swipeBetweenScreens) palette.surfaceAccent else palette.surfaceDefault,
+                onClick = { onChange(behaviour.copy(swipeBetweenScreens = !behaviour.swipeBetweenScreens)) },
             )
         }
-        if (LongPress.needsEditModeEntry(config, pressMode)) {
+        if (LongPress.needsEditModeEntry(behaviour.accessibility, behaviour.pressMode)) {
             item {
                 Text(
                     text = stringResource(R.string.a11y_editor_moved),
@@ -2030,226 +1782,6 @@ private fun AccessibilityList(
     }
 }
 
-/**
- * Notruf einrichten. Die Nummern stehen in einer Zeile, weil das auf drei Zoll schneller
- * geht als eine Liste mit Plus-Knopf - und weil [SosNumbers] beim Einlesen streng aussortiert,
- * kostet die Bequemlichkeit nichts.
- */
-@Composable
-private fun SosSettings(
-    config: SosConfig,
-    onNumbers: (String) -> Unit,
-    onMessage: (String) -> Unit,
-    onCountdown: (Int) -> Unit,
-    onToggleLocation: () -> Unit,
-    locationGranted: Boolean,
-    locationBlocked: Boolean,
-    onAskLocation: () -> Unit,
-    onLocationSettings: () -> Unit,
-    onToggleAlarmSound: () -> Unit,
-    onToggleAlarmFlash: () -> Unit,
-    onTryAlarm: () -> Unit,
-    /** Zeigt den Notrufbildschirm als Probe - siehe SosActivity.EXTRA_PREVIEW. */
-    onPreview: () -> Unit,
-    alarmRunning: Boolean,
-) {
-    val palette = LocalBigPalette.current
-    val defaultMessage = stringResource(R.string.sos_message_default)
-    var numbersText by remember(config.numbers) { mutableStateOf(SosNumbers.format(config.numbers)) }
-    // Beim ersten Oeffnen steht der Vorgabetext schon im Feld. So sieht der Nutzer, was
-    // verschickt wuerde, statt vor einem leeren Kasten zu raten.
-    var messageText by remember(config.message) {
-        mutableStateOf(config.message.ifBlank { defaultMessage })
-    }
-    val rejected = remember(numbersText) { SosNumbers.rejected(numbersText) }
-
-    LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        item { BigHeading(stringResource(R.string.sos)) }
-        item {
-            Text(
-                text = stringResource(R.string.sos_explainer),
-                color = palette.onBackground,
-                fontSize = bigSp(16f),
-                modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp),
-            )
-        }
-
-        item { BigHeading(stringResource(R.string.sos_numbers)) }
-        item {
-            OutlinedTextField(
-                value = numbersText,
-                onValueChange = { numbersText = it },
-                singleLine = false,
-                textStyle = TextStyle(fontSize = bigSp(20f), fontWeight = FontWeight.Bold),
-                // Der Hinweis gehoert ans Feld, nicht an den Knopf: am Knopf stand er in
-                // einer Zeile, die abgeschnitten wurde, und ein leerer Kasten sagt nichts.
-                placeholder = { Text(stringResource(R.string.sos_numbers_placeholder), fontSize = bigSp(17f)) },
-                supportingText = {
-                    Text(stringResource(R.string.sos_numbers_hint, SosNumbers.MAX), fontSize = bigSp(15f))
-                },
-                modifier = Modifier.fillMaxWidth(),
-            )
-        }
-        if (rejected.isNotEmpty()) {
-            item {
-                Text(
-                    text = stringResource(R.string.sos_numbers_rejected, rejected.joinToString(", ")),
-                    color = palette.danger,
-                    fontSize = bigSp(15f),
-                    modifier = Modifier.padding(horizontal = 4.dp),
-                )
-            }
-        }
-        item {
-            BigRow(
-                label = stringResource(R.string.sos_numbers_save),
-                surface = palette.surfaceAccent,
-                onClick = { onNumbers(numbersText) },
-            )
-        }
-
-        item { BigHeading(stringResource(R.string.sos_message)) }
-        item {
-            OutlinedTextField(
-                value = messageText,
-                onValueChange = { messageText = it },
-                textStyle = TextStyle(fontSize = bigSp(18f)),
-                placeholder = { Text(defaultMessage, fontSize = bigSp(17f)) },
-                modifier = Modifier.fillMaxWidth(),
-            )
-        }
-        item {
-            // Mit der laengsten Zeile gerechnet, die dazukommen kann: seit die Nachricht
-            // das Alter eines alten Standorts nennt, waere die Zahl sonst im schlechten
-            // Fall um eine SMS zu niedrig - und zu niedrig ist bei Kosten die falsche
-            // Richtung.
-            val laengstesAlter = pluralStringResource(R.plurals.sos_location_age_hours, 24, 24)
-            val preview = SosMessage.compose(
-                text = messageText,
-                latitude = 48.20849,
-                longitude = 16.37208,
-                fallback = defaultMessage,
-                ageNote = laengstesAlter,
-            )
-            BigRow(
-                label = stringResource(R.string.sos_message_save),
-                // Vorschau mit Beispielkoordinaten: der Nutzer soll sehen, was ankommt,
-                // und wie viele SMS es kostet.
-                secondary = pluralStringResource(
-                    R.plurals.sos_message_parts,
-                    SosMessage.partsNeeded(preview),
-                    SosMessage.partsNeeded(preview),
-                ),
-                surface = palette.surfaceAccent,
-                onClick = { onMessage(messageText) },
-            )
-        }
-
-        item { BigHeading(stringResource(R.string.sos_countdown)) }
-        items(listOf(0, 3, 5, 8, 10)) { seconds ->
-            BigRow(
-                label = if (seconds == 0) {
-                    stringResource(R.string.sos_countdown_none)
-                } else {
-                    pluralStringResource(R.plurals.sos_countdown_seconds, seconds, seconds)
-                },
-                surface = if (seconds == config.countdownSeconds) palette.surfaceAccent else palette.surfaceDefault,
-                onClick = { onCountdown(seconds) },
-            )
-        }
-
-        item {
-            BigRow(
-                label = stringResource(
-                    if (config.sendLocation) R.string.sos_location_on else R.string.sos_location_off,
-                ),
-                surface = if (config.sendLocation) palette.surfaceAccent else palette.surfaceDefault,
-                onClick = onToggleLocation,
-            )
-        }
-
-        // PLAN.md 4.8: lauter Alarmton und blinkendes Licht. Sie wirken ohne Netz und
-        // erreichen den, der zwei Raeume weiter steht - die Nachricht erreicht den nicht.
-        item { BigHeading(stringResource(R.string.sos_alarm_heading)) }
-        item {
-            BigRow(
-                label = stringResource(
-                    if (config.alarmSound) R.string.sos_alarm_sound_on else R.string.sos_alarm_sound_off,
-                ),
-                secondary = stringResource(R.string.sos_alarm_sound_hint),
-                surface = if (config.alarmSound) palette.surfaceAccent else palette.surfaceDefault,
-                onClick = onToggleAlarmSound,
-            )
-        }
-        item {
-            BigRow(
-                label = stringResource(
-                    if (config.alarmFlash) R.string.sos_alarm_flash_on else R.string.sos_alarm_flash_off,
-                ),
-                surface = if (config.alarmFlash) palette.surfaceAccent else palette.surfaceDefault,
-                onClick = onToggleAlarmFlash,
-            )
-        }
-        // Ausprobieren, bevor es zaehlt: wer den Alarm im Notfall zum ersten Mal hoert,
-        // erschrickt und drueckt ihn weg. Der Knopf loest **keinen** Notruf aus, es geht
-        // dabei keine Nachricht hinaus.
-        if (config.alarmSound || config.alarmFlash) {
-            item {
-                BigRow(
-                    label = stringResource(
-                        if (alarmRunning) R.string.sos_alarm_stop else R.string.sos_alarm_try,
-                    ),
-                    secondary = stringResource(R.string.sos_alarm_try_hint),
-                    icon = if (alarmRunning) Icons.Filled.StopCircle else Icons.Filled.PlayCircle,
-                    surface = if (alarmRunning) palette.surfaceAccent else palette.surfaceDefault,
-                    onClick = onTryAlarm,
-                )
-            }
-        }
-
-        // Den Ablauf einmal ansehen, ohne dass etwas hinausgeht. Wer den Notruf einrichtet,
-        // will ihn dem Menschen erklaeren koennen, der ihn spaeter im Ernst drueckt - und
-        // eine Erklaerung, die man zeigen kann, ist besser als eine, die man liest.
-        item {
-            BigRow(
-                label = stringResource(R.string.sos_preview),
-                secondary = stringResource(R.string.sos_preview_hint),
-                icon = Icons.Filled.PlayCircle,
-                onClick = onPreview,
-            )
-        }
-
-        // Der Schalter steht auf "mit Standort", das Recht fehlt: dann geht die Nachricht
-        // ohne Koordinaten hinaus. Das gehoert hier hingeschrieben, nicht erst im Notfall
-        // gemerkt.
-        if (config.sendLocation && !locationGranted) {
-            item {
-                Text(
-                    text = stringResource(R.string.sos_location_missing),
-                    color = palette.danger,
-                    fontSize = bigSp(15f),
-                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp),
-                )
-            }
-            item {
-                BigRow(
-                    label = stringResource(
-                        if (locationBlocked) {
-                            // Die beiden Texte gehören zum Zugriffs-Baustein und liegen
-                            // deshalb im Design-System; `nonTransitiveRClass` heisst,
-                            // dass man sie dort auch ansprechen muss.
-                            UiR.string.permission_open_settings
-                        } else {
-                            UiR.string.permission_allow
-                        },
-                    ),
-                    surface = palette.surfaceAccent,
-                    onClick = if (locationBlocked) onLocationSettings else onAskLocation,
-                )
-            }
-        }
-    }
-}
 
 /**
  * Sicherung und Wiederherstellung. Gedacht fuer den Wechsel auf ein anderes Telefon,
@@ -2510,7 +2042,10 @@ private fun SecurityList(
 }
 
 @Composable
-private fun DiagnosticsList(activity: ComponentActivity) {
+// `BigLauActivity` statt `ComponentActivity`: die Diagnose liest Zustaende, die das System
+// vergibt, und braucht dafuer `fortsetzungen` - siehe dort. Eine Diagnoseseite, die veraltete
+// Werte zeigt, ist schlimmer als keine.
+private fun DiagnosticsList(activity: BigLauActivity) {
     // Was nach den Systemleisten uebrig bleibt - genau die Flaeche, die eine Kachel
     // bekommt. Das Fenster allein sagte 605 dp Hoehe, tatsaechlich nutzbar sind 581.
     val dichte = LocalDensity.current
@@ -2524,6 +2059,8 @@ private fun DiagnosticsList(activity: ComponentActivity) {
                 .let { it.width() to it.height() }
         } else {
             val metrics = android.util.DisplayMetrics()
+            // `defaultDisplay` ist seit Android 11 abgelöst - dies ist der Zweig für
+            // alles davor, der Ersatz steht im if darüber.
             @Suppress("DEPRECATION")
             activity.windowManager.defaultDisplay.getRealMetrics(metrics)
             metrics.widthPixels to metrics.heightPixels
@@ -2539,7 +2076,10 @@ private fun DiagnosticsList(activity: ComponentActivity) {
         )
     }
     val zusammenhang = LocalContext.current
-    val lines = remember(nutzbar) {
+    // `fortsetzungen` als zweiter Schluessel: die Diagnose liest Rollen und Berechtigungen,
+    // die das System vergibt. Wer sie erteilt und zurueckkommt, bekam sonst die alten Werte -
+    // auf ausgerechnet der Seite, die man aufschlaegt, um nachzusehen, was stimmt.
+    val lines = remember(nutzbar, activity.fortsetzungen.intValue) {
         Diagnostics.collect(activity, nutzbar) { id -> zusammenhang.getString(id) }
     }
     LazyColumn(verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -2933,24 +2473,20 @@ private fun ContactsSettingsList(
  */
 @Composable
 private fun CallTypesList(
-    blocked: List<String>,
-    onBlocked: (String) -> Unit,
+    phone: PhoneConfig,
+    onChange: (PhoneConfig) -> Unit,
+    /** Die Standard-Telefon-App zu wechseln geht nur über eine Activity. */
     onDialerApp: () -> Unit,
-    audioRoute: AudioRoute,
-    onAudioRoute: (AudioRoute) -> Unit,
-    speakerOnOutgoing: Boolean,
-    onToggleSpeakerOnOutgoing: () -> Unit,
-    photo: CallerPhoto,
-    onPhoto: (CallerPhoto) -> Unit,
-    grouping: CallGrouping,
-    onGrouping: (CallGrouping) -> Unit,
-    hidden: Set<String>,
-    onToggle: (String) -> Unit,
+    /**
+     * Haelt BigLau die Telefon-Rolle?
+     *
+     * Kommt von aussen, weil das **System** sie vergibt: wer sie erteilt und zurueckkommt,
+     * soll nicht denselben Hinweis noch einmal lesen. Siehe `BigLauActivity.fortsetzungen`.
+     */
+    hatTelefonRolle: Boolean,
 ) {
     val palette = LocalBigPalette.current
-    // Einmal gelesen, zweimal gebraucht: fuer den Hinweis und fuer die Zeile darunter.
-    val hatTelefonRolle = DialerRole.held(LocalContext.current)
-    var gesperrtText by remember(blocked) { mutableStateOf(CallBlocking.format(blocked)) }
+    var gesperrtText by remember(phone.blockedNumbers) { mutableStateOf(CallBlocking.format(phone.blockedNumbers)) }
     val abgewiesen = remember(gesperrtText) { CallBlocking.rejected(gesperrtText) }
     LazyColumn(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         // Die Anrufliste steht oben, weil der Weg hierher von ihr kommt: aus der Liste
@@ -2963,8 +2499,8 @@ private fun CallTypesList(
             BigRow(
                 label = stringResource(groupingLabel(art)),
                 secondary = stringResource(groupingHint(art)),
-                surface = if (art == grouping) palette.surfaceAccent else palette.surfaceDefault,
-                onClick = { onGrouping(art) },
+                surface = if (art == phone.callGrouping) palette.surfaceAccent else palette.surfaceDefault,
+                onClick = { onChange(phone.copy(callGrouping = art)) },
             )
         }
         item { BigHeading(stringResource(R.string.settings_call_types)) }
@@ -2977,12 +2513,23 @@ private fun CallTypesList(
             )
         }
         items(CallDirection.entries.toList()) { art ->
-            val sichtbar = art.name !in hidden
+            val sichtbar = art.name !in phone.hiddenCallTypes
             BigRow(
                 label = stringResource(callDirectionLabel(art)),
                 icon = if (sichtbar) Icons.Filled.Check else null,
                 surface = if (sichtbar) palette.surfaceAccent else palette.surfaceDefault,
-                onClick = { onToggle(art.name) },
+                onClick = {
+                    val jetzt = phone.hiddenCallTypes
+                    onChange(
+                        phone.copy(
+                            hiddenCallTypes = if (art.name in jetzt) {
+                                jetzt - art.name
+                            } else {
+                                jetzt + art.name
+                            },
+                        ),
+                    )
+                },
             )
         }
         // PLAN.md 4.6: Nummernsperre. Die Liste steht in einer Zeile wie bei den
@@ -3040,7 +2587,7 @@ private fun CallTypesList(
             BigRow(
                 label = stringResource(R.string.blocked_numbers_save),
                 surface = palette.surfaceAccent,
-                onClick = { onBlocked(gesperrtText) },
+                onClick = { onChange(phone.copy(blockedNumbers = CallBlocking.parse(gesperrtText))) },
             )
         }
         // PLAN.md 4.6: Standard-Audioausgabe und Lautsprecher bei abgehenden Anrufen.
@@ -3048,18 +2595,18 @@ private fun CallTypesList(
         items(AudioRoute.entries.toList()) { weg ->
             BigRow(
                 label = stringResource(audioLabel(weg)),
-                surface = if (weg == audioRoute) palette.surfaceAccent else palette.surfaceDefault,
-                onClick = { onAudioRoute(weg) },
+                surface = if (weg == phone.audioRoute) palette.surfaceAccent else palette.surfaceDefault,
+                onClick = { onChange(phone.copy(audioRoute = weg)) },
             )
         }
         item {
             BigRow(
                 label = stringResource(
-                    if (speakerOnOutgoing) R.string.call_speaker_out_on else R.string.call_speaker_out_off,
+                    if (phone.speakerOnOutgoing) R.string.call_speaker_out_on else R.string.call_speaker_out_off,
                 ),
                 secondary = stringResource(R.string.call_speaker_out_hint),
-                surface = if (speakerOnOutgoing) palette.surfaceAccent else palette.surfaceDefault,
-                onClick = onToggleSpeakerOnOutgoing,
+                surface = if (phone.speakerOnOutgoing) palette.surfaceAccent else palette.surfaceDefault,
+                onClick = { onChange(phone.copy(speakerOnOutgoing = !phone.speakerOnOutgoing)) },
             )
         }
         // PLAN.md 4.6: Kontaktfoto beim Anruf.
@@ -3075,8 +2622,8 @@ private fun CallTypesList(
         items(CallerPhoto.entries.toList()) { groesse ->
             BigRow(
                 label = stringResource(photoLabel(groesse)),
-                surface = if (groesse == photo) palette.surfaceAccent else palette.surfaceDefault,
-                onClick = { onPhoto(groesse) },
+                surface = if (groesse == phone.callerPhoto) palette.surfaceAccent else palette.surfaceDefault,
+                onClick = { onChange(phone.copy(callerPhoto = groesse)) },
             )
         }
     }
@@ -3116,174 +2663,4 @@ private fun callDirectionLabel(direction: CallDirection): Int = when (direction)
     CallDirection.OTHER -> R.string.call_type_other
 }
 
-/** Die Vibrationsdauern in Worten. Siehe [SmsNotifications.VIBRATION_CHOICES]. */
-private fun vibrationLabel(dauer: Int): Int = when (dauer) {
-    0 -> R.string.sms_vibration_off
-    200 -> R.string.sms_vibration_short
-    500 -> R.string.sms_vibration_medium
-    else -> R.string.sms_vibration_long
-}
 
-/**
- * Nachrichten (`PLAN.md` 4.7).
- *
- * Der Filter **verbirgt**, er sperrt nicht: BigLau hält die SMS-Rolle nicht und kann eine
- * Nachricht weder abweisen noch am Speichern hindern. Sie kommt an und liegt in der
- * Datenbank des Systems — sie steht nur nicht in dieser Liste. Genau das sagen die Texte
- * hier auch; eine Sperre, die man für dichter hält, als sie ist, ist gefährlicher als eine,
- * deren Grenze man kennt.
- */
-@Composable
-private fun MessagesSettingsList(
-    confirmSend: Boolean,
-    onToggleConfirmSend: () -> Unit,
-    sendAbove: Boolean,
-    onToggleSendAbove: () -> Unit,
-    sendLarge: Boolean,
-    onToggleSendLarge: () -> Unit,
-    scale: Float,
-    onScale: (Float) -> Unit,
-    numbers: List<String>,
-    words: List<String>,
-    onNumbers: (String) -> Unit,
-    onWords: (String) -> Unit,
-    vibrationMs: Int,
-    onVibration: (Int) -> Unit,
-    fullScreen: Boolean,
-    onToggleFullScreen: () -> Unit,
-    repeatMinutes: Int,
-    onRepeat: (Int) -> Unit,
-) {
-    val palette = LocalBigPalette.current
-    var nummernText by remember(numbers) { mutableStateOf(CallBlocking.format(numbers)) }
-    var woerterText by remember(words) { mutableStateOf(SmsFilter.formatWords(words)) }
-    LazyColumn(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        item { BigHeading(stringResource(R.string.settings_messages)) }
-        // PLAN.md 4.7: die Schriftgroesse im Gespraech ist ausdruecklich getrennt von der
-        // globalen. Eine Nachricht liest man am Stueck und aus der Hand.
-        item { BigHeading(stringResource(R.string.sms_scale)) }
-        items(ConversationText.CHOICES) { wert ->
-            BigRow(
-                label = "${(wert * 100).toInt()} %",
-                surface = if (wert == scale) palette.surfaceAccent else palette.surfaceDefault,
-                onClick = { onScale(wert) },
-            )
-        }
-        item {
-            BigRow(
-                label = stringResource(
-                    if (fullScreen) R.string.sms_fullscreen_on else R.string.sms_fullscreen_off,
-                ),
-                secondary = stringResource(R.string.sms_fullscreen_hint),
-                surface = if (fullScreen) palette.surfaceAccent else palette.surfaceDefault,
-                onClick = onToggleFullScreen,
-            )
-        }
-        // PLAN.md 4.7: wiederholte Erinnerung. Eine Meldung, die einmal kommt, verpasst
-        // man - wer das Telefon in der Tasche hat, sieht sie sonst erst am Abend.
-        item { BigHeading(stringResource(R.string.sms_repeat)) }
-        items(SmsReminder.CHOICES) { minuten ->
-            BigRow(
-                label = if (minuten == 0) {
-                    stringResource(R.string.sms_repeat_off)
-                } else {
-                    pluralStringResource(R.plurals.sms_repeat_minutes, minuten, minuten)
-                },
-                surface = if (minuten == repeatMinutes) palette.surfaceAccent else palette.surfaceDefault,
-                onClick = { onRepeat(minuten) },
-            )
-        }
-        // PLAN.md 4.7: Vibrationsdauer. Sie steht im Benachrichtigungskanal, damit die
-        // Meldung sich weiter an "Bitte nicht stoeren" haelt - siehe SmsNotifications.
-        item { BigHeading(stringResource(R.string.sms_vibration)) }
-        items(SmsNotifications.VIBRATION_CHOICES) { dauer ->
-            BigRow(
-                // Kurz, mittel, lang statt Millisekunden: eine Zahl in ms sagt niemandem,
-                // wie sich das anfuehlt, und diese App richtet sich nicht an Techniker.
-                label = stringResource(vibrationLabel(dauer)),
-                surface = if (dauer == vibrationMs) palette.surfaceAccent else palette.surfaceDefault,
-                onClick = { onVibration(dauer) },
-            )
-        }
-        // PLAN.md 4.7: Sendeknopf - Position, Groesse, Bestaetigung vor dem Senden.
-        item { BigHeading(stringResource(R.string.sms_send_heading)) }
-        item {
-            BigRow(
-                label = stringResource(
-                    if (confirmSend) R.string.sms_confirm_on else R.string.sms_confirm_off,
-                ),
-                secondary = stringResource(R.string.sms_confirm_hint),
-                surface = if (confirmSend) palette.surfaceAccent else palette.surfaceDefault,
-                onClick = onToggleConfirmSend,
-            )
-        }
-        item {
-            BigRow(
-                label = stringResource(
-                    if (sendAbove) R.string.sms_send_above else R.string.sms_send_below,
-                ),
-                surface = if (sendAbove) palette.surfaceAccent else palette.surfaceDefault,
-                onClick = onToggleSendAbove,
-            )
-        }
-        item {
-            BigRow(
-                label = stringResource(
-                    if (sendLarge) R.string.sms_send_large else R.string.sms_send_normal,
-                ),
-                surface = if (sendLarge) palette.surfaceAccent else palette.surfaceDefault,
-                onClick = onToggleSendLarge,
-            )
-        }
-        item { BigHeading(stringResource(R.string.sms_filter_numbers_heading)) }
-        item {
-            Text(
-                // Der Satz behauptet etwas ueber dieses Telefon und muss deshalb nachsehen:
-                // haelt BigLau die SMS-Rolle, ist "BigLau ist nicht die SMS-App dieses
-                // Telefons" schlicht falsch. Am Emulator aufgefallen, wo es die Rolle hat.
-                text = if (SmsRepository.get(LocalContext.current).isDefaultSmsApp()) {
-                    stringResource(R.string.sms_filter_hint_default)
-                } else {
-                    stringResource(R.string.sms_filter_hint)
-                },
-                color = palette.onBackground,
-                fontSize = bigSp(15f),
-                modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp),
-            )
-        }
-        item { BigHeading(stringResource(R.string.sms_filter_numbers)) }
-        item {
-            OutlinedTextField(
-                value = nummernText,
-                onValueChange = { nummernText = it },
-                placeholder = { Text(stringResource(R.string.blocked_numbers_placeholder), fontSize = bigSp(15f)) },
-                textStyle = LocalTextStyle.current.copy(fontSize = bigSp(17f)),
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
-            )
-        }
-        item {
-            BigRow(
-                label = stringResource(R.string.blocked_numbers_save),
-                surface = palette.surfaceAccent,
-                onClick = { onNumbers(nummernText) },
-            )
-        }
-        item { BigHeading(stringResource(R.string.sms_filter_words)) }
-        item {
-            OutlinedTextField(
-                value = woerterText,
-                onValueChange = { woerterText = it },
-                placeholder = { Text(stringResource(R.string.sms_filter_words_placeholder), fontSize = bigSp(15f)) },
-                textStyle = LocalTextStyle.current.copy(fontSize = bigSp(17f)),
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
-            )
-        }
-        item {
-            BigRow(
-                label = stringResource(R.string.blocked_numbers_save),
-                surface = palette.surfaceAccent,
-                onClick = { onWords(woerterText) },
-            )
-        }
-    }
-}

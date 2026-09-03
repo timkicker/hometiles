@@ -14,6 +14,23 @@ data class ShortcutRow(
 enum class ShortcutKind { STATIC, DYNAMIC, PINNED }
 
 /**
+ * Was bei der Abfrage herauskam.
+ *
+ * Eine leere Liste und ein Fehlschlag sehen im Ergebnis gleich aus, sagen aber
+ * Verschiedenes: das eine ist eine Antwort, das andere keine. Wer beides zu `emptyList()`
+ * verschmilzt, laesst die Oberflaeche behaupten, die App biete keine Verknuepfungen an -
+ * obwohl niemand sie gefragt hat.
+ */
+sealed interface ShortcutAnswer {
+
+    /** Android hat geantwortet. Die Liste darf leer sein, dann hat die App wirklich keine. */
+    data class Rows(val rows: List<ShortcutRow>) : ShortcutAnswer
+
+    /** Die Abfrage ist fehlgeschlagen. Ob es Verknuepfungen gibt, wissen wir nicht. */
+    data object Failed : ShortcutAnswer
+}
+
+/**
  * Welche Verknuepfungen angeboten werden und in welcher Reihenfolge.
  *
  * Die Reihenfolge ist nicht beliebig: Apps vergeben einen Rang, und wer ihn ignoriert,

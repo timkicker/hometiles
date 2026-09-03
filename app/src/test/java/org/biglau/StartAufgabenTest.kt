@@ -38,6 +38,29 @@ class StartAufgabenTest {
         )
     }
 
+    /**
+     * Der Wecker für die wiederholte Erinnerung hängt an `ELAPSED_REALTIME_WAKEUP` und ist
+     * nach einem Neustart des Telefons weg. Einen `BOOT_COMPLETED`-Empfänger gibt es
+     * bewusst nicht — er kostete eine weitere Berechtigung, und BigLau **ist** der
+     * Startbildschirm: es läuft nach jedem Neustart ohnehin.
+     *
+     * Ohne diese Zeile erinnerte eine Nachricht, die vor dem Neustart ungelesen war, nie
+     * wieder — lautlos, und genau das verspricht die Einstellung.
+     */
+    @Test
+    fun `der start stellt den wecker fuer die erinnerung wieder`() {
+        assertTrue(
+            "BigLauApp stellt den Erinnerungs-Wecker nicht mehr - nach einem Neustart " +
+                "erinnert dann nichts mehr an eine ungelesene Nachricht.",
+            "MessageReminderReceiver.schedule" in start,
+        )
+        assertTrue(
+            "ohne die Prüfung auf SmsReminder.active stellt BigLau bei jedem Start einen " +
+                "Wecker, den niemand bestellt hat",
+            "SmsReminder.active" in start,
+        )
+    }
+
     @Test
     fun `der start fasst das telefon nicht selbst an`() {
         val framework = listOf("TelephonyManager", "PhoneNumberUtils")

@@ -26,6 +26,8 @@ object SignalRepository {
         ContextCompat.checkSelfPermission(context, Manifest.permission.READ_PHONE_STATE) ==
             PackageManager.PERMISSION_GRANTED
 
+    // `PhoneStateListener` statt `TelephonyCallback` - der Grund steht bei der
+    // Anmeldung des Zuhörers weiter unten.
     @Suppress("DEPRECATION")
     fun readings(context: Context): Flow<SignalReading> = callbackFlow {
         val telefonie = context.getSystemService(TelephonyManager::class.java)
@@ -88,6 +90,8 @@ object SignalRepository {
         networkType = "",
     )
 
+    // `networkType` ist seit Android 11 abgelöst; das ist der Zweig für alles vor
+    // Android 7, `dataNetworkType` steht im if darüber.
     @Suppress("DEPRECATION")
     private fun netzart(telefonie: TelephonyManager): String = runCatching {
         val typ = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {

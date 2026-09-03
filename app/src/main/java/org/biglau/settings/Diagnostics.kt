@@ -85,20 +85,26 @@ object Diagnostics {
             // Unterschied zwischen richtig und falsch abgeschrieben. Ohne diese Zeile ist
             // das ein stiller Rueckschritt - siehe SystemNumbers.install.
             add(
+                // Nicht die Landeskennung ("at"), sondern der Name des Landes: die Kennung
+                // beantwortet die Frage nicht, die jemand auf dieser Seite hat, und gross
+                // geschrieben waere sie schlecht zu lesen (PlainLanguageTest hat genau das
+                // abgefangen).
+                //
+                // **Ohne Land keine Schreibweise.** Ohne SIM ist `region` null; die
+                // Systemformatierung kann dann nichts ausrichten, und genau das steht dann
+                // auch da. Die erste Fassung haette in diesem Fall die Beispielnummer
+                // hingeschrieben, mit der hier geprueft wird - eine amerikanische, die mit
+                // dem Telefon nichts zu tun hat.
                 text(R.string.diag_number_format) to (
-                    PhoneNumbers.systemFormat("+15550100", PhoneNumbers.region)
-                        ?.let {
-                            // Nicht die Landeskennung ("at"), sondern der Name des Landes.
-                            // Die Kennung beantwortet die Frage nicht, die jemand auf
-                            // dieser Seite hat, und gross geschrieben wäre sie ausserdem
-                            // schlecht zu lesen - siehe PlainLanguageTest, der genau das
-                            // hier abgefangen hat.
-                            val sprache = context.resources.configuration.locales[0]
-                            val land = PhoneNumbers.region
-                                ?.let { kennung -> java.util.Locale("", kennung).getDisplayCountry(sprache) }
-                                ?.takeIf { name -> name.isNotBlank() }
-                            if (land != null) String.format(text(R.string.diag_number_country), land) else it
+                    PhoneNumbers.region
+                        ?.takeIf { PhoneNumbers.systemFormat("+15550100", it) != null }
+                        ?.let { kennung ->
+                            java.util.Locale("", kennung)
+                                .getDisplayCountry(context.resources.configuration.locales[0])
+                                .takeIf { name -> name.isNotBlank() }
+                                ?: kennung
                         }
+                        ?.let { land -> String.format(text(R.string.diag_number_country), land) }
                         ?: text(R.string.diag_number_plain)
                     ),
             )
@@ -137,6 +143,10 @@ object Diagnostics {
             // mehr davon, obwohl die alten Einstellungen noch da sind.
             add(text(R.string.diag_rescued) to yesNo(ConfigStore.get(context).hasRescuedFile, text))
             val recorder = CrashRecorder.get(context)
+            // Haengt das Netz ueberhaupt noch? Am 3.9.2026 stand hier „letzter Absturz:
+            // keiner", obwohl es Stunden vorher einen gab. Ein Netz, von dem niemand weiss,
+            // ob es haengt, ist kein Netz - deshalb steht es jetzt daneben.
+            add(text(R.string.diag_crash_net) to yesNo(recorder.armed(), text))
             add(text(R.string.diag_failed_starts) to recorder.failedStarts.toString())
             add(
                 text(R.string.diag_last_crash) to

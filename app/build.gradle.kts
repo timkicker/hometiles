@@ -93,6 +93,13 @@ dependencies {
 tasks.withType<Test>().configureEach {
     inputs.file("src/main/AndroidManifest.xml").withPathSensitivity(PathSensitivity.RELATIVE)
     inputs.file("../README.md").withPathSensitivity(PathSensitivity.RELATIVE)
+    // `DeviceMetricsTest` liest den Plan - dieselbe Luecke wie am 03.09.2026 bei README und
+    // Manifest: Gradle hielt den Testlauf fuer aktuell, obwohl sich die gelesene Datei
+    // geaendert hatte. Am 10:18 nachgetragen, nachdem ich den Plan aendern konnte, ohne dass
+    // ein einziger Test noch einmal lief.
+    inputs.file("../PLAN.md").withPathSensitivity(PathSensitivity.RELATIVE)
+    inputs.file("../gradle/libs.versions.toml").withPathSensitivity(PathSensitivity.RELATIVE)
+    inputs.file("../LICENSE-Atkinson-Hyperlegible.txt").withPathSensitivity(PathSensitivity.RELATIVE)
     inputs.dir("src/main/baselineProfiles").withPathSensitivity(PathSensitivity.RELATIVE)
     inputs.dir("../tools").withPathSensitivity(PathSensitivity.RELATIVE)
     inputs.dir("../fastlane").withPathSensitivity(PathSensitivity.RELATIVE)

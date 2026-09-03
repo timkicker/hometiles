@@ -52,6 +52,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.delay
 import org.biglau.ui.BigLauActivity
+import org.biglau.ui.Notice
 import org.biglau.R
 import org.biglau.data.AudioRoute
 import org.biglau.data.ConfigStore
@@ -143,7 +144,9 @@ class InCallActivity : BigLauActivity() {
                         AudioChoice(
                             current = current.audioRoute,
                             onPick = {
-                                InCallRepository.setRoute(it)
+                                if (InCallRepository.setRoute(it).isFailure) {
+                                    Notice.show(this@InCallActivity, R.string.call_action_failed)
+                                }
                                 audioChoice = false
                             },
                             onClose = { audioChoice = false },
@@ -270,7 +273,11 @@ class InCallActivity : BigLauActivity() {
         toggleKeypad: () -> Unit,
         openAudio: () -> Unit = {},
     ) {
-        when (action) {
+        // Jede dieser Anweisungen kann fehlschlagen - der Anruf ist inzwischen weg, das
+        // Telefonsystem hat ihn uns entzogen. `InCallRepository` faengt das ab und gibt ein
+        // `Result` zurueck; wer es wegwirft, laesst einen toten Knopf stehen. Und zwar den
+        // Knopf „Annehmen", waehrend es klingelt.
+        val ausgang: Result<*>? = when (action) {
             CallAction.ANSWER -> InCallRepository.answer()
             CallAction.REJECT -> InCallRepository.reject()
             CallAction.HANG_UP -> InCallRepository.hangUp()
@@ -281,9 +288,10 @@ class InCallActivity : BigLauActivity() {
             CallAction.SPEAKER -> InCallRepository.setSpeaker(true)
             CallAction.SPEAKER_OFF -> InCallRepository.setSpeaker(false)
             CallAction.SWITCH -> InCallRepository.switchCall()
-            CallAction.AUDIO -> openAudio()
-            CallAction.KEYPAD -> toggleKeypad()
+            CallAction.AUDIO -> { openAudio(); null }
+            CallAction.KEYPAD -> { toggleKeypad(); null }
         }
+        if (ausgang?.isFailure == true) Notice.show(this, R.string.call_action_failed)
     }
 }
 

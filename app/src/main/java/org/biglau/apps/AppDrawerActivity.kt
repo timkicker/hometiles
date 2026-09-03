@@ -43,6 +43,7 @@ import org.biglau.ui.PinGate
 import org.biglau.ui.BigHeading
 import androidx.compose.material.icons.filled.Apps
 import org.biglau.ui.BigRow
+import org.biglau.search.TextSearch
 import org.biglau.ui.SettingsLink
 import org.biglau.ui.BigSearchField
 import org.biglau.ui.Notice
@@ -71,6 +72,9 @@ class AppDrawerActivity : BigLauActivity() {
             val config by store.config.collectAsStateWithLifecycle()
             var all by remember { mutableStateOf<List<LaunchableApp>>(emptyList()) }
             var query by rememberSaveable { mutableStateOf("") }
+            // Der Name der Einstellungszeile - hier geholt, weil er in der Liste selbst
+            // nicht mehr zu holen ist, und weil er dort auch **gesucht** wird.
+            val einstellungen = stringResource(R.string.apps_open_settings)
             // Von der Kachel "Zuletzt benutzt" aus: erst nur die letzten, aber jederzeit
             // umschaltbar - eine Liste ohne Weg zur vollstaendigen waere eine Sackgasse.
             var recentOnly by rememberSaveable {
@@ -104,7 +108,13 @@ class AppDrawerActivity : BigLauActivity() {
                 }
                 if (!repository.launch(app.packageName, app.activityName)) {
                     // Zwischen dem Aufbau der Liste und dem Tippen kann die App verschwinden.
-                    Notice.show(this@AppDrawerActivity, R.string.app_gone)
+                    //
+                    // **Eigener Text und nicht `app_gone`:** der sagt „Kachel neu belegen",
+                    // und hier gibt es keine Kachel - der Rat waere ins Leere gesprochen.
+                    // Stattdessen wird die Liste neu geladen, damit der tote Eintrag
+                    // verschwindet, statt beim naechsten Tipp wieder nichts zu tun.
+                    Notice.show(this@AppDrawerActivity, R.string.app_gone_list)
+                    all = repository.loadApps()
                 }
             }
 
@@ -117,6 +127,18 @@ class AppDrawerActivity : BigLauActivity() {
                 } else {
                     launch(app)
                 }
+            }
+
+            // Die Einstellungszeile ist ein Treffer wie jeder andere - sie steht mit in der
+            // Liste, also zaehlt sie mit. Bis zum 03.09.2026 zaehlte nur `shown`: bei „big"
+            // standen zwei Zeilen da und darueber „1 Treffer", und die Lupentaste oeffnete
+            // die eine, ohne dass zu sehen war, welche.
+            val einstellungTrifft = TextSearch.rank(einstellungen, query.trim()) != null
+            val treffer = shown.size + if (einstellungTrifft) 1 else 0
+            val einzigerTreffer: (() -> Unit)? = when {
+                treffer != 1 -> null
+                shown.size == 1 -> ({ open(shown.first()) })
+                else -> ({ startActivity(SettingsLink.toRoot(this@AppDrawerActivity)) })
             }
 
             BigLauTheme(
@@ -179,11 +201,15 @@ class AppDrawerActivity : BigLauActivity() {
                             secondary = if (query.isEmpty()) {
                                 null
                             } else {
-                                pluralStringResource(R.plurals.search_matches, shown.size, shown.size)
+                                pluralStringResource(R.plurals.search_matches, treffer, treffer)
                             },
                             // Genau ein Treffer: die Lupentaste startet ihn direkt. Bei drei
                             // Zoll ist das oft der ganze Weg - man sieht die Liste nie.
-                            onSearch = { shown.singleOrNull()?.let { launch(it) } },
+                            //
+                            // Sie geht durch `open`, nicht an ihm vorbei: bis zum 03.09.2026
+                            // stand hier `launch`, und damit war die App-Sperre ueber das
+                            // Suchfeld in einem Tastendruck zu umgehen.
+                            onSearch = { einzigerTreffer?.invoke() },
                         )
                         if (all.isNotEmpty() && shown.isEmpty()) {
                             Text(
@@ -263,10 +289,16 @@ class AppDrawerActivity : BigLauActivity() {
                             // druecken und umbelegen - also eine App aufgeben, und man muss
                             // erst darauf kommen. Das Original hat die Einstellungen in der
                             // App-Liste; hier fehlten sie.
-                            if (query.isEmpty()) {
+                            //
+                            // Und sie steht auch da, wenn jemand **sucht**. Bis zum
+                            // 03.09.2026 verschwand die Zeile, sobald ein Buchstabe im
+                            // Suchfeld stand - dabei ist der Suchende genau der, der etwas
+                            // sucht. Wer „einstell" tippt, findet jetzt die Einstellungen
+                            // von BigLau und nicht nur die von Android.
+                            if (einstellungTrifft) {
                                 item {
                                     BigRow(
-                                        label = stringResource(R.string.apps_open_settings),
+                                        label = einstellungen,
                                         icon = Icons.Filled.Settings,
                                         onClick = {
                                             startActivity(SettingsLink.toRoot(this@AppDrawerActivity))

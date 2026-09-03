@@ -112,6 +112,8 @@ object Sos {
         return SosResult(sent, failed, location)
     }
 
+    // `SmsManager.getDefault()` ist seit Android 12 abgelöst; auf dem Jelly 2
+    // (Android 11) läuft genau dieser Zweig, ein Ersatz existiert dort nicht.
     @Suppress("DEPRECATION")
     private fun smsManager(context: Context): SmsManager =
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {

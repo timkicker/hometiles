@@ -82,7 +82,16 @@ object AppLock {
      */
     fun initialAllowance(config: LauncherConfig): Set<String> = config.screens
         .flatMap { it.cells }
-        .mapNotNull { it.button.action as? ButtonAction.App }
-        .map { "${it.packageName}/${it.activityName}" }
+        .mapNotNull { zelle ->
+            // Eine Verknuepfung fuehrt in eine App, und sie liegt genauso bewusst auf einer
+            // Kachel. Bis zum 03.09.2026 stand hier nur `App` - solange die Sperre die
+            // Verknuepfung ohnehin durchliess, fiel das nicht auf. Seit sie das nicht mehr
+            // tut, waere eine hingelegte Kachel beim Einschalten sofort zu.
+            when (val was = zelle.button.action) {
+                is ButtonAction.App -> "${was.packageName}/${was.activityName}"
+                is ButtonAction.Shortcut -> was.packageName
+                else -> null
+            }
+        }
         .toSet()
 }

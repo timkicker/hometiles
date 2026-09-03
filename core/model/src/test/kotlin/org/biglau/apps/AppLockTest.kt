@@ -81,6 +81,42 @@ class AppLockTest {
         )
     }
 
+    /**
+     * Eine Verknuepfung fuehrt in eine App - und liegt genauso bewusst auf einer Kachel.
+     *
+     * Bis zum 03.09.2026 zaehlte `initialAllowance` nur `App`. Das fiel nicht auf, solange
+     * die Sperre Verknuepfungen ohnehin durchliess. Seit sie das nicht mehr tut, waere
+     * eine hingelegte Verknuepfung beim Einschalten der Sperre sofort zu - der
+     * Einrichtende haette sie gerade erst dorthin gelegt.
+     */
+    @Test
+    fun `eine verknuepfung auf einer kachel ist von anfang an erlaubt`() {
+        val mitKurz = config.copy(
+            screens = listOf(
+                config.screens.first().let { screen ->
+                    screen.copy(
+                        cells = screen.cells + Cell(
+                            0, 1,
+                            button = Button(
+                                action = ButtonAction.Shortcut("com.brave", "neuer-tab", "Neuer Tab"),
+                            ),
+                        ),
+                    )
+                },
+            ),
+        )
+        assertEquals(
+            setOf("com.wa/Main", "com.maps/Main", "com.brave"),
+            AppLock.initialAllowance(mitKurz),
+        )
+    }
+
+    /** Und andersherum: was nicht erlaubt ist, fragt auch als Verknuepfung nach der PIN. */
+    @Test
+    fun `eine verknuepfung in eine gesperrte app fragt nach der pin`() {
+        assertEquals(true, AppLock.needsPin(config, "com.spiel", "com.spiel"))
+    }
+
     @Test
     fun `erlauben und sperren ist derselbe tipp`() {
         val ohne = AppLock.toggleAllowed(config.apps, "com.wa/Main")

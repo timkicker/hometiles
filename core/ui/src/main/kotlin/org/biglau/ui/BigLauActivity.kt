@@ -2,6 +2,7 @@ package org.biglau.ui
 
 import android.content.Context
 import androidx.activity.ComponentActivity
+import androidx.compose.runtime.mutableIntStateOf
 import android.os.Bundle
 import org.biglau.data.ConfigStore
 import org.biglau.data.Language
@@ -17,6 +18,22 @@ import org.biglau.data.Language
 abstract class BigLauActivity : ComponentActivity() {
 
     private var attachedLanguage: Language = Language.SYSTEM
+
+    /**
+     * Zaehlt, wie oft dieser Bildschirm wieder nach vorn gekommen ist.
+     *
+     * Fuer alles, was **das System** vergibt und nicht wir: der Benachrichtigungszugriff, die
+     * SMS-Rolle, die Telefon-Rolle. Solche Zustaende kommen ueber eine Systemeinstellung, und
+     * von dort gibt es kein Ergebnis zurueck - anders als bei einer Berechtigung, die ueber
+     * `rememberLauncherForActivityResult` antwortet. Wer sie einmal beim Zeichnen liest,
+     * zeigt danach eine Zeile, die luegt: „Zugriff erteilen", obwohl er gerade erteilt wurde.
+     *
+     * Benutzung: `remember(fortsetzungen.intValue) { … }` um den Aufruf herum.
+     *
+     * Ein Zaehler und kein `Boolean`: derselbe Wert zweimal gesetzt loest keine Neuzeichnung
+     * aus, ein hochgezaehlter immer.
+     */
+    val fortsetzungen = mutableIntStateOf(0)
 
     override fun attachBaseContext(newBase: Context) {
         attachedLanguage = ConfigStore.get(newBase).current.appearance.language
@@ -38,6 +55,7 @@ abstract class BigLauActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
+        fortsetzungen.intValue += 1
         val aussehen = ConfigStore.get(this).current.appearance
         // Auch die Ausrichtung: ein Bildschirm, der schon lief, als sie umgestellt wurde,
         // bliebe sonst hochkant stehen - der Startbildschirm etwa, der die ganze Zeit im

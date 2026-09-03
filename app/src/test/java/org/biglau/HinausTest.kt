@@ -71,9 +71,49 @@ class HinausTest {
         )
     }
 
+    /** Datei → wer die Handbewegung macht, für die Stellen, die über `Intents` gehen. */
+    private val darfUeberIntentsHinaus = mapOf(
+        "ContactsActivity.kt" to "ein Tipp auf einen Kontakt in der Liste",
+        "MainActivity.kt" to "eine Kontaktkachel, und der PIN-Ablauf davor",
+    )
+
+    /**
+     * Auch die **Auftraggeber** zählen.
+     *
+     * `Intents.call` und `Intents.sms` bauen die Absicht; wer sie ruft, löst sie aus. Die
+     * Liste oben sieht solche Aufrufer nicht, denn in ihnen steht kein `ACTION_CALL` — am
+     * 3.9.2026 waren das drei Stellen in zwei Dateien, alle in Ordnung, aber ungeprüft.
+     *
+     * Ein neuer Aufruf in einem Empfänger oder Dienst wäre genau das, was diese Regel
+     * verhindern soll: wählen, wo niemand davorsteht.
+     */
+    @Test
+    fun `auch wer ueber Intents waehlt oder schreibt, steht in der Liste`() {
+        val muster = Regex("""Intents\.(call|sms)\(""")
+        val stellen = Quelltext.dateien()
+            .filter { datei ->
+                datei.name != "Intents.kt" &&
+                    datei.readLines().any { muster.containsMatchIn(it) && !it.trim().startsWith("//") }
+            }
+        assertEquals(
+            "Eine neue Stelle löst einen Anruf oder eine Nachricht aus. Mit Grund in die " +
+                "Liste in HinausTest, oder weg damit.",
+            darfUeberIntentsHinaus.keys.sorted(),
+            stellen.map { it.name }.sorted(),
+        )
+        val ohneMenschen = stellen.filter {
+            Regex(""": *(BroadcastReceiver|Service|Application)\b""").containsMatchIn(it.readText())
+        }.map { it.name }
+        assertEquals(
+            "Hier wird gewählt oder geschrieben, wo niemand davorsteht",
+            emptyList<String>(),
+            ohneMenschen,
+        )
+    }
+
     @Test
     fun `jede ausnahme nennt ihre handbewegung`() {
-        darfHinaus.forEach { (datei, grund) ->
+        (darfHinaus + darfUeberIntentsHinaus).forEach { (datei, grund) ->
             assertTrue("$datei: Grund fehlt oder ist zu knapp", grund.length > 20)
         }
     }

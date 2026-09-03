@@ -10,7 +10,9 @@ import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.RestartAlt
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Text
@@ -19,6 +21,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
+import org.biglau.actions.Intents
 import org.biglau.ui.theme.BigSurface
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -50,6 +54,7 @@ fun EmergencyScreen(
     onChooseOtherLauncher: () -> Unit,
     onResetConfig: () -> Unit,
 ) {
+    val context = LocalContext.current
     val ink = Color(0xFFF2F4F5)
     val ground = Color(0xFF0A0A0A)
     val surface = Color(0xFF161616)
@@ -79,8 +84,26 @@ fun EmergencyScreen(
                 fontSize = 16.sp,
                 modifier = Modifier.padding(horizontal = 4.dp),
             )
-            // Zuerst der harmloseste Weg. Der naechste Start zaehlt ohnehin wieder als
-            // normal, also kostet ein zweiter Versuch nichts - und wer das nicht weiss,
+            // Ganz oben das, wofuer ein Telefon da ist. Wessen Startbildschirm zweimal
+            // hintereinander nicht hochkam, will vielleicht gerade jetzt jemanden anrufen -
+            // und nicht erst lernen, wie man einen anderen Startbildschirm waehlt.
+            //
+            // Bewusst die Apps des **Systems** und nicht die eigenen: BigLau ist hier
+            // gerade zweimal abgestuerzt, und die eigene Wähltastatur ist genau das, worauf
+            // man sich in diesem Moment nicht verlassen sollte. `ACTION_DIAL` waehlt von
+            // sich aus nie - es oeffnet nur.
+            BigRow(
+                label = stringResource(R.string.emergency_phone),
+                icon = Icons.Filled.Call,
+                onClick = { Intents.openDialer(context) },
+            )
+            BigRow(
+                label = stringResource(R.string.emergency_contacts),
+                icon = Icons.Filled.Person,
+                onClick = { Intents.openContacts(context) },
+            )
+            // Danach der harmloseste Weg zurueck. Der naechste Start zaehlt ohnehin wieder
+            // als normal, also kostet ein zweiter Versuch nichts - und wer das nicht weiss,
             // greift sonst gleich zum Zuruecksetzen und verliert seine Belegung.
             BigRow(
                 label = stringResource(R.string.emergency_retry),

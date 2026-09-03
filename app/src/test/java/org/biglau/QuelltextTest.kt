@@ -127,4 +127,28 @@ class QuelltextTest {
             }
         assertEquals("liest Texte am Verzeichnis vorbei: $treffer", emptyList<String>(), treffer)
     }
+
+    /**
+     * Die Siebe, auf denen die anderen Regeln stehen, fangen noch etwas.
+     *
+     * Rund dreissig Regeln fangen mit `Quelltext.dateien().filter { … }` an - nach
+     * `Activity.kt`, nach `@Composable`, nach `Repository`. `QuelltextTest` sichert bisher
+     * nur, dass die **Wurzeln** stimmen. Das genuegt nicht: ein Sieb, dessen Muster nicht
+     * mehr passt, liefert nichts, und die Regel darueber ist still gruen.
+     *
+     * Am 03.09.2026 in einer Nacht mit dreiundzwanzig Dateiumzuegen gemessen: 142
+     * Kotlin-Dateien, 13 Activities, 29 Dateien mit `@Composable`. Die Untergrenzen hier
+     * sind bewusst grosszuegig - sie sollen einen **Zusammenbruch** melden, nicht jedes
+     * Aufraeumen. Wer eine davon reisst, hat entweder etwas Grosses geloescht oder ein Sieb
+     * kaputtgemacht; beides will man wissen.
+     */
+    @Test
+    fun `die Siebe der anderen Regeln fangen noch etwas`() {
+        val alle = Quelltext.dateien()
+        assertTrue("nur ${alle.size} Kotlin-Dateien gefunden", alle.size >= 100)
+        val activities = alle.filter { it.name.endsWith("Activity.kt") }
+        assertTrue("nur ${activities.size} Activities gefunden", activities.size >= 10)
+        val composables = alle.filter { "@Composable" in it.readText() }
+        assertTrue("nur ${composables.size} Dateien mit @Composable", composables.size >= 20)
+    }
 }

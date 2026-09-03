@@ -12,7 +12,7 @@ Gerät, auf dem große Kacheln am meisten zählen und am schwersten unterzubring
 ## Was drin ist
 
 - **Startbildschirm** aus großen Kacheln, frei belegbar: App, Kontakt, Verknüpfung,
-  Widget, Funktion (Taschenlampe, WLAN, Bluetooth, Flugmodus, Lautstärke …) oder Sprung
+  Widget, Funktion (Taschenlampe, WLAN, Bluetooth, Flugmodus, Klingeln/Vibrieren …) oder Sprung
   auf einen anderen Bildschirm. Raster, Größen, Farben und Beschriftungen einstellbar.
 - **Kopfzeile** mit Uhrzeit, Datum, Ladestand und Ladebalken — abschaltbar.
 - **Telefon**: Tastenfeld, Kurzwahl auf 2–9, Anrufliste mit Gruppierung, eigener
@@ -21,19 +21,25 @@ Gerät, auf dem große Kacheln am meisten zählen und am schwersten unterzubring
   Standard-SMS-Rolle sind da.
 - **Kontakte** mit Suche, Sortierung nach Vor- oder Nachnamen, Favoriten.
 - **App-Liste** als große Liste mit Suche und „zuletzt benutzt"; Apps lassen sich
-  ausblenden. Ganz am Ende steht immer **„BigLau-Einstellungen"** — damit gibt es einen Weg
-  dorthin, auch wenn auf keinem Bildschirm eine Einstellungs-Kachel liegt.
-- **SOS**: Notfallknopf mit Countdown, Rundruf an mehrere Nummern und Notfall-SMS.
+  ausblenden. Ganz am Ende steht **„BigLau-Einstellungen"** — damit gibt es einen Weg
+  dorthin, auch wenn auf keinem Bildschirm eine Einstellungs-Kachel liegt. Die Zeile ist
+  auch über die Suche zu finden.
+- **SOS**: Notfallknopf mit Countdown und Notfall-SMS an mehrere Nummern, auf Wunsch mit
+  Standort. BigLau **wählt dabei nie von selbst** — nach dem Senden steht ein Knopf da, der
+  die Wähltastatur mit der ersten Nummer öffnet.
 - **Lesehilfe**: langer Druck liest die Kachel vor oder zeigt ihren Namen bildschirmfüllend;
   Blätterknöpfe statt Wischen für lange Listen.
 - **Sicherung**: Konfiguration als Datei exportieren und auf dem nächsten Telefon
   wieder einlesen.
-- **Notfall-Auffang**: stürzt der Launcher beim Start ab, erscheint ein einfacher
-  Bildschirm mit Telefon, Kontakten und Einstellungen statt eines schwarzen Geräts.
+- **Notfall-Auffang**: startet der Launcher zweimal hintereinander nicht, erscheint ein
+  einfacher Bildschirm statt eines schwarzen Geräts — ganz oben Telefon und Kontakte (die
+  Apps des Systems, nicht die eigenen), darunter noch einmal versuchen, Einstellungen,
+  anderen Startbildschirm wählen und Kacheln zurücksetzen.
 
 ## Gestaltung
 
-Dunkel als Hauptthema, dazu ein helles und ein Kontrastthema. Jede Kachel ist eine Fläche
+Dunkel als Hauptthema, dazu ein helles, ein Kontrastthema (Schwarz auf Gelb) und die
+Einstellung „dem Telefon folgen". Jede Kachel ist eine Fläche
 in einer Farbe, das Symbol oben links, die Beschriftung unten links in einer Zone fester
 Höhe — dadurch stehen die Grundlinien in einer Reihe, auch wenn eine Beschriftung umbricht.
 Alle Farbpaare erfüllen mindestens 4,5:1 (WCAG AAA für große Schrift); ein Test prüft das
@@ -70,10 +76,10 @@ Geprüft am 3. September 2026 mit AGP 8.7.3, Gradle 8.11.1 und JDK 21 — zweima
 Build-Cache gebaut, beide Male
 
 ```
-243cf2a394dc4363f8c5fb9ab78314c6c1392030f95d501ba612afdd2cd3c1f8   1 771 979 Bytes
+4f89516a674722eb3a8432036d60150e0468e26296739ec12c67752293f4c1a7   1 789 011 Bytes
 ```
 
-für **Commit `e04636e`**. Die Prüfsumme gehört zu einem Stand des Quelltexts, nicht zum
+für **Commit `b753657`**. Die Prüfsumme gehört zu einem Stand des Quelltexts, nicht zum
 Projekt: wer sie nachrechnen will, baut diesen Commit. Genau deshalb steht er jetzt dabei —
 die vorige Angabe nannte nur ein Datum, und schon der nächste Commit machte sie unprüfbar.
 `tools/nachbauen.sh` macht beide Läufe und den Vergleich in einem Aufruf.
