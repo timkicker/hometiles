@@ -902,13 +902,17 @@ private fun MenuList(
         if (onResize != null) {
             item { BigRow(stringResource(R.string.editor_resize), icon = Icons.Filled.OpenInFull, onClick = onResize) }
         }
-        item {
-            BigRow(
-                label = stringResource(R.string.editor_clear),
-                icon = Icons.Filled.Delete,
-                surface = palette.surfaceDanger,
-                onClick = onClear,
-            )
+        // Nur, wenn es etwas zu leeren gibt - siehe TileEdits.clearable. Bei einer frischen
+        // Kachel stand hier ein roter Knopf ohne Wirkung.
+        if (TileEdits.clearable(button)) {
+            item {
+                BigRow(
+                    label = stringResource(R.string.editor_clear),
+                    icon = Icons.Filled.Delete,
+                    surface = palette.surfaceDanger,
+                    onClick = onClear,
+                )
+            }
         }
         item {
             BigRow(

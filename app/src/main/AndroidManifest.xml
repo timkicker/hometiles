@@ -202,11 +202,19 @@
             android:theme="@style/Theme.BigLau" />
 
         <!-- Sicherungsdatei von aussen oeffnen: Dateimanager, Cloud, Mailanhang. -->
+        <!-- Der wartende Hinweis wird ueber eine Absicht geoeffnet: `Notice` liegt im
+             Design-System und darf die Activity nicht beim Namen kennen. Siehe
+             org.biglau.ui.Notice.ACTION. -->
         <activity
             android:name=".ui.NoticeActivity"
             android:exported="false"
             android:excludeFromRecents="true"
-            android:theme="@style/Theme.BigLau" />
+            android:theme="@style/Theme.BigLau">
+            <intent-filter>
+                <action android:name="org.biglau.action.NOTICE" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
 
         <activity
             android:name=".settings.ImportActivity"
@@ -227,17 +235,26 @@
             android:exported="false"
             android:theme="@style/Theme.BigLau" />
 
+        <!-- Der Sprung auf eine Unterseite laeuft ueber diese Absicht statt ueber die
+             Klasse: sonst kennt jeder Bildschirm, der dorthin springt, die Einstellungen
+             beim Namen. Nicht exportiert - die Absicht wird mit setPackage im eigenen
+             Programm gehalten. Siehe org.biglau.ui.SettingsLink. -->
         <activity
             android:name=".settings.SettingsActivity"
             android:exported="false"
             android:launchMode="singleTop"
             android:windowSoftInputMode="adjustResize"
-            android:theme="@style/Theme.BigLau" />
+            android:theme="@style/Theme.BigLau">
+            <intent-filter>
+                <action android:name="org.biglau.action.SETTINGS" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
 
         <!-- Der Wecker fuer die wiederholte Erinnerung an ungelesene Nachrichten.
              Nicht exportiert: nur der eigene Wecker loest ihn aus. -->
         <receiver
-            android:name=".notify.MessageReminderReceiver"
+            android:name=".sms.MessageReminderReceiver"
             android:exported="false" />
 
         <service

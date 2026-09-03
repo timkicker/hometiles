@@ -74,7 +74,7 @@
     <string name="screen_copy_name">%1$s (Kopie)</string>
     <string name="screen_copy_no_room">Hier ist keine Zelle frei für eine Kachel zur Kopie. Mach erst eine leer.</string>
     <string name="screen_background">Hintergrund dieses Bildschirms</string>
-    <string name="screen_background_hint">Eine eigene Farbe sagt auf einen Blick, auf welchem Bildschirm du bist</string>
+    <string name="screen_background_hint">Eine eigene Farbe sagt auf einen Blick, welcher Bildschirm gerade offen ist</string>
     <string name="screen_background_contrast">Hoher Kontrast hält überall einen Hintergrund — genau darum geht es dabei.</string>
     <string name="screen_background_theme">Die Farbe des Themas</string>
     <string name="screen_background_colour">Diese Farbe</string>
@@ -155,10 +155,10 @@
     <string name="contacts_sort_hint">Nach welchem Namen die Liste sortiert ist</string>
     <string name="contacts_search_numbers_on">Die Suche schaut auch in die Nummern</string>
     <string name="contacts_search_numbers_off">Die Suche schaut nur auf die Namen</string>
-    <string name="contacts_search_numbers_hint">Hilft, wenn du eine Nummer weißt, aber den Namen nicht</string>
+    <string name="contacts_search_numbers_hint">Hilft, wenn die Nummer bekannt ist, der Name aber nicht</string>
     <string name="contacts_favourites_first_on">Favoriten stehen oben</string>
     <string name="contacts_favourites_first_off">Favoriten stehen mit unter den anderen</string>
-    <string name="contacts_favourites_first_hint">Wen du am meisten anrufst, bleibt oben</string>
+    <string name="contacts_favourites_first_hint">Die meistgewählten Kontakte bleiben oben</string>
     <string name="settings_diagnostics">Diagnose</string>
     <string name="screen_is_home">Startbildschirm · %1$d × %2$d Felder</string>
     <string name="screen_make_home">„%1$s“ zum Startbildschirm machen</string>
@@ -180,7 +180,7 @@
     <string name="orientation_portrait">Hochkant</string>
     <string name="orientation_landscape">Quer</string>
     <string name="orientation_landscape_hint">Auf so einem Bildschirm werden die Zeilen flach</string>
-    <string name="orientation_auto">Wie du es hältst</string>
+    <string name="orientation_auto">Wie das Telefon gehalten wird</string>
     <string name="appearance_clock_size">Größe der Uhr</string>
     <string name="appearance_clock">Die Uhr</string>
     <string name="clock_off">Keine Uhr</string>
@@ -237,7 +237,6 @@
     <string name="security_wrong_pin">Diese PIN stimmt nicht.</string>
     <string name="dialog_cancel">Abbrechen</string>
     <string name="security_pin_rules">Eine PIN besteht aus 4 bis 8 Ziffern.</string>
-    <string name="keypad_backspace">Letzte Ziffer löschen</string>
     <string name="settings_behaviour">Blinkende Kacheln</string>
     <string name="blink_explainer">Eine Kachel kann blinken, wenn es etwas Neues gibt. Verpasste Anrufe und ungelesene Nachrichten zählt BigLau selbst. Für alle anderen Apps braucht es Zugriff auf die Benachrichtigungen; es zählt nur, den Inhalt liest es nie.</string>
     <string name="blink_on">Blinken ist an</string>
@@ -262,8 +261,8 @@
     <string name="battery">Batterie</string>
     <string name="widget_no_room">Dieses Widget braucht %1$d × %2$d Felder, und der Platz reicht nicht. Leeren Sie zuerst eine Nachbarkachel.</string>
     <string name="appearance_header">Kopfzeile</string>
-    <string name="status_hidden_all">Mit Vollbild und ohne Kopfzeile siehst du weder die Uhrzeit noch den Ladestand.</string>
-    <string name="status_hidden_battery">Mit Vollbild und ohne Kopfzeile siehst du den Ladestand nicht.</string>
+    <string name="status_hidden_all">Mit Vollbild und ohne Kopfzeile sind weder Uhrzeit noch Ladestand zu sehen.</string>
+    <string name="status_hidden_battery">Mit Vollbild und ohne Kopfzeile ist der Ladestand nicht zu sehen.</string>
     <string name="header_on">Kopfzeile wird gezeigt</string>
     <string name="header_off">Kopfzeile ist aus</string>
     <string name="header_explainer">Uhrzeit, Datum und Ladestand in einer Zeile über den Kacheln</string>
@@ -285,13 +284,15 @@
     <string name="transfer_imported">Geladen.</string>
     <string name="transfer_failed">Die Datei ließ sich nicht schreiben.</string>
     <string name="transfer_bad_file">Das ist keine BigLau-Sicherung. Es wurde nichts geändert.</string>
-    <string name="transfer_unreadable">Diese Datei ließ sich nicht öffnen. Wurde sie verschoben oder gelöscht?</string>
+    <string name="transfer_unreadable">BigLau konnte diese Datei nicht öffnen. Vielleicht wurde sie verschoben oder gelöscht, vielleicht darf BigLau sie auch nicht lesen.</string>
+    <string name="transfer_confirm_plain">Diese Sicherung enthält %1$s mit %2$s. Sie ersetzt Ihre jetzige Einrichtung.</string>
+    <string name="transfer_confirm_folders">Diese Sicherung enthält %1$s mit %2$s und %3$s. Sie ersetzt Ihre jetzige Einrichtung.</string>
     <string name="transfer_confirm_yes">Laden</string>
     <string name="dialer_hint">Nummer eingeben</string>
     <string name="dialer_call">Anrufen</string>
     <string name="dialer_emergency_handover">Notrufnummern gehen an die System-App. Dort auf Anrufen tippen.</string>
     <string name="calllog_permission">BigLau braucht Zugriff auf die Anrufliste, um sie zu zeigen.</string>
-    <string name="calllog_empty">Noch keine Anrufe.</string>
+    <string name="calllog_empty">Noch keine Anrufe. Was Sie wählen oder bekommen, erscheint hier.</string>
     <string name="calllog_all_hidden">Es gibt Anrufe, aber jeder einzelne ist von einer Art, die Sie ausgeblendet haben.</string>
     <string name="calllog_all_hidden_open">Wählen, welche Arten erscheinen</string>
     <string name="calllog_no_missed">Keine verpassten Anrufe.</string>
@@ -373,14 +374,14 @@
     <string name="set_as_dialer">Als Telefon-App verwenden</string>
     <string name="set_as_dialer_hint">BigLau zeigt dann die Gesprächsansicht selbst</string>
     <string name="sms_permission">BigLau braucht Zugriff auf die Nachrichten, um sie zu zeigen.</string>
-    <string name="sms_empty">Noch keine Nachrichten.</string>
+    <string name="sms_empty">Noch keine Nachrichten. Was Sie bekommen, erscheint hier.</string>
     <string name="sms_send">Senden</string>
     <string name="sms_send_confirm">Wirklich senden?</string>
     <string name="sms_send_confirm_hint">Nochmal tippen — zurückholen geht nicht</string>
     <string name="sms_sent">Gesendet.</string>
     <string name="sms_send_failed">Das ließ sich nicht senden.</string>
     <string name="sms_new_to">Neue Nachricht an %1$s</string>
-    <string name="sms_not_default">BigLau ist nicht Ihre Nachrichten-App, gesendete Nachrichten werden hier nicht gespeichert.</string>
+    <string name="sms_not_default">BigLau ist nicht Ihre Nachrichten-App: gesendete Nachrichten werden hier nicht gespeichert, und Lesen setzt sie hier nicht auf gelesen.</string>
     <string name="wizard_position">Schritt %1$d von %2$d</string>
     <string name="wizard_welcome_title">Willkommen bei BigLau</string>
     <string name="wizard_welcome_body">Ein paar Fragen, dann steht Ihr Startbildschirm. Alles lässt sich später in den Einstellungen ändern.</string>
@@ -411,12 +412,9 @@
     <string name="a11y_popup_hint">Kachel halten, Name groß</string>
     <string name="a11y_editor_moved">Mit diesen Einstellungen öffnet ein langer Druck nicht mehr den Editor. Nutzen Sie stattdessen „Kacheln ändern“ weiter oben.</string>
     <string name="tap_to_close">Zum Schließen tippen</string>
-    <string name="scroll_up">Nach oben blättern</string>
-    <string name="scroll_down">Nach unten blättern</string>
     <string name="a11y_scroll_on">Lange Listen haben Knöpfe</string>
     <string name="a11y_scroll_off">Knöpfe für lange Listen</string>
     <string name="a11y_scroll_hint">Blättern ohne Wischen</string>
-    <string name="search_clear">Suche löschen</string>
     <string-array name="tile_colors">
         <item>Blau</item>
         <item>Grün</item>
@@ -428,9 +426,6 @@
     <string name="a11y_chosen">%1$s, ausgewählt</string>
     <string name="sos_message_default">Ich brauche Hilfe.</string>
     <string name="sos_numbers_placeholder">Zum Beispiel 0664 1234567, 0680 7654321</string>
-    <string name="permission_allow">Zugriff erlauben</string>
-    <string name="permission_open_settings">Systemeinstellungen öffnen</string>
-    <string name="permission_blocked">Android fragt nicht mehr. In den Systemeinstellungen lässt es sich trotzdem erlauben.</string>
     <string name="screens_where_new">Neue Screens entstehen im Kachel-Editor: Kachel halten, „Zu Screen springen“, dann „Neuen Screen anlegen“. So führt zu jedem neuen Screen von Anfang an eine Kachel.</string>
     <string name="screen_grid_heading">Felder auf diesem Screen</string>
     <string name="screen_grid_current">So steht es jetzt</string>
@@ -599,11 +594,9 @@
     <string name="haptics_light">Kacheln antworten mit einem leichten Summen</string>
     <string name="haptics_strong">Kacheln antworten mit einem kräftigen Summen</string>
     <string name="notice_close">Meldung schließen</string>
-    <string name="confirm_messages_on">Meldungen warten, bis du sie wegtippst</string>
+    <string name="confirm_messages_on">Meldungen warten, bis sie weggetippt werden</string>
     <string name="confirm_messages_off">Meldungen verschwinden von selbst</string>
     <string name="confirm_messages_hint">Eine kurze Meldung ist nach zwei Sekunden weg</string>
-    <string name="intent_no_app">Keine App auf diesem Telefon kann das</string>
-    <string name="intent_no_permission">BigLau darf das nicht</string>
     <string name="haptics_off">Kacheln sollen stupsen</string>
     <string name="haptics_hint">Tippen wechselt: aus, leicht, kräftig</string>
     <string name="home_key_on">Heim-Taste führt zum Startbildschirm</string>
@@ -663,4 +656,12 @@
         <item quantity="one">%d Zeile</item>
         <item quantity="other">%d Zeilen</item>
     </plurals>
+    <string name="diag_number_format">Schreibweise der Rufnummern</string>
+    <string name="diag_number_plain">Blosse Dreierblöcke</string>
+    <string name="apps_open_settings">BigLau-Einstellungen</string>
+    <string name="diag_number_country">Nach Land %1$s</string>
+    <string name="diag_rescued">Gerettete Einstellungsdatei</string>
+    <string name="diag_battery_saving">Akku-Sparen</string>
+    <string name="diag_battery_saving_on">An — kurze Erinnerungsabstände können sich verspäten</string>
+    <string name="diag_battery_saving_off">Für BigLau aus</string>
 </resources>

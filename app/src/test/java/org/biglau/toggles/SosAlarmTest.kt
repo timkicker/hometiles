@@ -1,5 +1,6 @@
 package org.biglau.toggles
 
+import org.biglau.Quelltext
 import java.io.File
 import org.biglau.data.SosConfig
 import org.junit.Assert.assertFalse
@@ -14,7 +15,7 @@ import org.junit.Test
  */
 class SosAlarmTest {
 
-    private val sosQuelle = File("src/main/java/org/biglau/toggles/SosActivity.kt").readText()
+    private val sosQuelle = Quelltext.ohneKommentare("org/biglau/toggles/SosActivity.kt")
 
     @Test
     fun `beides aus heisst nichts tun`() {

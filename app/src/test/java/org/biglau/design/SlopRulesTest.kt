@@ -1,6 +1,7 @@
 package org.biglau.design
 
 import java.io.File
+import org.biglau.Quelltext
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
@@ -14,8 +15,7 @@ import org.junit.Test
  */
 class SlopRulesTest {
 
-    private val quellen: List<File> =
-        File("src/main/java/org/biglau").walkTopDown().filter { it.extension == "kt" }.toList()
+    private val quellen: List<File> = Quelltext.dateien()
 
     private fun ohneThema(): List<File> = quellen.filterNot { it.path.contains("ui/theme") }
 
@@ -126,7 +126,7 @@ class SlopRulesTest {
     fun `auch die Texte kommen ohne Emoji aus`() {
         val emoji = Regex("""[\uD83C-\uDBFF][\uDC00-\uDFFF]|[\u26A0-\u27BF\u2B00-\u2BFF\uFE0F]""")
         val treffer = listOf("values", "values-de").flatMap { verzeichnis ->
-            File("src/main/res/$verzeichnis/strings.xml").readLines()
+            Quelltext.texte(verzeichnis).flatMap { it.readLines() }
                 .mapIndexedNotNull { index, zeile ->
                     if (emoji.containsMatchIn(zeile)) "$verzeichnis:${index + 1}" else null
                 }
@@ -197,8 +197,7 @@ class ManifestOrientationTest {
  */
 class PhoneNumberFormattingTest {
 
-    private val quellen: List<File> =
-        File("src/main/java/org/biglau").walkTopDown().filter { it.extension == "kt" }.toList()
+    private val quellen: List<File> = Quelltext.dateien()
 
     @Test
     fun `keine anzeige zeigt eine rohe nummer`() {

@@ -119,19 +119,29 @@ fun HomeHeader(
         Column(modifier = Modifier.weight(1f)) {
             if (ClockFormat.showsTime(clock, onTile = false)) {
                 val uhrzeit = timeFormat.format(Date(now))
+                // Der Wunsch kommt aus der Rechnung, das letzte Wort hat die Messung:
+                // `clockSizeSp` schaetzt mit einer mittleren Zeichenbreite, und genau diese
+                // Schaetzung hat auf der Uhr-Kachel bei 200 % das „AM" abgeschnitten. Hier
+                // stuende die Uhr sonst ueber dem Ladestand.
+                val uhrStil = tabellenZiffern().copy(fontWeight = FontWeight.Bold)
                 Text(
                     text = uhrzeit,
                     color = palette.onBackground,
                     fontSize = dpSp(
-                        ClockFormat.clockSizeSp(
+                        fittedSingleLineDp(
                             text = uhrzeit,
-                            availableDp = breiteLinks,
-                            textScale = scale,
-                            clockScale = clockScale,
+                            stil = uhrStil,
+                            wunschDp = ClockFormat.clockSizeSp(
+                                text = uhrzeit,
+                                availableDp = breiteLinks,
+                                textScale = scale,
+                                clockScale = clockScale,
+                            ),
+                            maxWidth = breiteLinks.dp,
+                            minDp = 14f,
                         ),
                     ),
-                    fontWeight = FontWeight.Bold,
-                    style = TabellenZiffern,
+                    style = uhrStil,
                     maxLines = 1,
                     softWrap = false,
                 )
@@ -149,12 +159,24 @@ fun HomeHeader(
 
         Column(horizontalAlignment = Alignment.End) {
             Row(verticalAlignment = Alignment.CenterVertically) {
+                // Auch hier gemessen: der Platz rechts ist mit derselben mittleren
+                // Zeichenbreite reserviert wie ueberall sonst (`batteryWidthDp`), und
+                // „100 %" ist der laengste Fall. Passt es nicht, wird die Zahl kleiner -
+                // abgeschnitten waere sie keine Zahl mehr.
+                val standText = if (percent == null) "?" else "$percent %"
+                val standStil = tabellenZiffern().copy(fontWeight = FontWeight.Bold)
                 Text(
-                    text = if (percent == null) "?" else "$percent %",
+                    text = standText,
                     color = if (low) palette.danger else palette.onBackground,
-                    fontSize = dpSp(20f * scale),
-                    fontWeight = FontWeight.Bold,
-                    style = TabellenZiffern,
+                    fontSize = dpSp(
+                        fittedSingleLineDp(
+                            text = standText,
+                            stil = standStil,
+                            wunschDp = 20f * scale,
+                            maxWidth = (ClockFormat.batteryWidthDp(scale) - 20f * scale - 8f).dp,
+                        ),
+                    ),
+                    style = standStil,
                     maxLines = 1,
                     softWrap = false,
                 )

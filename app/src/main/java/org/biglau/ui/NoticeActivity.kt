@@ -64,12 +64,16 @@ class NoticeActivity : BigLauActivity() {
                     // am unteren Rand, und ein Knopf gleich unter dem Text laesst sich auf
                     // diesem Geraet nur mit der zweiten Hand treffen.
                     Column(Modifier.fillMaxSize()) {
-                        Text(
-                            text = text,
-                            color = palette.onBackground,
-                            fontSize = bigSp(19f),
-                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 12.dp),
-                        )
+                        // Die Meldung ist der Inhalt dieses Bildschirms - sie bekommt die
+                        // Ueberschriftengroesse. Vorher stand sie in gewoehnlicher
+                        // Textgroesse ueber einem grossen Knopf: der Knopf rief, die
+                        // Nachricht fluesterte. Am Geraet gesehen, mit „Keine App auf
+                        // diesem Telefon kann das".
+                        //
+                        // `BigHeading` misst dabei das laengste Wort und wird kleiner,
+                        // bevor es trennt - eine Meldung darf lang sein, und mitten im
+                        // Wort getrennt liest sie sich wie ein Fehler.
+                        BigHeading(text)
                         Spacer(Modifier.weight(1f))
                         BigRow(
                             label = stringResource(R.string.notice_close),
@@ -84,6 +88,6 @@ class NoticeActivity : BigLauActivity() {
     }
 
     companion object {
-        const val EXTRA_TEXT = "text"
+        const val EXTRA_TEXT = Notice.EXTRA_TEXT
     }
 }

@@ -1,5 +1,6 @@
 package org.biglau.res
 
+import org.biglau.Quelltext
 import java.io.File
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -15,15 +16,15 @@ import org.junit.Test
  */
 class TranslationsTest {
 
-    private val root = File("src/main/res")
-
     /** Der Name der App wird nicht übersetzt - er ist in jeder Sprache derselbe. */
     private val absichtlichNurEnglisch = setOf("app_name")
 
     private fun keys(dir: String, tag: String): Set<String> {
-        val file = File(root, "$dir/${if (tag == "plurals") "plurals" else "strings"}.xml")
-        assertTrue("$file fehlt", file.exists())
-        return Regex("<$tag name=\"([^\"]+)\"").findAll(file.readText()).map { it.groupValues[1] }.toSet()
+        val dateien = Quelltext.texte(dir, if (tag == "plurals") "plurals.xml" else "strings.xml")
+        assertTrue("$dir/$tag fehlt in jedem Modul", dateien.isNotEmpty())
+        return dateien.flatMap { datei ->
+            Regex("<$tag name=\"([^\"]+)\"").findAll(datei.readText()).map { it.groupValues[1] }
+        }.toSet()
     }
 
     @Test
@@ -48,10 +49,30 @@ class TranslationsTest {
     @Test
     fun `kein Text ist leer`() {
         listOf("values", "values-de").forEach { dir ->
-            val text = File(root, "$dir/strings.xml").readText()
+            val text = Quelltext.texte(dir).joinToString("\n") { it.readText() }
             val leer = Regex("<string name=\"([^\"]+)\"></string>").findAll(text).map { it.groupValues[1] }.toList()
             assertEquals("leere Texte in $dir", emptyList<String>(), leer)
         }
+    }
+
+    /**
+     * Jedes Modul mit Texten hat beide Sprachen.
+     *
+     * Beim Umzug von sieben Texten nach `core:ui` am 3.9.2026 ist dort zum ersten Mal ein
+     * `values-de` entstanden. Hätte ich es vergessen, wäre die Oberfläche auf einem
+     * deutschen Telefon an diesen Stellen englisch geblieben — die Schlüsselvergleiche oben
+     * hätten es gemeldet, aber als Liste fehlender Schlüssel, nicht als das, was es ist.
+     * Diese Regel sagt es beim Namen des Moduls.
+     */
+    @Test
+    fun `jedes Modul mit Texten hat beide Sprachen`() {
+        val englisch = Quelltext.texte("values").map { it.parentFile.parentFile.parentFile }
+        val deutsch = Quelltext.texte("values-de").map { it.parentFile.parentFile.parentFile }
+        assertEquals(
+            "Ein Modul hat englische Texte und keine deutschen",
+            englisch.map { it.canonicalPath }.sorted(),
+            deutsch.map { it.canonicalPath }.sorted(),
+        )
     }
 
     @Test
@@ -60,12 +81,35 @@ class TranslationsTest {
         // auf dem Geraet mit der anderen Sprache.
         val pattern = Regex("<string name=\"([^\"]+)\">(.*?)</string>", RegexOption.DOT_MATCHES_ALL)
         fun placeholders(dir: String): Map<String, Int> =
-            pattern.findAll(File(root, "$dir/strings.xml").readText())
+            pattern.findAll(Quelltext.texte(dir).joinToString("\n") { it.readText() })
                 .associate { m -> m.groupValues[1] to Regex("%\\d+\\$[sd]").findAll(m.groupValues[2]).count() }
         val de = placeholders("values-de")
         val en = placeholders("values")
         val abweichend = en.filter { (key, count) -> de[key] != null && de[key] != count }.keys
         assertEquals("unterschiedlich viele Platzhalter", emptySet<String>(), abweichend)
+    }
+
+    /**
+     * Ein längerer Text, der in beiden Dateien wortgleich steht, ist fast immer eine
+     * vergessene Übersetzung. Kurze Wörter wie „SOS" oder „OK" dürfen gleich sein.
+     *
+     * Diese Prüfung stand bis zum 3.9.2026 in einer zweiten Klasse `TranslationTest`, deren
+     * drei andere Prüfungen wortgleich hier schon standen. Zwei Stellen, die dasselbe
+     * zählen, sind keine doppelte Sicherheit: sie sind der Ort, an dem eines Tages die eine
+     * repariert wird und die andere nicht.
+     */
+    @Test
+    fun `kein laengerer Text steht unuebersetzt da`() {
+        val pattern = Regex("<string name=\"([^\"]+)\">(.*?)</string>", RegexOption.DOT_MATCHES_ALL)
+        fun texte(dir: String): Map<String, String> =
+            pattern.findAll(Quelltext.texte(dir).joinToString("\n") { it.readText() })
+                .associate { m -> m.groupValues[1] to m.groupValues[2] }
+        val en = texte("values")
+        val de = texte("values-de")
+        val gleich = en.keys.intersect(de.keys).filter { name ->
+            en.getValue(name).length > 12 && en.getValue(name) == de.getValue(name)
+        }
+        assertEquals("wortgleich in beiden Sprachen - übersetzt?", emptyList<String>(), gleich)
     }
 }
 
@@ -78,9 +122,9 @@ class TranslationsTest {
 class PluralsTest {
 
     private fun plurale(verzeichnis: String): Map<String, Set<String>> {
-        val datei = java.io.File("src/main/res/$verzeichnis/strings.xml")
+        val dateien = Quelltext.texte(verzeichnis)
         return Regex("""<plurals name="([^"]+)">(.*?)</plurals>""", RegexOption.DOT_MATCHES_ALL)
-            .findAll(datei.readText())
+            .findAll(dateien.joinToString("\n") { it.readText() })
             .associate { treffer ->
                 treffer.groupValues[1] to Regex("""quantity="([^"]+)"""")
                     .findAll(treffer.groupValues[2])

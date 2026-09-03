@@ -1,3 +1,5 @@
+import org.gradle.api.tasks.PathSensitivity
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -58,6 +60,7 @@ android {
 dependencies {
     implementation(project(":core:data"))
     implementation(project(":core:system"))
+    implementation(project(":core:ui"))
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
@@ -70,6 +73,37 @@ dependencies {
     implementation(libs.androidx.material.icons.extended)
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.coil.compose)
+    // Legt das mitgelieferte Startprofil (src/main/baseline-prof.txt) beim ersten Start in
+    // die Profildatei der App. Ohne diese Bibliothek liegt das Profil zwar im Archiv, und
+    // bis Android 8 nimmt es der Installer selbst - auf dem Zielgerät (Android 11) nicht.
+    implementation(libs.androidx.profileinstaller)
     debugImplementation(libs.androidx.ui.tooling)
     testImplementation(libs.junit)
+}
+
+/**
+ * Knapp die Hälfte der Tests in `:app` liest Dateien statt Verhalten: das Manifest, die
+ * Texte, den Quelltext der anderen Module. Gradle weiss davon nichts — für die Testaufgabe
+ * zählen nur die Klassenpfade. Am 3.9.2026 gemessen: ein absichtlich kaputtgemachtes
+ * Manifest liess die Regel dazu `UP-TO-DATE` durchgehen, also grün, ohne zu laufen. Genau
+ * die Sorte stiller Erosion, gegen die diese Regeln geschrieben wurden.
+ *
+ * Deshalb stehen hier die Verzeichnisse, die sie wirklich lesen.
+ */
+tasks.withType<Test>().configureEach {
+    inputs.file("src/main/AndroidManifest.xml").withPathSensitivity(PathSensitivity.RELATIVE)
+    inputs.file("../README.md").withPathSensitivity(PathSensitivity.RELATIVE)
+    inputs.dir("src/main/baselineProfiles").withPathSensitivity(PathSensitivity.RELATIVE)
+    inputs.dir("../tools").withPathSensitivity(PathSensitivity.RELATIVE)
+    inputs.dir("../fastlane").withPathSensitivity(PathSensitivity.RELATIVE)
+    listOf(
+        "src/main/res",
+        "../core/model/src/main/kotlin",
+        "../core/data/src/main/kotlin",
+        "../core/system/src/main/kotlin",
+        "../core/ui/src/main/kotlin",
+        "../core/ui/src/main/res",
+    ).forEach { ort ->
+        inputs.dir(ort).withPathSensitivity(PathSensitivity.RELATIVE)
+    }
 }

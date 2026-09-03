@@ -25,6 +25,17 @@ class ConfigStore private constructor(context: Context) {
     /** Schreibvorgaenge nacheinander - zwei gleichzeitige zerlegten die Datei. */
     private val writeLock = Mutex()
 
+    /**
+     * Liegt eine gerettete Einstellungsdatei daneben?
+     *
+     * `ConfigFile` legt die unlesbare Datei als `config.json.unreadable` beiseite, statt sie
+     * wegzuwerfen, und der Assistent sagt beim nächsten Start einmal Bescheid. Danach
+     * erwähnt sie **nie wieder** jemand — sie liegt im privaten Speicher der App, wo weder
+     * der Nutzer noch jemand, der ihm hilft, sie findet. Die Diagnoseseite zeigt sie jetzt
+     * an; das ist die Seite, die man aufschlägt, wenn Einstellungen verschwunden sind.
+     */
+    val hasRescuedFile: Boolean get() = storage.rescueFile.exists()
+
     private val _config = MutableStateFlow(storage.read())
     val config: StateFlow<LauncherConfig> = _config.asStateFlow()
 

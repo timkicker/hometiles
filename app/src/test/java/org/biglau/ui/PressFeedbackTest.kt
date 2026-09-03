@@ -1,5 +1,6 @@
 package org.biglau.ui
 
+import org.biglau.Quelltext
 import androidx.compose.ui.graphics.Color
 import java.io.File
 import org.biglau.ui.theme.Tokens
@@ -66,7 +67,7 @@ class PressFeedbackTest {
     /** Und der Rand wächst - im Hochkontrast-Thema ist die Fläche schon schwarz. */
     @Test
     fun `im Hochkontrast traegt der Rand den Druck`() {
-        val quelle = File("src/main/java/org/biglau/ui/BigTile.kt").readText()
+        val quelle = Quelltext.datei("org/biglau/ui/BigTile.kt").readText()
         assertTrue("Der Rand waechst beim Druck nicht", "if (pressed) 2.dp else 0.dp" in quelle)
     }
 }

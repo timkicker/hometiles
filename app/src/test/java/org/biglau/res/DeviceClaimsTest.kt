@@ -1,5 +1,6 @@
 package org.biglau.res
 
+import org.biglau.Quelltext
 import java.io.File
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -20,11 +21,11 @@ import org.junit.Test
  */
 class DeviceClaimsTest {
 
-    private fun quelle(pfad: String) = File(pfad).readText()
+    private fun quelle(pfad: String) = Quelltext.datei(pfad).readText()
 
     @Test
     fun `der Hinweis zur Ausblendliste fragt nach der SMS-Rolle`() {
-        val stelle = quelle("src/main/java/org/biglau/settings/SettingsActivity.kt")
+        val stelle = quelle("org/biglau/settings/SettingsActivity.kt")
             .substringAfter("sms_filter_numbers_heading")
             .substringBefore("OutlinedTextField")
         assertTrue("sieht nicht nach der Rolle: $stelle", "isDefaultSmsApp()" in stelle)
@@ -33,7 +34,7 @@ class DeviceClaimsTest {
 
     @Test
     fun `der Text vor der Telefonstatus-Frage sieht nach CALL_PHONE`() {
-        val stelle = quelle("src/main/java/org/biglau/MainActivity.kt")
+        val stelle = quelle("org/biglau/MainActivity.kt")
             .substringAfter("R.string.signal_permission_title")
             .substringBefore("BigRow")
         assertTrue("sieht nicht nach CALL_PHONE: $stelle", "CALL_PHONE" in stelle)
@@ -48,7 +49,7 @@ class DeviceClaimsTest {
      */
     @Test
     fun `der Hinweis zur Nummernsperre fragt nach der Telefon-Rolle`() {
-        val quelltext = quelle("src/main/java/org/biglau/settings/SettingsActivity.kt")
+        val quelltext = quelle("org/biglau/settings/SettingsActivity.kt")
         val stelle = quelltext
             .substringAfter("R.string.blocked_numbers)")
             .substringBefore("OutlinedTextField")
@@ -67,26 +68,27 @@ class DeviceClaimsTest {
      */
     @Test
     fun `der Satz zum Blinken passt zu dem was ohne Zugriff zaehlt`() {
-        val logik = quelle("src/main/java/org/biglau/notify/TileNotifications.kt")
+        val logik = quelle("org/biglau/notify/TileNotifications.kt")
         assertTrue("verpasste Anrufe werden nicht selbst gezaehlt", "Builtin.MISSED_CALLS) return missed" in logik)
         assertTrue("ungelesene Nachrichten werden nicht selbst gezaehlt", "unread != null) return unread" in logik)
         listOf(
-            "src/main/res/values-de/strings.xml" to listOf("Verpasste Anrufe", "ungelesene Nachrichten"),
-            "src/main/res/values/strings.xml" to listOf("missed calls", "unread messages"),
-        ).forEach { (pfad, woerter) ->
-            val satz = quelle(pfad)
+            "values-de" to listOf("Verpasste Anrufe", "ungelesene Nachrichten"),
+            "values" to listOf("missed calls", "unread messages"),
+        ).forEach { (verzeichnis, woerter) ->
+            val satz = Quelltext.texte(verzeichnis).joinToString("\n") { it.readText() }
                 .substringAfter("name=\"blink_explainer\"")
                 .substringBefore("</string>")
             woerter.forEach { wort ->
-                assertTrue("$pfad: $wort fehlt im Satz: $satz", wort in satz)
+                assertTrue("$verzeichnis: $wort fehlt im Satz: $satz", wort in satz)
             }
         }
     }
 
     @Test
     fun `beide Fassungen stehen in beiden Sprachen`() {
-        listOf("src/main/res/values/strings.xml", "src/main/res/values-de/strings.xml").forEach { pfad ->
-            val texte = quelle(pfad)
+        // Je Sprache, nicht je Datei - die Texte liegen in mehreren Modulen.
+        listOf("values", "values-de").forEach { sprache ->
+            val texte = Quelltext.texte(sprache).joinToString("\n") { it.readText() }
             listOf(
                 "sms_filter_hint",
                 "sms_filter_hint_default",
@@ -95,7 +97,7 @@ class DeviceClaimsTest {
                 "blocked_numbers_hint",
                 "blocked_numbers_hint_outgoing",
             ).forEach { name ->
-                assertTrue("$pfad: $name fehlt", "\"$name\"" in texte)
+                assertTrue("$sprache: $name fehlt", "\"$name\"" in texte)
             }
         }
     }

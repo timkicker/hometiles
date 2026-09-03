@@ -1,5 +1,6 @@
 package org.biglau.res
 
+import org.biglau.Quelltext
 import java.io.File
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -22,21 +23,27 @@ import org.junit.Test
  */
 class AddressFormTest {
 
-    private val dateien = listOf(
-        "src/main/res/values-de/strings.xml",
-        "src/main/res/values-de/plurals.xml",
-    )
+    private val dateien = Quelltext.texte("values-de") + Quelltext.texte("values-de", "plurals.xml")
 
-    /** Gross geschrieben, damit „du" in „dazu" oder „durch" nicht mitzaehlt. */
-    private val duForm = Regex("""\b(Du|Dir|Dich|Dein|Deine|Deinen|Deinem|Deiner|Deines)\b""")
+    /**
+     * Auch klein geschrieben.
+     *
+     * Die erste Fassung sah nur „Du" gross an, mit der Begruendung, „du" stecke in „dazu"
+     * und „durch". Das stimmt, aber die Wortgrenzen erledigen das ohnehin — und die sieben
+     * Texte, die klein duzten, standen dadurch monatelang unbemerkt da. Am 3.9.2026
+     * gefunden, beim Zaehlen der Anreden zu etwas ganz anderem.
+     */
+    private val duForm = Regex(
+        """\b([Dd]u|[Dd]ir|[Dd]ich|[Dd]ein|[Dd]eine|[Dd]einen|[Dd]einem|[Dd]einer|[Dd]eines)\b""",
+    )
 
     @Test
     fun `die deutschen Texte siezen`() {
         val treffer = mutableListOf<String>()
-        dateien.forEach { pfad ->
-            File(pfad).readLines().forEachIndexed { index, zeile ->
+        dateien.forEach { datei ->
+            datei.readLines().forEachIndexed { index, zeile ->
                 if (duForm.containsMatchIn(zeile)) {
-                    treffer += "${pfad.substringAfterLast('/')}:${index + 1}: ${zeile.trim()}"
+                    treffer += "${datei.name}:${index + 1}: ${zeile.trim()}"
                 }
             }
         }

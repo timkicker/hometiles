@@ -20,6 +20,9 @@ Gerät, auf dem große Kacheln am meisten zählen und am schwersten unterzubring
 - **Nachrichten**: Liste, Gespräch, Verfassen. Alle vier Pflichtkomponenten für die
   Standard-SMS-Rolle sind da.
 - **Kontakte** mit Suche, Sortierung nach Vor- oder Nachnamen, Favoriten.
+- **App-Liste** als große Liste mit Suche und „zuletzt benutzt"; Apps lassen sich
+  ausblenden. Ganz am Ende steht immer **„BigLau-Einstellungen"** — damit gibt es einen Weg
+  dorthin, auch wenn auf keinem Bildschirm eine Einstellungs-Kachel liegt.
 - **SOS**: Notfallknopf mit Countdown, Rundruf an mehrere Nummern und Notfall-SMS.
 - **Lesehilfe**: langer Druck liest die Kachel vor oder zeigt ihren Namen bildschirmfüllend;
   Blätterknöpfe statt Wischen für lange Listen.
@@ -63,8 +66,17 @@ Zwei vollständige Neubauten ohne Build-Cache ergeben dieselbe Datei:
 sha256sum app/build/outputs/apk/release/app-release-unsigned.apk
 ```
 
-Geprüft am 31. August 2026 mit AGP 8.7.3, Gradle 8.11.1 und JDK 21: zweimal
-`3012f967…0cb788a9`.
+Geprüft am 3. September 2026 mit AGP 8.7.3, Gradle 8.11.1 und JDK 21 — zweimal ohne
+Build-Cache gebaut, beide Male
+
+```
+243cf2a394dc4363f8c5fb9ab78314c6c1392030f95d501ba612afdd2cd3c1f8   1 771 979 Bytes
+```
+
+für **Commit `e04636e`**. Die Prüfsumme gehört zu einem Stand des Quelltexts, nicht zum
+Projekt: wer sie nachrechnen will, baut diesen Commit. Genau deshalb steht er jetzt dabei —
+die vorige Angabe nannte nur ein Datum, und schon der nächste Commit machte sie unprüfbar.
+`tools/nachbauen.sh` macht beide Läufe und den Vergleich in einem Aufruf.
 
 ## Berechtigungen
 
@@ -80,7 +92,12 @@ Ohne SIM oder ohne erteilte Rolle läuft der Launcher vollständig weiter.
 | `ACCESS_FINE_LOCATION` | Standort in der Notfall-SMS |
 | `VIBRATE`, `EXPAND_STATUS_BAR`, `SET_WALLPAPER` | Rückmeldung, Schalter, Hintergrund |
 
-Kein `INTERNET`. BigLau sendet nichts.
+Kein `INTERNET`. BigLau sendet nichts — das Betriebssystem lässt es gar nicht zu.
+
+Wer ins Archiv sieht, findet trotzdem `okhttp3/…/publicsuffixes.gz`: die Bildbibliothek
+Coil bringt einen HTTP-Client mit, den BigLau nie benutzt (Kontaktfotos kommen über
+`content://`). R8 räumt den Code weg, die 41 kB Beilage bleiben. Ohne
+`INTERNET`-Berechtigung kann davon nichts ins Netz — siehe `PLAN.md` P8.
 
 ## Lizenz
 

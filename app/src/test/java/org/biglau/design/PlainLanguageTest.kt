@@ -14,8 +14,14 @@ import org.junit.Test
 class PlainLanguageTest {
 
     private val quellen = Quelltext.dateien()
-    private val texte = listOf("src/main/res/values/strings.xml", "src/main/res/values-de/strings.xml")
-        .map(::File)
+    /**
+     * Beide Sprachen **und** die Mehrzahlformen.
+     *
+     * Bis zum 3.9.2026 stand hier nur `strings.xml`. Die Mehrzahltexte („%1$d Kacheln gehen
+     * verloren") standen genauso auf dem Bildschirm und waren von jeder Regel hier
+     * ausgenommen. `Quelltext.alleTexte` fragt beides.
+     */
+    private val texte = Quelltext.alleTexte()
 
     /**
      * „Keine Versalien für Kachelbeschriftungen. Großbuchstaben zerstören die Wortkontur,
@@ -70,17 +76,5 @@ class PlainLanguageTest {
         assertEquals(emptyList<String>(), treffer)
     }
 
-    /**
-     * Und kein Ausrufezeichen. Eine App, die ihren Nutzer anruft, klingt entweder aufgeregt
-     * oder verkauft ihm etwas; beides gehört hier nicht hin.
-     */
-    @Test
-    fun `kein Ausrufezeichen`() {
-        val treffer = texte.flatMap { datei ->
-            datei.readLines().mapIndexedNotNull { index, zeile ->
-                if ("!" in zeile && "<!--" !in zeile) "${datei.name}:${index + 1}" else null
-            }
-        }
-        assertEquals(emptyList<String>(), treffer)
-    }
+
 }

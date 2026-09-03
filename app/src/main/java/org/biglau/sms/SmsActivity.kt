@@ -56,7 +56,7 @@ import org.biglau.R
 import org.biglau.contacts.ContactRepository
 import org.biglau.data.ConfigStore
 import org.biglau.phone.PhoneNumbers
-import org.biglau.toggles.SosMessage
+import org.biglau.actions.SosMessage
 import org.biglau.ui.BigHeading
 import org.biglau.actions.Intents
 import org.biglau.ui.Notice
@@ -64,7 +64,6 @@ import org.biglau.ui.PermissionGate
 import org.biglau.ui.PermissionState
 import org.biglau.ui.BigRow
 import org.biglau.ui.ScrollButtons
-import org.biglau.notify.SmsNotifications
 import org.biglau.ui.dpSp
 import org.biglau.ui.theme.BigLauTheme
 import org.biglau.ui.theme.LocalBigPalette
@@ -166,7 +165,7 @@ class SmsActivity : BigLauActivity() {
                     config.sms.hiddenNumbers,
                     config.sms.hiddenWords,
                 )
-                names = contacts.load().flatMap { contact ->
+                names = contacts.load(resources).flatMap { contact ->
                     contact.numbers.map { PhoneNumbers.clean(it.number) to contact.name }
                 }.toMap()
             }

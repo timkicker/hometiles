@@ -1,0 +1,400 @@
+{
+ "version": 1,
+ "screens": [
+  {
+   "id": "home",
+   "name": "Start",
+   "cols": 2,
+   "rows": 4,
+   "cells": [
+    {
+     "x": 0,
+     "y": 0,
+     "w": 1,
+     "h": 1,
+     "button": {
+      "action": {
+       "type": "builtin",
+       "builtin": "CONTACTS"
+      },
+      "label": null,
+      "iconName": null,
+      "colorIndex": -1,
+      "colorHue": null,
+      "blink": true,
+      "longPress": null
+     }
+    },
+    {
+     "x": 1,
+     "y": 0,
+     "w": 1,
+     "h": 1,
+     "button": {
+      "action": {
+       "type": "app",
+       "packageName": "com.example.programm1",
+       "activityName": "com.example.programm1.MainActivity"
+      },
+      "label": null,
+      "iconName": null,
+      "colorIndex": -1,
+      "colorHue": null,
+      "blink": true,
+      "longPress": null
+     }
+    },
+    {
+     "x": 0,
+     "y": 1,
+     "w": 1,
+     "h": 1,
+     "button": {
+      "action": {
+       "type": "app",
+       "packageName": "com.example.programm2",
+       "activityName": "com.example.programm2.MainActivity"
+      },
+      "label": null,
+      "iconName": null,
+      "colorIndex": -1,
+      "colorHue": null,
+      "blink": true,
+      "longPress": null
+     }
+    },
+    {
+     "x": 1,
+     "y": 1,
+     "w": 1,
+     "h": 1,
+     "button": {
+      "action": {
+       "type": "app",
+       "packageName": "com.example.programm3",
+       "activityName": "com.example.programm3.MainActivity"
+      },
+      "label": null,
+      "iconName": null,
+      "colorIndex": -1,
+      "colorHue": null,
+      "blink": true,
+      "longPress": null
+     }
+    },
+    {
+     "x": 0,
+     "y": 2,
+     "w": 1,
+     "h": 1,
+     "button": {
+      "action": {
+       "type": "app",
+       "packageName": "com.example.programm4",
+       "activityName": "com.example.programm4.MainActivity"
+      },
+      "label": null,
+      "iconName": null,
+      "colorIndex": -1,
+      "colorHue": null,
+      "blink": true,
+      "longPress": null
+     }
+    },
+    {
+     "x": 1,
+     "y": 2,
+     "w": 1,
+     "h": 1,
+     "button": {
+      "action": {
+       "type": "folder",
+       "screenId": "folderMehr"
+      },
+      "label": null,
+      "iconName": null,
+      "colorIndex": -1,
+      "colorHue": null,
+      "blink": true,
+      "longPress": null
+     }
+    },
+    {
+     "x": 0,
+     "y": 3,
+     "w": 1,
+     "h": 1,
+     "button": {
+      "action": {
+       "type": "builtin",
+       "builtin": "APP_LIST"
+      },
+      "label": null,
+      "iconName": null,
+      "colorIndex": -1,
+      "colorHue": null,
+      "blink": true,
+      "longPress": null
+     }
+    },
+    {
+     "x": 1,
+     "y": 3,
+     "w": 1,
+     "h": 1,
+     "button": {
+      "action": {
+       "type": "app",
+       "packageName": "com.example.programm5",
+       "activityName": "com.example.programm5.MainActivity"
+      },
+      "label": null,
+      "iconName": null,
+      "colorIndex": -1,
+      "colorHue": null,
+      "blink": true,
+      "longPress": null
+     }
+    }
+   ],
+   "background": {
+    "type": "theme"
+   },
+   "kind": "SCREEN"
+  },
+  {
+   "id": "screen2",
+   "name": "Screen 2",
+   "cols": 2,
+   "rows": 3,
+   "cells": [
+    {
+     "x": 1,
+     "y": 2,
+     "w": 1,
+     "h": 1,
+     "button": {
+      "action": {
+       "type": "builtin",
+       "builtin": "HOME_SCREEN"
+      },
+      "label": null,
+      "iconName": null,
+      "colorIndex": -1,
+      "colorHue": null,
+      "blink": true,
+      "longPress": null
+     }
+    }
+   ],
+   "background": {
+    "type": "theme"
+   },
+   "kind": "SCREEN"
+  },
+  {
+   "id": "folderMehr",
+   "name": "Mehr",
+   "cols": 2,
+   "rows": 3,
+   "cells": [
+    {
+     "x": 0,
+     "y": 0,
+     "w": 1,
+     "h": 1,
+     "button": {
+      "action": {
+       "type": "builtin",
+       "builtin": "MESSAGES"
+      },
+      "label": null,
+      "iconName": null,
+      "colorIndex": -1,
+      "colorHue": null,
+      "blink": true,
+      "longPress": null
+     }
+    },
+    {
+     "x": 1,
+     "y": 0,
+     "w": 1,
+     "h": 1,
+     "button": {
+      "action": {
+       "type": "builtin",
+       "builtin": "CONTACTS"
+      },
+      "label": null,
+      "iconName": null,
+      "colorIndex": -1,
+      "colorHue": null,
+      "blink": true,
+      "longPress": null
+     }
+    },
+    {
+     "x": 0,
+     "y": 1,
+     "w": 1,
+     "h": 1,
+     "button": {
+      "action": {
+       "type": "builtin",
+       "builtin": "CAMERA"
+      },
+      "label": null,
+      "iconName": null,
+      "colorIndex": -1,
+      "colorHue": null,
+      "blink": true,
+      "longPress": null
+     }
+    },
+    {
+     "x": 1,
+     "y": 1,
+     "w": 1,
+     "h": 1,
+     "button": {
+      "action": {
+       "type": "builtin",
+       "builtin": "CLOCK"
+      },
+      "label": null,
+      "iconName": null,
+      "colorIndex": -1,
+      "colorHue": null,
+      "blink": true,
+      "longPress": null
+     }
+    },
+    {
+     "x": 0,
+     "y": 2,
+     "w": 1,
+     "h": 1,
+     "button": {
+      "action": {
+       "type": "builtin",
+       "builtin": "LOCATION"
+      },
+      "label": null,
+      "iconName": null,
+      "colorIndex": -1,
+      "colorHue": null,
+      "blink": true,
+      "longPress": null
+     }
+    }
+   ],
+   "background": {
+    "type": "theme"
+   },
+   "kind": "FOLDER"
+  }
+ ],
+ "homeScreenId": "home",
+ "swipeOrder": [
+  "home",
+  "screen2"
+ ],
+ "swipeExcluded": [],
+ "appearance": {
+  "theme": "DARK",
+  "language": "SYSTEM",
+  "font": "HYPERLEGIBLE",
+  "textScale": 1.0,
+  "labelPosition": "BOTTOM_LEFT",
+  "labelScale": 1.0,
+  "iconPercent": 40,
+  "showIcons": true,
+  "iconVisibility": "ALWAYS",
+  "hideCutLabels": false,
+  "gutterDp": 4,
+  "safeBorderPercent": 2,
+  "cornerRadiusDp": 12,
+  "fullScreen": false,
+  "clockShowsDate": true,
+  "clockDisplay": "TIME_DATE_WEEKDAY",
+  "clockScale": 1.0,
+  "orientation": "PORTRAIT",
+  "showHeader": true
+ },
+ "behaviour": {
+  "pressMode": "SHORT",
+  "hapticFeedback": true,
+  "hapticStrength": "LIGHT",
+  "confirmMessages": false,
+  "blinkOnNotification": true,
+  "swipeBetweenScreens": false,
+  "homeKeyReturnsToStart": true,
+  "accessibility": {
+   "speakOnLongPress": false,
+   "popupOnLongPress": false,
+   "scrollButtons": false
+  }
+ },
+ "security": {
+  "pin": null,
+  "pinProtectsEditor": true,
+  "pinProtectsAppList": false,
+  "pinProtectsCallLogDelete": true
+ },
+ "sos": {
+  "numbers": [],
+  "message": "Ich brauche Hilfe.",
+  "countdownSeconds": 5,
+  "sendLocation": true,
+  "alarmSound": false,
+  "alarmFlash": false
+ },
+ "apps": {
+  "hidden": [],
+  "recent": [
+   "com.example.programm6/com.example.programm6.MainActivity",
+   "com.example.programm7/com.example.programm7.MainActivity",
+   "com.example.programm8/com.example.programm8.MainActivity",
+   "com.example.programm9/com.example.programm9.MainActivity",
+   "com.example.programm10/com.example.programm10.MainActivity",
+   "com.example.programm11/com.example.programm11.MainActivity",
+   "com.example.programm12/com.example.programm12.MainActivity",
+   "com.example.programm13/com.example.programm13.MainActivity",
+   "com.example.programm14/com.example.programm14.MainActivity",
+   "com.example.programm15/com.example.programm15.MainActivity",
+   "com.example.programm16/com.example.programm16.MainActivity",
+   "com.example.programm17/com.example.programm17.MainActivity"
+  ],
+  "recentCount": 4,
+  "allowed": [],
+  "lockOthers": false
+ },
+ "contacts": {
+  "sortBySurname": false,
+  "searchNumbers": true,
+  "favouritesFirst": true
+ },
+ "phone": {
+  "speedDial": {},
+  "hiddenCallTypes": [],
+  "callGrouping": "NUMBER",
+  "callerPhoto": "SMALL",
+  "audioRoute": "EARPIECE",
+  "speakerOnOutgoing": false,
+  "blockedNumbers": [],
+  "lastSeenMissedAt": 0
+ },
+ "sms": {
+  "hiddenNumbers": [],
+  "hiddenWords": [],
+  "conversationScale": 1.0,
+  "vibrationMs": 500,
+  "fullScreenAlert": false,
+  "repeatMinutes": 0,
+  "confirmBeforeSending": false,
+  "sendButtonAbove": false,
+  "sendButtonLarge": false
+ },
+ "wizardDone": true
+}

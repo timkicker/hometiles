@@ -1,5 +1,6 @@
 package org.biglau.security
 
+import org.biglau.Quelltext
 import java.io.File
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -17,7 +18,7 @@ import org.junit.Test
 class PinGateHintTest {
 
     private val einstellungen =
-        File("src/main/java/org/biglau/settings/SettingsActivity.kt").readText()
+        Quelltext.datei("org/biglau/settings/SettingsActivity.kt").readText()
 
     @Test
     fun `das Schloss zeigt den kurzen Satz`() {
@@ -28,12 +29,12 @@ class PinGateHintTest {
 
     @Test
     fun `der kurze Satz nennt die dreissig Sekunden`() {
-        listOf("src/main/res/values/strings.xml", "src/main/res/values-de/strings.xml").forEach { pfad ->
+        listOf("values", "values-de").forEach { sprache ->
             val text = Regex("""<string name="security_forgot">([^<]*)</string>""")
-                .find(File(pfad).readText())?.groupValues?.get(1)
-            assertTrue("$pfad: security_forgot fehlt", text != null)
-            assertTrue("$pfad: ohne die Dauer nützt der Satz nichts", "30" in text!!)
-            assertTrue("$pfad: zu lang für das Schloss (${text.length})", text.length <= 60)
+                .find(Quelltext.texte(sprache).joinToString("\n") { it.readText() })?.groupValues?.get(1)
+            assertTrue("$sprache: security_forgot fehlt", text != null)
+            assertTrue("$sprache: ohne die Dauer nützt der Satz nichts", "30" in text!!)
+            assertTrue("$sprache: zu lang für das Schloss (${text.length})", text.length <= 60)
         }
     }
 }

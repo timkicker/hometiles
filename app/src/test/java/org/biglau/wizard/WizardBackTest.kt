@@ -1,5 +1,6 @@
 package org.biglau.wizard
 
+import org.biglau.Quelltext
 import java.io.File
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -17,7 +18,7 @@ import org.junit.Test
  */
 class WizardBackTest {
 
-    private val quelle = File("src/main/java/org/biglau/wizard/WizardActivity.kt").readText()
+    private val quelle = Quelltext.datei("org/biglau/wizard/WizardActivity.kt").readText()
 
     /** Im ersten Schritt gibt es keinen Schritt davor - dort muss das Schliessen greifen. */
     @Test

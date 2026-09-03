@@ -51,7 +51,6 @@ import org.biglau.R
 import kotlinx.coroutines.launch
 import org.biglau.actions.Intents
 import org.biglau.data.ConfigStore
-import org.biglau.settings.SettingsActivity
 import org.biglau.search.TextSearch
 import org.biglau.phone.PhoneNumbers
 import org.biglau.ui.BigHeading
@@ -60,6 +59,7 @@ import org.biglau.ui.Notice
 import org.biglau.ui.PermissionGate
 import org.biglau.ui.PermissionState
 import org.biglau.ui.BigRow
+import org.biglau.ui.SettingsLink
 import org.biglau.ui.BigSearchField
 import org.biglau.ui.ScrollButtons
 import org.biglau.ui.ContactAvatar
@@ -122,7 +122,7 @@ class ContactsActivity : BigLauActivity() {
             LaunchedEffect(granted) {
                 if (granted) {
                     loading = true
-                    all = repository.load()
+                    all = repository.load(resources)
                     loading = false
                 }
             }
@@ -178,7 +178,7 @@ class ContactsActivity : BigLauActivity() {
                                     scope.launch {
                                         val ok = repository.setStarred(current.id, !current.starred)
                                         if (ok) {
-                                            all = repository.load()
+                                            all = repository.load(resources)
                                             selected = all.firstOrNull { it.id == current.id }
                                         } else {
                                             Notice.show(this@ContactsActivity, R.string.contacts_star_failed)
@@ -212,10 +212,10 @@ class ContactsActivity : BigLauActivity() {
                             searchNumbers = config.contacts.searchNumbers,
                             onSearchSettings = {
                                 startActivity(
-                                    android.content.Intent(
+                                    SettingsLink.toPage(
                                         this@ContactsActivity,
-                                        SettingsActivity::class.java,
-                                    ).putExtra(SettingsActivity.EXTRA_PAGE, SettingsActivity.PAGE_CONTACTS),
+                                        SettingsLink.PAGE_CONTACTS,
+                                    ),
                                 )
                             },
                             onShowAll = { favouritesOnly = false },

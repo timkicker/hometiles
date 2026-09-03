@@ -168,6 +168,18 @@ data class Screen(
     /** Belegte Zelle an dieser Rasterposition, sofern eine sie ueberdeckt. */
     fun cellAt(x: Int, y: Int): Cell? = cells.firstOrNull { it.covers(x, y) }
 
+    /**
+     * Wie viele **Kacheln** hier liegen - nicht wie viele Zellen.
+     *
+     * Der Unterschied ist der zwischen dem Modell und dem, was jemand sieht: eine Zelle
+     * ohne Aktion ist ein freier Platz, keine Kachel. An drei Stellen wurde `cells.size`
+     * gezaehlt und "Kacheln" dazu gesagt - beim Laden einer Sicherung, beim Aufraeumen
+     * eines verwaisten Ordners und in der Rueckfrage vor dem Loeschen. Die Rueckfrage vor
+     * dem Zuruecksetzen zaehlte richtig, und so standen zwei Zahlen fuer dieselbe
+     * Einrichtung nebeneinander. Deshalb gibt es die Zahl jetzt nur einmal.
+     */
+    val tileCount: Int get() = cells.count { it.button.action != ButtonAction.None }
+
     /** Rasterplaetze, die keine Zelle belegt - dort zeichnen wir Platzhalter. */
     fun freeSlots(): List<Pair<Int, Int>> =
         (0 until rows).flatMap { y -> (0 until cols).map { x -> x to y } }
@@ -480,6 +492,20 @@ data class PhoneConfig(
     val speakerOnOutgoing: Boolean = false,
     /** Gesperrte Nummern, eingehend wie ausgehend. `PLAN.md` 4.6. */
     val blockedNumbers: List<String> = emptyList(),
+    /**
+     * Wann die Anrufliste zuletzt offen war, in Millisekunden seit 1970.
+     *
+     * **Damit ein Abzeichen kein Schreibrecht braucht.** Bisher zaehlte BigLau die vom
+     * System als „neu" gefuehrten verpassten Anrufe und setzte dieses Kennzeichen beim
+     * Oeffnen zurueck - das verlangt `WRITE_CALL_LOG`, und auf dem Telefon des Nutzers ist
+     * es nicht erteilt. Die Zahl auf der Kachel waere dort nie erloschen, egal wie oft er
+     * die Liste liest.
+     *
+     * Gezaehlt werden jetzt nur Anrufe, die **juenger** sind als dieser Zeitpunkt. Das
+     * Kennzeichen des Systems bleibt zusaetzlich in der Bedingung: raeumt die
+     * System-Telefon-App auf, verschwindet die Zahl hier ebenfalls.
+     */
+    val lastSeenMissedAt: Long = 0L,
 )
 
 /** Standard-Audioausgabe (`PLAN.md` 4.6). */

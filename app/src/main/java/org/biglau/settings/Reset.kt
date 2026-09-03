@@ -27,9 +27,7 @@ object Reset {
         val ordner = config.screens.count { it.kind == ScreenKind.FOLDER }
         return Losses(
             screens = config.screens.size - ordner,
-            tiles = config.screens.sumOf { screen ->
-                screen.cells.count { it.button.action != ButtonAction.None }
-            },
+            tiles = config.screens.sumOf { it.tileCount },
             folders = ordner,
             hasPin = Pin.usable(config.security.pin),
         )

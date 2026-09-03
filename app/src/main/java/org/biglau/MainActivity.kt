@@ -271,7 +271,7 @@ class MainActivity : BigLauActivity() {
             // dann bleiben die Meldungen die Auskunft.
             var ungelesen by remember { mutableStateOf<Int?>(null) }
             LaunchedEffect(resumeTick.value, counts) {
-                verpasst = CallLogRepository.get(context).newMissedCount()
+                verpasst = CallLogRepository.get(context).newMissedCount(config.phone.lastSeenMissedAt)
                 val sms = SmsRepository.get(context)
                 ungelesen = if (sms.hasReadPermission()) sms.unreadCount() else null
             }

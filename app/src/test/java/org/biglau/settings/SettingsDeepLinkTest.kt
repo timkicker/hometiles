@@ -1,5 +1,6 @@
 package org.biglau.settings
 
+import org.biglau.Quelltext
 import java.io.File
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -76,15 +77,24 @@ class SettingsDeepLinkTest {
         )
     }
 
-    /** Ein Name, den keine Seite traegt, fuehrt stumm nirgendwohin. */
+    /**
+     * Ein Name, den keine Seite traegt, fuehrt stumm nirgendwohin.
+     *
+     * Gelesen wird `SettingsLink` - dort stehen die Kennungen, seit der Sprung ueber eine
+     * Absicht laeuft. In `SettingsActivity` stehen sie nur noch als Verweis, und ein Test,
+     * der dort nach Zeichenketten sucht, faende **nichts** und waere gruen, ohne etwas zu
+     * pruefen.
+     */
     @Test
     fun `jede angebotene Kennung gehoert zu einer Seite`() {
         val namen = Page.entries.map { it.name }
-        Regex("""const val PAGE_[A-Z_]+ = "([A-Z_]+)"""")
-            .findAll(File("src/main/java/org/biglau/settings/SettingsActivity.kt").readText())
-            .forEach {
-                val wert = it.groupValues[1]
-                assertTrue("PAGE-Kennung \"$wert\" gehoert zu keiner Seite", wert in namen)
-            }
+        val treffer = Regex("""const val PAGE_[A-Z_]+ = "([A-Z_]+)"""")
+            .findAll(Quelltext.datei("org/biglau/ui/SettingsLink.kt").readText())
+            .toList()
+        assertTrue("keine einzige Kennung gefunden - liest der Test die richtige Datei?", treffer.isNotEmpty())
+        treffer.forEach {
+            val wert = it.groupValues[1]
+            assertTrue("PAGE-Kennung \"$wert\" gehoert zu keiner Seite", wert in namen)
+        }
     }
 }

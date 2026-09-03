@@ -72,10 +72,6 @@
         <item quantity="one">eine Sekunde</item>
         <item quantity="other">%1$d Sekunden</item>
     </plurals>
-    <plurals name="transfer_confirm">
-        <item quantity="one">Diese Sicherung enthält einen Screen mit %2$d Kacheln. Das Einlesen ersetzt Ihre jetzige Belegung.</item>
-        <item quantity="other">Diese Sicherung enthält %1$d Screens mit %2$d Kacheln. Das Einlesen ersetzt Ihre jetzige Belegung.</item>
-    </plurals>
     <plurals name="screen_copy_done">
         <item quantity="one">„%1$s“ steht mit einer Kachel. Eine Kachel dorthin liegt auf diesem Bildschirm.</item>
         <item quantity="other">„%1$s“ steht mit %2$d Kacheln. Eine Kachel dorthin liegt auf diesem Bildschirm.</item>

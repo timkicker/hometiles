@@ -1,5 +1,6 @@
 package org.biglau.sms
 
+import org.biglau.Quelltext
 import java.io.File
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -19,7 +20,7 @@ class ConversationLayoutTest {
 
     @Test
     fun `der Hinweis steht innerhalb der Liste`() {
-        val quelle = File("src/main/java/org/biglau/sms/SmsActivity.kt").readText()
+        val quelle = Quelltext.datei("org/biglau/sms/SmsActivity.kt").readText()
         val liste = quelle.indexOf("LazyColumn(\n            state = listState")
         val hinweis = quelle.indexOf("R.string.sms_not_default")
         assertTrue("LazyColumn der Unterhaltung nicht gefunden", liste > 0)

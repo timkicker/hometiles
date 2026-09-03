@@ -93,12 +93,32 @@ class ImportActivity : BigLauActivity() {
                                 loaded == null -> stringResource(R.string.transfer_bad_file)
                                 done && vonNeuerer -> stringResource(R.string.transfer_imported_older)
                                 done -> stringResource(R.string.transfer_imported)
-                                else -> pluralStringResource(
-                                    R.plurals.transfer_confirm,
-                                    loaded.screens.size,
-                                    loaded.screens.size,
-                                    loaded.screens.sumOf { it.cells.size },
-                                )
+                                // Dieselbe Zaehlung wie beim Zuruecksetzen, und zwar aus
+                                // demselben Grund: hier stand "3 Screens mit 14 Kacheln",
+                                // dort "2 Screens mit 14 Kacheln und 1 Ordner" - dieselbe
+                                // Einrichtung, zwei Zahlen. Fuer den Nutzer ist ein Ordner
+                                // kein Screen, und eine leere Zelle keine Kachel.
+                                else -> {
+                                    val verlust = Reset.losses(loaded)
+                                    val bildschirme = pluralStringResource(
+                                        R.plurals.reset_screens, verlust.screens, verlust.screens,
+                                    )
+                                    val kacheln = pluralStringResource(
+                                        R.plurals.reset_tiles, verlust.tiles, verlust.tiles,
+                                    )
+                                    if (verlust.folders == 0) {
+                                        stringResource(R.string.transfer_confirm_plain, bildschirme, kacheln)
+                                    } else {
+                                        stringResource(
+                                            R.string.transfer_confirm_folders,
+                                            bildschirme,
+                                            kacheln,
+                                            pluralStringResource(
+                                                R.plurals.reset_folders, verlust.folders, verlust.folders,
+                                            ),
+                                        )
+                                    }
+                                }
                             },
                             color = palette.onBackground,
                             fontSize = bigSp(17f),

@@ -16,6 +16,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -39,10 +40,10 @@ import org.biglau.R
 import org.biglau.data.ConfigStore
 import org.biglau.security.Pin
 import org.biglau.ui.PinGate
-import org.biglau.settings.SettingsActivity
 import org.biglau.ui.BigHeading
 import androidx.compose.material.icons.filled.Apps
 import org.biglau.ui.BigRow
+import org.biglau.ui.SettingsLink
 import org.biglau.ui.BigSearchField
 import org.biglau.ui.Notice
 import org.biglau.ui.ScrollButtons
@@ -253,6 +254,26 @@ class AppDrawerActivity : BigLauActivity() {
                             // ("Einstellungen -> Ausgeblendete Apps"), und die war nach zwei
                             // Sekunden weg. Die Zeile steht nur da, wenn wirklich etwas
                             // ausgeblendet ist - sonst waere sie eine Zeile ueber nichts.
+                            // Der Weg in die Einstellungen, und zwar immer.
+                            //
+                            // Am 03.09.2026 am Geraet des Nutzers nachgesehen: acht belegte
+                            // Kacheln, keine davon die Einstellungen, Wischen zwischen den
+                            // Screens aus, kein freies Feld zum Langdruecken. Damit fuehrte
+                            // kein Weg mehr dorthin ausser: eine vorhandene Kachel lange
+                            // druecken und umbelegen - also eine App aufgeben, und man muss
+                            // erst darauf kommen. Das Original hat die Einstellungen in der
+                            // App-Liste; hier fehlten sie.
+                            if (query.isEmpty()) {
+                                item {
+                                    BigRow(
+                                        label = stringResource(R.string.apps_open_settings),
+                                        icon = Icons.Filled.Settings,
+                                        onClick = {
+                                            startActivity(SettingsLink.toRoot(this@AppDrawerActivity))
+                                        },
+                                    )
+                                }
+                            }
                             if (config.apps.hidden.isNotEmpty() && query.isEmpty()) {
                                 item {
                                     BigRow(
@@ -264,11 +285,10 @@ class AppDrawerActivity : BigLauActivity() {
                                         icon = Icons.Filled.VisibilityOff,
                                         onClick = {
                                             startActivity(
-                                                Intent(this@AppDrawerActivity, SettingsActivity::class.java)
-                                                    .putExtra(
-                                                        SettingsActivity.EXTRA_PAGE,
-                                                        SettingsActivity.PAGE_HIDDEN_APPS,
-                                                    ),
+                                                SettingsLink.toPage(
+                                                    this@AppDrawerActivity,
+                                                    SettingsLink.PAGE_HIDDEN_APPS,
+                                                ),
                                             )
                                         },
                                     )

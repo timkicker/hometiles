@@ -44,7 +44,7 @@ class TextScaleTest {
 
     @Test
     fun `bigSp gibt es und es liest die Einstellung`() {
-        val quelle = File("src/main/java/org/biglau/ui/TextSizing.kt").readText()
+        val quelle = Quelltext.datei("org/biglau/ui/TextSizing.kt").readText()
         assertTrue("bigSp fehlt", "fun bigSp(" in quelle)
         assertTrue("bigSp liest die Einstellung nicht", "LocalTextScale.current" in quelle)
     }

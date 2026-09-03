@@ -1,5 +1,6 @@
 package org.biglau.tiles
 
+import org.biglau.Quelltext
 import java.io.File
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -20,7 +21,7 @@ import org.junit.Test
  */
 class LongPressReachTest {
 
-    private val quelle = File("src/main/java/org/biglau/tiles/TileEditorActivity.kt").readText()
+    private val quelle = Quelltext.datei("org/biglau/tiles/TileEditorActivity.kt").readText()
 
     @Test
     fun `jede Art laesst sich auch auf den Langdruck legen`() {

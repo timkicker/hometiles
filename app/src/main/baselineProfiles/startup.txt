@@ -1,0 +1,40 @@
+# Startprofil: was Android schon beim Installieren übersetzen soll.
+#
+# Frisch installiert steht BigLau auf `run-from-apk` - Android hat nichts übersetzt und
+# dolmetscht beim ersten Start jede Zeile. Am 03.09.2026 am Jelly 2 gemessen: 2275 ms bis
+# zum fertigen Startbildschirm. Erst nach Tagen mit genug gesammelten Nutzungsdaten
+# übersetzt das System von selbst nach.
+#
+# Für einen Launcher ist das die falsche Reihenfolge: er ist die erste Anwendung nach dem
+# Einschalten, und wer ihn einrichtet, drückt in der ersten Stunde am häufigsten. Deshalb
+# liegt hier von Hand aufgeschrieben, was zum Start gehört.
+#
+# Die Regeln sind bewusst breite Muster statt einzelner Methoden. BigLau ist klein (rund
+# 15 000 Zeilen), und ein Profil, das die eigenen Pakete ganz nimmt, kostet ein paar
+# Kilobyte im Archiv - eine gemessene Methodenliste wäre genauer und müsste bei jeder
+# Änderung neu erzeugt werden. Fremdbibliotheken stehen absichtlich nicht drin: sie machen
+# das Profil gross, und der Gewinn liegt im eigenen Code.
+#
+# H = beim Start aufgerufen, S = beim Start "hot", P = nach dem Start weiter benutzt.
+
+HSPLorg/biglau/MainActivity;->**(**)**
+Lorg/biglau/MainActivity;
+HSPLorg/biglau/BigLauApp;->**(**)**
+Lorg/biglau/BigLauApp;
+
+HSPLorg/biglau/ui/**->**(**)**
+Lorg/biglau/ui/**;
+HSPLorg/biglau/data/**->**(**)**
+Lorg/biglau/data/**;
+HSPLorg/biglau/tiles/**->**(**)**
+Lorg/biglau/tiles/**;
+HSPLorg/biglau/apps/**->**(**)**
+Lorg/biglau/apps/**;
+HSPLorg/biglau/notify/**->**(**)**
+Lorg/biglau/notify/**;
+HSPLorg/biglau/actions/**->**(**)**
+Lorg/biglau/actions/**;
+HSPLorg/biglau/toggles/**->**(**)**
+Lorg/biglau/toggles/**;
+HSPLorg/biglau/widgets/**->**(**)**
+Lorg/biglau/widgets/**;

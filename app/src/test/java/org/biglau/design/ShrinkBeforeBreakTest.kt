@@ -1,5 +1,6 @@
 package org.biglau.design
 
+import org.biglau.Quelltext
 import java.io.File
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -18,13 +19,13 @@ import org.junit.Test
  */
 class ShrinkBeforeBreakTest {
 
-    private fun quelle(pfad: String) = File(pfad).readText()
+    private fun quelle(pfad: String) = Quelltext.datei(pfad).readText()
 
     @Test
     fun `Kachel, Ueberschrift und Zeile benutzen dieselbe Leiter`() {
         listOf(
-            "src/main/java/org/biglau/ui/BigTile.kt",
-            "src/main/java/org/biglau/ui/BigRow.kt",
+            "org/biglau/ui/BigTile.kt",
+            "org/biglau/ui/BigRow.kt",
         ).forEach { pfad ->
             assertTrue("$pfad misst nicht in Stufen", "labelLadder(" in quelle(pfad))
         }
@@ -32,7 +33,7 @@ class ShrinkBeforeBreakTest {
 
     @Test
     fun `Ueberschrift und Zeile messen das laengste Wort`() {
-        val zeilen = quelle("src/main/java/org/biglau/ui/BigRow.kt")
+        val zeilen = quelle("org/biglau/ui/BigRow.kt")
         // Beide stehen in derselben Datei: BigRow und BigHeading.
         assertTrue("das laengste Wort wird nicht gemessen", "longestWord(" in zeilen)
         assertTrue(
@@ -49,7 +50,7 @@ class ShrinkBeforeBreakTest {
      */
     @Test
     fun `die dritte Zeile haengt an der gemessenen Hoehe`() {
-        val zeilen = quelle("src/main/java/org/biglau/ui/BigRow.kt")
+        val zeilen = quelle("org/biglau/ui/BigRow.kt")
         assertTrue("die Hoehe wird nicht gemessen", "maxLines = 3" in zeilen)
         assertTrue(
             "es wird nicht gegen den verfuegbaren Platz geprueft",

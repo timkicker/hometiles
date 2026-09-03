@@ -14,6 +14,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -66,7 +67,6 @@ import org.biglau.ui.ContactAvatar
 import org.biglau.ui.BigHeading
 import org.biglau.ui.BigKeypad
 import org.biglau.actions.Intents
-import org.biglau.settings.SettingsActivity
 import org.biglau.security.Pin
 import org.biglau.ui.PinGate
 import org.biglau.ui.Notice
@@ -75,10 +75,11 @@ import org.biglau.ui.PermissionState
 import androidx.compose.material.icons.filled.History
 import org.biglau.ui.BigIconButton
 import org.biglau.ui.BigRow
+import org.biglau.ui.SettingsLink
 import org.biglau.ui.ScrollButtons
-import org.biglau.ui.TabellenZiffern
+import org.biglau.ui.tabellenZiffern
 import org.biglau.ui.dpSp
-import org.biglau.ui.singleLineSizeSp
+import org.biglau.ui.fittedSingleLineDp
 import org.biglau.ui.theme.LocalTextScale
 import org.biglau.ui.theme.BigLauTheme
 import org.biglau.ui.theme.LocalBigPalette
@@ -199,7 +200,7 @@ class DialerActivity : BigLauActivity() {
             }
 
             LaunchedEffect(tab) {
-                if (tab == Tab.ASSIGN && contacts.isEmpty()) contacts = contactRepo.load()
+                if (tab == Tab.ASSIGN && contacts.isEmpty()) contacts = contactRepo.load(resources)
             }
 
             var logDeniedOnce by remember { mutableStateOf(false) }
@@ -234,7 +235,19 @@ class DialerActivity : BigLauActivity() {
                     groups = callLog.load(mode = config.phone.callGrouping)
                     // Gesehen ist gesehen: sonst stuende die Zahl weiter auf der Kachel,
                     // obwohl der Nutzer die Liste gerade gelesen hat.
+                    //
+                    // Zweimal, weil das eine ohne Schreibrecht nichts tut: `markMissedSeen`
+                    // raeumt das Kennzeichen des Systems auf, wenn wir duerfen - und der
+                    // gemerkte Zeitpunkt sorgt dafuer, dass die Zahl auch dann erlischt,
+                    // wenn wir nicht duerfen. Siehe MissedCalls.
                     callLog.markMissedSeen()
+                    val gesehen = MissedCalls.seenUpTo(
+                        config.phone.lastSeenMissedAt,
+                        groups.map { it.latest },
+                    )
+                    if (gesehen != config.phone.lastSeenMissedAt) {
+                        store.update { it.copy(phone = it.phone.copy(lastSeenMissedAt = gesehen)) }
+                    }
                 } else if (!logDeniedOnce) {
                     askLog.launch(Manifest.permission.READ_CALL_LOG)
                 }
@@ -358,8 +371,10 @@ class DialerActivity : BigLauActivity() {
                             },
                             onCallTypeSettings = {
                                 startActivity(
-                                    Intent(this@DialerActivity, SettingsActivity::class.java)
-                                        .putExtra(SettingsActivity.EXTRA_PAGE, SettingsActivity.PAGE_CALL_TYPES),
+                                    SettingsLink.toPage(
+                                        this@DialerActivity,
+                                        SettingsLink.PAGE_CALL_TYPES,
+                                    ),
                                 )
                             },
                             missedOnly = missedOnly,
@@ -483,16 +498,25 @@ private fun Keypad(
                     )
                 }
             } else {
-                Text(
-                    text = PhoneNumbers.forDisplay(typed),
-                    color = palette.onBackground,
-                    fontSize = dpSp(singleLineSizeSp(typed, 330f, 64f, 1f, maxSp = 40f)),
-                    fontWeight = FontWeight.Bold,
-                    // Beim Tippen soll die Zahl nicht bei jeder Ziffer springen. PLAN.md 3.7.
-                    style = TabellenZiffern,
-                    maxLines = 1,
-                    softWrap = false,
-                )
+                // Gemessen wird der Text, der auch dasteht: gerechnet wurde bisher mit
+                // `typed`, gezeichnet aber die gruppierte Fassung - die ist um jede Luecke
+                // laenger. Dazu eine feste Breite von 330 dp statt der wirklichen. Beides
+                // schnitt die Nummer ab, ohne ein Zeichen dafuer zu setzen.
+                val gezeigt = PhoneNumbers.forDisplay(typed)
+                val nummerStil = tabellenZiffern().copy(fontWeight = FontWeight.Bold)
+                BoxWithConstraints(Modifier.fillMaxWidth()) {
+                    Text(
+                        text = gezeigt,
+                        color = palette.onBackground,
+                        fontSize = dpSp(
+                            fittedSingleLineDp(gezeigt, nummerStil, 40f, maxWidth),
+                        ),
+                        // Beim Tippen soll die Zahl nicht bei jeder Ziffer springen. PLAN.md 3.7.
+                        style = nummerStil,
+                        maxLines = 1,
+                        softWrap = false,
+                    )
+                }
             }
         }
         Box(Modifier.weight(1f)) {

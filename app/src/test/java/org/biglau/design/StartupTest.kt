@@ -1,5 +1,6 @@
 package org.biglau.design
 
+import org.biglau.Quelltext
 import java.io.File
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -20,7 +21,7 @@ import org.junit.Test
 class StartupTest {
 
     /** Ohne Kommentare: eine Erklaerung darf die Regel nennen, ohne sie zu brechen. */
-    private val app = File("src/main/java/org/biglau/BigLauApp.kt")
+    private val app = Quelltext.datei("org/biglau/BigLauApp.kt")
         .readLines()
         .filterNot { it.trimStart().startsWith("//") || it.trimStart().startsWith("*") }
         .joinToString("\n")

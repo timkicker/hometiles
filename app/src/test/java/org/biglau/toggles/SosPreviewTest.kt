@@ -1,5 +1,6 @@
 package org.biglau.toggles
 
+import org.biglau.Quelltext
 import java.io.File
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -19,7 +20,8 @@ import org.junit.Test
  */
 class SosPreviewTest {
 
-    private val quelle = File("src/main/java/org/biglau/toggles/SosActivity.kt").readText()
+    private val quelle = // Ohne Kommentarzeilen: hier hängt daran, ob ein Alarm losgeht, der niemandem gilt.
+        Quelltext.ohneKommentare("org/biglau/toggles/SosActivity.kt")
 
     @Test
     fun `in der Probe wird nicht gesendet`() {
@@ -59,5 +61,29 @@ class SosPreviewTest {
             "es steht nicht dabei, ob ein Standort drin ist",
             "sos_preview_text_location" in quelle,
         )
+    }
+
+    /**
+     * Und die Probe schlägt auch keinen Alarm.
+     *
+     * Sie sagt von sich „derselbe Ablauf wie im Ernstfall. Es geht nichts hinaus" — und
+     * startete dabei die Sirene: `SosAlarm.start` stand **vor** der Abfrage auf die Probe.
+     * Der Ton läuft mit `USAGE_ALARM`, also an „Bitte nicht stören" vorbei und in voller
+     * Lautstärke. „Es geht nichts hinaus" stimmt dann für die Nachricht und für nichts sonst.
+     *
+     * Wer den Alarm hören will, hat dafür in den Einstellungen „Jetzt ausprobieren" mit
+     * einem Stopp-Knopf daneben — deliberat und beschriftet, statt als Nebenwirkung.
+     */
+    @Test
+    fun `in der Probe faengt kein Alarm an`() {
+        val probeStelle = quelle.indexOf("if (probe)")
+        val alarmStelle = quelle.indexOf("SosAlarm.start(")
+        assertTrue("SosAlarm.start fehlt ganz", alarmStelle > 0)
+        assertTrue(
+            "Der Alarm startet vor der Abfrage auf die Probe",
+            probeStelle in 1 until alarmStelle,
+        )
+        val vorAlarm = quelle.substring(0, alarmStelle)
+        assertTrue("Die Probe kehrt nicht vor dem Alarm zurueck", "return@LaunchedEffect" in vorAlarm)
     }
 }

@@ -1,5 +1,6 @@
 package org.biglau.res
 
+import org.biglau.Quelltext
 import java.io.File
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -19,7 +20,15 @@ import org.junit.Test
  */
 class CountPluralTest {
 
-    private val strings = File("src/main/res/values/strings.xml")
+    /**
+     * **Alle** englischen Textdateien, nicht die erste.
+     *
+     * Bis zum 3.9.2026 stand hier `.first()`. Solange es nur `:app` gab, war das dasselbe;
+     * seit `core:ui` eigene Texte hat, war es das nicht mehr — und ein zählender Text in
+     * einem anderen Modul wäre stillschweigend ungeprüft geblieben. Genau der Grund, aus dem
+     * es `Quelltext` gibt.
+     */
+    private val strings = Quelltext.texte("values")
 
     /**
      * Zahlen, die nichts zählen.
@@ -45,7 +54,7 @@ class CountPluralTest {
 
     private fun mitZahl(): List<String> =
         Regex("""<string name="([^"]+)">([^<]*%\d\${'$'}d[^<]*)</string>""")
-            .findAll(strings.readText())
+            .findAll(strings.joinToString("\n") { it.readText() })
             .map { it.groupValues[1] }
             .toList()
 

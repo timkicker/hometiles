@@ -1,5 +1,6 @@
 package org.biglau.wizard
 
+import org.biglau.Quelltext
 import java.io.File
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -18,7 +19,7 @@ import org.junit.Test
  */
 class WizardTextTest {
 
-    private val quelle = File("src/main/java/org/biglau/wizard/WizardActivity.kt").readText()
+    private val quelle = Quelltext.datei("org/biglau/wizard/WizardActivity.kt").readText()
 
     @Test
     fun `der Erklaertext folgt der eingestellten Groesse`() {

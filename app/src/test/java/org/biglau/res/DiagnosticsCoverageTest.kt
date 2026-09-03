@@ -1,5 +1,6 @@
 package org.biglau.res
 
+import org.biglau.Quelltext
 import java.io.File
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -16,7 +17,7 @@ import org.junit.Test
 class DiagnosticsCoverageTest {
 
     private val manifest = File("src/main/AndroidManifest.xml")
-    private val seite = File("src/main/java/org/biglau/settings/Diagnostics.kt")
+    private val seite = Quelltext.datei("org/biglau/settings/Diagnostics.kt")
 
     /** Nur diese Gruppe wird zur Laufzeit erteilt; der Rest kommt beim Installieren. */
     private val gefaehrlich = setOf(

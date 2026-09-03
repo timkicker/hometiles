@@ -10,7 +10,6 @@ import androidx.core.content.ContextCompat
 import org.biglau.ui.AppLocale
 import org.biglau.R
 import org.biglau.data.SosConfig
-import org.biglau.toggles.SosMessage
 
 /**
  * Warum nichts hinausging.

@@ -1,5 +1,6 @@
 package org.biglau.phone
 
+import org.biglau.Quelltext
 import java.io.File
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -18,7 +19,7 @@ import org.junit.Test
  */
 class CallConfirmTest {
 
-    private val quelle = File("src/main/java/org/biglau/phone/DialerActivity.kt").readText()
+    private val quelle = Quelltext.datei("org/biglau/phone/DialerActivity.kt").readText()
 
     /** Die Zeile öffnet die Rückfrage, statt zu wählen. */
     @Test

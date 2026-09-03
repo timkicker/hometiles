@@ -1,5 +1,6 @@
 package org.biglau.toggles
 
+import org.biglau.actions.SosMessage
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue

@@ -1,6 +1,7 @@
 package org.biglau.res
 
 import java.io.File
+import org.biglau.Quelltext
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -69,7 +70,7 @@ class DeviceMetricsTest {
     fun `die Anrufbildschirm-Rechnung nimmt dieselbe Hoehe`() {
         val nutzbar = Regex("""\| Nutzbar nach den Systemleisten \| \*\*\d+ × (\d+) dp\*\*""")
             .find(plan)!!.groupValues[1]
-        val test = File("src/test/java/org/biglau/phone/CallerPhotoSizeTest.kt").readText()
+        val test = Quelltext.datei("org/biglau/phone/CallerPhotoSizeTest.kt").readText()
         val wert = Regex("""val jelly = (\d+)f""").find(test)
             ?: throw AssertionError("CallerPhotoSizeTest nennt keine Hoehe mehr")
         assertEquals(

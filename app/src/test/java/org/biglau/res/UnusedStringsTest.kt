@@ -20,7 +20,7 @@ import org.junit.Test
  */
 class UnusedStringsTest {
 
-    private val res = File("src/main/res")
+    private val res = Quelltext.resWurzeln
 
     /**
      * Namen, die es zu Recht ohne Fundstelle im Quelltext gibt.
@@ -32,10 +32,11 @@ class UnusedStringsTest {
     private val ohneFundstelle = emptySet<String>()
 
     private fun namen(tag: String): List<String> {
-        val datei = File(res, "values/${if (tag == "plurals") "plurals" else "strings"}.xml")
-        assertTrue("$datei fehlt", datei.exists())
-        return Regex("<$tag name=\"([^\"]+)\"").findAll(datei.readText())
-            .map { it.groupValues[1] }.toList()
+        val dateien = Quelltext.texte("values", if (tag == "plurals") "plurals.xml" else "strings.xml")
+        assertTrue("values/$tag fehlt in jedem Modul", dateien.isNotEmpty())
+        return dateien.flatMap { datei ->
+            Regex("<$tag name=\"([^\"]+)\"").findAll(datei.readText()).map { it.groupValues[1] }
+        }.toList()
     }
 
     /** Alles, was auf einen Ressourcennamen zeigt: `R.string.x`, `R.plurals.x`, `@string/x`. */

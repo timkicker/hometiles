@@ -7,8 +7,10 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.util.DisplayMetrics
 import androidx.core.content.ContextCompat
+import org.biglau.data.ConfigStore
 import org.biglau.R
 import org.biglau.notify.NotificationRepository
+import org.biglau.phone.PhoneNumbers
 import org.biglau.notify.SystemPackagesReader
 import org.biglau.safety.CrashRecorder
 
@@ -18,6 +20,34 @@ import org.biglau.safety.CrashRecorder
  * ist nicht zu beantworten.
  */
 object Diagnostics {
+
+    /**
+     * Was nach den Systemleisten uebrig bleibt, in dp.
+     *
+     * **Die Falle steckt in der Ausgangszahl.** `resources.displayMetrics` liefert das
+     * Fenster *ohne* die Gestenleiste (am Jelly 2 480 x 832 statt 480 x 854). Zieht man
+     * davon die Einblendungen ab, geht die Gestenleiste **zweimal** weg, und die Seite
+     * meldet 565 dp, wo 581 nutzbar sind. Genau diese 565 standen deshalb auch in
+     * `PLAN.md` 3.2 - eine Zahl, die sich selbst bestaetigt hat, weil sie an beiden Stellen
+     * gleich falsch gerechnet war.
+     *
+     * Hier gehen deshalb die **ganzen** Bildschirmmasse hinein, und die Einblendungen
+     * genau einmal ab.
+     */
+    fun usableDp(
+        fullWidthPx: Int,
+        fullHeightPx: Int,
+        left: Int,
+        top: Int,
+        right: Int,
+        bottom: Int,
+        density: Float,
+    ): Pair<Int, Int>? {
+        if (density <= 0f) return null
+        val breite = (fullWidthPx - left - right).coerceAtLeast(0)
+        val hoehe = (fullHeightPx - top - bottom).coerceAtLeast(0)
+        return (breite / density).toInt() to (hoehe / density).toInt()
+    }
 
     /**
      * @param usableDp was nach Statusleiste und Gestenleiste uebrig bleibt - `null`, wenn
@@ -50,6 +80,28 @@ object Diagnostics {
             add(text(R.string.diag_font_scale) to "%.2f".format(context.resources.configuration.fontScale))
             add(text(R.string.diag_android) to "${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT})")
             add(text(R.string.diag_device) to "${Build.MANUFACTURER} ${Build.MODEL}")
+            // Ob die Systemschreibweise eingehaengt ist, sieht man einer Nummer nur an,
+            // wenn man ihr Land kennt: „+436 804 …" statt „+43 680 1234567" ist der
+            // Unterschied zwischen richtig und falsch abgeschrieben. Ohne diese Zeile ist
+            // das ein stiller Rueckschritt - siehe SystemNumbers.install.
+            add(
+                text(R.string.diag_number_format) to (
+                    PhoneNumbers.systemFormat("+15550100", PhoneNumbers.region)
+                        ?.let {
+                            // Nicht die Landeskennung ("at"), sondern der Name des Landes.
+                            // Die Kennung beantwortet die Frage nicht, die jemand auf
+                            // dieser Seite hat, und gross geschrieben wäre sie ausserdem
+                            // schlecht zu lesen - siehe PlainLanguageTest, der genau das
+                            // hier abgefangen hat.
+                            val sprache = context.resources.configuration.locales[0]
+                            val land = PhoneNumbers.region
+                                ?.let { kennung -> java.util.Locale("", kennung).getDisplayCountry(sprache) }
+                                ?.takeIf { name -> name.isNotBlank() }
+                            if (land != null) String.format(text(R.string.diag_number_country), land) else it
+                        }
+                        ?: text(R.string.diag_number_plain)
+                    ),
+            )
             add(text(R.string.diag_home_role) to yesNo(holdsHomeRole(context), text))
             add(text(R.string.diag_notification_access) to yesNo(NotificationRepository.isEnabled(context), text))
             val system = SystemPackagesReader.read(context)
@@ -65,6 +117,25 @@ object Diagnostics {
             add(text(R.string.diag_read_call_log) to yesNo(granted(context, Manifest.permission.READ_CALL_LOG), text))
             add(text(R.string.diag_write_call_log) to yesNo(granted(context, Manifest.permission.WRITE_CALL_LOG), text))
             add(text(R.string.diag_location) to yesNo(granted(context, Manifest.permission.ACCESS_FINE_LOCATION), text))
+            // Warum kommt die Erinnerung an ungelesene Nachrichten spät? Der Wecker läuft
+            // über `setAndAllowWhileIdle` und wird im Doze deshalb zwar geweckt, aber
+            // gedrosselt - bei kurzen Abständen sieht das nach einem Fehler aus und ist
+            // keiner. Siehe MessageReminderReceiver.
+            val sparen = runCatching {
+                context.getSystemService(android.os.PowerManager::class.java)
+                    ?.isIgnoringBatteryOptimizations(context.packageName)
+            }.getOrNull()
+            add(
+                text(R.string.diag_battery_saving) to when (sparen) {
+                    true -> text(R.string.diag_battery_saving_off)
+                    false -> text(R.string.diag_battery_saving_on)
+                    null -> text(R.string.diag_none)
+                },
+            )
+            // Gehört zu den Fehlerspuren: wenn eine unlesbare Einstellungsdatei beiseite
+            // gelegt wurde, sagt das der Assistent genau einmal - danach weiss niemand
+            // mehr davon, obwohl die alten Einstellungen noch da sind.
+            add(text(R.string.diag_rescued) to yesNo(ConfigStore.get(context).hasRescuedFile, text))
             val recorder = CrashRecorder.get(context)
             add(text(R.string.diag_failed_starts) to recorder.failedStarts.toString())
             add(

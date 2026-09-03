@@ -1,0 +1,83 @@
+package org.biglau.tiles
+
+import org.biglau.data.Button
+import org.biglau.data.ButtonAction
+
+/**
+ * Die Bearbeitungsschritte einer Kachel als reine Funktionen. Bewusst getrennt von der
+ * Oberflaeche: hier entscheidet sich, was der Nutzer beim Belegen verliert und was nicht.
+ */
+object TileEdits {
+
+    /** Farbe automatisch aus der Rasterposition, damit ein neuer Screen sofort sortiert wirkt. */
+    fun autoColorIndex(x: Int, y: Int, cols: Int, paletteSize: Int): Int {
+        require(cols > 0) { "Raster braucht mindestens eine Spalte" }
+        require(paletteSize > 0) { "Palette darf nicht leer sein" }
+        return (y * cols + x).mod(paletteSize)
+    }
+
+    /**
+     * Neue Aktion setzen. Eine selbst vergebene Beschriftung bleibt erhalten, wenn sie zur
+     * neuen Aktion noch passt - sonst waere jede Umbelegung ein stiller Datenverlust.
+     * Bei einem Wechsel der Aktionsart faellt sie weg, weil "Oma" auf einer Kamera-Kachel
+     * schlimmer ist als gar keine Beschriftung.
+     */
+    fun withAction(button: Button, action: ButtonAction): Button {
+        val keepLabel = button.label != null && sameKind(button.action, action)
+        return button.copy(action = action, label = if (keepLabel) button.label else null)
+    }
+
+    /** Leere Eingabe heisst "automatisch beschriften", nicht "leere Beschriftung". */
+    fun withLabel(button: Button, label: String?): Button =
+        button.copy(label = label?.trim()?.takeIf { it.isNotEmpty() })
+
+    /**
+     * Eine Farbe aus der Palette, oder null fuer "automatisch aus der Position".
+     * Loescht dabei einen frei gewaehlten Ton - sonst gaebe es zwei Antworten.
+     */
+    fun withColorIndex(button: Button, index: Int?): Button =
+        button.copy(colorIndex = index ?: -1, colorHue = null)
+
+    /** Ein frei gewaehlter Farbton. Loescht die Palettenwahl, sonst gaebe es zwei Antworten. */
+    fun withColorHue(button: Button, hue: Float): Button =
+        button.copy(colorHue = hue, colorIndex = -1)
+
+    /**
+     * Ein selbst gewaehltes Symbol, oder null fuer "automatisch aus der Aktion".
+     *
+     * Ein leerer Name zaehlt als keiner - sonst legte ein Fehlgriff eine Kachel ohne Symbol
+     * an, und der Weg zurueck waere nicht zu erraten.
+     */
+    fun withIcon(button: Button, name: String?): Button =
+        button.copy(iconName = name?.takeIf { it.isNotBlank() })
+
+    /**
+     * Gibt es an dieser Kachel ueberhaupt etwas zu leeren?
+     *
+     * Am Geraet gesehen: der Editor einer **leeren** Kachel bot „Kachel leeren" an - in
+     * Warnfarbe, ganz unten, gleich ueber „Fertig". Ein Knopf, der nichts tut, und
+     * ausgerechnet der auffaelligste. Zwei Zeilen darueber steht im selben Bildschirm der
+     * Grundsatz schon als Kommentar: „Eine Zeile anzubieten, die dann sagt ‚geht nicht',
+     * ist schlechter als sie wegzulassen."
+     *
+     * Verglichen wird gegen die frische Kachel, nicht nur gegen die Aktion: eine leere
+     * Kachel darf eine eigene Beschriftung tragen (der Startbildschirm zeigt sie statt
+     * „Antippen zum Belegen"), und die *ist* dann etwas zum Leeren.
+     */
+    fun clearable(button: Button): Boolean = button != Button()
+
+    fun withLongPress(button: Button, action: ButtonAction?): Button =
+        button.copy(longPress = action?.takeIf { it != ButtonAction.None })
+
+    private fun sameKind(a: ButtonAction, b: ButtonAction): Boolean = when (a) {
+        is ButtonAction.App -> b is ButtonAction.App
+        is ButtonAction.Contact -> b is ButtonAction.Contact
+        is ButtonAction.GoToScreen -> b is ButtonAction.GoToScreen
+        is ButtonAction.Folder -> b is ButtonAction.Folder
+        is ButtonAction.Link -> b is ButtonAction.Link
+        is ButtonAction.Shortcut -> b is ButtonAction.Shortcut
+        is ButtonAction.Widget -> b is ButtonAction.Widget
+        is ButtonAction.Action -> b is ButtonAction.Action
+        ButtonAction.None -> b == ButtonAction.None
+    }
+}

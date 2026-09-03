@@ -1,5 +1,6 @@
 package org.biglau.res
 
+import org.biglau.Quelltext
 import java.io.File
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -21,12 +22,7 @@ import org.junit.Test
  */
 class QuotesTest {
 
-    private val dateien = listOf(
-        "src/main/res/values/strings.xml",
-        "src/main/res/values-de/strings.xml",
-        "src/main/res/values/plurals.xml",
-        "src/main/res/values-de/plurals.xml",
-    ).map(::File)
+    private val dateien = Quelltext.alleTexte()
 
     @Test
     fun `kein gerades Anfuehrungszeichen in einem Text`() {

@@ -1,5 +1,6 @@
 package org.biglau.ui
 
+import org.biglau.Quelltext
 import java.io.File
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -17,7 +18,7 @@ import org.junit.Test
  */
 class ContactTileInitialsTest {
 
-    private val zweig = File("src/main/java/org/biglau/ui/HomeScreenView.kt")
+    private val zweig = Quelltext.datei("org/biglau/ui/HomeScreenView.kt")
         .readText()
         .substringAfter("is ButtonAction.Contact -> BigTile(")
         .substringBefore("is ButtonAction.Shortcut")

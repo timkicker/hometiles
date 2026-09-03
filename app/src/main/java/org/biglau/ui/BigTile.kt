@@ -40,6 +40,7 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -151,8 +152,12 @@ fun BigTile(
     val zoneDp = labelZoneDp(cellHeight.value, labelWunsch)
     // Erst kleiner werden, dann abschneiden: siehe labelLadder. Die Zone bleibt dabei so
     // hoch wie beim Wunsch - sonst huepfte das Symbol darueber, je nach Wortlaenge.
+    // Vom Stil aus, der wirklich gezeichnet wird - sonst misst die Kachel in der
+    // Standardschrift und zeichnet in der des Nutzers. Hyperlegible ist breiter; die
+    // Messung sagte dann „passt", wo es nicht passte.
+    val grundstil = LocalTextStyle.current
     val stufen = labelLadder(labelWunsch).map { groesse ->
-        groesse to TextStyle(
+        groesse to grundstil.copy(
             fontSize = dpSp(groesse),
             lineHeight = dpSp(groesse * 1.1f),
             fontWeight = FontWeight.Bold,

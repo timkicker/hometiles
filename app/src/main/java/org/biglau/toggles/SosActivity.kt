@@ -43,9 +43,9 @@ import org.biglau.actions.Sos
 import org.biglau.actions.SosLocation
 import org.biglau.actions.SosFailure
 import org.biglau.data.ConfigStore
-import org.biglau.settings.SettingsActivity
 import org.biglau.ui.BigHeading
 import org.biglau.ui.BigRow
+import org.biglau.ui.SettingsLink
 import org.biglau.ui.dpSp
 import org.biglau.ui.theme.BigLauTheme
 import org.biglau.ui.theme.LocalBigPalette
@@ -111,9 +111,6 @@ class SosActivity : BigLauActivity() {
                     if (remaining == 0) break
                     delay(200)
                 }
-                // Erst jetzt, nicht schon waehrend des Countdowns: ein abgebrochener
-                // Fehlalarm bleibt still. Siehe SosAlarm.
-                SosAlarm.start(this@SosActivity, sos)
                 if (probe) {
                     // Kein Sos.send: eine Probe, die sendet, ist keine. Gezeigt wird aber,
                     // **was** hinausginge - sonst liesse sich der Text nur herausfinden,
@@ -127,6 +124,15 @@ class SosActivity : BigLauActivity() {
                     previewLocation = mitStandort
                     return@LaunchedEffect
                 }
+                // Erst jetzt, nicht schon waehrend des Countdowns: ein abgebrochener
+                // Fehlalarm bleibt still. Siehe SosAlarm.
+                //
+                // Und **nach** der Probe, nicht davor: die Probe sagt von sich „derselbe
+                // Ablauf wie im Ernstfall, es geht nichts hinaus" - und startete dabei die
+                // Sirene, die lauteste Sache dieser App, an Bitte-nicht-stoeren vorbei. Wer
+                // den Alarm hoeren will, hat dafuer in den Einstellungen „Jetzt ausprobieren"
+                // samt Stopp-Knopf; eine Probe, die das Haus weckt, ist keine.
+                SosAlarm.start(this@SosActivity, sos)
                 val outcome = Sos.send(this@SosActivity, sos)
                 result = when {
                     outcome.ok && outcome.hadLocation ->
@@ -175,25 +181,7 @@ class SosActivity : BigLauActivity() {
                                     fontSize = dpSp(17f),
                                     modifier = Modifier.padding(horizontal = 4.dp),
                                 )
-                                // Der Weg dorthin statt der Wegbeschreibung: wer den
-                                // SOS-Knopf drueckt, will nicht lesen, wo etwas einzutragen
-                                // waere. Dieselbe Regel wie bei der Anrufliste, die zu den
-                                // Anrufarten fuehrt.
-                                BigRow(
-                                    label = stringResource(R.string.sos_open_settings),
-                                    icon = Icons.Filled.Settings,
-                                    surface = palette.surfaceAccent,
-                                    onClick = {
-                                        startActivity(
-                                            Intent(this@SosActivity, SettingsActivity::class.java)
-                                                .putExtra(
-                                                    SettingsActivity.EXTRA_PAGE,
-                                                    SettingsActivity.PAGE_SOS,
-                                                ),
-                                        )
-                                        finish()
-                                    },
-                                )
+                                NotrufEinrichtenZeile()
                                 BigRow(stringResource(R.string.dialog_close), onClick = { finish() })
                             }
 
@@ -230,6 +218,11 @@ class SosActivity : BigLauActivity() {
                                             .padding(horizontal = 4.dp),
                                     )
                                 }
+                                // Wer die Probe macht und noch keine Kontakte hat, liest
+                                // hier denselben Satz - und stand bis zum 3.9.2026 ohne Weg
+                                // dorthin da, ausgerechnet an der Stelle, an der jemand den
+                                // Notruf gerade einrichtet.
+                                if (!configured) NotrufEinrichtenZeile()
                                 BigRow(stringResource(R.string.dialog_close), onClick = { finish() })
                             }
 
@@ -280,4 +273,28 @@ class SosActivity : BigLauActivity() {
         /** Probe: derselbe Ablauf, aber es geht nichts hinaus. */
         const val EXTRA_PREVIEW = "biglau.sos.preview"
     }
+
+    /**
+     * Der Weg dorthin statt der Wegbeschreibung: wer den SOS-Knopf drueckt, will nicht
+     * lesen, wo etwas einzutragen waere. Dieselbe Regel wie bei der Anrufliste, die zu den
+     * Anrufarten fuehrt.
+     *
+     * Steht als eigene Funktion da, weil beide Zweige sie brauchen - der Ernstfall ohne
+     * Kontakte und die Probe ohne Kontakte. Zweimal hingeschrieben waere es zweimal zu
+     * pflegen, und `SlopRulesTest` haette es ohnehin gemeldet: zwei gleiche Symbole in
+     * einer Funktion.
+     */
+    @Composable
+    private fun NotrufEinrichtenZeile() {
+        BigRow(
+            label = stringResource(R.string.sos_open_settings),
+            icon = Icons.Filled.Settings,
+            surface = LocalBigPalette.current.surfaceAccent,
+            onClick = {
+                startActivity(SettingsLink.toPage(this@SosActivity, SettingsLink.PAGE_SOS))
+                finish()
+            },
+        )
+    }
+
 }

@@ -23,11 +23,17 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -74,36 +80,76 @@ fun ClockContent(
     val timeFormat = remember(twentyFourHour, locale) {
         SimpleDateFormat(if (twentyFourHour) "HH:mm" else "h:mm a", locale)
     }
-    val datePattern = bestDatePattern(ClockFormat.dateSkeleton(clock, onTile = true), locale)
-    val dateFormat = remember(locale, datePattern) {
-        datePattern?.let { SimpleDateFormat(it, locale) }
-    }
-
     val timeText = timeFormat.format(Date(now))
     val timeSize = singleLineSizeSp(timeText, cellWidth.value, cellHeight.value, scale)
+    val dateSize = (timeSize * 0.3f).coerceAtLeast(12f)
 
     Column(
         modifier = modifier.fillMaxSize().padding(8.dp),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Text(
-            text = timeText,
-            style = TabellenZiffern,
-            color = palette.onTile,
-            fontSize = dpSp(timeSize),
-            fontWeight = FontWeight.Bold,
-            maxLines = 1,
-            softWrap = false,
-        )
-        if (dateFormat != null) {
-            Text(
-                text = dateFormat.format(Date(now)),
-                color = palette.onTile,
-                fontSize = dpSp((timeSize * 0.3f).coerceAtLeast(12f)),
-                textAlign = TextAlign.Center,
-                maxLines = 2,
+        // Gemessen statt geschaetzt: `singleLineSizeSp` rechnet mit einer mittleren
+        // Zeichenbreite, und bei 200 % Textgroesse und Hyperlegible stand hier „2:33" -
+        // das „AM" war abgeschnitten. Siehe fittedSingleLineDp.
+        val zeitStil = tabellenZiffern().copy(fontWeight = FontWeight.Bold)
+        BoxWithConstraints(Modifier.fillMaxWidth()) {
+            val zeitSp = fittedSingleLineDp(
+                text = timeText,
+                stil = zeitStil,
+                wunschDp = timeSize,
+                maxWidth = maxWidth,
             )
+            Text(
+                text = timeText,
+                style = zeitStil,
+                color = palette.onTile,
+                fontSize = dpSp(zeitSp),
+                maxLines = 1,
+                softWrap = false,
+            )
+        }
+        // Erst kuerzen, dann umbrechen: „Wednesday, September 2" passte auf der Kachel
+        // nicht in eine Zeile, und in der zweiten stand die 2 allein. Gemessen wird gegen
+        // die Breite, die die Kachel wirklich hergibt - `cellWidth` ist die Zelle, nicht
+        // der Platz darin -, und mit dem laengsten Datum des Jahres statt dem heutigen.
+        val stufen = ClockFormat.dateSkeletons(clock, onTile = true)
+        if (stufen.isNotEmpty()) {
+            val messer = rememberTextMeasurer()
+            val dichte = LocalDensity.current
+            val dateSp = dpSp(dateSize)
+            // Mit dem Stil messen, der auch gezeichnet wird: die Schrift des Nutzers ist
+            // breiter als die Standardschrift, und ein frisch gebautes TextStyle haette
+            // sie nicht. Genau daran ist der erste Versuch gescheitert - die Messung sagte
+            // „passt", und auf dem Geraet brach es trotzdem um.
+            val grundstil = LocalTextStyle.current
+            BoxWithConstraints(Modifier.fillMaxWidth()) {
+                val breite = with(dichte) { maxWidth.toPx() }.toInt().coerceAtLeast(1)
+                val stil = grundstil.copy(fontSize = dateSp)
+                val formate = remember(locale, stufen) {
+                    stufen.mapNotNull { bestDatePattern(it, locale) }
+                        .map { SimpleDateFormat(it, locale) }
+                }
+                val dateFormat = remember(formate, breite, dateSp) {
+                    formate.firstOrNull { format ->
+                        !messer.measure(
+                            text = ClockFormat.longestDate(format),
+                            style = stil,
+                            maxLines = 1,
+                            constraints = Constraints(maxWidth = breite),
+                        ).hasVisualOverflow
+                    } ?: formate.lastOrNull()
+                }
+                if (dateFormat != null) {
+                    Text(
+                        text = dateFormat.format(Date(now)),
+                        color = palette.onTile,
+                        fontSize = dateSp,
+                        textAlign = TextAlign.Center,
+                        maxLines = 2,
+                    )
+                }
+            }
         }
     }
 }
@@ -132,18 +178,24 @@ fun BatteryContent(
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Text(
-            text = percentText,
-            style = TabellenZiffern,
-            // Nicht in Warnfarbe: gemessen kommt das Rot auf jedem der sechs Kacheltoene
-            // auf 1,4 bis 1,8 zu 1 - unter jeder Schwelle aus PLAN.md 3.3, und das
-            // ausgerechnet bei neun Prozent. Die Zahl selbst ist die Warnung.
-            color = palette.onTile,
-            fontSize = dpSp(numberSize),
-            fontWeight = FontWeight.Bold,
-            maxLines = 1,
-            softWrap = false,
-        )
+        // Gemessen statt geschaetzt - siehe fittedSingleLineDp. Bei „100 %" und grosser
+        // Schrift waere sonst das Prozentzeichen der erste Kandidat zum Abschneiden.
+        val zahlStil = tabellenZiffern().copy(fontWeight = FontWeight.Bold)
+        BoxWithConstraints(Modifier.fillMaxWidth()) {
+            Text(
+                text = percentText,
+                // Nicht in Warnfarbe: gemessen kommt das Rot auf jedem der sechs Kacheltoene
+                // auf 1,4 bis 1,8 zu 1 - unter jeder Schwelle aus PLAN.md 3.3, und das
+                // ausgerechnet bei neun Prozent. Die Zahl selbst ist die Warnung.
+                style = zahlStil,
+                color = palette.onTile,
+                fontSize = dpSp(
+                    fittedSingleLineDp(percentText, zahlStil, numberSize, maxWidth),
+                ),
+                maxLines = 1,
+                softWrap = false,
+            )
+        }
         if (charging) {
             Icon(
                 imageVector = Icons.Filled.Bolt,
@@ -230,14 +282,26 @@ fun SignalContent(
             }
         }
         if (wort.isNotEmpty()) {
-            Text(
-                text = wort,
-                color = palette.onTile,
-                fontSize = dpSp(singleLineSizeSp(wort, cellWidth.value, cellHeight.value, scale, maxSp = 22f)),
-                fontWeight = FontWeight.Bold,
-                maxLines = 1,
-                modifier = Modifier.padding(top = 8.dp),
-            )
+            val wortStil = LocalTextStyle.current.copy(fontWeight = FontWeight.Bold)
+            BoxWithConstraints(Modifier.fillMaxWidth().padding(top = 8.dp)) {
+                Text(
+                    text = wort,
+                    color = palette.onTile,
+                    style = wortStil,
+                    fontSize = dpSp(
+                        fittedSingleLineDp(
+                            text = wort,
+                            stil = wortStil,
+                            wunschDp = singleLineSizeSp(
+                                wort, cellWidth.value, cellHeight.value, scale, maxSp = 22f,
+                            ),
+                            maxWidth = maxWidth,
+                        ),
+                    ),
+                    maxLines = 1,
+                    softWrap = false,
+                )
+            }
         }
     }
 }

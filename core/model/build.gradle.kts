@@ -19,6 +19,12 @@ kotlin {
     }
 }
 
+// Der Round-Trip-Test gegen eine echte Konfiguration bekommt ihren Pfad durchgereicht -
+// dieselbe Durchreiche wie in :app, denn der Test ist mit dem Modell hierher gewandert.
+tasks.withType<Test> {
+    System.getenv("BIGLAU_REAL_CONFIG")?.let { environment("BIGLAU_REAL_CONFIG", it) }
+}
+
 dependencies {
     api(libs.kotlinx.serialization.json)
     testImplementation(libs.junit)

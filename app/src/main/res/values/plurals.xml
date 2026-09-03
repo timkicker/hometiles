@@ -74,10 +74,6 @@
         <item quantity="one">one second</item>
         <item quantity="other">%1$d seconds</item>
     </plurals>
-    <plurals name="transfer_confirm">
-        <item quantity="one">This backup holds one screen with %2$d tiles. Loading it replaces your current setup.</item>
-        <item quantity="other">This backup holds %1$d screens with %2$d tiles. Loading it replaces your current setup.</item>
-    </plurals>
     <plurals name="screen_copy_done">
         <item quantity="one">“%1$s” is ready with one tile. A tile leading there is on this screen.</item>
         <item quantity="other">“%1$s” is ready with %2$d tiles. A tile leading there is on this screen.</item>

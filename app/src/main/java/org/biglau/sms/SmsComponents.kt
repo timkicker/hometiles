@@ -1,6 +1,5 @@
 package org.biglau.sms
 
-import org.biglau.notify.RespondNotice
 import android.app.Service
 import android.content.BroadcastReceiver
 import android.content.ContentValues
@@ -10,7 +9,6 @@ import android.os.IBinder
 import android.provider.Telephony
 import org.biglau.contacts.ContactRepository
 import org.biglau.data.ConfigStore
-import org.biglau.notify.SmsNotifications
 
 /**
  * Die vier Pflichtkomponenten einer Standard-SMS-App.

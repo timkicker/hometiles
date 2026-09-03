@@ -1,5 +1,6 @@
 package org.biglau.ui
 
+import org.biglau.Quelltext
 import java.io.File
 import org.biglau.ui.theme.Tokens
 import org.biglau.ui.theme.contrastRatio
@@ -28,11 +29,11 @@ class TileDangerTest {
 
     /** Die Dateien, die *auf* einer Kachel zeichnen. */
     private val aufKacheln = listOf(
-        "src/main/java/org/biglau/ui/InfoTiles.kt",
-        "src/main/java/org/biglau/ui/BigTile.kt",
-        "src/main/java/org/biglau/ui/WidgetTile.kt",
-        "src/main/java/org/biglau/ui/HomeScreenView.kt",
-    ).map(::File)
+        "org/biglau/ui/InfoTiles.kt",
+        "org/biglau/ui/BigTile.kt",
+        "org/biglau/ui/WidgetTile.kt",
+        "org/biglau/ui/HomeScreenView.kt",
+    ).map(Quelltext::datei)
 
     @Test
     fun `die Warnfarbe faellt auf jedem Kachelton durch`() {

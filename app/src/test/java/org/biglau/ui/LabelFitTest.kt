@@ -1,5 +1,6 @@
 package org.biglau.ui
 
+import org.biglau.Quelltext
 import java.io.File
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -42,7 +43,7 @@ class LabelFitTest {
     /** Und die Messung selbst steht in der Kachel, nicht als Schätzung daneben. */
     @Test
     fun `gemessen wird mit dem TextMeasurer`() {
-        val quelle = File("src/main/java/org/biglau/ui/BigTile.kt").readText()
+        val quelle = Quelltext.datei("org/biglau/ui/BigTile.kt").readText()
         assertTrue("rememberTextMeasurer fehlt", "rememberTextMeasurer()" in quelle)
         assertTrue("hasVisualOverflow fehlt", "hasVisualOverflow" in quelle)
     }

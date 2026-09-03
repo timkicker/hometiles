@@ -3,7 +3,7 @@ package org.biglau
 import android.app.Application
 import org.biglau.apps.AppRepository
 import org.biglau.data.ConfigStore
-import org.biglau.phone.PhoneNumbers
+import org.biglau.phone.SystemNumbers
 import org.biglau.safety.CrashRecorder
 
 class BigLauApp : Application() {
@@ -24,14 +24,11 @@ class BigLauApp : Application() {
         Thread {
             ConfigStore.get(this)
             AppRepository.get(this)
-            // Das Land fuer Nummern ohne Vorwahl. Ohne diese Auskunft schreibt BigLau
-            // Rufnummern in blossen Dreierbloecken, und die Laendervorwahl klebt am
-            // Ortsnetz - siehe PhoneNumbers.forDisplay. Braucht keine Berechtigung.
-            PhoneNumbers.region = runCatching {
-                getSystemService(android.telephony.TelephonyManager::class.java)
-                    ?.simCountryIso
-                    ?.takeIf { it.isNotBlank() }
-            }.getOrNull()
+            // Schreibweise und Land fuer Nummern ohne Vorwahl. Ohne diese Auskunft
+            // schreibt BigLau Rufnummern in blossen Dreierbloecken, und die
+            // Laendervorwahl klebt am Ortsnetz - siehe PhoneNumbers.forDisplay.
+            // Braucht keine Berechtigung.
+            SystemNumbers.install(this)
         }.start()
     }
 }

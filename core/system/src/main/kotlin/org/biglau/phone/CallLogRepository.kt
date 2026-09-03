@@ -72,16 +72,18 @@ class CallLogRepository(context: Context) {
      * Wie viele verpasste Anrufe noch niemand gesehen hat.
      *
      * `NEW = 1` ist die Auskunft des Systems darueber - dieselbe, aus der die Meldung
-     * entsteht. Ohne Leseerlaubnis null: eine Zahl zu raten waere schlimmer als keine.
+     * entsteht. Dazu [since]: nur Anrufe, die juenger sind als der letzte Blick in die
+     * Liste. Siehe [MissedCalls], dort steht warum. Ohne Leseerlaubnis null: eine Zahl zu
+     * raten waere schlimmer als keine.
      */
-    suspend fun newMissedCount(): Int = withContext(Dispatchers.IO) {
+    suspend fun newMissedCount(since: Long = 0L): Int = withContext(Dispatchers.IO) {
         if (!hasPermission()) return@withContext 0
         runCatching {
             appContext.contentResolver.query(
                 CallLog.Calls.CONTENT_URI,
                 arrayOf(CallLog.Calls._ID),
-                "${CallLog.Calls.TYPE} = ? AND ${CallLog.Calls.NEW} = 1",
-                arrayOf(CallLog.Calls.MISSED_TYPE.toString()),
+                MissedCalls.selection(),
+                MissedCalls.arguments(since),
                 null,
             )?.use { it.count } ?: 0
         }.getOrDefault(0)
@@ -91,6 +93,16 @@ class CallLogRepository(context: Context) {
      * Verpasste Anrufe als gesehen kennzeichnen - genau das tut eine Telefon-App, wenn
      * jemand die Liste oeffnet. Ohne diesen Schritt bliebe die Zahl auf der Kachel stehen,
      * obwohl der Nutzer sie gerade gelesen hat.
+     *
+     * **Und genau das passiert auf dem Telefon des Nutzers.** `WRITE_CALL_LOG` steht dort
+     * auf `granted=false` (nachgesehen am 03.09.2026), also gibt diese Funktion still 0
+     * zurueck und die Kachel blinkt weiter. Der Rueckgabewert wird beim Aufruf nicht
+     * ausgewertet - er koennte es auch nicht sinnvoll, denn eine Meldung "konnte nicht als
+     * gelesen markiert werden" hilft niemandem.
+     *
+     * Der Ausweg gehoert nicht hierher, sondern eine Ebene hoeher: BigLau kann sich selbst
+     * merken, wann die Liste zuletzt offen war, und nur Neueres zaehlen. Dann braucht es
+     * fuer ein Abzeichen gar kein Schreibrecht. Steht als offener Punkt in `PLAN.md` 4.6.
      */
     suspend fun markMissedSeen(): Int = withContext(Dispatchers.IO) {
         if (!canWrite()) return@withContext 0

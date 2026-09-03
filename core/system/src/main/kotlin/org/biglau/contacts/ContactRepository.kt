@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.ContentUris
 import android.content.ContentValues
 import android.content.Context
+import android.content.res.Resources
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
@@ -51,12 +52,19 @@ class ContactRepository(context: Context) {
         }.getOrNull()?.takeIf { it.isNotBlank() }
     }
 
-    suspend fun load(): List<PhoneContact> = withContext(Dispatchers.IO) {
-        if (!hasPermission()) return@withContext emptyList()
-        ContactMerge.merge(readRows())
-    }
+    /**
+     * [resources] liefert die Bezeichnungen der Nummern („Mobile", „Home"). Sie kommen aus
+     * dem System und nicht aus unseren Texten - deshalb muss der Aufrufer sagen, in welcher
+     * Sprache: eine Activity gibt ihre eigenen Ressourcen, die schon in der Sprache der App
+     * stehen. Ohne Angabe die des Telefons.
+     */
+    suspend fun load(resources: Resources = appContext.resources): List<PhoneContact> =
+        withContext(Dispatchers.IO) {
+            if (!hasPermission()) return@withContext emptyList()
+            ContactMerge.merge(readRows(resources))
+        }
 
-    private fun readRows(): List<ContactRow> {
+    private fun readRows(resources: Resources): List<ContactRow> {
         val projection = arrayOf(
             ContactsContract.CommonDataKinds.Phone.CONTACT_ID,
             ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME_PRIMARY,
@@ -90,7 +98,7 @@ class ContactRepository(context: Context) {
                     contactId = cursor.getLong(idIndex),
                     name = cursor.getString(nameIndex).orEmpty(),
                     number = number,
-                    label = customLabel ?: typeLabel(type),
+                    label = typeLabel(resources, type, customLabel),
                     photoUri = cursor.getString(photoIndex),
                     starred = cursor.getInt(starredIndex) == 1,
                 )
@@ -99,12 +107,24 @@ class ContactRepository(context: Context) {
         return rows
     }
 
-    private fun typeLabel(type: Int): String? = when (type) {
-        ContactsContract.CommonDataKinds.Phone.TYPE_MOBILE -> "Mobil"
-        ContactsContract.CommonDataKinds.Phone.TYPE_HOME -> "Privat"
-        ContactsContract.CommonDataKinds.Phone.TYPE_WORK -> "Arbeit"
-        else -> null
-    }
+    /**
+     * Die Bezeichnung einer Nummer - „Mobile", „Home", „Work" und die zwei Dutzend anderen.
+     *
+     * Hier stand eine eigene Zuordnung mit **drei fest deutschen Woertern** („Mobil",
+     * „Privat", „Arbeit"). Auf dem englischen Telefon des Nutzers stand deshalb unter der
+     * Nummer seines Vaters „Mobil", waehrend daneben „Call straight away" stand. Alles
+     * andere - Fax, Pager, Hauptanschluss, eigene Bezeichnungen - hatte gar keine.
+     *
+     * `getTypeLabel` ist genau dafuer da: es uebersetzt in die Sprache der uebergebenen
+     * Ressourcen und nimmt bei einer eigenen Bezeichnung diese.
+     */
+    private fun typeLabel(resources: Resources, type: Int, custom: String?): String? =
+        runCatching {
+            ContactsContract.CommonDataKinds.Phone
+                .getTypeLabel(resources, type, custom)
+                ?.toString()
+                ?.takeIf { it.isNotBlank() }
+        }.getOrNull() ?: custom?.takeIf { it.isNotBlank() }
 
     fun canWrite(): Boolean =
         ContextCompat.checkSelfPermission(appContext, Manifest.permission.WRITE_CONTACTS) ==

@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Die Texte des Design-Systems. Sie liegen hier und nicht in :app, weil der Quelltext, der
+  sie nennt, hier liegt: eine Ressource, die woanders wohnt als ihr Aufrufer, faellt beim
+  naechsten Umzug lautlos weg.
+-->
+<resources>
+    <string name="intent_no_app">Keine App auf diesem Telefon kann das</string>
+    <string name="intent_no_permission">BigLau darf das nicht</string>
+    <string name="keypad_backspace">Letzte Ziffer löschen</string>
+    <string name="search_clear">Suche löschen</string>
+    <string name="permission_allow">Zugriff erlauben</string>
+    <string name="permission_blocked">Android fragt nicht mehr. In den Systemeinstellungen lässt es sich trotzdem erlauben.</string>
+    <string name="permission_open_settings">Systemeinstellungen öffnen</string>
+    <string name="scroll_down">Nach unten blättern</string>
+    <string name="scroll_up">Nach oben blättern</string>
+</resources>

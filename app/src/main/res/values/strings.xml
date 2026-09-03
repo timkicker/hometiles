@@ -238,7 +238,6 @@
     <string name="security_wrong_pin">That PIN is not right.</string>
     <string name="dialog_cancel">Cancel</string>
     <string name="security_pin_rules">A PIN is 4 to 8 digits.</string>
-    <string name="keypad_backspace">Delete last digit</string>
     <string name="settings_behaviour">Blinking tiles</string>
     <string name="blink_explainer">A tile can blink when there is something new. BigLau counts missed calls and unread messages itself. For every other app it needs notification access; it only counts, it never reads the content.</string>
     <string name="blink_on">Blinking is on</string>
@@ -286,13 +285,15 @@
     <string name="transfer_imported">Loaded.</string>
     <string name="transfer_failed">Could not save the file.</string>
     <string name="transfer_bad_file">That file is not a BigLau backup. Nothing was changed.</string>
-    <string name="transfer_unreadable">This file could not be opened. Has it been moved or deleted?</string>
+    <string name="transfer_unreadable">BigLau could not open this file. It may have been moved or deleted, or BigLau may not be allowed to read it.</string>
+    <string name="transfer_confirm_plain">This backup holds %1$s with %2$s. Loading it replaces your current setup.</string>
+    <string name="transfer_confirm_folders">This backup holds %1$s with %2$s and %3$s. Loading it replaces your current setup.</string>
     <string name="transfer_confirm_yes">Load it</string>
     <string name="dialer_hint">Enter a number</string>
     <string name="dialer_call">Call</string>
     <string name="dialer_emergency_handover">Emergency numbers are handed to the system dialler. Press call there.</string>
     <string name="calllog_permission">BigLau needs access to the call log to show it.</string>
-    <string name="calllog_empty">No calls yet.</string>
+    <string name="calllog_empty">No calls yet. Calls you make or receive appear here.</string>
     <string name="calllog_all_hidden">There are calls, but every one of them is of a kind you have hidden.</string>
     <string name="calllog_all_hidden_open">Choose which kinds appear</string>
     <string name="calllog_no_missed">No missed calls.</string>
@@ -374,14 +375,14 @@
     <string name="set_as_dialer">Use as phone app</string>
     <string name="set_as_dialer_hint">BigLau then shows the call screen itself</string>
     <string name="sms_permission">BigLau needs access to your messages to show them.</string>
-    <string name="sms_empty">No messages yet.</string>
+    <string name="sms_empty">No messages yet. Messages you receive appear here.</string>
     <string name="sms_send">Send</string>
     <string name="sms_send_confirm">Really send?</string>
     <string name="sms_send_confirm_hint">Tap again — it cannot be taken back</string>
     <string name="sms_sent">Sent.</string>
     <string name="sms_send_failed">That could not be sent.</string>
     <string name="sms_new_to">New message to %1$s</string>
-    <string name="sms_not_default">BigLau is not your messaging app, so sent messages are not stored here.</string>
+    <string name="sms_not_default">BigLau is not your messaging app: messages you send are not stored here, and reading one here does not mark it as read.</string>
     <string name="wizard_position">Step %1$d of %2$d</string>
     <string name="wizard_welcome_title">Welcome to BigLau</string>
     <string name="wizard_welcome_body">A few questions, then your home screen is ready. You can change everything later in the settings.</string>
@@ -412,12 +413,9 @@
     <string name="a11y_popup_hint">Hold a tile to see it big</string>
     <string name="a11y_editor_moved">With these settings, holding a tile no longer opens the editor. Use “Change the tiles” above instead.</string>
     <string name="tap_to_close">Tap to close</string>
-    <string name="scroll_up">Page up</string>
-    <string name="scroll_down">Page down</string>
     <string name="a11y_scroll_on">Long lists have buttons</string>
     <string name="a11y_scroll_off">Buttons for long lists</string>
     <string name="a11y_scroll_hint">Page through without swiping</string>
-    <string name="search_clear">Clear the search</string>
     <string-array name="tile_colors">
         <item>Blue</item>
         <item>Green</item>
@@ -429,9 +427,6 @@
     <string name="a11y_chosen">%1$s, chosen</string>
     <string name="sos_message_default">I need help.</string>
     <string name="sos_numbers_placeholder">For example 0664 1234567, 0680 7654321</string>
-    <string name="permission_allow">Allow access</string>
-    <string name="permission_open_settings">Open system settings</string>
-    <string name="permission_blocked">Android no longer asks. You can still allow it in the system settings.</string>
     <string name="screens_where_new">New screens are made in the tile editor: hold a tile, choose “Jump to screen”, then “Create a new screen”. That way every new screen already has a tile leading to it.</string>
     <string name="screen_grid_heading">Fields on this screen</string>
     <string name="screen_grid_current">This is the current one</string>
@@ -603,8 +598,6 @@
     <string name="confirm_messages_on">Messages wait until you tap them away</string>
     <string name="confirm_messages_off">Messages disappear on their own</string>
     <string name="confirm_messages_hint">A short message is gone in two seconds</string>
-    <string name="intent_no_app">No app on this phone can do that</string>
-    <string name="intent_no_permission">BigLau is not allowed to do that</string>
     <string name="haptics_off">Let tiles buzz when touched</string>
     <string name="haptics_hint">Tap to switch: off, light, strong</string>
     <string name="home_key_on">Home key returns to the start screen</string>
@@ -664,4 +657,12 @@
         <item quantity="one">%d row</item>
         <item quantity="other">%d rows</item>
     </plurals>
+    <string name="diag_number_format">Phone number format</string>
+    <string name="diag_number_plain">Plain groups of three</string>
+    <string name="apps_open_settings">BigLau settings</string>
+    <string name="diag_number_country">By country %1$s</string>
+    <string name="diag_rescued">Rescued settings file</string>
+    <string name="diag_battery_saving">Battery saving</string>
+    <string name="diag_battery_saving_on">On — short reminder intervals can be late</string>
+    <string name="diag_battery_saving_off">Off for BigLau</string>
 </resources>

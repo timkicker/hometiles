@@ -1,5 +1,6 @@
 package org.biglau.ui
 
+import org.biglau.Quelltext
 import org.biglau.data.Button
 import org.biglau.tiles.TileEdits
 import org.junit.Assert.assertEquals
@@ -71,7 +72,7 @@ class IconCatalogueTest {
      */
     @Test
     fun `bei ausgeschalteten Symbolen steht der Grund daneben`() {
-        val quelle = java.io.File("src/main/java/org/biglau/tiles/TileEditorActivity.kt").readText()
+        val quelle = Quelltext.datei("org/biglau/tiles/TileEditorActivity.kt").readText()
         val zeile = quelle.substringAfter("R.string.editor_pick_icon)").substringBefore("onClick")
         assertTrue("Der Hinweis fehlt: $zeile", "editor_pick_icon_off" in zeile)
         assertTrue("Die Sichtbarkeit wird nicht gelesen: $zeile", "LocalIconVisibility" in zeile)

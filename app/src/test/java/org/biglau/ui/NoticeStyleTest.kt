@@ -29,4 +29,21 @@ class NoticeStyleTest {
         assertEquals(false, Behaviour().confirmMessages)
         assertEquals(NoticeStyle.TOAST, Notice.styleFor(Behaviour().confirmMessages))
     }
+
+    /**
+     * Und die Meldung selbst ist das Größte auf diesem Bildschirm.
+     *
+     * Am Gerät gesehen: die Nachricht stand in gewöhnlicher Textgröße über einem großen
+     * „Diese Meldung schließen" — der Knopf rief, die Nachricht flüsterte. Auf einem
+     * Bildschirm, den es nur wegen dieser einen Zeile gibt, ist das die falsche Rangfolge.
+     *
+     * `BigHeading` bringt zwei Dinge mit, die eine Meldung braucht: die Überschriftengröße
+     * und die Stufenleiter, die **kleiner wird, bevor sie trennt** — eine Meldung darf lang
+     * sein, und mitten im Wort getrennt liest sie sich wie ein Fehler.
+     */
+    @Test
+    fun `die Meldung steht in Ueberschriftengroesse`() {
+        val quelle = org.biglau.Quelltext.datei("org/biglau/ui/NoticeActivity.kt").readText()
+        assertEquals(true, "BigHeading(text)" in quelle)
+    }
 }

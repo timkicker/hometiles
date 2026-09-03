@@ -2,6 +2,7 @@ package org.biglau.settings
 
 import android.content.Intent
 import android.os.Bundle
+import android.os.Build
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import android.Manifest
@@ -85,6 +86,7 @@ import org.biglau.ui.ICON_PERCENTS
 import org.biglau.ui.LABEL_SCALES
 import org.biglau.ui.BigLauActivity
 import org.biglau.R
+import org.biglau.core.ui.R as UiR
 import org.biglau.actions.Intents
 import org.biglau.ui.PermissionState
 import org.biglau.apps.AppDrawer
@@ -106,7 +108,7 @@ import org.biglau.data.SosConfig
 import org.biglau.toggles.SosActivity
 import org.biglau.toggles.SosAlarm
 import org.biglau.toggles.SosCountdown
-import org.biglau.toggles.SosMessage
+import org.biglau.actions.SosMessage
 import org.biglau.toggles.SosNumbers
 import org.biglau.data.ClockDisplay
 import org.biglau.data.FontChoice
@@ -115,9 +117,9 @@ import androidx.compose.material.icons.filled.Person
 import org.biglau.phone.CallBlocking
 import org.biglau.phone.DialerRole
 import org.biglau.sms.ConversationText
-import org.biglau.notify.MessageReminderReceiver
-import org.biglau.notify.SmsNotifications
-import org.biglau.notify.SmsReminder
+import org.biglau.sms.MessageReminderReceiver
+import org.biglau.sms.SmsNotifications
+import org.biglau.sms.SmsReminder
 import org.biglau.sms.SmsFilter
 import org.biglau.sms.SmsRepository
 import org.biglau.phone.CallDirection
@@ -154,6 +156,7 @@ import org.biglau.tiles.ScreenOrder
 import org.biglau.tiles.SwipeChain
 import org.biglau.ui.BigIconButton
 import org.biglau.ui.BigRow
+import org.biglau.ui.SettingsLink
 import org.biglau.ui.PinGate
 import org.biglau.ui.theme.BigLauTheme
 import org.biglau.ui.theme.familyFor
@@ -1139,20 +1142,16 @@ class SettingsActivity : BigLauActivity() {
     }
 
     companion object {
-        /** Direkt auf einer Unterseite oeffnen - der Name eines [Page]-Werts. */
-        const val EXTRA_PAGE = "biglau.settings.page"
-
-        /** Die Seite, auf der steht, welche Anrufarten in der Liste erscheinen. */
-        const val PAGE_CALL_TYPES = "CALL_TYPES"
-
-        /** Die Seite mit Sortierung, Nummernsuche und Favoriten. */
-        const val PAGE_CONTACTS = "CONTACTS"
-
-        /** Die Seite mit den Notfallkontakten. */
-        const val PAGE_SOS = "SOS"
-
-        /** Die Seite mit den ausgeblendeten Apps. */
-        const val PAGE_HIDDEN_APPS = "HIDDEN_APPS"
+        /**
+         * Die Kennungen stehen in [org.biglau.ui.SettingsLink] - dort, wo auch die
+         * Absicht steht, mit der andere Bildschirme hierher springen. Hier bleiben sie
+         * als Verweis, damit die Seite und der Weg zu ihr nicht auseinanderlaufen.
+         */
+        const val EXTRA_PAGE = SettingsLink.EXTRA_PAGE
+        const val PAGE_CALL_TYPES = SettingsLink.PAGE_CALL_TYPES
+        const val PAGE_CONTACTS = SettingsLink.PAGE_CONTACTS
+        const val PAGE_SOS = SettingsLink.PAGE_SOS
+        const val PAGE_HIDDEN_APPS = SettingsLink.PAGE_HIDDEN_APPS
     }
 }
 
@@ -1397,10 +1396,13 @@ private fun ScreenList(
             items(orphanedFolders, key = { "orphan-${it.id}" }) { folder ->
                 BigRow(
                     label = stringResource(R.string.folder_delete_title, folder.name),
+                    // Kacheln, nicht Zellen: ein leerer Platz im Ordner ist keine Kachel,
+                    // und "mit 6 Kacheln" ueber einem Ordner mit fuenf waere eine falsche
+                    // Zahl in genau der Zeile, die zum Loeschen auffordert.
                     secondary = pluralStringResource(
                         R.plurals.folder_delete_body,
-                        folder.cells.size,
-                        folder.cells.size,
+                        folder.tileCount,
+                        folder.tileCount,
                     ),
                     // Nicht derselbe Papierkorb wie beim Screen darueber: das hier ist
                     // kein gewoehnliches Loeschen, sondern das Aufraeumen von etwas, das
@@ -2233,9 +2235,12 @@ private fun SosSettings(
                 BigRow(
                     label = stringResource(
                         if (locationBlocked) {
-                            R.string.permission_open_settings
+                            // Die beiden Texte gehören zum Zugriffs-Baustein und liegen
+                            // deshalb im Design-System; `nonTransitiveRClass` heisst,
+                            // dass man sie dort auch ansprechen muss.
+                            UiR.string.permission_open_settings
                         } else {
-                            R.string.permission_allow
+                            UiR.string.permission_allow
                         },
                     ),
                     surface = palette.surfaceAccent,
@@ -2511,12 +2516,27 @@ private fun DiagnosticsList(activity: ComponentActivity) {
     val dichte = LocalDensity.current
     val einblendungen = WindowInsets.safeDrawing
     val nutzbar = run {
-        val metrics = activity.resources.displayMetrics
-        val breitePx = metrics.widthPixels -
-            einblendungen.getLeft(dichte, LayoutDirection.Ltr) -
-            einblendungen.getRight(dichte, LayoutDirection.Ltr)
-        val hoehePx = metrics.heightPixels - einblendungen.getTop(dichte) - einblendungen.getBottom(dichte)
-        (breitePx / dichte.density).toInt() to (hoehePx / dichte.density).toInt()
+        // Die **ganzen** Bildschirmmasse, nicht `displayMetrics`: das liefert das Fenster
+        // schon ohne die Gestenleiste, und die ginge dann zweimal ab. Siehe
+        // `Diagnostics.usableDp`.
+        val ganz = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            activity.windowManager.currentWindowMetrics.bounds
+                .let { it.width() to it.height() }
+        } else {
+            val metrics = android.util.DisplayMetrics()
+            @Suppress("DEPRECATION")
+            activity.windowManager.defaultDisplay.getRealMetrics(metrics)
+            metrics.widthPixels to metrics.heightPixels
+        }
+        Diagnostics.usableDp(
+            fullWidthPx = ganz.first,
+            fullHeightPx = ganz.second,
+            left = einblendungen.getLeft(dichte, LayoutDirection.Ltr),
+            top = einblendungen.getTop(dichte),
+            right = einblendungen.getRight(dichte, LayoutDirection.Ltr),
+            bottom = einblendungen.getBottom(dichte),
+            density = dichte.density,
+        )
     }
     val zusammenhang = LocalContext.current
     val lines = remember(nutzbar) {

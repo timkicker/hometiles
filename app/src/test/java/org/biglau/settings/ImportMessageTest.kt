@@ -1,5 +1,6 @@
 package org.biglau.settings
 
+import org.biglau.Quelltext
 import java.io.File
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -15,7 +16,7 @@ import org.junit.Test
  */
 class ImportMessageTest {
 
-    private val quelle = File("src/main/java/org/biglau/settings/ImportActivity.kt").readText()
+    private val quelle = Quelltext.datei("org/biglau/settings/ImportActivity.kt").readText()
 
     @Test
     fun `nicht lesbar und nicht lesbar-als-Sicherung sind zwei Faelle`() {
@@ -30,10 +31,12 @@ class ImportMessageTest {
 
     @Test
     fun `beide Saetze stehen in beiden Sprachen`() {
-        listOf("src/main/res/values/strings.xml", "src/main/res/values-de/strings.xml").forEach { pfad ->
-            val texte = File(pfad).readText()
+        // Je Sprache, nicht je Datei: die Texte liegen inzwischen in mehreren Modulen,
+        // und ein Satz gehoert in *eine* davon, nicht in jede.
+        listOf("values", "values-de").forEach { sprache ->
+            val texte = Quelltext.texte(sprache).joinToString("\n") { it.readText() }
             listOf("transfer_unreadable", "transfer_bad_file").forEach { name ->
-                assertTrue("$pfad: $name fehlt", "\"$name\"" in texte)
+                assertTrue("$sprache: $name fehlt", "\"$name\"" in texte)
             }
         }
     }

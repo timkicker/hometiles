@@ -1,5 +1,6 @@
 package org.biglau.actions
 
+import org.biglau.Quelltext
 import java.io.File
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -25,7 +26,7 @@ import org.junit.Test
 class SosLocationTest {
 
     private val bildschirm =
-        File("src/main/java/org/biglau/toggles/SosActivity.kt").readText()
+        Quelltext.ohneKommentare("org/biglau/toggles/SosActivity.kt")
 
     @Test
     fun `waehrend des Countdowns wird gesucht`() {

@@ -1,6 +1,7 @@
 package org.biglau.ui
 
 import java.io.File
+import org.biglau.Quelltext
 import org.biglau.data.Appearance
 import org.biglau.data.FontChoice
 import org.junit.Assert.assertEquals
@@ -25,7 +26,7 @@ class FontChoiceTest {
     // ersten Start, kein leerer Text, wenn gerade kein Netz da ist.
     @Test
     fun `beide schnitte liegen im apk`() {
-        val ordner = File("src/main/res/font")
+        val ordner = Quelltext.ressource("font")
         val dateien = ordner.list()?.toSet().orEmpty()
         assertEquals(true, dateien.contains("atkinson_regular.ttf"))
         assertEquals(true, dateien.contains("atkinson_bold.ttf"))

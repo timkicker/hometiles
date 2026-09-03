@@ -16,11 +16,29 @@ class LanguageRulesTest {
 
     private val sprachen = listOf("values", "values-de")
 
+    /**
+     * Alle Texte einer Sprache — **auch die Mehrzahlformen**.
+     *
+     * Die erste Fassung las nur `strings.xml`. Was in `plurals.xml` steht, steht genauso auf
+     * dem Bildschirm („Drei Bildschirme, vierzehn Kacheln, zwei Ordner gehen verloren") und
+     * war von jeder Sprachregel hier ausgenommen, ohne dass es irgendwo stand. Am 3.9.2026
+     * nachgezogen.
+     */
     private fun texte(verzeichnis: String): Map<String, String> {
-        val datei = File("src/main/res/$verzeichnis/strings.xml")
-        return Regex("""<string name="([^"]+)">(.*?)</string>""", RegexOption.DOT_MATCHES_ALL)
-            .findAll(datei.readText())
+        val dateien = Quelltext.texte(verzeichnis) + Quelltext.texte(verzeichnis, "plurals.xml")
+        val roh = dateien.joinToString("\n") { it.readText() }
+        val einzel = Regex("""<string name="([^"]+)">(.*?)</string>""", RegexOption.DOT_MATCHES_ALL)
+            .findAll(roh)
             .associate { it.groupValues[1] to it.groupValues[2] }
+        val mehrzahl = Regex("""<plurals name="([^"]+)">(.*?)</plurals>""", RegexOption.DOT_MATCHES_ALL)
+            .findAll(roh)
+            .flatMap { treffer ->
+                Regex("""<item quantity="([^"]+)">(.*?)</item>""", RegexOption.DOT_MATCHES_ALL)
+                    .findAll(treffer.groupValues[2])
+                    .map { "${treffer.groupValues[1]}/${it.groupValues[1]}" to it.groupValues[2] }
+            }
+            .toMap()
+        return einzel + mehrzahl
     }
 
     private fun verstoesse(muster: Regex): List<String> =
@@ -62,15 +80,36 @@ class LanguageRulesTest {
         assertEquals(true, alle.contains("Fertig"))
     }
 
+    /**
+     * Leere Zustände auf Bildschirmen, auf denen jemand landet und wartet.
+     *
+     * Bis zum 3.9.2026 prüfte diese Regel genau **einen** Text — die leere Kachel — und hiess
+     * trotzdem „leere Zustände". Nachgesehen: die leere Anrufliste und die leere
+     * Nachrichtenliste sagten nur, dass nichts da ist. Beide sagen jetzt auch, was als
+     * Nächstes kommt; geprüft wird das an zwei Sätzen. Eine Regel über Prosa ist grob, aber
+     * sie fängt den Rückfall in den blossen Befund.
+     */
     @Test
     fun `leere Zustaende sagen, was zu tun ist`() {
-        // Die leere Kachel ist der häufigste leere Zustand der ganzen App.
         val de = texte("values-de")
         val en = texte("values")
         assertEquals(true, de.containsKey("empty_tile_invite"))
         assertEquals(true, en.containsKey("empty_tile_invite"))
         assertEquals(true, de.getValue("empty_tile_invite").contains("tippen", ignoreCase = true))
         assertEquals(true, en.getValue("empty_tile_invite").contains("tap", ignoreCase = true))
+
+        val landeplaetze = listOf("calllog_empty", "sms_empty", "apps_recent_none", "favourites_none")
+        listOf("values" to en, "values-de" to de).forEach { (verzeichnis, alle) ->
+            val bloss = landeplaetze.filter { name ->
+                val text = alle[name] ?: return@filter false
+                text.trim().count { it == '.' } < 2
+            }
+            assertEquals(
+                "$verzeichnis: nur ein Satz - was ist, aber nicht, was als Nächstes kommt",
+                emptyList<String>(),
+                bloss,
+            )
+        }
     }
 }
 
@@ -90,7 +129,7 @@ class HardcodedGermanTest {
     private val deutscheWorte = Regex(
         """"[^"]*\b(nicht|keine|keiner|kein|Gerät|Fenster|Dichte|Schrift|Nutzbar|Anrufe|""" +
             """Kontakte|Startbildschirm|Kachel|Kacheln|Bildschirm|Einstellungen|Fehler|""" +
-            """Absturz|Berechtigung|gefunden|fehlt|passende)\b[^"]*"""",
+            """Absturz|Berechtigung|gefunden|fehlt|passende|Mobil|Privat|Arbeit)\b[^"]*"""",
         RegexOption.IGNORE_CASE,
     )
 
@@ -167,9 +206,9 @@ class HardcodedGermanTest {
 class LanguageNamesTest {
 
     private fun wert(verzeichnis: String, name: String): String {
-        val datei = java.io.File("src/main/res/$verzeichnis/strings.xml")
+        val dateien = Quelltext.texte(verzeichnis)
         return Regex("""<string name="$name">(.*?)</string>""")
-            .find(datei.readText())!!
+            .find(dateien.joinToString("\n") { it.readText() })!!
             .groupValues[1]
     }
 

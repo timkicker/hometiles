@@ -62,4 +62,69 @@ class QuelltextTest {
         assertTrue("kein Hauptquelltext gefunden", Quelltext.dateien().size > 50)
         assertTrue("kein Testquelltext gefunden", Quelltext.testDateien().size > 50)
     }
+
+    /**
+     * Keine Regel geht am Verzeichnis vorbei selbst los.
+     *
+     * Genau das war heute Nacht die Luecke: die Wurzelliste war da, und `SlopRulesTest`
+     * lief trotzdem weiter ueber `File("src/main/java/org/biglau")`. Beim Umzug nach
+     * `:core:system` hat sie ihre fuenfunddreissig Dateien einfach nicht mehr gesehen -
+     * ohne einen roten Test, denn `walkTopDown` auf einem Pfad, der weniger enthaelt,
+     * liefert eben weniger.
+     *
+     * Aufgefallen ist es nur, weil ich beim Aufraeumen nochmal gesucht habe. Deshalb sucht
+     * jetzt diese Regel.
+     */
+    @Test
+    fun `keine Regel baut sich ihren Quellpfad selbst`() {
+        val treffer = Quelltext.testDateien()
+            .filterNot { it.name == "Quelltext.kt" || it.name == "QuelltextTest.kt" }
+            .flatMap { datei ->
+                datei.readLines().withIndex()
+                    .filter { zeile ->
+                        // Die Ressourcen bleiben in :app - nur die Quellverzeichnisse
+                        // wandern, und nur um die geht es hier.
+                        listOf("File(\"src/main/java", "File(\"src/test/java")
+                            .any { it in zeile.value }
+                    }
+                    .map { "${datei.name}:${it.index + 1}  ${it.value.trim()}" }
+            }
+        assertEquals("liest am Verzeichnis vorbei: $treffer", emptyList<String>(), treffer)
+    }
+
+    /**
+     * Auch die Ressourcen liegen inzwischen in mehreren Modulen - `:core:ui` bringt die
+     * Schriftdateien mit. Eine Regel, die sie sucht, soll das Modul nicht wissen muessen.
+     */
+    @Test
+    fun `jedes Modul mit Ressourcen steht in den Ressourcenwurzeln`() {
+        val vorhanden = module().map { File(it, "src/main/res") }.filter { it.isDirectory }
+        assertEquals(
+            "Ein Modul fehlt in Quelltext.resWurzeln",
+            schluessel(vorhanden),
+            schluessel(Quelltext.resWurzeln),
+        )
+    }
+
+    /**
+     * Und keine Regel sucht die Texte selbst.
+     *
+     * Zehn Regeln lasen `src/main/res/values/strings.xml` und meinten „alle Texte". Sobald
+     * ein Text mit seinem Modul umzieht, pruefen sie ihn nicht mehr - lautlos, denn eine
+     * Datei, die es gibt, liest sich weiterhin gut. `Quelltext.texte` fragt alle Module.
+     *
+     * `themes.xml` bleibt ausgenommen: das Thema der Anwendung liegt in `:app` und nirgends
+     * sonst.
+     */
+    @Test
+    fun `keine Regel sucht die Texte selbst`() {
+        val treffer = Quelltext.testDateien()
+            .filterNot { it.name == "Quelltext.kt" || it.name == "QuelltextTest.kt" }
+            .flatMap { datei ->
+                datei.readLines().withIndex()
+                    .filter { "src/main/res/values" in it.value && "themes.xml" !in it.value }
+                    .map { "${datei.name}:${it.index + 1}  ${it.value.trim()}" }
+            }
+        assertEquals("liest Texte am Verzeichnis vorbei: $treffer", emptyList<String>(), treffer)
+    }
 }
