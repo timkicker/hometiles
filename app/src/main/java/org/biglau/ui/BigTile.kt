@@ -1,12 +1,7 @@
 package org.biglau.ui
 
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -24,9 +19,12 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
@@ -68,16 +66,26 @@ import org.biglau.R
 import org.biglau.a11y.TileSpeech
 
 /**
- * Wie lange der Rand von duenn nach dick braucht. Hin und zurueck ist das Doppelte.
+ * Die Breite des Rands, der sagt: hier ist etwas Neues.
  *
- * Bis zum 04.09.2026 waren es 500 ms mit gleichmaessigem Verlauf, also gut eine Sekunde
- * fuer den ganzen Weg. Der Nutzer hat es am Jelly 2 als hektisch beschrieben: es lenkt ab,
- * statt zu sagen, dass etwas da ist. Ein Hinweis darf auffallen, ohne zu draengen.
+ * Er pulste bis zum 04.09.2026, erst in einer Sekunde, dann in 1400 ms. Der Nutzer hat das
+ * an dem Tag entschieden: ein pulsendes Rechteck passt an einem Tastentelefon besser zu
+ * "hier steht der Fokus" als zu "hier ist etwas Neues". Fuer das Neue reicht ein ganz
+ * duenner, ruhiger Rand.
  *
- * Dazu ein weicher Verlauf statt eines linearen: der lineare kehrt an beiden Enden
- * abrupt um, und genau das macht das Zucken aus.
+ * Verloren geht dabei nichts. Die Zahl in der Ecke sagt weiterhin, wie viel wartet, und sie
+ * sagt es genauer als jede Bewegung.
  */
-private const val PULSDAUER_MS = 1400
+private const val BLINKRAND_DP = 2f
+
+/**
+ * Die Breite des Fokusrands. Siehe [org.biglau.ui.FokusrandTest].
+ *
+ * Deutlich mehr als [BLINKRAND_DP], damit auf demselben Bildschirm nicht zwei gleich
+ * aussehende Raender auf zwei verschiedene Ziele zeigen: der duenne sagt "hier ist etwas
+ * Neues", der dicke sagt "die Auswahltaste trifft hier".
+ */
+private const val FOKUSRAND_DP = 8f
 
 /**
  * Eine Kachel im Schild-Entwurf (PLAN.md 3.0): vollflaechige Farbe bis an die Kante,
@@ -149,6 +157,7 @@ fun BigTile(
     val textScale = LocalTextScale.current
     val interaction = remember { MutableInteractionSource() }
     val pressed by interaction.collectIsPressedAsState()
+    var fokussiert by remember { mutableStateOf(false) }
     val scale by animateFloatAsState(if (pressed) 0.97f else 1f, label = "press")
 
     val labelWunsch =
@@ -211,31 +220,18 @@ fun BigTile(
     val pad = (cellHeight.value * 0.06f).coerceIn(6f, 16f).dp
     val staticBorder = borderOverride ?: palette.tileBorder()
 
-    // PLAN.md 3.5: der Rand pulst, die Flaeche nicht. Ein aufblitzender Hintergrund
-    // ist auf drei Zoll direkt vor dem Gesicht unertraeglich, und Farbe allein
-    // erreicht niemanden mit Rot-Gruen-Schwaeche - deshalb zusaetzlich der Punkt.
-    val pulse = if (badgeCount > 0 && animationsOn()) {
-        rememberInfiniteTransition(label = "blink").animateFloat(
-            initialValue = 2f,
-            targetValue = 5f,
-            animationSpec = infiniteRepeatable(
-                animation = tween(PULSDAUER_MS, easing = FastOutSlowInEasing),
-                repeatMode = RepeatMode.Reverse,
-            ),
-            label = "borderWidth",
-        ).value
-    } else {
-        if (badgeCount > 0) 4f else 0f
-    }
     // PLAN.md 3.1, Leitsatz 3: "Druck = Farbe + Haptik". Da war nur das Schrumpfen um drei
     // Prozent - und das verdeckt im Moment des Druecken der Finger. Die Flaeche wird
     // dunkler, nie heller: heller hiesse weniger Abstand zur Beschriftung, und die
     // Kontrastschwelle gilt auch waehrend eines Drucks. Im Hochkontrast-Thema ist die
     // Flaeche schon schwarz, deshalb wird dort zusaetzlich der Rand dicker.
     val gedrueckt = if (pressed) darken(background) else background
-    val border = if (badgeCount > 0) palette.onTile else staticBorder
+    // Der Fokus geht vor dem Blinken. Beide setzen den Rand, und die Kachel unter dem Fokus
+    // ist die, die gleich startet; welche Neues hat, sagt die Zahl in der Ecke weiter.
+    val border = if (fokussiert || badgeCount > 0) palette.onTile else staticBorder
     val borderWidth = when {
-        badgeCount > 0 -> pulse.dp
+        fokussiert -> FOKUSRAND_DP.dp
+        badgeCount > 0 -> BLINKRAND_DP.dp
         borderOverride != null -> 2.dp
         else -> 3.dp
     } + if (pressed) 2.dp else 0.dp
@@ -252,6 +248,7 @@ fun BigTile(
                     Modifier
                 }
             )
+            .onFocusChanged { fokussiert = it.isFocused }
             .combinedClickable(
                 interactionSource = interaction,
                 indication = null,
@@ -371,19 +368,3 @@ fun darken(color: Color): Color = Color(
     blue = color.blue * 0.68f,
     alpha = color.alpha,
 )
-
-/**
- * Respektiert die Systemeinstellung fuer Animationsdauer. Wer sie auf null stellt, will
- * keine Bewegung - dann steht der Rand still und der Punkt allein traegt den Hinweis.
- */
-@Composable
-private fun animationsOn(): Boolean {
-    val context = LocalContext.current
-    return remember {
-        android.provider.Settings.Global.getFloat(
-            context.contentResolver,
-            android.provider.Settings.Global.ANIMATOR_DURATION_SCALE,
-            1f,
-        ) > 0f
-    }
-}

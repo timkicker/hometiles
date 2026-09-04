@@ -1,0 +1,14 @@
+<resources>
+    <string name="call_type_incoming">Chiamate ricevute</string>
+    <string name="call_type_outgoing">Chiamate fatte</string>
+    <string name="call_type_missed">Chiamate perse</string>
+    <string name="call_type_rejected">Chiamate rifiutate</string>
+    <string name="call_type_blocked">Chiamate bloccate</string>
+    <string name="call_type_other">Tutto il resto</string>
+    <string name="call_dir_incoming">ricevuta</string>
+    <string name="call_dir_outgoing">fatta da lei</string>
+    <string name="call_dir_missed">persa</string>
+    <string name="call_dir_rejected">rifiutata</string>
+    <string name="call_dir_blocked">bloccata</string>
+    <string name="call_dir_other">senso sconosciuto</string>
+</resources>

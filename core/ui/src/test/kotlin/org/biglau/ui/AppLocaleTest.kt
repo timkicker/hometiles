@@ -28,14 +28,6 @@ class AppLocaleTest {
         assertEquals(Locale.ENGLISH, AppLocale.localeFor(Language.ENGLISH))
     }
 
-    @Test
-    fun `die wahl laeuft im kreis`() {
-        var wahl = Language.SYSTEM
-        wahl = AppLocale.next(wahl); assertEquals(Language.GERMAN, wahl)
-        wahl = AppLocale.next(wahl); assertEquals(Language.ENGLISH, wahl)
-        wahl = AppLocale.next(wahl); assertEquals(Language.SYSTEM, wahl)
-    }
-
     // Ein Bildschirm, der schon lief, haelt die alten Texte. Der Startbildschirm steht die
     // ganze Zeit im Hintergrund - ohne Neuaufbau bliebe ausgerechnet die Seite
     // fremdsprachig, auf der man nach dem Umstellen landet.

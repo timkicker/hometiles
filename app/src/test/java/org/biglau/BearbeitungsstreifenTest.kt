@@ -31,7 +31,10 @@ class BearbeitungsstreifenTest {
     fun `der ordner zeigt den streifen selbst`() {
         val aufruf = Quelltext.ausschnitt(
             haupt,
-            von = "                    FolderOverlay(",
+            // Genauer als nur `FolderOverlay(`: seit dem 04.09.2026 benutzt die Liste der
+            // Menuetaste denselben Rahmen, und die Marke stand danach zweimal da. Gemeint ist
+            // der Ordner, also wird auf seinen Namen geschnitten.
+            von = "                        name = ordner.name,",
             bis = "                    ) {",
         )
         assertTrue(

@@ -1,0 +1,28 @@
+BigLau è una schermata iniziale fatta di riquadri grandi e chiaramente etichettati, con
+telefono e messaggi nella stessa applicazione. È pensata per schermi piccoli, mani
+malferme e occhi che preferirebbero non strizzarsi.
+
+Ogni riquadro può essere quello che volete: un'applicazione, un contatto, una scorciatoia,
+un widget, una funzione come la torcia o il Wi-Fi, oppure un salto a un'altra schermata.
+La griglia, la dimensione dei riquadri, i colori e le etichette li decidete voi.
+
+Che cosa c'è:
+
+* Una schermata iniziale di riquadri grandi, liberamente assegnabili, e se volete
+  un'intestazione con ora, data e carica della batteria.
+* Un telefono con tastierino, chiamata rapida dal 2 al 9, registro chiamate raggruppato e
+  una schermata di chiamata propria. Il ruolo di telefono viene proposto, mai imposto.
+* Messaggi: elenco, conversazione e scrittura.
+* Contatti con ricerca, ordinamento per nome o per cognome, e preferiti.
+* Un pulsante SOS con conto alla rovescia che chiama più numeri uno dopo l'altro e può
+  inviare un messaggio di emergenza con la vostra posizione.
+* Aiuto alla lettura: tenete premuto un riquadro per farlo leggere ad alta voce o mostrare
+  in grande; pulsanti di pagina invece dello scorrimento negli elenchi lunghi.
+* Salvate le vostre impostazioni in un file e rileggetele sul telefono successivo.
+* Se un giorno il launcher non parte, compare una semplice schermata di riserva con
+  telefono, contatti e impostazioni, invece di un apparecchio nero.
+
+Nessun account, nessuna pubblicità, nessun tracciamento, e nessun permesso di internet.
+
+BigLau è il sostituto libero di BIG Launcher, le cui funzioni sono oggi distribuite su tre
+applicazioni a pagamento.

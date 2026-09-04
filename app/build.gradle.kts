@@ -22,7 +22,7 @@ android {
         targetSdk = 35
         versionCode = 1
         versionName = "0.1.0"
-        resourceConfigurations += listOf("en", "de")
+        resourceConfigurations += listOf("en", "de", "fr", "es", "it")
     }
 
     buildTypes {
@@ -97,7 +97,13 @@ tasks.withType<Test>().configureEach {
     // Manifest: Gradle hielt den Testlauf fuer aktuell, obwohl sich die gelesene Datei
     // geaendert hatte. Am 10:18 nachgetragen, nachdem ich den Plan aendern konnte, ohne dass
     // ein einziger Test noch einmal lief.
+    // Am 04.09.2026 dieselbe Luecke eine Datei weiter: `ProsaStricheTest` liest STATUS.md
+    // und README.md, beide standen hier nicht. Ein Eintrag in STATUS.md, danach ein Testlauf,
+    // und Gradle meldete den Erfolg von vorhin. Die Regel lief nicht. Die Lehre von 10:18
+    // war notiert, aber nur fuer die eine Datei angewendet, an der sie auffiel.
     inputs.file("../PLAN.md").withPathSensitivity(PathSensitivity.RELATIVE)
+    inputs.file("../STATUS.md").withPathSensitivity(PathSensitivity.RELATIVE)
+    inputs.file("../README.md").withPathSensitivity(PathSensitivity.RELATIVE)
     inputs.file("../gradle/libs.versions.toml").withPathSensitivity(PathSensitivity.RELATIVE)
     inputs.file("../LICENSE-Atkinson-Hyperlegible.txt").withPathSensitivity(PathSensitivity.RELATIVE)
     inputs.dir("src/main/baselineProfiles").withPathSensitivity(PathSensitivity.RELATIVE)

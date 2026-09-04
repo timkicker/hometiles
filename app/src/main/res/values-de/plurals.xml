@@ -25,7 +25,7 @@
         <item quantity="other">Zu diesen Screens führt keine Kachel: %1$s. Legen Sie irgendwo Sprungkacheln an, sonst finden Sie sie nicht wieder.</item>
     </plurals>
     <plurals name="search_matches">
-        <item quantity="one">%1$d Treffer — die Lupentaste öffnet ihn</item>
+        <item quantity="one">%1$d Treffer, die Lupentaste öffnet ihn</item>
         <item quantity="other">%1$d Treffer</item>
     </plurals>
     <plurals name="folder_delete_body">
@@ -33,12 +33,12 @@
         <item quantity="other">%1$d Kacheln darin gehen mit. Das lässt sich nicht rückgängig machen.</item>
     </plurals>
     <plurals name="move_target_folder">
-        <item quantity="one">Ordner · %1$d Platz frei</item>
-        <item quantity="other">Ordner · %1$d Plätze frei</item>
+        <item quantity="one">Ordner, %1$d Platz frei</item>
+        <item quantity="other">Ordner, %1$d Plätze frei</item>
     </plurals>
     <plurals name="move_target_screen">
-        <item quantity="one">Screen · %1$d Platz frei</item>
-        <item quantity="other">Screen · %1$d Plätze frei</item>
+        <item quantity="one">Screen, %1$d Platz frei</item>
+        <item quantity="other">Screen, %1$d Plätze frei</item>
     </plurals>
     <plurals name="apps_recent_count_value">
         <item quantity="one">%1$d App</item>

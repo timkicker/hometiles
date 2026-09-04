@@ -21,7 +21,19 @@ import org.junit.Test
 class OffeneFragenTest {
 
     private val plan = File("../PLAN.md").readText()
-    private val fragen = Quelltext.ausschnitt(plan, "## 9. Offene Fragen")
+
+    /**
+     * Bis zur naechsten Ueberschrift, nicht bis zum Dateiende.
+     *
+     * Ohne Endmarke reichte der Ausschnitt bis ans Ende von `PLAN.md` und nahm alles mit, was
+     * danach kommt. Solange in Abschnitt 10 keine nummerierte Liste stand, fiel das nicht
+     * auf; am 04.09.2026 kam eine dazu (die Reihenfolge der Arbeit in 10.3.7), und die Regel
+     * meldete Fragen als falsch nummeriert, die gar keine Fragen sind.
+     *
+     * Ein Ausschnitt ohne Ende ist kein Ausschnitt. Die Regel hat immer den ganzen Rest des
+     * Dokuments gemessen und nur zufaellig nichts gefunden.
+     */
+    private val fragen = Quelltext.ausschnitt(plan, "## 9. Offene Fragen", "## 10.")
 
     @Test
     fun `die Lizenzfrage steht nicht mehr offen`() {

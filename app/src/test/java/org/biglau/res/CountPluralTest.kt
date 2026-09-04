@@ -92,6 +92,13 @@ class CountPluralTest {
      * Die Form stimmt dann - `one` und `other` sind da, `TranslationsTest` ist zufrieden -,
      * und am Bildschirm steht trotzdem „1 Einträge". Genau der Fehler, gegen den diese
      * Datei geschrieben wurde, nur eine Ebene tiefer versteckt.
+     *
+     * Die Regel unterstellt dabei, dass jede Sprache das gezählte Wort beugt. Das stimmt
+     * meistens und war am 04.09.2026 beim Italienischen zum ersten Mal knapp: `app` ist dort
+     * unveränderlich, `1 app` und `5 app` sind beide richtig. Ausgewichen wurde über
+     * `applicazione` und `applicazioni`, also ohne die Regel anzufassen. Kommt eine Sprache
+     * dazu, in der sich das nicht umgehen lässt, gehört hier eine Ausnahme mit Grund hin und
+     * keine Aufweichung.
      */
     @Test
     fun `kein Plural sagt zweimal dasselbe`() {

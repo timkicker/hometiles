@@ -10,7 +10,22 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
+import org.biglau.tiles.Fokusfolge
+import org.biglau.tiles.Richtung
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
@@ -83,6 +98,45 @@ fun HomeScreenView(
     /** Im Bearbeitungsmodus gehoert jede Beruehrung der App, auch auf einem Widget. */
     editMode: Boolean = false,
     onEdit: (x: Int, y: Int) -> Unit = { _, _ -> },
+    /**
+     * Die linke Softkey-Taste. PLAN.md 10.3.3.
+     *
+     * Sie traegt, was am langen Druck haengt. Eigener Weg und nicht [onEdit], weil die
+     * Einstellung "erst bei langem Druck ausloesen" fuer eine Taste nicht gilt: sie schuetzt
+     * vor dem Streifen mit dem Finger, und eine Taste wird nicht gestreift.
+     */
+    onMenu: (x: Int, y: Int) -> Unit = { _, _ -> },
+    /**
+     * Liegt dieser Rahmen gerade obenauf?
+     *
+     * Der Startbildschirm und ein offener Ordner benutzen denselben Rahmen und sind
+     * gleichzeitig komponiert; der Ordner liegt im selben Fenster darueber. Wer von beiden
+     * die Tasten bekommen soll, kann der Rahmen nicht selbst wissen.
+     */
+    aktiv: Boolean = true,
+    /**
+     * Der Streifen unter dem Raster, falls es einen gibt.
+     *
+     * In einem Ordner und in der Liste der Menuetaste steht unter dem Raster eine Zeile, die
+     * es schliesst. Sie ist ein Geschwister des Rahmens, nicht sein Kind, und der Rahmen
+     * verbraucht jede Richtungstaste - also kam der Fokus nie zu ihr. Am 04.09.2026 von
+     * `tools/unerreichbar.py` gemeldet: neun anklickbare Flaechen im Ordner, acht erreicht,
+     * und die neunte war der Streifen.
+     *
+     * Ein blindes `moveFocus(Down)` waere hier falsch. Es nimmt den naechsten fokussierbaren
+     * Knoten, und der kann eine Kachel des Startbildschirms unter der Ueberlagerung sein.
+     * Deshalb ein benannter Anker: der Rahmen weiss, wohin, oder er tut nichts.
+     */
+    unten: FocusRequester? = null,
+    /**
+     * Der Weg zurueck ins Raster, fuer den Streifen darunter.
+     *
+     * Er haengt immer an der Zelle, auf der der Fokus zuletzt sass, damit man dort
+     * herauskommt, wo man hineingegangen ist. Ein blindes `moveFocus(Up)` waere auch hier
+     * falsch: unter der Ueberlagerung liegen die Kacheln des Startbildschirms an denselben
+     * Stellen.
+     */
+    rasterAnker: FocusRequester? = null,
 ) {
     val palette = LocalBigPalette.current
     val gutter = appearance.gutterDp.dp
@@ -112,7 +166,129 @@ fun HomeScreenView(
         val cellW = metrics.cellWidth.dp
         val cellH = metrics.cellHeight.dp
 
-        Box(Modifier.fillMaxSize().padding(border)) {
+        // PLAN.md 10.3.2: die Reihenfolge folgt dem Raster, nicht der Liste in der Datei.
+        // Die Tasten faengt der Rahmen ab und nicht die einzelne Kachel: nur hier ist
+        // bekannt, welche Zelle den Fokus hat und aus welcher Spalte er kam. Und nur wer
+        // die Taste verbraucht, kann am Rand nichts passieren lassen; sonst sucht Compose
+        // sich selbst ein Ziel, zur Not in der Kopfzeile.
+        // Die leeren Plaetze gehoeren dazu: sie sind anklickbar, also muessen sie
+        // erreichbar sein.
+        val ziele = remember(screen) { Fokusfolge.ziele(screen) }
+        val anker = remember(ziele) { ziele.associateWith { FocusRequester() } }
+        var fokusZelle by remember(screen.id) { mutableStateOf(Fokusfolge.erste(ziele)) }
+        var merkspalte by remember(screen.id) { mutableStateOf<Int?>(null) }
+
+        // PLAN.md 10.3.1: **beim Start** ist der Fokus von selbst da, aber nicht, wenn
+        // dieser Rahmen spaeter obenauf kommt.
+        //
+        // Beim Start stimmt es ohne Zutun: das Fenster bekommt den Fokus, Compose sucht sich
+        // das erste Ziel. Ein Versuch, das selbst zu setzen, hat lange nichts getan, und am
+        // 04.09.2026 kam heraus, warum: Android hat einen Beruehrungsmodus. Solange die
+        // letzte Eingabe ein Tipp war, nimmt kein Element den Fokus, und `requestFocus` wird
+        // still ignoriert. Mit `dumpsys window` nachgestellt: nach einem Tipp
+        // `mInTouchMode=true` und kein Fokus, nach einer Taste `mInTouchMode=false` und der
+        // Fokus sitzt sofort auf der Kachel oben links.
+        //
+        // Der Ordner ist der andere Fall, und er war kaputt. Am 04.09.2026 gefunden, vom
+        // ersten Lauf von `tools/unerreichbar.py` ueber einen echten Bildschirm: neun
+        // anklickbare Flaechen, **null** davon je fokussiert. Von Hand bestaetigt - Kachel
+        // mit der Auswahltaste geoeffnet, also `mInTouchMode=false`, davor sass der Fokus
+        // auf der Ordnerkachel, danach auf **gar nichts**, und vier Tastendruecke aenderten
+        // daran nichts.
+        //
+        // Und sie konnten es nicht: `onPreviewKeyEvent` laeuft nur den Weg vom fokussierten
+        // Knoten zur Wurzel. Ohne Fokus laeuft der Rahmen gar nicht erst an, also bewegt
+        // sich nichts, also kommt der Fokus nie zurueck. Der Ordner war mit Tasten
+        // ueberhaupt nicht zu bedienen, und ein Bildschirm ohne Fokus ist an einem
+        // Tastentelefon dasselbe wie ein eingefrorener.
+        //
+        // Deshalb holt der Rahmen ihn sich, sobald er obenauf kommt. Im Beruehrungsmodus
+        // wird das weiter still verworfen, und das ist richtig: wer tippt, will keinen
+        // Rahmen um eine Kachel.
+        LaunchedEffect(aktiv, ziele) {
+            if (aktiv) {
+                val ziel = fokusZelle ?: Fokusfolge.erste(ziele)
+                // `requestFocus` wirft, solange der Knoten noch nicht haengt. Das ist kein
+                // Fehler, sondern eine Reihenfolge: dann sitzt der Fokus ohnehin schon da,
+                // wo Compose ihn beim Aufbau hingelegt hat.
+                runCatching { ziel?.let { anker[it]?.requestFocus() } }
+            }
+        }
+
+        // PLAN.md 10.3.3: eine Ziffer waehlt den Platz mit dieser Nummer und loest ihn aus.
+        //
+        // Ausloesen und nicht nur hinspringen: wer die Vier drueckt, will die Apotheke, nicht
+        // den Fokus auf der Apotheke. Ein zweiter Druck waere ein Umweg, den man sich merken
+        // muesste.
+        //
+        // Ziffern duerfen das nur, wo sie sonst nichts bedeuten. Hier ist das von selbst so:
+        // auf dem Startbildschirm und in einem Ordner gibt es kein Eingabefeld. Die
+        // Waehltastatur und der Nachrichtentext liegen in eigenen Bildschirmen, die diesen
+        // Rahmen nicht benutzen.
+        fun waehle(ziffer: Int): Boolean {
+            val ziel = Fokusfolge.nummer(ziele, ziffer) ?: return true
+            if (ziel in screen.cells) {
+                onActivate(ziel)
+            } else {
+                // Ein leerer Platz hat nichts zu starten; er fuehrt dorthin, wo man ihn
+                // fuellt, genau wie ein Tipp darauf.
+                onEdit(ziel.x, ziel.y)
+            }
+            return true
+        }
+
+        fun bewege(richtung: Richtung): Boolean {
+            val von = fokusZelle ?: Fokusfolge.erste(ziele) ?: return true
+            val ziel = Fokusfolge.nachbar(ziele, von, richtung, merkspalte)
+            if (ziel == null && richtung == Richtung.RUNTER && unten != null) {
+                // Unter der letzten Zeile steht der Streifen, der die Ueberlagerung
+                // schliesst. Nur nach unten, und nur wenn es ihn gibt.
+                runCatching { unten.requestFocus() }
+                return true
+            }
+            if (ziel != null) {
+                // Waagerecht setzt die gemerkte Spalte neu, senkrecht laesst sie stehen.
+                if (richtung == Richtung.LINKS || richtung == Richtung.RECHTS) {
+                    merkspalte = ziel.x
+                }
+                anker[ziel]?.requestFocus()
+            }
+            return true
+        }
+
+        Box(
+            Modifier
+                .fillMaxSize()
+                .padding(border)
+                .onPreviewKeyEvent { taste ->
+                    if (taste.type != KeyEventType.KeyDown) {
+                        false
+                    } else {
+                        when (taste.key) {
+                            Key.DirectionLeft -> bewege(Richtung.LINKS)
+                            Key.DirectionRight -> bewege(Richtung.RECHTS)
+                            Key.DirectionUp -> bewege(Richtung.HOCH)
+                            Key.DirectionDown -> bewege(Richtung.RUNTER)
+                            Key.One -> waehle(1)
+                            Key.Two -> waehle(2)
+                            Key.Three -> waehle(3)
+                            Key.Four -> waehle(4)
+                            Key.Five -> waehle(5)
+                            Key.Six -> waehle(6)
+                            Key.Seven -> waehle(7)
+                            Key.Eight -> waehle(8)
+                            Key.Nine -> waehle(9)
+                            // Die linke Softkey-Taste. Die rechte ist die Zurueck-Taste, die
+                            // Android schon selbst an die Activity gibt.
+                            Key.Menu -> {
+                                fokusZelle?.let { onMenu(it.x, it.y) }
+                                true
+                            }
+                            else -> false
+                        }
+                    }
+                },
+        ) {
             screen.freeSlots().forEach { (x, y) ->
                 EmptyTile(
                     appearance = appearance,
@@ -125,7 +301,21 @@ fun HomeScreenView(
                             x = metrics.offsetX(x, gutter.value).dp,
                             y = metrics.offsetY(y, gutter.value).dp,
                         )
-                        .size(cellW, cellH),
+                        .size(cellW, cellH)
+                        .then(
+                            anker[Cell(x = x, y = y)]?.let { Modifier.focusRequester(it) }
+                            ?.then(
+                                if (rasterAnker != null && fokusZelle == Cell(x = x, y = y)) {
+                                    Modifier.focusRequester(rasterAnker)
+                                } else {
+                                    Modifier
+                                },
+                            )
+                                ?: Modifier,
+                        )
+                        .onFocusChanged {
+                            if (it.isFocused) fokusZelle = Cell(x = x, y = y)
+                        },
                     onEdit = { onEdit(x, y) },
                 )
             }
@@ -154,7 +344,18 @@ fun HomeScreenView(
                             x = metrics.offsetX(cell.x, gutter.value).dp,
                             y = metrics.offsetY(cell.y, gutter.value).dp,
                         )
-                        .size(w, h),
+                        .size(w, h)
+                        .then(anker[cell]?.let { Modifier.focusRequester(it) } ?: Modifier)
+                        .then(
+                            if (rasterAnker != null && fokusZelle == cell) {
+                                Modifier.focusRequester(rasterAnker)
+                            } else {
+                                Modifier
+                            },
+                        )
+                        .onFocusChanged {
+                            if (it.isFocused) fokusZelle = cell
+                        },
                     onClick = { onActivate(cell) },
                     editMode = editMode,
                     onLongClick = { onEdit(cell.x, cell.y) },

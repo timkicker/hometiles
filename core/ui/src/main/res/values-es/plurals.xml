@@ -1,0 +1,6 @@
+<resources>
+    <plurals name="a11y_pin_digits">
+        <item quantity="one">Un dígito introducido</item>
+        <item quantity="other">%1$d dígitos introducidos</item>
+    </plurals>
+</resources>

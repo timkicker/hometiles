@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Erste Fassung vom 04.09.2026, maschinell uebersetzt und von niemandem gelesen, der
+  Franzoesisch spricht. Siehe PLAN.md 10.4: vor der Auslieferung gehoert das geprueft.
+-->
+<resources>
+    <string name="intent_no_app">Aucune application de ce téléphone ne peut faire cela</string>
+    <string name="intent_no_permission">BigLau n’a pas le droit de faire cela</string>
+    <string name="keypad_backspace">Effacer le dernier chiffre</string>
+    <string name="search_clear">Effacer la recherche</string>
+    <string name="permission_allow">Autoriser l’accès</string>
+    <string name="permission_blocked">Android ne demande plus. Vous pouvez encore l’autoriser dans les réglages du système.</string>
+    <string name="permission_open_settings">Ouvrir les réglages du système</string>
+    <string name="scroll_down">Page suivante</string>
+    <string name="scroll_up">Page précédente</string>
+
+    <string name="icon_accessalarm">Réveil</string>
+    <string name="icon_acunit">Neige</string>
+    <string name="icon_air">Vent</string>
+    <string name="icon_apartment">Immeuble</string>
+    <string name="icon_apps">Applications</string>
+    <string name="icon_batteryfull">Batterie</string>
+    <string name="icon_book">Livre</string>
+    <string name="icon_calendarmonth">Calendrier</string>
+    <string name="icon_call">Téléphone</string>
+    <string name="icon_chat">Discussion</string>
+    <string name="icon_childcare">Enfant</string>
+    <string name="icon_church">Église</string>
+    <string name="icon_cloud">Nuage</string>
+    <string name="icon_directionsbus">Bus</string>
+    <string name="icon_directionscar">Voiture</string>
+    <string name="icon_elderly">Canne</string>
+    <string name="icon_email">E-mail</string>
+    <string name="icon_emergency">Urgence</string>
+    <string name="icon_favorite">Cœur</string>
+    <string name="icon_group">Groupe</string>
+    <string name="icon_headphones">Casque</string>
+    <string name="icon_history">Historique</string>
+    <string name="icon_home">Maison</string>
+    <string name="icon_key">Clé</string>
+    <string name="icon_localhospital">Hôpital</string>
+    <string name="icon_localpharmacy">Pharmacie</string>
+    <string name="icon_localtaxi">Taxi</string>
+    <string name="icon_locationon">Lieu</string>
+    <string name="icon_lock">Cadenas</string>
+    <string name="icon_map">Carte</string>
+    <string name="icon_medicalservices">Médecin</string>
+    <string name="icon_medication">Médicaments</string>
+    <string name="icon_message">Message</string>
+    <string name="icon_monitorheart">Battement de cœur</string>
+    <string name="icon_movie">Film</string>
+    <string name="icon_musicnote">Musique</string>
+    <string name="icon_newspaper">Journal</string>
+    <string name="icon_person">Personne</string>
+    <string name="icon_photo">Image</string>
+    <string name="icon_photocamera">Appareil photo</string>
+    <string name="icon_powersettingsnew">Marche et arrêt</string>
+    <string name="icon_radio">Radio</string>
+    <string name="icon_restaurant">Repas</string>
+    <string name="icon_schedule">Horloge</string>
+    <string name="icon_settings">Réglages</string>
+    <string name="icons_group_communication">Parler</string>
+    <string name="icons_group_everyday">Quotidien</string>
+    <string name="icons_group_health">Santé</string>
+    <string name="icons_group_media">Musique et images</string>
+    <string name="icons_group_people">Personnes</string>
+    <string name="icons_group_places">Lieux</string>
+    <string name="icons_group_system">Le téléphone</string>
+    <string name="icons_group_time">Heure</string>
+    <string name="icons_group_weather">Météo</string>
+    <string name="icon_shoppingcart">Courses</string>
+    <string name="icon_star">Étoile</string>
+    <string name="icon_store">Magasin</string>
+    <string name="icon_thunderstorm">Orage</string>
+    <string name="icon_timer">Minuteur</string>
+    <string name="icon_today">Aujourd’hui</string>
+    <string name="icon_umbrella">Parapluie</string>
+    <string name="icon_videocam">Appel vidéo</string>
+    <string name="icon_voicemail">Messagerie vocale</string>
+    <string name="icon_wbsunny">Soleil</string>
+    <string name="icon_wifi">Wi-Fi</string>
+    <string name="a11y_chosen">%1$s, choisi</string>
+    <string name="a11y_on">%1$s, activé</string>
+    <string name="a11y_off">%1$s, désactivé</string>
+    <string name="a11y_state">%1$s, %2$s</string>
+    <string name="a11y_pin_empty">Aucun chiffre saisi</string>
+</resources>

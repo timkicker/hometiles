@@ -42,12 +42,27 @@ class VerdecktTest {
     fun `jede Ueberlagerung steht in der Bedingung`() {
         val bedingung = Quelltext.ausschnitt(start, "val verdeckt = ", "Column(")
         // Die Ueberlagerungen: was nach dem Raster des Startbildschirms noch bedingt
-        // gezeigt wird. `zeigeKachel(screen` ist die letzte Zeile des Startbildschirms.
-        val danach = Quelltext.ausschnitt(start, "zeigeKachel(screen", "private fun")
-        val fehlend = Regex("""\n {16}if \((\w+(?:\.\w+)*) != null\) \{""")
-            .findAll(danach)
-            .map { it.groupValues[1] }
+        // gezeigt wird. `then(wischen)` gehoert zum Startbildschirm und nur zu ihm - es ist
+        // seine Wischgeste zwischen den Screens. Vorher stand hier `zeigeKachel(screen`, und
+        // das ging am 04.09.2026 kaputt, als der Aufruf zwei Zeilen bekam: die Marke ist die
+        // Formatierung mitgemeint. Ein Ausdruck, der nur an dieser einen Stelle vorkommen
+        // **kann**, haelt laenger.
+        val danach = Quelltext.ausschnitt(start, "then(wischen)", "private fun")
+        // Zwei Schreibweisen, nicht eine. Bis zum 04.09.2026 stand hier nur die erste, und
+        // genau daran ist die Regel vorbeigelaufen: die Liste der Menuetaste kam als
+        // `kachelMenue.value?.let { ... }` dazu, wurde nicht gezaehlt und fehlte in der
+        // Bedingung. Bei offener Liste standen `Nachrichten`, `Telefon` und `Kontakte`
+        // weiter im Knotenabzug. Eine Regel, die nur eine von zwei Formen kennt, bleibt
+        // gruen und prueft die Haelfte.
+        val formen = listOf(
+            Regex("""\n {16}if \((\w+(?:\.\w+)*) != null\) \{"""),
+            Regex("""\n {16}(\w+(?:\.\w+)*)\?\.let \{"""),
+        )
+        val fehlend = formen
+            .flatMap { form -> form.findAll(danach).map { it.groupValues[1] } }
+            .map { it.removeSuffix(".value") }
             .filterNot { it in bedingung }
+            .distinct()
             .toList()
         assertEquals(
             "Diese Ueberlagerungen fehlen in der Bedingung - solange sie offen sind, " +

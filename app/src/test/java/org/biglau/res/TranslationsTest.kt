@@ -7,7 +7,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Deutsch und Englisch müssen dieselben Texte kennen.
+ * Jede Sprache muss dieselben Texte kennen wie Englisch.
  *
  * Anlass: der Notfall-Bildschirm - der, den jemand sieht, dessen Telefon gerade nicht mehr
  * startet - stand fest auf Deutsch im Quelltext. Auf einem englischen Gerät war ausgerechnet
@@ -19,6 +19,27 @@ class TranslationsTest {
     /** Der Name der App wird nicht übersetzt - er ist in jeder Sprache derselbe. */
     private val absichtlichNurEnglisch = setOf("app_name")
 
+    /**
+     * Die uebersetzten Sprachen, gesucht statt aufgezaehlt.
+     *
+     * Bis zum 04.09.2026 stand in jeder Regel dieser Klasse `"values-de"` fest. Eine dritte
+     * Sprache waere angelegt worden und von keiner Regel hier angesehen: keine Schluessel,
+     * keine Platzhalter, keine Leerstellen. Gemerkt beim Planen von PLAN.md 10.4, bevor die
+     * erste neue Sprache da war.
+     */
+    private val uebersetzt = Quelltext.uebersetzungen()
+
+    /**
+     * Die Sprachen, die ausgeliefert werden, ohne die Grundsprache.
+     *
+     * Vollstaendig sein muss nur, was mitgeht. Eine Sprache in Arbeit steht im Baum, aber
+     * nicht in `resourceConfigurations`; Android faellt fuer ihre fehlenden Texte auf
+     * Englisch zurueck, und das ist waehrend der Uebersetzung der richtige Zustand. Alles
+     * andere hier gilt auch fuer sie: keine fremden Schluessel, keine leeren Texte, gleiche
+     * Platzhalter. Nur die Frage, ob schon alles da ist, waere verfrueht.
+     */
+    private val fertig = Quelltext.ausgeliefert().filter { it != "values" }
+
     private fun keys(dir: String, tag: String): Set<String> {
         val dateien = Quelltext.texte(dir, if (tag == "plurals") "plurals.xml" else "strings.xml")
         assertTrue("$dir/$tag fehlt in jedem Modul", dateien.isNotEmpty())
@@ -28,27 +49,52 @@ class TranslationsTest {
     }
 
     @Test
-    fun `jeder deutsche Text hat einen englischen`() {
-        val de = keys("values-de", "string")
+    fun `jeder uebersetzte Text hat einen englischen`() {
         val en = keys("values", "string")
-        assertEquals("nur auf Deutsch vorhanden", emptySet<String>(), de - en)
+        uebersetzt.forEach { sprache ->
+            assertEquals("nur in $sprache vorhanden", emptySet<String>(), keys(sprache, "string") - en)
+        }
     }
 
     @Test
-    fun `jeder englische Text hat einen deutschen`() {
-        val de = keys("values-de", "string")
+    fun `jeder englische Text ist uebersetzt`() {
         val en = keys("values", "string")
-        assertEquals("nur auf Englisch vorhanden", emptySet<String>(), en - de - absichtlichNurEnglisch)
+        fertig.forEach { sprache ->
+            assertEquals(
+                "fehlt in $sprache",
+                emptySet<String>(),
+                en - keys(sprache, "string") - absichtlichNurEnglisch,
+            )
+        }
     }
 
     @Test
-    fun `auch die Mehrzahlformen stehen in beiden Sprachen`() {
-        assertEquals(keys("values", "plurals"), keys("values-de", "plurals"))
+    fun `auch die Mehrzahlformen stehen in jeder Sprache`() {
+        fertig.forEach { sprache ->
+            assertEquals("Mehrzahlformen in $sprache", keys("values", "plurals"), keys(sprache, "plurals"))
+        }
+    }
+
+    /**
+     * Die andere Seite derselben Frage: was in `resourceConfigurations` steht, muss es
+     * auch als Verzeichnis geben.
+     *
+     * Sonst traegt das Archiv eine Sprache im Schild, die keine Texte hat, und jeder
+     * Bildschirm darin ist englisch. Die Regeln darueber pruefen nur die Richtung
+     * Verzeichnis nach Auslieferung; ohne diese hier waere die Rueckrichtung ungemessen.
+     */
+    @Test
+    fun `jede ausgelieferte Sprache steht auch im Baum`() {
+        assertEquals(
+            "In resourceConfigurations steht eine Sprache, zu der es keine Texte gibt",
+            emptyList<String>(),
+            Quelltext.ausgeliefert().filterNot { it in Quelltext.sprachen() },
+        )
     }
 
     @Test
     fun `kein Text ist leer`() {
-        listOf("values", "values-de").forEach { dir ->
+        Quelltext.sprachen().forEach { dir ->
             val text = Quelltext.texte(dir).joinToString("\n") { it.readText() }
             val leer = Regex("<string name=\"([^\"]+)\"></string>").findAll(text).map { it.groupValues[1] }.toList()
             assertEquals("leere Texte in $dir", emptyList<String>(), leer)
@@ -67,12 +113,13 @@ class TranslationsTest {
     @Test
     fun `jedes Modul mit Texten hat beide Sprachen`() {
         val englisch = Quelltext.texte("values").map { it.parentFile.parentFile.parentFile }
-        val deutsch = Quelltext.texte("values-de").map { it.parentFile.parentFile.parentFile }
-        assertEquals(
-            "Ein Modul hat englische Texte und keine deutschen",
-            englisch.map { it.canonicalPath }.sorted(),
-            deutsch.map { it.canonicalPath }.sorted(),
-        )
+        fertig.forEach { sprache ->
+            assertEquals(
+                "Ein Modul hat englische Texte und keine in $sprache",
+                englisch.map { it.canonicalPath }.sorted(),
+                Quelltext.texte(sprache).map { it.parentFile.parentFile.parentFile.canonicalPath }.sorted(),
+            )
+        }
     }
 
     @Test
@@ -83,10 +130,87 @@ class TranslationsTest {
         fun placeholders(dir: String): Map<String, Int> =
             pattern.findAll(Quelltext.texte(dir).joinToString("\n") { it.readText() })
                 .associate { m -> m.groupValues[1] to Regex("%\\d+\\$[sd]").findAll(m.groupValues[2]).count() }
-        val de = placeholders("values-de")
         val en = placeholders("values")
-        val abweichend = en.filter { (key, count) -> de[key] != null && de[key] != count }.keys
-        assertEquals("unterschiedlich viele Platzhalter", emptySet<String>(), abweichend)
+        uebersetzt.forEach { sprache ->
+            val andere = placeholders(sprache)
+            val abweichend = en.filter { (key, count) -> andere[key] != null && andere[key] != count }.keys
+            assertEquals("unterschiedlich viele Platzhalter in $sprache", emptySet<String>(), abweichend)
+        }
+    }
+
+    /**
+     * Auch die Wortlisten muessen ueberall gleich lang sein.
+     *
+     * `string-array` ist die dritte Sorte Text, und keine Regel hat sie bisher angesehen.
+     * Sie ist die gefaehrlichste von den dreien: eine Wortliste wird ueber ihren **Index**
+     * gelesen, `tile_colors[colorIndex]`. Fehlt darin ein Eintrag, heisst die Kachel nicht
+     * nur falsch, sondern die Zugriffe verschieben sich alle um eins, und der letzte greift
+     * ins Leere.
+     *
+     * Bei Texten und Mehrzahlformen faellt ein fehlender Eintrag auf `values` zurueck. Eine
+     * Wortliste faellt als **ganze** zurueck oder gar nicht; halb uebersetzt gibt es nicht.
+     * Deshalb gilt hier auch fuer eine Sprache in Arbeit: entweder ganz oder keine.
+     *
+     * Am 04.09.2026 beim Uebersetzen aufgefallen, als die franzoesische Fassung von
+     * `tile_colors` zu schreiben war und auffiel, dass niemand nachsehen wuerde.
+     */
+    @Test
+    fun `Wortlisten sind ueberall gleich lang`() {
+        fun listen(dir: String): Map<String, Int> =
+            Regex("""<string-array name="([^"]+)">(.*?)</string-array>""", RegexOption.DOT_MATCHES_ALL)
+                .findAll(Quelltext.texte(dir).joinToString("\n") { it.readText() })
+                .associate { it.groupValues[1] to Regex("<item>").findAll(it.groupValues[2]).count() }
+        val en = listen("values")
+        assertTrue("Es gibt gar keine Wortliste mehr - dann prueft diese Regel nichts", en.isNotEmpty())
+        uebersetzt.forEach { sprache ->
+            val andere = listen(sprache)
+            val falsch = en.keys.intersect(andere.keys)
+                .filter { en[it] != andere[it] }
+                .map { "$sprache: $it hat ${andere[it]} statt ${en[it]} Eintraege" }
+            assertEquals("Eine Wortliste ist unterschiedlich lang", emptyList<String>(), falsch)
+        }
+    }
+
+    /**
+     * Auch in den Mehrzahlformen muessen die Platzhalter stimmen.
+     *
+     * Die Regel darueber liest nur `<string>`. In einer Mehrzahlform ist ein fehlender
+     * `%1$d` aber **wahrscheinlicher**, nicht unwahrscheinlicher: die Form fuer eins schreibt
+     * die Zahl oft aus ("An einen Kontakt gesendet"), die fuer viele braucht sie
+     * ("An %1$d Kontakte gesendet"). Wer uebersetzt, sieht zwei aehnliche Zeilen und
+     * vergisst leicht die eine Ziffer. Zur Laufzeit wirft das, und zwar nur in der Sprache,
+     * die man selbst nicht liest.
+     *
+     * Verglichen wird deshalb **Form gegen gleiche Form**, nicht Eintrag gegen Eintrag: dass
+     * `one` und `other` sich unterscheiden, ist richtig und kein Befund.
+     *
+     * Am 04.09.2026 beim Vorbereiten von PLAN.md 10.4 aufgefallen, wieder als die eine
+     * gemessene und die andere ungemessene Seite derselben Frage.
+     */
+    @Test
+    fun `Platzhalter stimmen auch in den Mehrzahlformen`() {
+        fun formen(dir: String): Map<Pair<String, String>, Set<String>> {
+            val inhalt = Quelltext.texte(dir, "plurals.xml").joinToString("\n") { it.readText() }
+            return Regex("""<plurals name="([^"]+)">(.*?)</plurals>""", RegexOption.DOT_MATCHES_ALL)
+                .findAll(inhalt)
+                .flatMap { eintrag ->
+                    Regex("""<item quantity="([^"]+)">(.*?)</item>""", RegexOption.DOT_MATCHES_ALL)
+                        .findAll(eintrag.groupValues[2])
+                        .map { stueck ->
+                            (eintrag.groupValues[1] to stueck.groupValues[1]) to
+                                Regex("""%\d+\$[sd]""").findAll(stueck.groupValues[2])
+                                    .map { it.value }.toSet()
+                        }
+                }.toMap()
+        }
+        val en = formen("values")
+        uebersetzt.forEach { sprache ->
+            val andere = formen(sprache)
+            val abweichend = en.keys.intersect(andere.keys)
+                .filter { en[it] != andere[it] }
+                .map { (name, menge) -> "$sprache: $name/$menge ${en[name to menge]} statt ${andere[name to menge]}" }
+            assertEquals("Platzhalter in einer Mehrzahlform", emptyList<String>(), abweichend)
+        }
     }
 
     /**
@@ -105,11 +229,13 @@ class TranslationsTest {
             pattern.findAll(Quelltext.texte(dir).joinToString("\n") { it.readText() })
                 .associate { m -> m.groupValues[1] to m.groupValues[2] }
         val en = texte("values")
-        val de = texte("values-de")
-        val gleich = en.keys.intersect(de.keys).filter { name ->
-            en.getValue(name).length > 12 && en.getValue(name) == de.getValue(name)
+        uebersetzt.forEach { sprache ->
+            val andere = texte(sprache)
+            val gleich = en.keys.intersect(andere.keys).filter { name ->
+                en.getValue(name).length > 12 && en.getValue(name) == andere.getValue(name)
+            }
+            assertEquals("wortgleich mit dem Englischen in $sprache - übersetzt?", emptyList<String>(), gleich)
         }
-        assertEquals("wortgleich in beiden Sprachen - übersetzt?", emptyList<String>(), gleich)
     }
 }
 
@@ -134,8 +260,10 @@ class PluralsTest {
     }
 
     @Test
-    fun `beide sprachen kennen dieselben plurale`() {
-        assertEquals(plurale("values").keys, plurale("values-de").keys)
+    fun `jede sprache kennt dieselben plurale`() {
+        Quelltext.ausgeliefert().filter { it != "values" }.forEach { sprache ->
+            assertEquals("Mehrzahlformen in $sprache", plurale("values").keys, plurale(sprache).keys)
+        }
     }
 
     @Test

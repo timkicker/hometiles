@@ -200,7 +200,7 @@ enum class LabelPosition { BOTTOM_LEFT, BOTTOM_CENTER, TOP_LEFT, HIDDEN }
 
 /** Die Sprache der App - unabhaengig von der des Telefons. Siehe PLAN.md 4.9. */
 @Serializable
-enum class Language { SYSTEM, GERMAN, ENGLISH }
+enum class Language { SYSTEM, GERMAN, ENGLISH, FRENCH, SPANISH, ITALIAN }
 
 /**
  * Wie sich der Bildschirm dreht. PLAN.md 4.2.

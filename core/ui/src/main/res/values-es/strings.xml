@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Erste Fassung vom 04.09.2026, maschinell uebersetzt und von niemandem gelesen, der
+  Spanisch spricht. Siehe PLAN.md 10.4. Mehrzahlformen laut CLDR: one und other reichen,
+  das many trifft nur volle Millionen (tools/mehrzahlformen.py).
+-->
+<resources>
+    <string name="intent_no_app">Ninguna aplicación de este teléfono puede hacer eso</string>
+    <string name="intent_no_permission">BigLau no tiene permiso para hacer eso</string>
+    <string name="keypad_backspace">Borrar el último dígito</string>
+    <string name="search_clear">Borrar la búsqueda</string>
+    <string name="permission_allow">Permitir el acceso</string>
+    <string name="permission_blocked">Android ya no pregunta. Todavía puede permitirlo en los ajustes del sistema.</string>
+    <string name="permission_open_settings">Abrir los ajustes del sistema</string>
+    <string name="scroll_down">Página siguiente</string>
+    <string name="scroll_up">Página anterior</string>
+
+    <string name="icon_accessalarm">Despertador</string>
+    <string name="icon_acunit">Nieve</string>
+    <string name="icon_air">Viento</string>
+    <string name="icon_apartment">Edificio</string>
+    <string name="icon_apps">Aplicaciones</string>
+    <string name="icon_batteryfull">Batería</string>
+    <string name="icon_book">Libro</string>
+    <string name="icon_calendarmonth">Calendario</string>
+    <string name="icon_call">Teléfono</string>
+    <string name="icon_chat">Charla</string>
+    <string name="icon_childcare">Niño</string>
+    <string name="icon_church">Iglesia</string>
+    <string name="icon_cloud">Nube</string>
+    <string name="icon_directionsbus">Autobús</string>
+    <string name="icon_directionscar">Coche</string>
+    <string name="icon_elderly">Bastón</string>
+    <string name="icon_email">Correo</string>
+    <string name="icon_emergency">Emergencia</string>
+    <string name="icon_favorite">Corazón</string>
+    <string name="icon_group">Grupo</string>
+    <string name="icon_headphones">Auriculares</string>
+    <string name="icon_history">Historial</string>
+    <string name="icon_home">Casa</string>
+    <string name="icon_key">Llave</string>
+    <string name="icon_localhospital">Hospital</string>
+    <string name="icon_localpharmacy">Farmacia</string>
+    <string name="icon_localtaxi">Taxi</string>
+    <string name="icon_locationon">Lugar</string>
+    <string name="icon_lock">Candado</string>
+    <string name="icon_map">Mapa</string>
+    <string name="icon_medicalservices">Médico</string>
+    <string name="icon_medication">Medicinas</string>
+    <string name="icon_message">Mensaje</string>
+    <string name="icon_monitorheart">Latido</string>
+    <string name="icon_movie">Película</string>
+    <string name="icon_musicnote">Música</string>
+    <string name="icon_newspaper">Periódico</string>
+    <string name="icon_person">Persona</string>
+    <string name="icon_photo">Imagen</string>
+    <string name="icon_photocamera">Cámara</string>
+    <string name="icon_powersettingsnew">Encendido</string>
+    <string name="icon_radio">Radio</string>
+    <string name="icon_restaurant">Comida</string>
+    <string name="icon_schedule">Reloj</string>
+    <string name="icon_settings">Ajustes</string>
+    <string name="icons_group_communication">Hablar</string>
+    <string name="icons_group_everyday">Cada día</string>
+    <string name="icons_group_health">Salud</string>
+    <string name="icons_group_media">Música e imágenes</string>
+    <string name="icons_group_people">Personas</string>
+    <string name="icons_group_places">Lugares</string>
+    <string name="icons_group_system">El teléfono</string>
+    <string name="icons_group_time">Hora</string>
+    <string name="icons_group_weather">Tiempo</string>
+    <string name="icon_shoppingcart">Compras</string>
+    <string name="icon_star">Estrella</string>
+    <string name="icon_store">Tienda</string>
+    <string name="icon_thunderstorm">Tormenta</string>
+    <string name="icon_timer">Temporizador</string>
+    <string name="icon_today">Hoy</string>
+    <string name="icon_umbrella">Paraguas</string>
+    <string name="icon_videocam">Videollamada</string>
+    <string name="icon_voicemail">Buzón de voz</string>
+    <string name="icon_wbsunny">Sol</string>
+    <string name="icon_wifi">Wi-Fi</string>
+    <string name="a11y_chosen">%1$s, elegido</string>
+    <string name="a11y_on">%1$s, activado</string>
+    <string name="a11y_off">%1$s, desactivado</string>
+    <string name="a11y_state">%1$s, %2$s</string>
+    <string name="a11y_pin_empty">Ningún dígito introducido</string>
+</resources>

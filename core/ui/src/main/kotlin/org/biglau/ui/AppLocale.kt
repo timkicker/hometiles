@@ -27,13 +27,9 @@ object AppLocale {
         Language.SYSTEM -> null
         Language.GERMAN -> Locale.GERMAN
         Language.ENGLISH -> Locale.ENGLISH
-    }
-
-    /** Die drei Stufen im Kreis, wie bei der Haptik. */
-    fun next(current: Language): Language = when (current) {
-        Language.SYSTEM -> Language.GERMAN
-        Language.GERMAN -> Language.ENGLISH
-        Language.ENGLISH -> Language.SYSTEM
+        Language.FRENCH -> Locale.FRENCH
+        Language.SPANISH -> Locale.forLanguageTag("es")
+        Language.ITALIAN -> Locale.ITALIAN
     }
 
     fun wrap(base: Context, language: Language): Context {

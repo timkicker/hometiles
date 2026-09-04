@@ -21,6 +21,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
@@ -71,6 +73,9 @@ fun PinGate(
     var wrong by remember { mutableStateOf(false) }
     var holding by remember { mutableStateOf(false) }
     var heldSeconds by remember { mutableStateOf(0) }
+    // Der Anker der Fertig-Zeile. Die Tastatur schickt den Fokus dorthin, wenn er unter
+    // der letzten Reihe hinauslaeuft; ohne ihn waere die Zeile mit Tasten unerreichbar.
+    val fertigAnker = remember { FocusRequester() }
 
     if (onEmergencyExit != null) {
         LaunchedEffect(holding) {
@@ -182,8 +187,21 @@ fun PinGate(
             }
         }
 
+        // Der Fokus muss in die Tastatur, sonst ist die Sperre mit Tasten nicht zu oeffnen.
+        //
+        // Als Bildschirm einer Activity stimmt es von selbst: das Fenster bekommt den Fokus
+        // und Compose sucht sich das erste Ziel. Als **Ueberlagerung** ueber dem
+        // Startbildschirm nicht - am 04.09.2026 gemessen, gesperrte App angetippt: elf
+        // anklickbare Flaechen, null erreicht. Die ganze Tastatur war unerreichbar, und
+        // damit die App dahinter auch.
+        //
+        // `holtFokus` setzt ihn auf die Eins, und die Tastatur fuehrt die Bewegung von dort
+        // aus selbst. Beides gehoert zusammen: ein Fokus, der sich nicht bewegen laesst,
+        // ist nur die haelfte des Weges.
         Box(Modifier.weight(1f)) {
             BigKeypad(
+                holtFokus = true,
+                unten = fertigAnker,
                 onDigit = { digit ->
                     wrong = false
                     if (entered.length < Pin.MAX_LENGTH) entered += digit
@@ -200,6 +218,7 @@ fun PinGate(
         // onClick, keine falsche Auskunft.
         BigRow(
             label = confirmLabel,
+            modifier = Modifier.focusRequester(fertigAnker),
             surface = if (entered.isEmpty()) palette.surfaceDefault else palette.surfaceAccent,
             onClick = if (entered.isEmpty()) {
                 null

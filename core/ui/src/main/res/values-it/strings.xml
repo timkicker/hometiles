@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Erste Fassung vom 04.09.2026, maschinell uebersetzt und von niemandem gelesen, der
+  Italienisch spricht. Siehe PLAN.md 10.4. Laut CLDR reichen one und other; das many trifft
+  nur volle Millionen, und die Null nimmt other wie im Spanischen
+  (tools/mehrzahlformen.py). Wortwahl: riquadro fuer Kachel, casella fuer Feld.
+-->
+<resources>
+    <string name="intent_no_app">Nessuna app di questo telefono può farlo</string>
+    <string name="intent_no_permission">BigLau non ha il permesso di farlo</string>
+    <string name="keypad_backspace">Cancella l’ultima cifra</string>
+    <string name="search_clear">Cancella la ricerca</string>
+    <string name="permission_allow">Consenti l’accesso</string>
+    <string name="permission_blocked">Android non chiede più. Può ancora consentirlo nelle impostazioni di sistema.</string>
+    <string name="permission_open_settings">Apri le impostazioni di sistema</string>
+    <string name="scroll_down">Pagina successiva</string>
+    <string name="scroll_up">Pagina precedente</string>
+
+    <string name="icon_accessalarm">Sveglia</string>
+    <string name="icon_acunit">Neve</string>
+    <string name="icon_air">Vento</string>
+    <string name="icon_apartment">Palazzo</string>
+    <string name="icon_apps">App</string>
+    <string name="icon_batteryfull">Batteria</string>
+    <string name="icon_book">Libro</string>
+    <string name="icon_calendarmonth">Calendario</string>
+    <string name="icon_call">Telefono</string>
+    <string name="icon_chat">Chat</string>
+    <string name="icon_childcare">Bambino</string>
+    <string name="icon_church">Chiesa</string>
+    <string name="icon_cloud">Nuvola</string>
+    <string name="icon_directionsbus">Autobus</string>
+    <string name="icon_directionscar">Auto</string>
+    <string name="icon_elderly">Bastone</string>
+    <string name="icon_email">Email</string>
+    <string name="icon_emergency">Emergenza</string>
+    <string name="icon_favorite">Cuore</string>
+    <string name="icon_group">Gruppo</string>
+    <string name="icon_headphones">Cuffie</string>
+    <string name="icon_history">Cronologia</string>
+    <string name="icon_home">Casa</string>
+    <string name="icon_key">Chiave</string>
+    <string name="icon_localhospital">Ospedale</string>
+    <string name="icon_localpharmacy">Farmacia</string>
+    <string name="icon_localtaxi">Taxi</string>
+    <string name="icon_locationon">Luogo</string>
+    <string name="icon_lock">Lucchetto</string>
+    <string name="icon_map">Mappa</string>
+    <string name="icon_medicalservices">Medico</string>
+    <string name="icon_medication">Medicine</string>
+    <string name="icon_message">Messaggio</string>
+    <string name="icon_monitorheart">Battito</string>
+    <string name="icon_movie">Film</string>
+    <string name="icon_musicnote">Musica</string>
+    <string name="icon_newspaper">Giornale</string>
+    <string name="icon_person">Persona</string>
+    <string name="icon_photo">Immagine</string>
+    <string name="icon_photocamera">Fotocamera</string>
+    <string name="icon_powersettingsnew">Accensione</string>
+    <string name="icon_radio">Radio</string>
+    <string name="icon_restaurant">Cibo</string>
+    <string name="icon_schedule">Orologio</string>
+    <string name="icon_settings">Impostazioni</string>
+    <string name="icons_group_communication">Parlare</string>
+    <string name="icons_group_everyday">Ogni giorno</string>
+    <string name="icons_group_health">Salute</string>
+    <string name="icons_group_media">Musica e immagini</string>
+    <string name="icons_group_people">Persone</string>
+    <string name="icons_group_places">Luoghi</string>
+    <string name="icons_group_system">Il telefono</string>
+    <string name="icons_group_time">Ora</string>
+    <string name="icons_group_weather">Meteo</string>
+    <string name="icon_shoppingcart">Spesa</string>
+    <string name="icon_star">Stella</string>
+    <string name="icon_store">Negozio</string>
+    <string name="icon_thunderstorm">Temporale</string>
+    <string name="icon_timer">Timer</string>
+    <string name="icon_today">Oggi</string>
+    <string name="icon_umbrella">Ombrello</string>
+    <string name="icon_videocam">Videochiamata</string>
+    <string name="icon_voicemail">Segreteria</string>
+    <string name="icon_wbsunny">Sole</string>
+    <string name="icon_wifi">Wi-Fi</string>
+    <string name="a11y_chosen">%1$s, scelto</string>
+    <string name="a11y_on">%1$s, acceso</string>
+    <string name="a11y_off">%1$s, spento</string>
+    <string name="a11y_state">%1$s, %2$s</string>
+    <string name="a11y_pin_empty">Nessuna cifra inserita</string>
+</resources>

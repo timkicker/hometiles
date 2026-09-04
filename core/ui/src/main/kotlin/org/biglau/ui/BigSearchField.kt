@@ -27,6 +27,13 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
+import androidx.compose.ui.focus.FocusDirection
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.SolidColor
@@ -76,6 +83,7 @@ fun BigSearchField(
     // `pointerInput` und nicht `clickable`: eine anklickbare Zeile waere fuer die
     // Vorlesefunktion eine Schaltflaeche - siehe BigRow. Hier ist sie ein Eingabefeld.
     val schreibmarke = remember { FocusRequester() }
+    val fokus = LocalFocusManager.current
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -122,6 +130,38 @@ fun BigSearchField(
                 modifier = Modifier
                     .fillMaxWidth()
                     .focusRequester(schreibmarke)
+                    // Die Lupentaste, die der Text `search_matches` nennt. `ImeAction.Search`
+                    // deckt nur die Eingabetaste ab; auf einem Telefon mit Tastatur gibt es
+                    // die Lupe wirklich, und ein Hinweis auf eine Taste, die nichts tut, ist
+                    // schlimmer als gar keiner. Am 04.09.2026 am Emulator gemessen.
+                    .onPreviewKeyEvent { taste ->
+                        if (taste.type != KeyEventType.KeyDown) {
+                            false
+                        } else {
+                            when (taste.key) {
+                                // Die Lupentaste, die der Text `search_matches` nennt.
+                                // `ImeAction.Search` deckt nur die Eingabetaste ab; auf einem
+                                // Telefon mit Tastatur gibt es die Lupe wirklich, und ein
+                                // Hinweis auf eine Taste, die nichts tut, ist schlimmer als
+                                // gar keiner.
+                                Key.Search -> {
+                                    onSearch?.invoke()
+                                    true
+                                }
+                                // Nach unten gehoert der Liste. Ein `EditText` nimmt den
+                                // Fokus und gibt ihn von selbst nicht weiter; am 04.09.2026
+                                // in App-Liste und Kontakten gemessen, vier Druecke ohne
+                                // Bewegung, und damit war die ganze Liste mit Tasten
+                                // unerreichbar. Das Feld ist einzeilig, ein Druck nach unten
+                                // kann darin keinen Text erreichen.
+                                Key.DirectionDown -> {
+                                    fokus.moveFocus(FocusDirection.Down)
+                                    true
+                                }
+                                else -> false
+                            }
+                        }
+                    }
                     .semantics { contentDescription = hint },
             )
             }

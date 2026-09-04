@@ -1,0 +1,28 @@
+BigLau est un écran d'accueil fait de grandes tuiles clairement étiquetées, avec le
+téléphone et les messages dans la même application. Il est pensé pour les petits écrans,
+les mains qui tremblent et les yeux qui préfèrent ne pas plisser.
+
+Chaque tuile peut être ce que vous voulez : une application, un contact, un raccourci, un
+widget, une fonction comme la lampe de poche ou le Wi-Fi, ou un saut vers un autre écran.
+La grille, la taille des tuiles, les couleurs et les étiquettes, c'est vous qui décidez.
+
+Ce qui est inclus :
+
+* Un écran d'accueil de grandes tuiles, librement attribuées, et si vous le souhaitez un
+  bandeau avec l'heure, la date et la charge de la batterie.
+* Un téléphone avec clavier, numérotation rapide de 2 à 9, journal d'appels groupé et son
+  propre écran d'appel. Le rôle de téléphone est proposé, jamais imposé.
+* Messages : liste, conversation et rédaction.
+* Contacts avec recherche, tri par prénom ou par nom, et favoris.
+* Un bouton SOS avec compte à rebours qui appelle plusieurs numéros l'un après l'autre et
+  peut envoyer un message d'urgence avec votre position.
+* Aide à la lecture : maintenez une tuile pour la faire lire à voix haute ou l'afficher en
+  grand ; des boutons de page au lieu du balayage dans les longues listes.
+* Enregistrez vos réglages dans un fichier et relisez-les sur le téléphone suivant.
+* Si le lanceur ne démarre pas un jour, un écran de secours simple apparaît avec le
+  téléphone, les contacts et les réglages, plutôt qu'un appareil noir.
+
+Pas de compte, pas de publicité, pas de suivi, et aucune autorisation d'accès à internet.
+
+BigLau est le remplaçant libre de BIG Launcher, dont les fonctions sont aujourd'hui
+réparties entre trois applications payantes.

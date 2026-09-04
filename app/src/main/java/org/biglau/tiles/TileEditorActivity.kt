@@ -394,7 +394,28 @@ var contactsGranted by remember(fortsetzungen.intValue) { mutableStateOf(contact
                 hideCutLabels = config.appearance.hideCutLabels,
                 cornerRadiusDp = config.appearance.cornerRadiusDp,
             ) {
-                BackHandler(enabled = mode != Mode.MENU) { mode = Mode.MENU }
+                // Die Zurueck-Taste tut, was der Knopf daneben tut.
+                //
+                // Die beiden Loeschfragen sind Vollbild-Tafeln: sie biegen mit `return@Box`
+                // ab, bevor der Modus ueberhaupt drankommt, und sie werden aus dem Menue
+                // heraus gesetzt. `mode != Mode.MENU` war dort also false, und ein Druck auf
+                // Zurueck beendete den ganzen Editor statt die Frage. Am 04.09.2026 am
+                // Emulator nachgemessen: aus der Frage nach dem Ordner heraus stand man
+                // wieder auf dem Startbildschirm. Zerstoert wurde nichts - aber wer mit
+                // Tasten arbeitet, verliert damit seinen Platz, ohne dass etwas es ansagt.
+                //
+                // Die Reihenfolge ist die, in der die Tafeln uebereinanderliegen: von oben
+                // nach unten wieder weg. Die Sperre bleibt aussen vor; dort fuehrt die Taste
+                // hinaus und darf nicht hineinfuehren.
+                BackHandler(
+                    enabled = mode != Mode.MENU || replacingFolder != null || clearing != null,
+                ) {
+                    when {
+                        replacingFolder != null -> replacingFolder = null
+                        clearing != null -> clearing = null
+                        else -> mode = Mode.MENU
+                    }
+                }
 
                 Box(
                     Modifier

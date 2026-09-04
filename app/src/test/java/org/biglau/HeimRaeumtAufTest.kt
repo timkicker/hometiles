@@ -31,6 +31,9 @@ class HeimRaeumtAufTest {
         "contactChoice" to "anrufen oder schreiben?",
         "lockedApp" to "die PIN-Sperre vor einer gesperrten App",
         "phoneStateAsked" to "die Erklaerung zur Empfangs-Berechtigung",
+        // Am 04.09.2026 dazugekommen, mit der Menuetaste aus PLAN.md 10.3.4. Die Regel hat
+        // sie sofort gemeldet, wie ihr eigener Kommentar es angekuendigt hat.
+        "kachelMenue" to "die Liste der Menuetaste",
     )
 
     private val raeumen = Quelltext.ausschnitt(
@@ -66,8 +69,9 @@ class HeimRaeumtAufTest {
 
     @Test
     fun `keine ueberlagerung raeumt sich nur einzeln weg`() {
-        // Der Zaehler ist die eigentliche Regel: fuenf Zustaende, fuenf Zeilen. Eine
-        // sechste Ueberlagerung faellt hier auf, bevor sie eine Heim-Taste ueberlebt.
+        // Der Zaehler ist die eigentliche Regel: so viele Zustaende, so viele Zeilen.
+        // Eine weitere Ueberlagerung faellt hier auf, bevor sie eine Heim-Taste ueberlebt.
+        // Am 04.09.2026 hat sie genau das getan, als die Menuetaste die sechste brachte.
         val zeilen = raeumen.lines().count { it.contains(".value") }
         assertEquals(
             "ueberlagerungenSchliessen() raeumt $zeilen Zustaende weg, erwartet werden " +

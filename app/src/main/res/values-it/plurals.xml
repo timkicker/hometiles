@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Erste Fassung vom 04.09.2026, maschinell uebersetzt und ungeprueft. Laut CLDR reichen im
+  Italienischen one und other; das many trifft nur volle Millionen, und die Null nimmt other
+  wie im Spanischen. Die Formen behalten dieselben Platzhalter wie das Englische.
+-->
+<resources>
+    <plurals name="sos_numbers_saved_n">
+        <item quantity="one">%1$d numero salvato.</item>
+        <item quantity="other">%1$d numeri salvati.</item>
+    </plurals>
+    <plurals name="sos_counting_plural">
+        <item quantity="one">Invio a un contatto tra</item>
+        <item quantity="other">Invio a %1$d contatti tra</item>
+    </plurals>
+    <plurals name="sos_sent_location_plural">
+        <item quantity="one">Inviato a un contatto, con la sua posizione.</item>
+        <item quantity="other">Inviato a %1$d contatti, con la sua posizione.</item>
+    </plurals>
+    <plurals name="sos_sent_plain_plural">
+        <item quantity="one">Inviato a un contatto. Nessuna posizione disponibile.</item>
+        <item quantity="other">Inviato a %1$d contatti. Nessuna posizione disponibile.</item>
+    </plurals>
+    <plurals name="screen_grid_loses">
+        <item quantity="one">si perderebbe %1$d riquadro</item>
+        <item quantity="other">si perderebbero %1$d riquadri</item>
+    </plurals>
+    <plurals name="screens_unreachable">
+        <item quantity="one">Nessun riquadro porta a «%1$s». Metta un riquadro «Andare a una schermata» o non la ritroverà.</item>
+        <item quantity="other">Nessun riquadro porta a queste schermate: %1$s. Metta un riquadro «Andare a una schermata» o non le ritroverà.</item>
+    </plurals>
+    <plurals name="search_matches">
+        <item quantity="one">%1$d risultato, il tasto lente lo apre</item>
+        <item quantity="other">%1$d risultati</item>
+    </plurals>
+    <plurals name="folder_delete_body">
+        <item quantity="one">%1$d riquadro dentro se ne va con lei. È definitivo.</item>
+        <item quantity="other">%1$d riquadri dentro se ne vanno con lei. È definitivo.</item>
+    </plurals>
+    <plurals name="move_target_folder">
+        <item quantity="one">Cartella, %1$d posto libero</item>
+        <item quantity="other">Cartella, %1$d posti liberi</item>
+    </plurals>
+    <plurals name="move_target_screen">
+        <item quantity="one">Schermata, %1$d posto libero</item>
+        <item quantity="other">Schermata, %1$d posti liberi</item>
+    </plurals>
+    <plurals name="apps_recent_count_value">
+        <item quantity="one">%1$d applicazione</item>
+        <item quantity="other">%1$d applicazioni</item>
+    </plurals>
+    <plurals name="calllog_deleted">
+        <item quantity="one">Una voce cancellata.</item>
+        <item quantity="other">%1$d voci cancellate.</item>
+    </plurals>
+    <plurals name="security_applock_would_allow">
+        <item quantity="one">Un’app resterebbe aperta senza il PIN</item>
+        <item quantity="other">%1$d app resterebbero aperte senza il PIN</item>
+    </plurals>
+    <plurals name="security_applock_allowed">
+        <item quantity="one">Un’app si apre senza il PIN</item>
+        <item quantity="other">%1$d app si aprono senza il PIN</item>
+    </plurals>
+    <plurals name="screen_delete_tiles">
+        <item quantity="one">Un riquadro se ne va con lei.</item>
+        <item quantity="other">%1$d riquadri se ne vanno con lei.</item>
+    </plurals>
+    <plurals name="screen_delete_folders">
+        <item quantity="one">E una cartella, con tutto quello che contiene.</item>
+        <item quantity="other">E %1$d cartelle, con tutto quello che contengono.</item>
+    </plurals>
+    <plurals name="sms_parts">
+        <item quantity="one">Costa un SMS</item>
+        <item quantity="other">Costa %1$d SMS</item>
+    </plurals>
+    <plurals name="sos_message_parts">
+        <item quantity="one">Con la posizione costa al massimo un SMS</item>
+        <item quantity="other">Con la posizione costa al massimo %1$d SMS</item>
+    </plurals>
+    <plurals name="sos_countdown_seconds">
+        <item quantity="one">un secondo</item>
+        <item quantity="other">%1$d secondi</item>
+    </plurals>
+    <plurals name="screen_copy_done">
+        <item quantity="one">«%1$s» è pronta con un riquadro. Su questa schermata ce n’è uno che porta là.</item>
+        <item quantity="other">«%1$s» è pronta con %2$d riquadri. Su questa schermata ce n’è uno che porta là.</item>
+    </plurals>
+    <plurals name="screen_copy_done_partial">
+        <item quantity="one">«%1$s» è pronta con un riquadro. %3$d sono rimasti vuoti: widget e cartelle stanno in un posto solo.</item>
+        <item quantity="other">«%1$s» è pronta con %2$d riquadri. %3$d sono rimasti vuoti: widget e cartelle stanno in un posto solo.</item>
+    </plurals>
+    <plurals name="a11y_new_calls">
+        <item quantity="one">Una è nuova</item>
+        <item quantity="other">%1$d sono nuove</item>
+    </plurals>
+    <plurals name="a11y_unread">
+        <item quantity="one">Uno non letto</item>
+        <item quantity="other">%1$d non letti</item>
+    </plurals>
+    <plurals name="sos_location_age_minutes">
+        <item quantity="one">Posizione di un minuto fa</item>
+        <item quantity="other">Posizione di %1$d minuti fa</item>
+    </plurals>
+    <plurals name="sos_location_age_hours">
+        <item quantity="one">Posizione di un’ora fa</item>
+        <item quantity="other">Posizione di %1$d ore fa</item>
+    </plurals>
+    <plurals name="a11y_badge">
+        <item quantity="one">Una notifica nuova</item>
+        <item quantity="other">%1$d notifiche nuove</item>
+    </plurals>
+    <plurals name="sms_repeat_minutes">
+        <item quantity="one">Ogni minuto finché non è letto</item>
+        <item quantity="other">Ogni %1$d minuti finché non è letto</item>
+    </plurals>
+    <plurals name="apps_hidden_count">
+        <item quantity="one">Un’app nascosta</item>
+        <item quantity="other">%1$d app nascoste</item>
+    </plurals>
+    <plurals name="apps_hidden_match">
+        <item quantity="one">Un’app nascosta corrisponde</item>
+        <item quantity="other">%1$d app nascoste corrispondono</item>
+    </plurals>
+</resources>

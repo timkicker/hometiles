@@ -1,0 +1,28 @@
+BigLau es una pantalla de inicio hecha de mosaicos grandes y claramente rotulados, con
+teléfono y mensajes en la misma aplicación. Está pensada para pantallas pequeñas, manos
+inseguras y ojos que preferirían no entrecerrarse.
+
+Cada mosaico puede ser lo que usted quiera: una aplicación, un contacto, un acceso directo,
+un widget, una función como la linterna o la wifi, o un salto a otra pantalla. La
+cuadrícula, el tamaño de los mosaicos, los colores y los rótulos los decide usted.
+
+Lo que incluye:
+
+* Una pantalla de inicio de mosaicos grandes, de libre asignación, y si lo desea una
+  cabecera con la hora, la fecha y la carga de la batería.
+* Un teléfono con teclado, marcación rápida del 2 al 9, registro de llamadas agrupado y
+  su propia pantalla de llamada. El papel de teléfono se ofrece, nunca se impone.
+* Mensajes: lista, conversación y redacción.
+* Contactos con búsqueda, orden por nombre o por apellido, y favoritos.
+* Un botón SOS con cuenta atrás que llama a varios números seguidos y puede enviar un
+  mensaje de emergencia con su ubicación.
+* Ayuda para leer: mantenga pulsado un mosaico para que se lea en voz alta o se muestre
+  en grande; botones de página en lugar de deslizar en las listas largas.
+* Guarde su configuración en un archivo y vuelva a leerla en el siguiente teléfono.
+* Si alguna vez el lanzador no arranca, aparece una pantalla de emergencia sencilla con
+  teléfono, contactos y ajustes, en lugar de un aparato en negro.
+
+Sin cuenta, sin publicidad, sin seguimiento, y sin ningún permiso de internet.
+
+BigLau es el sustituto libre de BIG Launcher, cuyas funciones están hoy repartidas entre
+tres aplicaciones de pago.

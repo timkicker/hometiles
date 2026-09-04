@@ -84,11 +84,16 @@ class DeviceClaimsTest {
         assertTrue("verpasste Anrufe werden nicht selbst gezaehlt", "Builtin.MISSED_CALLS) return missed" in logik)
         assertTrue("ungelesene Nachrichten werden nicht selbst gezaehlt", "unread != null) return unread" in logik)
         listOf(
-            "values-de" to listOf("Verpasste Anrufe", "ungelesene Nachrichten"),
+            "values-de" to listOf("verpasste anrufe", "ungelesene nachrichten"),
             "values" to listOf("missed calls", "unread messages"),
         ).forEach { (verzeichnis, woerter) ->
+            // Klein verglichen: ob die Wendung am Satzanfang steht oder mittendrin, ist
+            // Grammatik und nicht die Behauptung. Am 04.09.2026 rutschte "unread messages"
+            // beim Kuerzen nach vorn, wurde dadurch gross geschrieben, und die Regel meldete
+            // einen Fehler, den es nicht gab.
             val satz = Quelltext.texte(verzeichnis).joinToString("\n") { it.readText() }
                 .let { Quelltext.ausschnitt(it, "name=\"blink_explainer\"", "</string>") }
+                .lowercase()
             woerter.forEach { wort ->
                 assertTrue("$verzeichnis: $wort fehlt im Satz: $satz", wort in satz)
             }

@@ -47,6 +47,16 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.focus.FocusDirection
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -103,7 +113,9 @@ import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import org.biglau.web.LinkTarget
 import org.biglau.tiles.TileEditorActivity
 import org.biglau.tiles.TileLabel
+import org.biglau.a11y.Kachelmenue
 import org.biglau.a11y.LongPress
+import org.biglau.a11y.Menuepunkt
 import org.biglau.a11y.LongPressAction
 import org.biglau.a11y.Speaker
 import org.biglau.ui.HomeHeader
@@ -175,6 +187,14 @@ class MainActivity : BigLauActivity() {
      * [ueberlagerungenSchliessen] muss sie von aussen wegraeumen koennen.
      */
     private val popupLabelState = mutableStateOf<String?>(null)
+
+    /**
+     * Die Liste der Menuetaste: Screen und Platz der Kachel, zu der sie offen steht.
+     *
+     * Auf der Activity aus demselben Grund wie die anderen Ueberlagerungen: die Heim-Taste
+     * muss sie wegraeumen koennen. Siehe [ueberlagerungenSchliessen].
+     */
+    private val kachelMenue = mutableStateOf<Triple<String, Int, Int>?>(null)
 
     /**
      * Die gesperrte App **und die Kachel, von der sie kam**.
@@ -258,6 +278,7 @@ class MainActivity : BigLauActivity() {
     private fun ueberlagerungenSchliessen() {
         openFolder.value = null
         popupLabelState.value = null
+        kachelMenue.value = null
         contactChoice.value = null
         lockedApp.value = null
         phoneStateAsked.value = false
@@ -377,13 +398,61 @@ class MainActivity : BigLauActivity() {
             // Wir sind bis hierher gekommen: der Start gilt als geglueckt.
             LaunchedEffect(Unit) { crashes.noteRendered() }
 
+            // Der lange Druck und die Liste der Menuetaste fuehren dieselben Aktionen aus.
+            // Sie entscheiden nur verschieden, welche: der lange Druck ueber
+            // LongPress.decide, also nach den Einstellungen, die Liste ueber Kachelmenue,
+            // die alle drei zeigt. Deshalb steht die Ausfuehrung einmal hier.
+            val fuehreAus: (org.biglau.data.Screen, Int, Int, List<LongPressAction>) -> Unit =
+                { gezeigt, x, y, aktionen ->
+                    val zelle = gezeigt.cellAt(x, y)
+                    aktionen.forEach { action ->
+                        when (action) {
+                            // Der lange Druck startet die Kachel - fuer Haende, die beim
+                            // Streifen sonst etwas ausloesen wuerden.
+                            LongPressAction.ACTIVATE -> zelle?.let { treffer ->
+                                activate(treffer, gezeigt.id, apps) { ziel ->
+                                    currentScreen.value = ziel
+                                }
+                            }
+                            // Die Zweitbelegung: dieselbe Ausfuehrung wie beim Kurzdruck,
+                            // nur mit der anderen Aktion.
+                            LongPressAction.SECOND_ACTION -> zelle?.button?.longPress?.let { zweite ->
+                                activate(
+                                    zelle.copy(button = zelle.button.copy(action = zweite)),
+                                    gezeigt.id,
+                                    apps,
+                                ) { ziel -> currentScreen.value = ziel }
+                            }
+                            LongPressAction.EDIT -> context.startActivity(
+                                TileEditorActivity.intent(context, gezeigt.id, x, y),
+                            )
+                            LongPressAction.SPEAK -> Speaker.say(
+                                context,
+                                labelAt(config, gezeigt.id, x, y, apps),
+                                // Die Sprache kommt von hier: der Speaker soll sie nicht
+                                // selbst suchen muessen. Siehe Speaker.
+                                AppLocale.localeFor(config.appearance.language)
+                                    ?: Locale.getDefault(),
+                            )
+                            LongPressAction.POPUP -> popupLabel =
+                                labelAt(config, gezeigt.id, x, y, apps)
+                            LongPressAction.NOTHING -> Unit
+                        }
+                    }
+                }
+
             // Einmal beschrieben, zweimal benutzt: fuer den Screen und fuer den Ordner
             // darueber. Ein zweiter, abgeschriebener Aufruf waere die Stelle, an der die
             // beiden nach der naechsten Aenderung auseinanderlaufen.
-            val zeigeKachel: @Composable (org.biglau.data.Screen, Modifier) -> Unit =
-                { gezeigt, gestalt ->
+            val zeigeKachel: @Composable (
+                org.biglau.data.Screen, Modifier, Boolean, FocusRequester?, FocusRequester?,
+            ) -> Unit =
+                { gezeigt, gestalt, obenauf, streifen, zurueck ->
                     HomeScreenView(
                         screen = gezeigt,
+                        aktiv = obenauf,
+                        unten = streifen,
+                        rasterAnker = zurueck,
                         appearance = config.appearance,
                         modifier = gestalt,
                         appIcon = { pkg, act ->
@@ -420,47 +489,21 @@ class MainActivity : BigLauActivity() {
                         },
                         editMode = editMode,
                         onEdit = { x, y ->
-                            val zelle = gezeigt.cellAt(x, y)
-                            LongPress.decide(
-                                config.behaviour.accessibility,
-                                editMode,
-                                config.behaviour.pressMode,
-                                hasSecondAction = zelle?.button?.longPress != null,
-                            ).forEach { action ->
-                                when (action) {
-                                    // Der lange Druck startet die Kachel - fuer Haende, die
-                                    // beim Streifen sonst etwas ausloesen wuerden.
-                                    LongPressAction.ACTIVATE -> zelle?.let { treffer ->
-                                        activate(treffer, gezeigt.id, apps) { ziel ->
-                                            currentScreen.value = ziel
-                                        }
-                                    }
-                                    // Die Zweitbelegung: dieselbe Ausfuehrung wie beim
-                                    // Kurzdruck, nur mit der anderen Aktion.
-                                    LongPressAction.SECOND_ACTION -> zelle?.button?.longPress?.let { zweite ->
-                                        activate(
-                                            zelle.copy(button = zelle.button.copy(action = zweite)),
-                                            gezeigt.id,
-                                            apps,
-                                        ) { ziel -> currentScreen.value = ziel }
-                                    }
-                                    LongPressAction.EDIT -> context.startActivity(
-                                        TileEditorActivity.intent(context, gezeigt.id, x, y),
-                                    )
-                                    LongPressAction.SPEAK -> Speaker.say(
-                                        context,
-                                        labelAt(config, gezeigt.id, x, y, apps),
-                                        // Die Sprache kommt von hier: der Speaker soll sie
-                                        // nicht selbst suchen muessen. Siehe Speaker.
-                                        AppLocale.localeFor(config.appearance.language)
-                                            ?: Locale.getDefault(),
-                                    )
-                                    LongPressAction.POPUP -> popupLabel =
-                                        labelAt(config, gezeigt.id, x, y, apps)
-                                    LongPressAction.NOTHING -> Unit
-                                }
-                            }
+                            fuehreAus(
+                                gezeigt, x, y,
+                                LongPress.decide(
+                                    config.behaviour.accessibility,
+                                    editMode,
+                                    config.behaviour.pressMode,
+                                    hasSecondAction = gezeigt.cellAt(x, y)?.button?.longPress != null,
+                                ),
+                            )
                         },
+                        // PLAN.md 10.3.4: die Menuetaste oeffnet die Liste, statt gleich
+                        // etwas zu tun. Der lange Druck kann nur eines von dreien, und
+                        // welches, entscheiden die Einstellungen; mit Tasten kaeme man an die
+                        // anderen beiden nicht heran.
+                        onMenu = { x, y -> kachelMenue.value = Triple(gezeigt.id, x, y) },
                     )
                 }
 
@@ -490,10 +533,18 @@ class MainActivity : BigLauActivity() {
                 val label = popupLabel
                 val wartend = lockedApp.value
                 val asking = contactChoice.value
+                // Die Liste der Ueberlagerungen, an einer Stelle. Sie beantwortet zwei
+                // Fragen auf einmal: was die Vorlesefunktion nicht mehr sehen darf, und wer
+                // die Tasten bekommt. Am 04.09.2026 kam heraus, dass das dieselbe Liste ist.
+                //
+                // `kachelMenue` fehlte hier und ist am selben Tag dazugekommen: bei offener
+                // Liste standen `Nachrichten`, `Telefon` und `Kontakte` weiter im
+                // Knotenabzug, obwohl nichts davon zu sehen war.
                 val verdeckt = ordner != null ||
                     label != null ||
                     phoneStateAsked.value ||
                     wartend != null ||
+                    kachelMenue.value != null ||
                     asking != null
                 Column(
                     Modifier
@@ -560,7 +611,14 @@ class MainActivity : BigLauActivity() {
                             }
                         }
                     }
-                    zeigeKachel(screen, Modifier.fillMaxSize().then(wischen))
+                    // Der Startbildschirm bekommt die Tasten nur, solange nichts darueber
+                    // liegt - dieselbe Liste wie fuer die Vorlesefunktion. Sonst liefe der
+                    // Fokus unter einer Ueberlagerung weiter.
+                    // Unter dem Startbildschirm steht kein Streifen; dort ist unten
+                    // wirklich Schluss.
+                    zeigeKachel(
+                        screen, Modifier.fillMaxSize().then(wischen), !verdeckt, null, null,
+                    )
                 }
 
                 if (label != null) {
@@ -582,8 +640,114 @@ class MainActivity : BigLauActivity() {
                         } else {
                             null
                         },
-                    ) {
-                        zeigeKachel(ordner, Modifier.fillMaxSize())
+                    ) { streifen, zurueck ->
+                        zeigeKachel(ordner, Modifier.fillMaxSize(), true, streifen, zurueck)
+                    }
+                }
+
+                kachelMenue.value?.let { (screenId, x, y) ->
+                    val schirm = config.screens.firstOrNull { it.id == screenId }
+                    val zelle = schirm?.cellAt(x, y)
+                    if (schirm == null) {
+                        kachelMenue.value = null
+                    } else {
+                        FolderOverlay(
+                            name = labelAt(config, screenId, x, y, apps),
+                            onClose = { kachelMenue.value = null },
+                            schliessen = R.string.dialog_close,
+                        ) { streifen, zurueck ->
+                            // PLAN.md 10.3.5: solange die Liste offen ist, liegt der Fokus
+                            // in ihr. Ohne das hier lief er mit dem D-Pad in den
+                            // Startbildschirm darunter, unsichtbar unter der Liste; am
+                            // 04.09.2026 am Emulator gemessen, bei genau dieser
+                            // Ueberlagerung. Der Rasterrahmen darunter faengt die Tasten ab,
+                            // solange er den Fokus hat, und er hat ihn, bis ihn jemand
+                            // wegnimmt.
+                            val punkte = Kachelmenue.punkte(
+                                hasSecondAction = zelle?.button?.longPress != null,
+                            )
+                            val anker = remember(punkte) { punkte.map { FocusRequester() } }
+                            var wo by remember(screenId, x, y) { mutableStateOf(0) }
+                            LaunchedEffect(screenId, x, y) {
+                                runCatching { anker.first().requestFocus() }
+                            }
+                            Column(
+                                Modifier
+                                    .fillMaxSize()
+                                    // Jede Richtungstaste wird verbraucht, auch wenn sich
+                                    // nichts bewegt. Ohne das lief der Fokus nach vier Tasten
+                                    // in den Startbildschirm darunter: Compose sucht sich
+                                    // sonst selbst ein Ziel, und das naechste liegt unter der
+                                    // Liste. Am 04.09.2026 am Emulator gemessen.
+                                    .onPreviewKeyEvent { taste ->
+                                        if (taste.type != KeyEventType.KeyDown) {
+                                            false
+                                        } else {
+                                            when (taste.key) {
+                                                Key.DirectionDown -> {
+                                                    if (wo < punkte.lastIndex) {
+                                                        wo += 1
+                                                        anker[wo].requestFocus()
+                                                    } else {
+                                                        // Unter dem letzten Punkt steht der
+                                                        // Streifen, der die Liste schliesst.
+                                                        runCatching { streifen.requestFocus() }
+                                                    }
+                                                    true
+                                                }
+                                                Key.DirectionUp -> {
+                                                    if (wo > 0) {
+                                                        wo -= 1
+                                                        anker[wo].requestFocus()
+                                                    }
+                                                    true
+                                                }
+                                                Key.DirectionLeft, Key.DirectionRight -> true
+                                                else -> false
+                                            }
+                                        }
+                                    },
+                            ) {
+                                for ((nr, punkt) in punkte.withIndex()) {
+                                    BigRow(
+                                        label = stringResource(
+                                            when (punkt) {
+                                                Menuepunkt.ZWEITE_AKTION -> R.string.key_menu_second
+                                                Menuepunkt.BEARBEITEN -> R.string.editor_title
+                                                Menuepunkt.VORLESEN -> R.string.a11y_speak_off
+                                                Menuepunkt.GROSS_ZEIGEN -> R.string.a11y_popup_off
+                                            },
+                                        ),
+                                        modifier = Modifier
+                                            .focusRequester(anker[nr])
+                                            .then(
+                                                if (wo == nr) {
+                                                    Modifier.focusRequester(zurueck)
+                                                } else {
+                                                    Modifier
+                                                },
+                                            )
+                                            .onFocusChanged { if (it.isFocused) wo = nr },
+                                        onClick = {
+                                            kachelMenue.value = null
+                                            fuehreAus(
+                                                schirm, x, y,
+                                                listOf(
+                                                    when (punkt) {
+                                                        Menuepunkt.ZWEITE_AKTION ->
+                                                            LongPressAction.SECOND_ACTION
+                                                        Menuepunkt.BEARBEITEN -> LongPressAction.EDIT
+                                                        Menuepunkt.VORLESEN -> LongPressAction.SPEAK
+                                                        Menuepunkt.GROSS_ZEIGEN -> LongPressAction.POPUP
+                                                    },
+                                                ),
+                                            )
+                                        },
+                                    )
+                                    Spacer(Modifier.height(4.dp))
+                                }
+                            }
+                        }
                     }
                 }
 
@@ -882,10 +1046,29 @@ private fun EditModeBanner(onLeave: () -> Unit) {
 @Composable
 private fun LabelPopup(label: String, onDismiss: () -> Unit) {
     val palette = LocalBigPalette.current
+    // Diese Flaeche hat genau eine Handlung: weg. Deshalb schliesst sie **jede** Taste, und
+    // der Hinweis sagt es auch so.
+    //
+    // Am 04.09.2026 von `tools/unerreichbar.py` gemeldet: eine anklickbare Flaeche, null
+    // erreicht. Von Hand bestaetigt - `mInTouchMode=false`, und trotzdem hatte nichts den
+    // Fokus. Die Zurueck-Taste schloss zwar, aber sie stand nirgends angeschrieben, und
+    // dastand `Zum Schliessen tippen`. Ausgerechnet hier: dieser Bildschirm ist fuer den
+    // da, der die Beschriftung sonst nicht liest.
+    val anker = remember { FocusRequester() }
+    LaunchedEffect(label) { runCatching { anker.requestFocus() } }
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(palette.background)
+            .focusRequester(anker)
+            .onPreviewKeyEvent { taste ->
+                if (taste.type == KeyEventType.KeyDown) {
+                    onDismiss()
+                    true
+                } else {
+                    false
+                }
+            }
             .clickable { onDismiss() },
         contentAlignment = Alignment.Center,
     ) {
@@ -902,7 +1085,7 @@ private fun LabelPopup(label: String, onDismiss: () -> Unit) {
             )
             Spacer(Modifier.height(24.dp))
             Text(
-                text = stringResource(R.string.tap_to_close),
+                text = stringResource(R.string.popup_close_any_key),
                 color = palette.onBackground.copy(alpha = 0.75f),
                 fontSize = org.biglau.ui.dpSp(16f),
                 textAlign = TextAlign.Center,
@@ -927,10 +1110,67 @@ private fun ContactChoice(
     onDismiss: () -> Unit,
 ) {
     val palette = LocalBigPalette.current
+    // Zwei Zeilen, und mit Tasten war keine davon zu erreichen. Am 04.09.2026 von
+    // `tools/unerreichbar.py` gemeldet: drei anklickbare Flaechen, **null** erreicht. Der
+    // Grund ist derselbe wie beim Ordner und bei der grossen Beschriftung - eine Flaeche,
+    // die spaeter obenauf kommt, bekommt den Fokus nicht von selbst, und ohne Fokus laeuft
+    // kein Tastenhandler an.
+    //
+    // Anders als die grosse Beschriftung schliesst hier **nicht** jede Taste: das ist eine
+    // Frage mit zwei Antworten, und wer sie mit Tasten liest, muss zwischen ihnen waehlen
+    // koennen. Also hoch und runter zwischen den beiden Zeilen, links und rechts verbraucht,
+    // und die Zurueck-Taste schliesst wie bisher.
+    val anker = remember { List(2) { FocusRequester() } }
+    var wo by remember(name) { mutableStateOf(0) }
+    LaunchedEffect(name) { runCatching { anker.first().requestFocus() } }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(palette.background)
+            .onPreviewKeyEvent { taste ->
+                if (taste.type != KeyEventType.KeyDown) {
+                    false
+                } else {
+                    when (taste.key) {
+                        Key.DirectionDown -> {
+                            if (wo < anker.lastIndex) {
+                                wo += 1
+                                anker[wo].requestFocus()
+                            }
+                            true
+                        }
+                        Key.DirectionUp -> {
+                            if (wo > 0) {
+                                wo -= 1
+                                anker[wo].requestFocus()
+                            }
+                            true
+                        }
+                        Key.DirectionLeft, Key.DirectionRight -> true
+                        // Der Ausweg, und er muss hier stehen.
+                        //
+                        // Der `BackHandler` des Startbildschirms raeumt diese Frage seit
+                        // jeher weg, und bis zum 04.09.2026 war das der einzige Ausweg mit
+                        // Tasten. Sobald aber etwas hier drinnen den Fokus hat, kommt die
+                        // Zurueck-Taste dort nicht mehr an: am Emulator dreimal
+                        // nachgestellt, ohne Fokusanforderung schloss sie, mit ihr blieb
+                        // die Frage stehen. Ein eigener `BackHandler` half auch nicht - die
+                        // Taste wird schon im Fokusbaum verbraucht und erreicht den
+                        // Verteiler nie.
+                        //
+                        // Das ist die Kehrseite davon, eine Ueberlagerung ueberhaupt
+                        // bedienbar zu machen: wer den Fokus nimmt, uebernimmt auch den
+                        // Ausweg. Fuer den Ordner gilt es nicht, dort wird der Fokus im
+                        // Rasterrahmen gehalten und die Taste laeuft weiter durch.
+                        Key.Back -> {
+                            onDismiss()
+                            true
+                        }
+                        else -> false
+                    }
+                }
+            }
             .clickable { onDismiss() },
         contentAlignment = Alignment.Center,
     ) {
@@ -950,11 +1190,17 @@ private fun ContactChoice(
                 label = stringResource(R.string.dialer_call),
                 icon = Icons.Filled.Call,
                 surface = palette.surfaceAccent,
+                modifier = Modifier
+                    .focusRequester(anker[0])
+                    .onFocusChanged { if (it.isFocused) wo = 0 },
                 onClick = onCall,
             )
             BigRow(
                 label = stringResource(R.string.contacts_action_sms),
                 icon = Icons.AutoMirrored.Filled.Message,
+                modifier = Modifier
+                    .focusRequester(anker[1])
+                    .onFocusChanged { if (it.isFocused) wo = 1 },
                 onClick = onSms,
             )
             Text(
@@ -981,9 +1227,21 @@ private fun FolderOverlay(
     name: String,
     onClose: () -> Unit,
     banner: (@Composable () -> Unit)? = null,
-    content: @Composable () -> Unit,
+    /**
+     * Was auf dem Streifen unten steht.
+     *
+     * Vorgabe ist "Ordner schliessen", denn dafuer ist der Rahmen gebaut. Die Liste der
+     * Menuetaste benutzt denselben Rahmen und ist kein Ordner; am 04.09.2026 stand dort
+     * einmal "Ordner schliessen" unter drei Kachelbefehlen, am Emulator gesehen.
+     */
+    schliessen: Int = R.string.folder_close,
+    content: @Composable (FocusRequester, FocusRequester) -> Unit,
 ) {
     val palette = LocalBigPalette.current
+    // Die beiden Wege zwischen dem Inhalt und dem Streifen. Der Inhalt schickt den Fokus
+    // nach unten hierher, der Streifen schickt ihn nach oben zurueck.
+    val untenAnker = remember { FocusRequester() }
+    val zurueckAnker = remember { FocusRequester() }
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -1002,12 +1260,36 @@ private fun FolderOverlay(
             modifier = Modifier.padding(horizontal = 4.dp, vertical = 8.dp),
         )
         banner?.invoke()
-        Box(Modifier.weight(1f)) { content() }
+        Box(Modifier.weight(1f)) { content(untenAnker, zurueckAnker) }
         // Die Zurueck-Geste schliesst ihn auch. Der Streifen ist fuer alle da, die sie nicht
-        // benutzen - und er sagt, was er tut, statt nur ein Kreuz zu zeigen.
+        // benutzen - und er sagt, was er tut, statt nur ein Kreuz zu zeigen. Mit Tasten war
+        // er bis zum 04.09.2026 unerreichbar, obwohl er dastand.
         BigRow(
-            label = stringResource(R.string.folder_close),
+            label = stringResource(schliessen),
             icon = Icons.Filled.Close,
+            modifier = Modifier
+                .focusRequester(untenAnker)
+                // Der Streifen verbraucht die Richtungstasten wie das Raster darueber, und
+                // aus demselben Grund. Am 04.09.2026 gemessen, an dem Tag, an dem er
+                // ueberhaupt erreichbar wurde: ein Druck nach rechts, und der Fokus war
+                // **weg** - Compose sucht dann selbst und findet nichts, weil die Zeile die
+                // ganze Breite hat. Danach half keine Taste mehr, denn ohne Fokus laeuft
+                // kein Tastenhandler an. Genau der Fehler, der vorher im ganzen Ordner
+                // steckte, nur eine Zeile kleiner.
+                .onPreviewKeyEvent { taste ->
+                    if (taste.type != KeyEventType.KeyDown) {
+                        false
+                    } else {
+                        when (taste.key) {
+                            Key.DirectionUp -> {
+                                runCatching { zurueckAnker.requestFocus() }
+                                true
+                            }
+                            Key.DirectionDown, Key.DirectionLeft, Key.DirectionRight -> true
+                            else -> false
+                        }
+                    }
+                },
             onClick = onClose,
         )
     }
@@ -1029,11 +1311,53 @@ private fun SignalPermissionExplainer(
     onDismiss: () -> Unit,
 ) {
     val palette = LocalBigPalette.current
+    // Am 04.09.2026 gemessen: zwei anklickbare Zeilen, **null** erreicht. Mit Tasten war
+    // weder `Jetzt fragen` noch `Jetzt nicht` anzuwaehlen - eine Frage ohne Antwort.
+    //
+    // `focusGroup` und ein Anker darauf: der Fokus geht in die Gruppe, also auf die erste
+    // Zeile. Und `Key.Back` steht hier, weil die Zurueck-Taste den Verteiler der Activity
+    // nicht mehr erreicht, sobald hier drinnen etwas den Fokus hat. Wer den Fokus nimmt,
+    // uebernimmt auch den Ausweg.
+    // Zwei Zeilen, und beide muessen erreichbar sein. `focusGroup` allein reichte nicht:
+    // der Fokus sass auf der ersten und ruehrte sich nicht, weil die Suche nach dem
+    // naechsten Ziel unter die Ueberlagerung lief. Also benannte Anker und eine eigene
+    // Rechnung, wie in der Kachelliste und in der Kontaktwahl.
+    val anker = remember { List(2) { FocusRequester() } }
+    var wo by remember(blocked) { mutableStateOf(0) }
+    LaunchedEffect(blocked) { runCatching { anker.first().requestFocus() } }
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(palette.background)
             .absorbTouches()
+            .onPreviewKeyEvent { taste ->
+                if (taste.type != KeyEventType.KeyDown) {
+                    false
+                } else {
+                    when (taste.key) {
+                        Key.Back -> {
+                            onDismiss()
+                            true
+                        }
+                        Key.DirectionDown -> {
+                            if (wo < anker.lastIndex) {
+                                wo += 1
+                                runCatching { anker[wo].requestFocus() }
+                            }
+                            true
+                        }
+                        Key.DirectionUp -> {
+                            if (wo > 0) {
+                                wo -= 1
+                                runCatching { anker[wo].requestFocus() }
+                            }
+                            true
+                        }
+                        Key.DirectionLeft, Key.DirectionRight -> true
+                        else -> false
+                    }
+                }
+            }
             .safeDrawingPadding()
             .padding(horizontal = 8.dp),
         verticalArrangement = Arrangement.Center,
@@ -1077,17 +1401,26 @@ private fun SignalPermissionExplainer(
             BigRow(
                 label = stringResource(org.biglau.core.ui.R.string.permission_open_settings),
                 surface = palette.surfaceAccent,
+                modifier = Modifier
+                    .focusRequester(anker[0])
+                    .onFocusChanged { if (it.isFocused) wo = 0 },
                 onClick = onSettings,
             )
         } else {
             BigRow(
                 label = stringResource(R.string.signal_permission_ask),
                 surface = palette.surfaceAccent,
+                modifier = Modifier
+                    .focusRequester(anker[0])
+                    .onFocusChanged { if (it.isFocused) wo = 0 },
                 onClick = onAsk,
             )
         }
         BigRow(
             label = stringResource(R.string.signal_permission_no),
+            modifier = Modifier
+                .focusRequester(anker[1])
+                .onFocusChanged { if (it.isFocused) wo = 1 },
             onClick = onDismiss,
         )
     }

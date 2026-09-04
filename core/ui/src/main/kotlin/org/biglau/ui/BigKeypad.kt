@@ -17,9 +17,22 @@ import androidx.compose.material.icons.automirrored.filled.Backspace
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
@@ -56,6 +69,21 @@ fun BigKeypad(
      * die PIN-Eingabe laesst den Platz leer, weil dort kein Plus hingehoert.
      */
     extraKey: Char? = null,
+    /**
+     * Soll die Tastatur beim Erscheinen den Fokus holen?
+     *
+     * Nur, wo sie die Hauptsache des Bildschirms ist - bei der PIN-Eingabe. Die
+     * Waehltastatur hat ein Nummernfeld darueber und soll es ihm nicht wegnehmen.
+     */
+    holtFokus: Boolean = false,
+    /**
+     * Wohin der Fokus geht, wenn er unten aus der Tastatur hinauslaeuft.
+     *
+     * Unter der PIN-Tastatur steht `Fertig`. Ohne diesen Anker waere die Zeile mit Tasten
+     * unerreichbar - derselbe Fall wie der Streifen unter dem Rasterrahmen, und dieselbe
+     * Antwort: ein benannter Anker statt einer blinden Suche.
+     */
+    unten: FocusRequester? = null,
 ) {
     val rows = listOf(
         listOf("1", "2", "3"),
@@ -64,20 +92,94 @@ fun BigKeypad(
         listOf(extraKey?.toString() ?: "", "0", "⌫"),
     )
 
+    // Die Bewegung wird gefuehrt, nicht gesucht.
+    //
+    // Am 04.09.2026 gemessen: ueber dem Startbildschirm bekam die Tastatur den Fokus zwar
+    // auf die Eins, aber jede Richtungstaste lief ins Leere - Compose sucht das naechste
+    // Ziel und findet es unter der Ueberlagerung, auf Kacheln, die niemand sieht. Nach
+    // zehnmal hoch war der Fokus ganz weg, und damit die gesperrte App nicht mehr zu
+    // oeffnen.
+    //
+    // Ein `moveFocus` in die Richtung der Taste war der erste Versuch und half nicht: am
+    // Rand verliess es die Tastatur genauso. Deshalb je Taste ein Anker und eine eigene
+    // Rechnung, wie im Rasterrahmen. Leere Plaetze werden uebersprungen; am Rand passiert
+    // nichts, ausser unten, wo [unten] steht.
+    val anker = remember(rows.size) { rows.map { zeile -> zeile.map { FocusRequester() } } }
+    var wo by remember { mutableStateOf(0 to 0) }
+
+    fun belegt(zeile: Int, spalte: Int): Boolean =
+        rows.getOrNull(zeile)?.getOrNull(spalte)?.isNotEmpty() == true
+
+    /** Die naechste belegte Taste in dieser Richtung, oder null am Rand. */
+    fun nachbar(zeile: Int, spalte: Int, dz: Int, ds: Int): Pair<Int, Int>? {
+        var z = zeile + dz
+        var sp = spalte + ds
+        while (z in rows.indices && sp in 0..2) {
+            if (belegt(z, sp)) return z to sp
+            z += dz
+            sp += ds
+        }
+        return null
+    }
+
+    fun geheZu(ziel: Pair<Int, Int>?): Boolean {
+        if (ziel == null) return false
+        wo = ziel
+        return runCatching { anker[ziel.first][ziel.second].requestFocus() }.isSuccess
+    }
+
+    LaunchedEffect(holtFokus) { if (holtFokus) geheZu(0 to 0) }
+
     Column(
-        modifier = modifier.fillMaxSize(),
+        modifier = modifier
+            .fillMaxSize()
+            .onPreviewKeyEvent { taste ->
+                if (taste.type != KeyEventType.KeyDown) {
+                    false
+                } else {
+                    val (z, sp) = wo
+                    when (taste.key) {
+                        Key.DirectionUp -> {
+                            geheZu(nachbar(z, sp, -1, 0))
+                            true
+                        }
+                        Key.DirectionDown -> {
+                            val ziel = nachbar(z, sp, 1, 0)
+                            if (ziel != null) {
+                                geheZu(ziel)
+                            } else {
+                                // Unter der letzten Reihe steht, was der Aufrufer angibt.
+                                unten?.let { runCatching { it.requestFocus() } }
+                            }
+                            true
+                        }
+                        Key.DirectionLeft -> {
+                            geheZu(nachbar(z, sp, 0, -1))
+                            true
+                        }
+                        Key.DirectionRight -> {
+                            geheZu(nachbar(z, sp, 0, 1))
+                            true
+                        }
+                        else -> false
+                    }
+                }
+            },
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        rows.forEach { row ->
+        rows.forEachIndexed { zeile, row ->
             Row(
                 modifier = Modifier.fillMaxWidth().weight(1f),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                row.forEach { key ->
+                row.forEachIndexed { spalte, key ->
+                    val platz = Modifier
+                        .focusRequester(anker[zeile][spalte])
+                        .onFocusChanged { if (it.isFocused) wo = zeile to spalte }
                     when (key) {
                         "" -> Box(Modifier.weight(1f))
                         "⌫" -> KeypadKey(
-                            Modifier.weight(1f),
+                            Modifier.weight(1f).then(platz),
                             onClick = onBackspace,
                             // Ohne Beschreibung ist die Taste fuer TalkBack stumm - und
                             // im Baum ueberhaupt nicht auffindbar.
@@ -90,7 +192,7 @@ fun BigKeypad(
                             )
                         }
                         else -> KeypadKey(
-                            Modifier.weight(1f),
+                            Modifier.weight(1f).then(platz),
                             onClick = { onDigit(key[0]) },
                             onLongClick = onLongDigit?.let { handler -> { handler(key[0]) } },
                             description = key,

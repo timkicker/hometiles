@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Erste Fassung vom 04.09.2026, maschinell uebersetzt und ungeprueft. Laut CLDR reichen im
+  Spanischen one und other; das many trifft nur volle Millionen, und die Null nimmt other,
+  anders als im Franzoesischen (tools/mehrzahlformen.py). Die Formen behalten dieselben
+  Platzhalter wie das Englische.
+-->
+<resources>
+    <plurals name="sos_numbers_saved_n">
+        <item quantity="one">%1$d número guardado.</item>
+        <item quantity="other">%1$d números guardados.</item>
+    </plurals>
+    <plurals name="sos_counting_plural">
+        <item quantity="one">Enviando a un contacto en</item>
+        <item quantity="other">Enviando a %1$d contactos en</item>
+    </plurals>
+    <plurals name="sos_sent_location_plural">
+        <item quantity="one">Enviado a un contacto, con su posición.</item>
+        <item quantity="other">Enviado a %1$d contactos, con su posición.</item>
+    </plurals>
+    <plurals name="sos_sent_plain_plural">
+        <item quantity="one">Enviado a un contacto. No había posición disponible.</item>
+        <item quantity="other">Enviado a %1$d contactos. No había posición disponible.</item>
+    </plurals>
+    <plurals name="screen_grid_loses">
+        <item quantity="one">se perdería %1$d mosaico</item>
+        <item quantity="other">se perderían %1$d mosaicos</item>
+    </plurals>
+    <plurals name="screens_unreachable">
+        <item quantity="one">Ningún mosaico lleva a «%1$s». Ponga un mosaico «Ir a una pantalla» o no la encontrará más.</item>
+        <item quantity="other">Ningún mosaico lleva a estas pantallas: %1$s. Ponga un mosaico «Ir a una pantalla» o no las encontrará más.</item>
+    </plurals>
+    <plurals name="search_matches">
+        <item quantity="one">%1$d resultado, la tecla de la lupa lo abre</item>
+        <item quantity="other">%1$d resultados</item>
+    </plurals>
+    <plurals name="folder_delete_body">
+        <item quantity="one">%1$d mosaico de dentro se va con ella. Es definitivo.</item>
+        <item quantity="other">%1$d mosaicos de dentro se van con ella. Es definitivo.</item>
+    </plurals>
+    <plurals name="move_target_folder">
+        <item quantity="one">Carpeta, %1$d sitio libre</item>
+        <item quantity="other">Carpeta, %1$d sitios libres</item>
+    </plurals>
+    <plurals name="move_target_screen">
+        <item quantity="one">Pantalla, %1$d sitio libre</item>
+        <item quantity="other">Pantalla, %1$d sitios libres</item>
+    </plurals>
+    <plurals name="apps_recent_count_value">
+        <item quantity="one">%1$d aplicación</item>
+        <item quantity="other">%1$d aplicaciones</item>
+    </plurals>
+    <plurals name="calllog_deleted">
+        <item quantity="one">Una entrada borrada.</item>
+        <item quantity="other">%1$d entradas borradas.</item>
+    </plurals>
+    <plurals name="security_applock_would_allow">
+        <item quantity="one">Una aplicación quedaría abierta sin el PIN</item>
+        <item quantity="other">%1$d aplicaciones quedarían abiertas sin el PIN</item>
+    </plurals>
+    <plurals name="security_applock_allowed">
+        <item quantity="one">Una aplicación se abre sin el PIN</item>
+        <item quantity="other">%1$d aplicaciones se abren sin el PIN</item>
+    </plurals>
+    <plurals name="screen_delete_tiles">
+        <item quantity="one">Un mosaico se va con ella.</item>
+        <item quantity="other">%1$d mosaicos se van con ella.</item>
+    </plurals>
+    <plurals name="screen_delete_folders">
+        <item quantity="one">Y una carpeta, con todo lo que hay dentro.</item>
+        <item quantity="other">Y %1$d carpetas, con todo lo que hay dentro.</item>
+    </plurals>
+    <plurals name="sms_parts">
+        <item quantity="one">Cuesta un SMS</item>
+        <item quantity="other">Cuesta %1$d SMS</item>
+    </plurals>
+    <plurals name="sos_message_parts">
+        <item quantity="one">Con posición esto cuesta como mucho un SMS</item>
+        <item quantity="other">Con posición esto cuesta como mucho %1$d SMS</item>
+    </plurals>
+    <plurals name="sos_countdown_seconds">
+        <item quantity="one">un segundo</item>
+        <item quantity="other">%1$d segundos</item>
+    </plurals>
+    <plurals name="screen_copy_done">
+        <item quantity="one">«%1$s» está lista con un mosaico. En esta pantalla hay uno que lleva allí.</item>
+        <item quantity="other">«%1$s» está lista con %2$d mosaicos. En esta pantalla hay uno que lleva allí.</item>
+    </plurals>
+    <plurals name="screen_copy_done_partial">
+        <item quantity="one">«%1$s» está lista con un mosaico. %3$d quedaron vacíos: widgets y carpetas van en un solo sitio.</item>
+        <item quantity="other">«%1$s» está lista con %2$d mosaicos. %3$d quedaron vacíos: widgets y carpetas van en un solo sitio.</item>
+    </plurals>
+    <plurals name="a11y_new_calls">
+        <item quantity="one">Una es nueva</item>
+        <item quantity="other">%1$d son nuevas</item>
+    </plurals>
+    <plurals name="a11y_unread">
+        <item quantity="one">Uno sin leer</item>
+        <item quantity="other">%1$d sin leer</item>
+    </plurals>
+    <plurals name="sos_location_age_minutes">
+        <item quantity="one">Posición de hace un minuto</item>
+        <item quantity="other">Posición de hace %1$d minutos</item>
+    </plurals>
+    <plurals name="sos_location_age_hours">
+        <item quantity="one">Posición de hace una hora</item>
+        <item quantity="other">Posición de hace %1$d horas</item>
+    </plurals>
+    <plurals name="a11y_badge">
+        <item quantity="one">Una notificación nueva</item>
+        <item quantity="other">%1$d notificaciones nuevas</item>
+    </plurals>
+    <plurals name="sms_repeat_minutes">
+        <item quantity="one">Cada minuto hasta que se lea</item>
+        <item quantity="other">Cada %1$d minutos hasta que se lea</item>
+    </plurals>
+    <plurals name="apps_hidden_count">
+        <item quantity="one">Una aplicación oculta</item>
+        <item quantity="other">%1$d aplicaciones ocultas</item>
+    </plurals>
+    <plurals name="apps_hidden_match">
+        <item quantity="one">Una aplicación oculta coincide</item>
+        <item quantity="other">%1$d aplicaciones ocultas coinciden</item>
+    </plurals>
+</resources>

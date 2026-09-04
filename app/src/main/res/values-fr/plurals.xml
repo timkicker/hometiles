@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Erste Fassung vom 04.09.2026, maschinell uebersetzt und ungeprueft. Zwei Dinge fuer die
+  Durchsicht durch jemanden, der Franzoesisch spricht: im Franzoesischen gilt die Form fuer
+  eins auch fuer null, und die Formen behalten hier absichtlich dieselben Platzhalter wie
+  das Englische.
+-->
+<resources>
+    <plurals name="sos_numbers_saved_n">
+        <item quantity="one">%1$d numéro enregistré.</item>
+        <item quantity="other">%1$d numéros enregistrés.</item>
+    </plurals>
+    <plurals name="sos_counting_plural">
+        <item quantity="one">Envoi à un contact dans</item>
+        <item quantity="other">Envoi à %1$d contacts dans</item>
+    </plurals>
+    <plurals name="sos_sent_location_plural">
+        <item quantity="one">Envoyé à un contact, avec votre position.</item>
+        <item quantity="other">Envoyé à %1$d contacts, avec votre position.</item>
+    </plurals>
+    <plurals name="sos_sent_plain_plural">
+        <item quantity="one">Envoyé à un contact. Aucune position n’était disponible.</item>
+        <item quantity="other">Envoyé à %1$d contacts. Aucune position n’était disponible.</item>
+    </plurals>
+    <plurals name="screen_grid_loses">
+        <item quantity="one">%1$d tuile serait perdue</item>
+        <item quantity="other">%1$d tuiles seraient perdues</item>
+    </plurals>
+    <plurals name="screens_unreachable">
+        <item quantity="one">Aucune tuile ne mène à « %1$s ». Placez une tuile « Aller à un écran », sinon vous ne le retrouverez pas.</item>
+        <item quantity="other">Aucune tuile ne mène à ces écrans : %1$s. Placez une tuile « Aller à un écran », sinon vous ne les retrouverez pas.</item>
+    </plurals>
+    <plurals name="search_matches">
+        <item quantity="one">%1$d résultat, la touche loupe l’ouvre</item>
+        <item quantity="other">%1$d résultats</item>
+    </plurals>
+    <plurals name="folder_delete_body">
+        <item quantity="one">%1$d tuile à l’intérieur disparaît aussi. C’est définitif.</item>
+        <item quantity="other">%1$d tuiles à l’intérieur disparaissent aussi. C’est définitif.</item>
+    </plurals>
+    <plurals name="move_target_folder">
+        <item quantity="one">Dossier, %1$d place libre</item>
+        <item quantity="other">Dossier, %1$d places libres</item>
+    </plurals>
+    <plurals name="move_target_screen">
+        <item quantity="one">Écran, %1$d place libre</item>
+        <item quantity="other">Écran, %1$d places libres</item>
+    </plurals>
+    <plurals name="apps_recent_count_value">
+        <item quantity="one">%1$d application</item>
+        <item quantity="other">%1$d applications</item>
+    </plurals>
+    <plurals name="calllog_deleted">
+        <item quantity="one">Une entrée supprimée.</item>
+        <item quantity="other">%1$d entrées supprimées.</item>
+    </plurals>
+    <plurals name="security_applock_would_allow">
+        <item quantity="one">Une application resterait ouverte sans le code PIN</item>
+        <item quantity="other">%1$d applications resteraient ouvertes sans le code PIN</item>
+    </plurals>
+    <plurals name="security_applock_allowed">
+        <item quantity="one">Une application s’ouvre sans le code PIN</item>
+        <item quantity="other">%1$d applications s’ouvrent sans le code PIN</item>
+    </plurals>
+    <plurals name="screen_delete_tiles">
+        <item quantity="one">Une tuile disparaît avec lui.</item>
+        <item quantity="other">%1$d tuiles disparaissent avec lui.</item>
+    </plurals>
+    <plurals name="screen_delete_folders">
+        <item quantity="one">Un dossier aussi, avec tout ce qu’il contient.</item>
+        <item quantity="other">%1$d dossiers aussi, avec tout ce qu’ils contiennent.</item>
+    </plurals>
+    <plurals name="sms_parts">
+        <item quantity="one">Coûte un SMS</item>
+        <item quantity="other">Coûte %1$d SMS</item>
+    </plurals>
+    <plurals name="sos_message_parts">
+        <item quantity="one">Avec une position, cela coûte au plus un SMS</item>
+        <item quantity="other">Avec une position, cela coûte au plus %1$d SMS</item>
+    </plurals>
+    <plurals name="sos_countdown_seconds">
+        <item quantity="one">une seconde</item>
+        <item quantity="other">%1$d secondes</item>
+    </plurals>
+    <plurals name="screen_copy_done">
+        <item quantity="one">« %1$s » est prêt avec une tuile. Une tuile y menant est sur cet écran.</item>
+        <item quantity="other">« %1$s » est prêt avec %2$d tuiles. Une tuile y menant est sur cet écran.</item>
+    </plurals>
+    <plurals name="screen_copy_done_partial">
+        <item quantity="one">« %1$s » est prêt avec une tuile. %3$d sont restées vides : widgets et dossiers tiennent à un seul endroit.</item>
+        <item quantity="other">« %1$s » est prêt avec %2$d tuiles. %3$d sont restées vides : widgets et dossiers tiennent à un seul endroit.</item>
+    </plurals>
+    <plurals name="a11y_new_calls">
+        <item quantity="one">Un est nouveau</item>
+        <item quantity="other">%1$d sont nouveaux</item>
+    </plurals>
+    <plurals name="a11y_unread">
+        <item quantity="one">Un est non lu</item>
+        <item quantity="other">%1$d sont non lus</item>
+    </plurals>
+    <plurals name="sos_location_age_minutes">
+        <item quantity="one">Position d’il y a une minute</item>
+        <item quantity="other">Position d’il y a %1$d minutes</item>
+    </plurals>
+    <plurals name="sos_location_age_hours">
+        <item quantity="one">Position d’il y a une heure</item>
+        <item quantity="other">Position d’il y a %1$d heures</item>
+    </plurals>
+    <plurals name="a11y_badge">
+        <item quantity="one">Une nouvelle notification</item>
+        <item quantity="other">%1$d nouvelles notifications</item>
+    </plurals>
+    <plurals name="sms_repeat_minutes">
+        <item quantity="one">Chaque minute jusqu’à la lecture</item>
+        <item quantity="other">Toutes les %1$d minutes jusqu’à la lecture</item>
+    </plurals>
+    <plurals name="apps_hidden_count">
+        <item quantity="one">Une application masquée</item>
+        <item quantity="other">%1$d applications masquées</item>
+    </plurals>
+    <plurals name="apps_hidden_match">
+        <item quantity="one">Une application masquée correspond</item>
+        <item quantity="other">%1$d applications masquées correspondent</item>
+    </plurals>
+</resources>

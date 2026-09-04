@@ -92,10 +92,60 @@ object Quelltext {
                 .find(datei.readText())?.groupValues?.get(1)
         } ?: throw AssertionError("Den Text $name gibt es in $sprache in keinem Modul.")
 
-    /** Jede Textdatei ueber alle Module und beide Sprachen. */
+    /**
+     * Die Sprachverzeichnisse, wie sie im Baum stehen: `values` und jedes `values-xx`.
+     *
+     * Gesucht statt aufgezaehlt, und das ist der Punkt. Bis zum 04.09.2026 stand hier
+     * `listOf("values", "values-de")`, und dieselben zwei Namen standen fest in jeder
+     * Regel von `TranslationsTest`. Eine dritte Sprache waere damit angelegt worden und
+     * **von keiner einzigen Regel angesehen**: keine Schluesselpruefung, keine
+     * Platzhalter, keine Striche, keine Laenge. Gruen, und nichts geprueft.
+     *
+     * Aufgefallen beim Planen von PLAN.md 10.4, also bevor die erste neue Sprache da war.
+     * Das ist der einzige Zeitpunkt, zu dem so etwas billig ist.
+     */
+    fun sprachen(): List<String> =
+        resWurzeln.flatMap { wurzel ->
+            (wurzel.listFiles() ?: emptyArray()).filter { ordner ->
+                ordner.isDirectory &&
+                    (ordner.name == "values" || ordner.name.startsWith("values-")) &&
+                    (File(ordner, "strings.xml").isFile || File(ordner, "plurals.xml").isFile)
+            }.map { it.name }
+        }.distinct().sorted()
+
+    /** Die Sprachen ohne die Grundsprache: das, was uebersetzt sein will. */
+    fun uebersetzungen(): List<String> = sprachen().filter { it != "values" }
+
+    /**
+     * Die Sprachen, die wirklich ausgeliefert werden, aus `resourceConfigurations` gelesen.
+     *
+     * Diese Liste im Baugeruest entscheidet, was im Archiv landet; was nicht drinsteht, wirft
+     * der Bau wieder heraus. Sie ist damit die einzige Stelle, die weiss, ob eine Sprache
+     * fertig ist oder noch in Arbeit.
+     *
+     * Der Unterschied zaehlt: Android faellt fuer einen fehlenden Text auf `values` zurueck,
+     * eine halb uebersetzte Sprache **funktioniert** also und ist teils englisch. Waehrend
+     * der Arbeit ist das der normale Zustand. Ausgeliefert werden darf sie so nicht. Die
+     * Vollstaendigkeitsregeln haengen deshalb hieran und nicht am blossen Vorhandensein
+     * eines Verzeichnisses.
+     */
+    fun ausgeliefert(): List<String> =
+        Regex("""resourceConfigurations\s*\+=\s*listOf\(([^)]*)\)""")
+            .find(File("build.gradle.kts").readText())
+            ?.groupValues?.get(1)
+            ?.let { Regex(""""([^"]+)"""").findAll(it).map { m -> m.groupValues[1] }.toList() }
+            ?.map { if (it == "en") "values" else "values-$it" }
+            ?: throw AssertionError(
+                "resourceConfigurations steht nicht mehr in app/build.gradle.kts. Ohne sie " +
+                    "weiss keine Regel mehr, welche Sprache ausgeliefert wird.",
+            )
+
+    /** Jede Textdatei ueber alle Module und alle Sprachen. */
     fun alleTexte(): List<File> =
-        listOf("values", "values-de").flatMap { v ->
-            listOf("strings.xml", "plurals.xml").flatMap { texte(v, it) }
+        sprachen().flatMap { v ->
+            listOf("strings.xml", "plurals.xml").flatMap { name ->
+                resWurzeln.map { File(it, "$v/$name") }.filter { it.isFile }
+            }
         }
 
     /** Eine Ressource ueber ihren Pfad ab `res/`, z. B. `font/atkinson_bold.ttf`. */
