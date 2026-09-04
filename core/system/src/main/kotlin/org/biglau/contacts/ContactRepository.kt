@@ -111,7 +111,7 @@ class ContactRepository(context: Context) {
      * Die Bezeichnung einer Nummer - „Mobile", „Home", „Work" und die zwei Dutzend anderen.
      *
      * Hier stand eine eigene Zuordnung mit **drei fest deutschen Woertern** („Mobil",
-     * „Privat", „Arbeit"). Auf dem englischen Telefon des Nutzers stand deshalb unter der
+     * „Privat", „Arbeit"). Auf dem englischen Telefon des Nutzers (03.09.2026) stand deshalb unter der
      * Nummer seines Vaters „Mobil", waehrend daneben „Call straight away" stand. Alles
      * andere - Fax, Pager, Hauptanschluss, eigene Bezeichnungen - hatte gar keine.
      *
@@ -156,12 +156,10 @@ class ContactRepository(context: Context) {
             ContactsContract.Contacts.CONTENT_ITEM_TYPE,
         )
         putExtra("finishActivityOnSaveCompleted", true)
-        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
     }
 
     fun createIntent(): Intent = Intent(Intent.ACTION_INSERT).apply {
         type = ContactsContract.RawContacts.CONTENT_TYPE
-        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
     }
 
     companion object {

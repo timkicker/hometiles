@@ -26,15 +26,34 @@ import org.junit.Test
  */
 class HinausTest {
 
-    /** Datei → wer die Handbewegung macht. */
+    /**
+     * Datei → wer die Handbewegung macht, und **welcher der drei Fälle** aus `PLAN.md` 3.1
+     * das ist: eine Zeile, die die Handlung nennt; etwas, das der Nutzer selbst dafür
+     * eingerichtet hat; oder eine Rückfrage.
+     */
     private val darfHinaus = mapOf(
-        "DialerActivity.kt" to "der Anrufknopf auf der Wähltastatur, nach einem Tipp",
+        "DialerActivity.kt" to
+            "der Anrufknopf auf der Wähltastatur (nennt die Handlung), die Kurzwahl " +
+                "(vom Nutzer belegt) und die Anrufliste (fragt vorher)",
         "Intents.kt" to "baut die Absicht; ausgelöst wird sie von einem Bildschirm",
         "Sos.kt" to "der Notruf, nach Countdown und mit Abbruchknopf (SosActivity)",
         "SmsActivity.kt" to "der Sendeknopf im Gespräch, nach einem Tipp",
+        "ContactsActivity.kt" to
+            "die Zeile „Anrufen\" im Kontakt - sie nennt die Handlung, die sie auslöst",
+        "MainActivity.kt" to
+            "eine Kontakt-Kachel, die der Nutzer auf „anrufen\" gestellt hat, und die " +
+                "Rückfrage „anrufen oder schreiben?\" bei ContactMode.ASK",
     )
 
-    private val hinausMuster = Regex("""ACTION_CALL|sendTextMessage|sendMultipartTextMessage""")
+    /**
+     * Auch der Umweg über [org.biglau.actions.Intents] zählt.
+     *
+     * Bis zum 04.09.2026 suchte die Regel nur `ACTION_CALL` im Klartext - und übersah damit
+     * **zwei** Bildschirme, die über `Intents.call(…)` wählen. Eine Erlaubnisliste, an der
+     * man mit einem Zwischenschritt vorbeikommt, ist keine.
+     */
+    private val hinausMuster =
+        Regex("""ACTION_CALL|Intents\.call\(|sendTextMessage|sendMultipartTextMessage""")
 
     private fun stellen(): Map<File, List<String>> = Quelltext.dateien()
         .associateWith { datei ->

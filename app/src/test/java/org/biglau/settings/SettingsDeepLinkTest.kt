@@ -69,7 +69,7 @@ class SettingsDeepLinkTest {
      */
     @Test
     fun `die Einstellungen nehmen einen zweiten Aufruf entgegen`() {
-        val block = manifest.substringAfter(".settings.SettingsActivity").substringBefore("/>")
+        val block = Quelltext.ausschnitt(manifest, ".settings.SettingsActivity", "/>")
         assertTrue(
             "SettingsActivity nimmt einen Deep-Link entgegen und braucht darum einen " +
                 "Startmodus, bei dem onNewIntent ankommt: $block",

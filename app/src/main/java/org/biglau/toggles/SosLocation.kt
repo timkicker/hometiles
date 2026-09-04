@@ -1,4 +1,4 @@
-package org.biglau.actions
+package org.biglau.toggles
 
 import android.Manifest
 import android.content.Context

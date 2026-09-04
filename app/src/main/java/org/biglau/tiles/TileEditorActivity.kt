@@ -95,6 +95,7 @@ import androidx.compose.ui.unit.sp
 import androidx.core.graphics.drawable.toBitmap
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.biglau.R
+import org.biglau.core.ui.R as UiR
 import org.biglau.actions.Intents
 import org.biglau.apps.AppRepository
 import org.biglau.search.TextSearch
@@ -219,6 +220,29 @@ class TileEditorActivity : BigLauActivity() {
 
             fun writeNow(next: Button) {
                 if (next.action !is ButtonAction.Widget) releaseWidgetIfAny(button)
+                // **Der Ordner entsteht hier, nicht vorher.**
+                //
+                // Bis zum 04.09.2026 legte `onNewFolder` den Ordner-Screen an, *bevor* die
+                // Rueckfrage kam. Wer auf einer Ordnerkachel "Ordner anlegen" waehlte und
+                // die Frage ("Mehr loeschen?") mit "Behalten" beantwortete, liess einen
+                // leeren Ordner zurueck, den niemand mehr oeffnen kann. Am Geraet erzeugt
+                // und in `config.json` gesehen: `folder4`, null Kacheln, kein Weg hin.
+                //
+                // Jetzt haengt das Anlegen an derselben Bedingung wie das Schreiben: wird
+                // nicht geschrieben, entsteht auch nichts.
+                val neuerOrdner = next.action as? ButtonAction.Folder
+                if (neuerOrdner != null && store.current.screens.none { it.id == neuerOrdner.screenId }) {
+                    store.update {
+                        ScreenEdits.add(
+                            it,
+                            FolderEdits.newFolder(
+                                neuerOrdner.screenId,
+                                getString(R.string.folder_default_name),
+                                screen,
+                            ),
+                        )
+                    }
+                }
                 store.setButton(screenId, x, y, next)
             }
 
@@ -443,6 +467,7 @@ var contactsGranted by remember(fortsetzungen.intValue) { mutableStateOf(contact
                     when (mode) {
                         Mode.MENU -> MenuList(
                             button = button,
+                            platz = stringResource(R.string.editor_where, screen.name, y + 1, x + 1),
                             screenName = { id -> config.screenById(id)?.name },
                             appLabel = { a -> apps.labelFor(a.packageName, a.activityName) },
                             onPickBuiltin = { mode = Mode.PICK_BUILTIN },
@@ -469,11 +494,9 @@ var contactsGranted by remember(fortsetzungen.intValue) { mutableStateOf(contact
                             onClearLongPress = { write(TileEdits.withLongPress(button, null)) },
                             mayAddFolder = FolderEdits.mayContainFolder(screen),
                             onNewFolder = {
+                                // Nur die Kennung wird hier gewaehlt; den Ordner legt
+                                // `writeNow` an, wenn die Kachel wirklich geschrieben wird.
                                 val id = ScreenEdits.freeId(store.current, base = "folder")
-                                val name = getString(R.string.folder_default_name)
-                                store.update {
-                                    ScreenEdits.add(it, FolderEdits.newFolder(id, name, screen))
-                                }
                                 write(TileEdits.withAction(button, ButtonAction.Folder(id)))
                                 mode = Mode.MENU
                             },
@@ -662,8 +685,17 @@ var contactsGranted by remember(fortsetzungen.intValue) { mutableStateOf(contact
                         )
 
                         Mode.MOVE -> MoveTargetList(
+                            welche = stringResource(
+                                R.string.move_which,
+                                describe(button, { id -> config.screenById(id)?.name }, { a ->
+                                    apps.labelFor(a.packageName, a.activityName)
+                                }),
+                                y + 1,
+                                x + 1,
+                            ),
                             spots = cell?.let { TileMove.spotsFor(screen, it) }.orEmpty(),
                             targets = cell?.let { TileMove.targetsFor(config, screenId, it) }.orEmpty(),
+                            shrinks = cell?.let { it.w > 1 || it.h > 1 } ?: false,
                             screenName = { id -> config.screenById(id)?.name },
                             appLabel = { a -> apps.labelFor(a.packageName, a.activityName) },
                             onSpot = { platz ->
@@ -758,6 +790,8 @@ var contactsGranted by remember(fortsetzungen.intValue) { mutableStateOf(contact
 @Composable
 private fun MenuList(
     button: Button,
+    /** Wo diese Kachel liegt - Screen und Platz, fertig zusammengesetzt. */
+    platz: String,
     screenName: (String) -> String?,
     appLabel: (ButtonAction.App) -> String?,
     onPickBuiltin: () -> Unit,
@@ -785,6 +819,20 @@ private fun MenuList(
     val palette = LocalBigPalette.current
     LazyColumn(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         item { BigHeading(stringResource(R.string.editor_title)) }
+        // **Welche** Kachel, nicht nur "eine Kachel".
+        //
+        // Bis zum 04.09.2026 stand hier nur die Ueberschrift. Wer eine von zwei leeren
+        // Kacheln antippte, sah nirgends, welche er erwischt hat - und der Fehler vom
+        // Vormittag (der Editor ging auf dem Startbildschirm statt im Ordner auf) waere
+        // sofort dagestanden, wenn der Name des Screens hier gestanden haette.
+        item {
+            Text(
+                text = platz,
+                color = palette.onBackground,
+                fontSize = bigSp(15f),
+                modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp),
+            )
+        }
         item {
             BigRow(
                 label = stringResource(R.string.editor_current),
@@ -885,6 +933,18 @@ private fun MenuList(
                     BigRow(
                         label = stringResource(R.string.editor_long_press_clear),
                         onClick = onClearLongPress,
+                    )
+                }
+                // Eine Zweitbelegung geht dem Editor vor (siehe LongPress.decide) - fuer
+                // **diese** Kachel fuehrt der Langdruck also nicht mehr hierher. Dasselbe
+                // sagt `a11y_editor_moved`, wenn eine Einstellung den Langdruck nimmt; hier
+                // nimmt ihn die Kachel selbst, und bis zum 04.09.2026 sagte es niemand.
+                item {
+                    Text(
+                        text = stringResource(R.string.editor_long_press_takes_editor),
+                        color = palette.dangerText,
+                        fontSize = bigSp(15f),
+                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 8.dp),
                     )
                 }
             }
@@ -1137,7 +1197,7 @@ private fun ColorPicker(selected: Int, hue: Float?, onPick: (Int?) -> Unit, onFr
                 // Der Zustand gehoert in den Namen. Die reine selected-Eigenschaft kommt in
                 // der Bedienungshilfen-Schnittstelle nicht an - geprueft im Knotenabzug des
                 // Geraets -, und eine Auswahl, die nur zu sehen ist, hilft beim Vorlesen nicht.
-                val name = if (chosen) stringResource(R.string.a11y_chosen, plain) else plain
+                val name = if (chosen) stringResource(UiR.string.a11y_chosen, plain) else plain
                 Box(
                     modifier = Modifier
                         .weight(1f)
@@ -1173,7 +1233,7 @@ private fun ColorPicker(selected: Int, hue: Float?, onPick: (Int?) -> Unit, onFr
         }
         BigRow(
             label = stringResource(R.string.editor_color_auto),
-            surface = if (selected < 0 && hue == null) palette.surfaceAccent else palette.surfaceDefault,
+            selected = selected < 0 && hue == null,
             onClick = { onPick(null) },
         )
 
@@ -1185,7 +1245,7 @@ private fun ColorPicker(selected: Int, hue: Float?, onPick: (Int?) -> Unit, onFr
             label = stringResource(R.string.editor_color_free),
             secondary = stringResource(R.string.editor_color_free_hint),
             icon = Icons.Filled.Palette,
-            surface = if (hue != null) palette.surfaceAccent else palette.surfaceDefault,
+            selected = hue != null,
             onClick = onFree,
         )
     }
@@ -1207,7 +1267,7 @@ private fun IconPicker(selected: String?, onPick: (String?) -> Unit) {
             BigRow(
                 label = stringResource(R.string.icon_automatic),
                 secondary = stringResource(R.string.icon_automatic_hint),
-                surface = if (selected == null) palette.surfaceAccent else palette.surfaceDefault,
+                selected = selected == null,
                 onClick = { onPick(null) },
             )
         }
@@ -1220,15 +1280,37 @@ private fun IconPicker(selected: String?, onPick: (String?) -> Unit) {
                 Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     reihe.forEach { name ->
                         val bild = IconCatalogue.vectorFor(name)
+                        val gewaehlt = name == selected
                         val flaeche =
-                            if (name == selected) palette.surfaceAccent else palette.surfaceDefault
+                            if (gewaehlt) palette.surfaceAccent else palette.surfaceDefault
                         val wort = IconCatalogue.labelFor(name)?.let { stringResource(it) } ?: name
+                        // Der Zustand gehoert in den Namen - siehe die Messung im
+                        // Farbwaehler daneben.
+                        val ansage =
+                            if (gewaehlt) stringResource(UiR.string.a11y_chosen, wort) else wort
                         Column(
                             modifier = Modifier
                                 .weight(1f)
                                 .clip(RoundedCornerShape(LocalCornerRadius.current))
                                 .background(flaeche.fill)
+                                .then(
+                                    if (gewaehlt) {
+                                        Modifier.border(
+                                            4.dp,
+                                            palette.onBackground,
+                                            RoundedCornerShape(LocalCornerRadius.current),
+                                        )
+                                    } else {
+                                        Modifier
+                                    },
+                                )
                                 .clickable { onPick(name) }
+                                .semantics {
+                                    if (gewaehlt) {
+                                        this.selected = true
+                                        contentDescription = ansage
+                                    }
+                                }
                                 .padding(vertical = 8.dp),
                             horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.spacedBy(4.dp),
@@ -1286,7 +1368,7 @@ private fun HuePicker(selected: Float?, onPick: (Float) -> Unit) {
                         val schlicht = hueName(ton)
                         // Der Zustand gehoert in den Namen - dieselbe Ueberlegung wie bei
                         // den sechs Palettenfeldern darueber.
-                        val name = if (chosen) stringResource(R.string.a11y_chosen, schlicht) else schlicht
+                        val name = if (chosen) stringResource(UiR.string.a11y_chosen, schlicht) else schlicht
                         Box(
                             modifier = Modifier
                                 .weight(1f)
@@ -1549,7 +1631,16 @@ private fun ScreenPicker(
     onCreate: () -> Unit,
 ) {
     val palette = LocalBigPalette.current
-    val others = config.screens.filter { it.id != currentScreenId }
+    // **Ordner sind keine Sprungziele.** Ein Ordner gehoert seiner Kachel und legt sich als
+    // Ueberlagerung darueber; als Sprungziel wuerde er zum gewoehnlichen Screen - ohne die
+    // Zeile "Ordner schliessen", ohne Eintrag in der Screen-Liste, und daneben stuende
+    // weiter die Kachel, die ihn als Ueberlagerung oeffnet. Zwei Wege zu derselben Sache,
+    // die verschieden aussehen.
+    //
+    // Am 04.09.2026 am Emulator erzeugt: eine Sprungkachel auf einen Ordner, angetippt, und
+    // der Ordner stand als Screen da. `SwipeChain` filtert Ordner seit jeher heraus; diese
+    // Liste war die einzige, die es nicht tat.
+    val others = config.screens.filter { it.id != currentScreenId && !it.isFolder }
 
     LazyColumn(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         item { BigHeading(stringResource(R.string.editor_pick_screen)) }
@@ -1656,6 +1747,22 @@ private fun WidgetPicker(
     val palette = LocalBigPalette.current
     LazyColumn(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         item { BigHeading(stringResource(R.string.editor_pick_widget)) }
+        // Der Hinweis steht **vor** der Wahl, nicht danach. Am 04.09.2026 am Emulator
+        // nachgestellt: Widget auf eine Kachel gelegt, langer Druck darauf - und die
+        // Weckerapp ging auf. Das Widget bekommt die Beruehrung zuerst, und damit ist der
+        // uebliche Weg zum Editor fuer diese eine Kachel zu. Es gibt einen anderen
+        // (Einstellungen, "Kacheln aendern"), aber wer ihn nicht kennt, haelt die Kachel
+        // fuer festgewachsen.
+        if (rows.isNotEmpty()) {
+            item {
+                Text(
+                    text = stringResource(R.string.widget_long_press_hint),
+                    color = palette.onBackground,
+                    fontSize = bigSp(15f),
+                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 8.dp),
+                )
+            }
+        }
         if (rows.isEmpty()) {
             item {
                 Text(
@@ -1734,15 +1841,30 @@ private fun FolderDeletePanel(
  */
 @Composable
 private fun MoveTargetList(
+    /** Welche Kachel hier verschoben wird, und wo sie gerade liegt. */
+    welche: String,
     spots: List<TileMove.Spot>,
     targets: List<Screen>,
+    shrinks: Boolean,
     screenName: (String) -> String?,
     appLabel: (ButtonAction.App) -> String?,
     onSpot: (TileMove.Spot) -> Unit,
     onPick: (Screen) -> Unit,
 ) {
+    val palette = LocalBigPalette.current
     LazyColumn(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         item { BigHeading(stringResource(R.string.editor_move)) }
+        // Welche Kachel eigentlich? Jedes Ziel unten heisst "Zeile x, Spalte y" - ohne
+        // diese Zeile ist der ganze Bildschirm eine Liste abstrakter Plaetze, und wer
+        // zwischendurch weggeschaut hat, weiss nicht mehr, was er da bewegt.
+        item {
+            Text(
+                text = welche,
+                color = palette.onBackground,
+                fontSize = bigSp(15f),
+                modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp),
+            )
+        }
         // Der eigene Bildschirm zuerst: wer eine Kachel verschiebt, ordnet meistens den
         // Bildschirm um, auf dem er gerade steht. Zeile und Spalte werden ab 1 gezaehlt -
         // "Zeile 0" liest sich wie ein Fehler.
@@ -1764,6 +1886,19 @@ private fun MoveTargetList(
         }
         if (targets.isNotEmpty()) {
             item { BigHeading(stringResource(R.string.move_other_screens)) }
+            // Eine grosse Kachel kommt woanders einfeldrig an ([TileMove.move]) - sonst
+            // ragte sie ueber den Rand. Das steht hier, bevor es passiert; hinterher
+            // sieht es aus, als haette das Verschieben die Kachel kaputtgemacht.
+            if (shrinks) {
+                item {
+                    Text(
+                        text = stringResource(R.string.move_shrinks),
+                        color = palette.onBackground,
+                        fontSize = bigSp(15f),
+                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 8.dp),
+                    )
+                }
+            }
             items(targets, key = { it.id }) { ziel ->
                 BigRow(
                     label = ziel.name,

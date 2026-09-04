@@ -10,7 +10,7 @@ import org.junit.Test
  *
  * `softWrap = false` mit `maxLines = 1` und ohne Kürzungszeichen heißt: was nicht passt,
  * wird **stillschweigend abgeschnitten**. Kein Zeichen, keine Ausnahme, kein roter Test —
- * auf dem Telefon des Nutzers stand deshalb bei 200 % Textgröße „2:33" statt „2:36 AM".
+ * auf dem Telefon des Nutzers (03.09.2026) stand deshalb bei 200 % Textgröße „2:33" statt „2:36 AM".
  *
  * Die Größe kam aus einer Rechnung mit mittlerer Zeichenbreite (0,60 der Schriftgröße). Das
  * ist eine Schätzung, und sie geht bei einer breiteren Schrift nicht auf — dieselbe Lehre,

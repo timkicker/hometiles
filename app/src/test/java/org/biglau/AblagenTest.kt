@@ -23,12 +23,20 @@ import org.junit.Test
  */
 class AblagenTest {
 
-    /** Ablage → warum sie doch in `:app` bleibt. */
-    private val darfBleiben = mapOf(
-        "NotificationRepository" to
-            "`isEnabled` muss unseren eigenen Dienst beim Namen nennen: das System führt in " +
-                "`enabled_notification_listeners` genau diese Klasse, keine Oberklasse tut es.",
-    )
+    /**
+     * Ablage → warum sie doch in `:app` bleibt.
+     *
+     * **Seit dem 04.09.2026 leer.** Der einzige Eintrag war `NotificationRepository` mit
+     * dem Grund: `isEnabled` muss unseren eigenen Dienst beim Namen nennen, und der stand
+     * in `:app`. Die Ausnahme war richtig — sie hat nur die falsche Frage beantwortet.
+     * Nicht die Ablage musste bleiben, sondern der **Dienst** durfte gehen:
+     * `BigNotificationListener` liegt jetzt ebenfalls in `core:system`, im selben Paket wie
+     * `NotificationCounts`, das dort seit jeher lag. Das Manifest nennt ihn weiter mit
+     * `.notify.BigNotificationListener` und hat sich nicht geändert.
+     *
+     * Eine leere Ausnahmeliste ist das Ziel jeder Ausnahmeliste.
+     */
+    private val darfBleiben = emptyMap<String, String>()
 
     private fun ablagenIn(dateien: Sequence<java.io.File>): Set<String> =
         dateien.flatMap { datei ->

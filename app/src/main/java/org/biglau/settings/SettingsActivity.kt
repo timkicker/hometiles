@@ -62,6 +62,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -82,6 +83,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.Dispatchers
 import org.biglau.ui.bigSp
 import org.biglau.ui.ICON_PERCENTS
 import org.biglau.ui.LABEL_SCALES
@@ -119,6 +123,7 @@ import org.biglau.phone.DialerRole
 import org.biglau.sms.MessagesSettingsList
 import org.biglau.sms.SmsRepository
 import org.biglau.phone.CallDirection
+import org.biglau.phone.callDirectionLabel
 import org.biglau.data.ScreenOrientation
 import org.biglau.data.Security
 import org.biglau.data.HapticStrength
@@ -193,6 +198,8 @@ class SettingsActivity : BigLauActivity() {
         val store = ConfigStore.get(this)
 
         setContent {
+            // Fuer Arbeit, die nicht in den Hauptthread gehoert - siehe HauptfadenTest.
+            val fadenBereich = rememberCoroutineScope()
             val config by store.config.collectAsStateWithLifecycle()
             val locked = Pin.usable(config.security.pin)
             // rememberSaveable, damit der Sprachwechsel nicht an den Anfang zurueckwirft:
@@ -296,44 +303,44 @@ class SettingsActivity : BigLauActivity() {
                 ActivityResultContracts.CreateDocument("application/json"),
             ) { uri ->
                 if (uri == null) return@rememberLauncherForActivityResult
-                val ok = runCatching {
-                    contentResolver.openOutputStream(uri)?.use { stream ->
-                        stream.write(ConfigTransfer.export(store.current).toByteArray())
-                    } != null
-                }.getOrDefault(false)
-                Notice.show(
-                    this@SettingsActivity,
-                    if (ok) R.string.transfer_exported else R.string.transfer_failed,
-                )
+                // Nicht im Hauptthread: das Ziel kann eine Cloud-App sein, und dann geht
+                // das Schreiben ins Netz. Siehe HauptfadenTest.
+                fadenBereich.launch {
+                    val ok = withContext(Dispatchers.IO) {
+                        runCatching {
+                            contentResolver.openOutputStream(uri)?.use { stream ->
+                                stream.write(ConfigTransfer.export(store.current).toByteArray())
+                            } != null
+                        }.getOrDefault(false)
+                    }
+                    Notice.show(
+                        this@SettingsActivity,
+                        if (ok) R.string.transfer_exported else R.string.transfer_failed,
+                    )
+                }
             }
 
             val importFile = rememberLauncherForActivityResult(
                 ActivityResultContracts.OpenDocument(),
             ) { uri ->
                 if (uri == null) return@rememberLauncherForActivityResult
-                val text = runCatching {
-                    contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() }
-                }.getOrNull()
-                val loaded = text?.let { ConfigTransfer.import(it) }
-                if (loaded == null) {
-                    // Bewusst nichts anfassen: eine unbrauchbare Datei darf die bestehende
-                    // Belegung nicht ersetzen.
-                    Notice.show(this@SettingsActivity, R.string.transfer_bad_file)
-                } else {
-                    store.update { loaded }
-                    // Eine Sicherung aus einer neueren Fassung enthaelt Felder, die diese
-                    // hier nicht kennt; sie fallen beim Einlesen weg. Lieber gesagt als
-                    // still verloren.
-                    Notice.show(
-                        this@SettingsActivity,
-                        if (ConfigTransfer.isFromNewerVersion(text)) {
-                            R.string.transfer_imported_older
-                        } else {
-                            R.string.transfer_imported
-                        },
-                    )
-                    page = Page.MAIN
-                }
+                // Weiter an `ImportActivity` statt hier einzulesen.
+                //
+                // Bis zum 04.09.2026 tat diese Stelle es selbst - und dabei weniger: sie
+                // ersetzte die ganze Einrichtung, sobald eine Datei gewaehlt war, ohne zu
+                // zeigen, was darin steht. `ImportActivity`, die den Weg von aussen
+                // bedient (Datei antippen), zeigt genau das und fragt dann. Zwei Wege in
+                // dieselbe Sache, zwei verschiedene Antworten auf die Frage, ob gefragt
+                // wird - und der haeufigere Weg war der unvorsichtigere.
+                //
+                // Nebenbei fiel noch etwas weg: hier hiess eine Datei, die sich gar nicht
+                // **oeffnen** liess, "Das ist keine BigLau-Sicherung". Drueben stehen
+                // dafuer zwei verschiedene Saetze.
+                startActivity(
+                    Intent(this@SettingsActivity, ImportActivity::class.java)
+                        .setData(uri)
+                        .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION),
+                )
             }
 
             BigLauTheme(
@@ -1051,7 +1058,7 @@ private fun ScreenList(
                         unreachable.size,
                         unreachable.joinToString(", ") { it.name },
                     ),
-                    color = palette.danger,
+                    color = palette.dangerText,
                     fontSize = bigSp(15f),
                     modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp),
                 )
@@ -1149,7 +1156,7 @@ private fun ScreenList(
             item {
                 Text(
                     text = stringResource(R.string.folders_orphaned),
-                    color = palette.danger,
+                    color = palette.dangerText,
                     fontSize = bigSp(15f),
                     modifier = Modifier.padding(horizontal = 4.dp, vertical = 8.dp),
                 )
@@ -1186,6 +1193,21 @@ private fun ScreenList(
         }
     }
 }
+
+/**
+ * Die Namen der Hintergrundfarben, in der Reihenfolge von `ScreenBackground.choicesFor`.
+ *
+ * Gesprochen, nicht geschrieben: die Zeile zeigt die Farbe in voller Breite, und das ist
+ * fuer das Auge die bessere Auskunft. Wer sie nicht sieht, hoerte bis zum 04.09.2026
+ * fuenfmal denselben Satz.
+ */
+internal val HINTERGRUND_NAMEN = listOf(
+    R.string.screen_background_blue,
+    R.string.screen_background_violet,
+    R.string.screen_background_green,
+    R.string.screen_background_red,
+    R.string.screen_background_ochre,
+)
 
 /**
  * Name und Raster eines Screens.
@@ -1282,6 +1304,7 @@ private fun ScreenPanel(
             BigRow(
                 label = stringResource(R.string.screen_background_theme),
                 icon = if (gewaehlt) Icons.Filled.Check else null,
+                selected = gewaehlt,
                 surface = BigSurface(palette.background, palette.onBackground),
                 borderColor = if (gewaehlt) palette.accent else null,
                 onClick = { onBackground(Background.Theme) },
@@ -1289,11 +1312,19 @@ private fun ScreenPanel(
         }
         // Jede Zeile in ihrer eigenen Farbe. Bei einer Farbe ist der Name nutzlos - man
         // will sie sehen, und zwar in der Groesse, in der sie spaeter dasteht.
-        items(hintergrundfarben) { farbe ->
+        //
+        // **Zu sehen**, und genau da endet das Argument. Am 04.09.2026 am Emulator im
+        // Knotenabzug nachgesehen: fuenf Zeilen, fuenfmal "Diese Farbe", kein Wort dazu.
+        // Wer die Farbe nicht sieht, hat fuenf gleiche Angebote vor sich. Die Zeile bleibt
+        // also, wie sie ist - gesprochen wird der Name der Farbe. Genau dafuer gibt es
+        // `labelSpeech`.
+        itemsIndexed(hintergrundfarben) { platz, farbe ->
             val gewaehlt = (screen.background as? Background.Solid)?.argb == farbe
             BigRow(
                 label = stringResource(R.string.screen_background_colour),
+                labelSpeech = stringResource(HINTERGRUND_NAMEN[platz % HINTERGRUND_NAMEN.size]),
                 icon = if (gewaehlt) Icons.Filled.Check else null,
+                selected = gewaehlt,
                 surface = BigSurface(
                     Color(farbe.toInt()),
                     Color(ScreenBackground.inkFor(farbe).toInt()),
@@ -1373,7 +1404,7 @@ private fun AppearanceList(
             BigRow(
                 label = stringResource(languageLabel(entry)),
                 icon = if (entry == appearance.language) Icons.Filled.Check else null,
-                surface = if (entry == appearance.language) palette.surfaceAccent else palette.surfaceDefault,
+                selected = entry == appearance.language,
                 onClick = {
                         if (entry != appearance.language) {
                             onChange(appearance.copy(language = entry))
@@ -1394,6 +1425,7 @@ private fun AppearanceList(
             BigRow(
                 label = stringResource(themeLabel(entry)),
                 icon = if (chosen) Icons.Filled.Check else null,
+                selected = chosen,
                 surface = BigSurface(own.emptyTile, own.onBackground),
                 borderColor = if (chosen) palette.accent else null,
                 onClick = { onChange(appearance.copy(theme = entry)) },
@@ -1412,7 +1444,7 @@ private fun AppearanceList(
                     null
                 },
                 icon = if (entry == appearance.font) Icons.Filled.Check else null,
-                surface = if (entry == appearance.font) palette.surfaceAccent else palette.surfaceDefault,
+                selected = entry == appearance.font,
                 fontFamily = familyFor(entry),
                 onClick = { onChange(appearance.copy(font = entry)) },
             )
@@ -1424,7 +1456,7 @@ private fun AppearanceList(
                 BigRow(
                     label = "${(scale * 100).toInt()} %",
                     icon = if (scale == appearance.textScale) Icons.Filled.Check else null,
-                    surface = if (scale == appearance.textScale) palette.surfaceAccent else palette.surfaceDefault,
+                    selected = scale == appearance.textScale,
                     onClick = { onChange(appearance.copy(textScale = scale)) },
                 )
             }
@@ -1438,11 +1470,7 @@ private fun AppearanceList(
                 BigRow(
                     label = "${(scale * 100).toInt()} %",
                     icon = if (scale == appearance.labelScale) Icons.Filled.Check else null,
-                    surface = if (scale == appearance.labelScale) {
-                        palette.surfaceAccent
-                    } else {
-                        palette.surfaceDefault
-                    },
+                    selected = scale == appearance.labelScale,
                     onClick = { onChange(appearance.copy(labelScale = scale)) },
                 )
             }
@@ -1464,11 +1492,7 @@ private fun AppearanceList(
                         modifier = Modifier.size((16 + percent / 2).dp),
                     )
                 },
-                surface = if (percent == appearance.iconPercent) {
-                    palette.surfaceAccent
-                } else {
-                    palette.surfaceDefault
-                },
+                selected = percent == appearance.iconPercent,
                 onClick = { onChange(appearance.copy(iconPercent = percent)) },
             )
         }
@@ -1476,7 +1500,7 @@ private fun AppearanceList(
         items(LabelPosition.entries.toList()) { position ->
             BigRow(
                 label = stringResource(labelPositionLabel(position)),
-                surface = if (position == appearance.labelPosition) palette.surfaceAccent else palette.surfaceDefault,
+                selected = position == appearance.labelPosition,
                 onClick = { onChange(appearance.copy(labelPosition = position)) },
             )
         }
@@ -1490,7 +1514,7 @@ private fun AppearanceList(
                         if (appearance.hideCutLabels) R.string.appearance_hide_cut_on else R.string.appearance_hide_cut_off,
                     ),
                     secondary = stringResource(R.string.appearance_hide_cut_hint),
-                    surface = if (appearance.hideCutLabels) palette.surfaceAccent else palette.surfaceDefault,
+                    checked = appearance.hideCutLabels,
                     onClick = { onChange(appearance.copy(hideCutLabels = !appearance.hideCutLabels)) },
                 )
             }
@@ -1501,7 +1525,7 @@ private fun AppearanceList(
                     if (appearance.fullScreen) R.string.appearance_fullscreen_on else R.string.appearance_fullscreen_off,
                 ),
                 secondary = stringResource(R.string.appearance_fullscreen_hint),
-                surface = if (appearance.fullScreen) palette.surfaceAccent else palette.surfaceDefault,
+                checked = appearance.fullScreen,
                 onClick = { onChange(appearance.copy(fullScreen = !appearance.fullScreen)) },
             )
         }
@@ -1515,7 +1539,7 @@ private fun AppearanceList(
                     null
                 },
                 icon = if (entry == appearance.icons) Icons.Filled.Check else null,
-                surface = if (entry == appearance.icons) palette.surfaceAccent else palette.surfaceDefault,
+                selected = entry == appearance.icons,
                 onClick = { onChange(appearance.withIcons(entry)) },
             )
         }
@@ -1542,7 +1566,7 @@ private fun AppearanceList(
                             R.string.status_hidden_battery
                         },
                     ),
-                    color = palette.danger,
+                    color = palette.dangerText,
                     fontSize = bigSp(15f),
                     modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp),
                 )
@@ -1553,7 +1577,7 @@ private fun AppearanceList(
             BigRow(
                 label = "$wert dp",
                 icon = if (wert == appearance.gutterDp) Icons.Filled.Check else null,
-                surface = if (wert == appearance.gutterDp) palette.surfaceAccent else palette.surfaceDefault,
+                selected = wert == appearance.gutterDp,
                 onClick = { onChange(appearance.copy(gutterDp = GridLooks.gutter(wert))) },
             )
         }
@@ -1562,11 +1586,7 @@ private fun AppearanceList(
             BigRow(
                 label = "$wert %",
                 icon = if (wert == appearance.safeBorderPercent) Icons.Filled.Check else null,
-                surface = if (wert == appearance.safeBorderPercent) {
-                    palette.surfaceAccent
-                } else {
-                    palette.surfaceDefault
-                },
+                selected = wert == appearance.safeBorderPercent,
                 onClick = { onChange(appearance.copy(safeBorderPercent = GridLooks.border(wert))) },
             )
         }
@@ -1576,11 +1596,7 @@ private fun AppearanceList(
             BigRow(
                 label = "$wert dp",
                 icon = if (wert == appearance.cornerRadiusDp) Icons.Filled.Check else null,
-                surface = if (wert == appearance.cornerRadiusDp) {
-                    palette.surfaceAccent
-                } else {
-                    palette.surfaceDefault
-                },
+                selected = wert == appearance.cornerRadiusDp,
                 cornerRadius = wert.dp,
                 onClick = { onChange(appearance.copy(cornerRadiusDp = GridLooks.radius(wert))) },
             )
@@ -1595,11 +1611,7 @@ private fun AppearanceList(
                     null
                 },
                 icon = if (entry == appearance.orientation) Icons.Filled.Check else null,
-                surface = if (entry == appearance.orientation) {
-                    palette.surfaceAccent
-                } else {
-                    palette.surfaceDefault
-                },
+                selected = entry == appearance.orientation,
                 onClick = {
                         onChange(appearance.copy(orientation = entry))
                         // Sofort umsetzen: eine Drehung, die erst beim naechsten Start
@@ -1613,7 +1625,7 @@ private fun AppearanceList(
             BigRow(
                 label = "${(wert * 100).toInt()} %",
                 icon = if (wert == appearance.clockScale) Icons.Filled.Check else null,
-                surface = if (wert == appearance.clockScale) palette.surfaceAccent else palette.surfaceDefault,
+                selected = wert == appearance.clockScale,
                 onClick = { onChange(appearance.copy(clockScale = ClockFormat.scale(wert))) },
             )
         }
@@ -1627,7 +1639,7 @@ private fun AppearanceList(
                     null
                 },
                 icon = if (entry == appearance.clock) Icons.Filled.Check else null,
-                surface = if (entry == appearance.clock) palette.surfaceAccent else palette.surfaceDefault,
+                selected = entry == appearance.clock,
                 onClick = { onChange(appearance.withClock(entry)) },
             )
         }
@@ -1666,7 +1678,7 @@ private fun AccessibilityList(
                     if (behaviour.accessibility.speakOnLongPress) R.string.a11y_speak_on else R.string.a11y_speak_off,
                 ),
                 secondary = stringResource(R.string.a11y_speak_hint),
-                surface = if (behaviour.accessibility.speakOnLongPress) palette.surfaceAccent else palette.surfaceDefault,
+                checked = behaviour.accessibility.speakOnLongPress,
                 onClick = {
                     val a = behaviour.accessibility
                     onChange(behaviour.copy(accessibility = a.copy(speakOnLongPress = !a.speakOnLongPress)))
@@ -1679,7 +1691,7 @@ private fun AccessibilityList(
                     if (behaviour.accessibility.popupOnLongPress) R.string.a11y_popup_on else R.string.a11y_popup_off,
                 ),
                 secondary = stringResource(R.string.a11y_popup_hint),
-                surface = if (behaviour.accessibility.popupOnLongPress) palette.surfaceAccent else palette.surfaceDefault,
+                checked = behaviour.accessibility.popupOnLongPress,
                 onClick = {
                     val a = behaviour.accessibility
                     onChange(behaviour.copy(accessibility = a.copy(popupOnLongPress = !a.popupOnLongPress)))
@@ -1692,7 +1704,7 @@ private fun AccessibilityList(
                     if (behaviour.accessibility.scrollButtons) R.string.a11y_scroll_on else R.string.a11y_scroll_off,
                 ),
                 secondary = stringResource(R.string.a11y_scroll_hint),
-                surface = if (behaviour.accessibility.scrollButtons) palette.surfaceAccent else palette.surfaceDefault,
+                checked = behaviour.accessibility.scrollButtons,
                 onClick = {
                     val a = behaviour.accessibility
                     onChange(behaviour.copy(accessibility = a.copy(scrollButtons = !a.scrollButtons)))
@@ -1709,11 +1721,7 @@ private fun AccessibilityList(
                     }
                 ),
                 secondary = stringResource(R.string.haptics_hint),
-                surface = if (behaviour.haptics != HapticStrength.OFF) {
-                    palette.surfaceAccent
-                } else {
-                    palette.surfaceDefault
-                },
+                surface = if (behaviour.haptics != HapticStrength.OFF) palette.surfaceAccent else palette.surfaceDefault,
                 onClick = { onChange(behaviour.withHaptics(Haptics.next(behaviour.haptics))) },
             )
         }
@@ -1765,7 +1773,7 @@ private fun AccessibilityList(
             BigRow(
                 label = stringResource(if (behaviour.swipeBetweenScreens) R.string.swipe_on else R.string.swipe_off),
                 secondary = stringResource(R.string.swipe_hint),
-                surface = if (behaviour.swipeBetweenScreens) palette.surfaceAccent else palette.surfaceDefault,
+                checked = behaviour.swipeBetweenScreens,
                 onClick = { onChange(behaviour.copy(swipeBetweenScreens = !behaviour.swipeBetweenScreens)) },
             )
         }
@@ -1773,7 +1781,7 @@ private fun AccessibilityList(
             item {
                 Text(
                     text = stringResource(R.string.a11y_editor_moved),
-                    color = palette.danger,
+                    color = palette.dangerText,
                     fontSize = bigSp(15f),
                     modifier = Modifier.padding(horizontal = 4.dp, vertical = 8.dp),
                 )
@@ -1793,7 +1801,7 @@ private fun TransferList(onExport: () -> Unit, onImport: () -> Unit) {
     val palette = LocalBigPalette.current
     // Einlesen ersetzt die ganze Belegung, und zwar unwiderruflich. Dieselbe zweistufige
     // Rueckfrage wie beim Verkleinern des Rasters: der erste Tipp warnt, der zweite tut es.
-    var armed by remember { mutableStateOf(false) }
+
     LazyColumn(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         item { BigHeading(stringResource(R.string.settings_transfer)) }
         item {
@@ -1815,19 +1823,15 @@ private fun TransferList(onExport: () -> Unit, onImport: () -> Unit) {
         item {
             BigRow(
                 label = stringResource(R.string.transfer_import),
-                secondary = stringResource(
-                    if (armed) R.string.transfer_import_confirm else R.string.transfer_import_hint,
-                ),
+                secondary = stringResource(R.string.transfer_import_hint),
                 icon = Icons.Filled.FolderOpen,
-                surface = if (armed) palette.surfaceDanger else palette.surfaceDefault,
-                onClick = {
-                    if (armed) {
-                        armed = false
-                        onImport()
-                    } else {
-                        armed = true
-                    }
-                },
+                // Kein zweiter Tipp mehr davor. Er sagte "Noch einmal tippen, dann ist
+                // alles ersetzt" - und das stimmte nicht: der zweite Tipp oeffnete den
+                // Dateidialog. Seit die Datei drueben in `ImportActivity` erst gezeigt und
+                // dann gefragt wird, steht die Rueckfrage dort, wo etwas zu sehen ist,
+                // und nicht davor, wo sie nur schreckt. Zwei Tipps sind ausserdem genau
+                // das, was eine zittrige Hand von selbst macht.
+                onClick = onImport,
             )
         }
     }
@@ -1858,7 +1862,7 @@ private fun HiddenAppsList(
                 } else {
                     pluralStringResource(R.plurals.apps_recent_count_value, anzahl, anzahl)
                 },
-                surface = if (anzahl == recentCount) palette.surfaceAccent else palette.surfaceDefault,
+                selected = anzahl == recentCount,
                 onClick = { onRecentCount(anzahl) },
             )
         }
@@ -1965,7 +1969,7 @@ private fun SecurityList(
                         if (protectsEditor) R.string.security_editor_on else R.string.security_editor_off,
                     ),
                     secondary = stringResource(R.string.security_editor_hint),
-                    surface = if (protectsEditor) palette.surfaceAccent else palette.surfaceDefault,
+                    checked = protectsEditor,
                     onClick = onToggleEditorProtection,
                 )
             }
@@ -2129,7 +2133,7 @@ private fun NoSettingsWarning(
                 if (canAddTile) R.string.home_switch_warning else R.string.home_switch_blocked,
                 name,
             ),
-            color = palette.danger,
+            color = palette.dangerText,
             fontSize = bigSp(16f),
             modifier = Modifier.padding(horizontal = 4.dp),
         )
@@ -2332,6 +2336,7 @@ private fun GridChoiceRow(
             else -> null
         },
         icon = if (current) Icons.Filled.Check else null,
+        selected = current,
         surface = when {
             current -> palette.surfaceAccent
             armed -> palette.surfaceDanger
@@ -2387,7 +2392,7 @@ private fun AllowedAppsList(
                 BigRow(
                     label = app.label,
                     icon = if (erlaubt) Icons.Filled.Check else Icons.Filled.Lock,
-                    surface = if (erlaubt) palette.surfaceAccent else palette.surfaceDefault,
+                    checked = erlaubt,
                     onClick = { onToggle(schluessel) },
                 )
             }
@@ -2435,11 +2440,7 @@ private fun ContactsSettingsList(
                     },
                 ),
                 secondary = stringResource(R.string.contacts_search_numbers_hint),
-                surface = if (contacts.searchNumbers) {
-                    palette.surfaceAccent
-                } else {
-                    palette.surfaceDefault
-                },
+                surface = if (contacts.searchNumbers) palette.surfaceAccent else palette.surfaceDefault,
                 onClick = onToggleSearchNumbers,
             )
         }
@@ -2453,11 +2454,7 @@ private fun ContactsSettingsList(
                     },
                 ),
                 secondary = stringResource(R.string.contacts_favourites_first_hint),
-                surface = if (contacts.favouritesFirst) {
-                    palette.surfaceAccent
-                } else {
-                    palette.surfaceDefault
-                },
+                surface = if (contacts.favouritesFirst) palette.surfaceAccent else palette.surfaceDefault,
                 onClick = onToggleFavouritesFirst,
             )
         }
@@ -2499,7 +2496,7 @@ private fun CallTypesList(
             BigRow(
                 label = stringResource(groupingLabel(art)),
                 secondary = stringResource(groupingHint(art)),
-                surface = if (art == phone.callGrouping) palette.surfaceAccent else palette.surfaceDefault,
+                selected = art == phone.callGrouping,
                 onClick = { onChange(phone.copy(callGrouping = art)) },
             )
         }
@@ -2517,7 +2514,7 @@ private fun CallTypesList(
             BigRow(
                 label = stringResource(callDirectionLabel(art)),
                 icon = if (sichtbar) Icons.Filled.Check else null,
-                surface = if (sichtbar) palette.surfaceAccent else palette.surfaceDefault,
+                checked = sichtbar,
                 onClick = {
                     val jetzt = phone.hiddenCallTypes
                     onChange(
@@ -2541,7 +2538,8 @@ private fun CallTypesList(
                 // "werden abgewiesen, ohne zu klingeln" gilt nur, wenn BigLau die
                 // Telefon-Rolle haelt - nur die Standard-Telefon-App sieht eingehende
                 // Anrufe. Ohne die Rolle wirkt die Sperre allein nach aussen. Siehe
-                // DialerRole; am Telefon des Nutzers haelt die Rolle ein anderes Programm.
+                // DialerRole. Am 03.09.2026 hielt die Rolle ein anderes Programm; seit dem
+                // 04.09.2026 haelt BigLau sie, und damit gilt der erste Satz.
                 text = if (hatTelefonRolle) {
                     stringResource(R.string.blocked_numbers_hint)
                 } else {
@@ -2577,7 +2575,7 @@ private fun CallTypesList(
             item {
                 Text(
                     text = stringResource(R.string.blocked_numbers_rejected, abgewiesen.joinToString(", ")),
-                    color = palette.danger,
+                    color = palette.dangerText,
                     fontSize = bigSp(15f),
                     modifier = Modifier.padding(horizontal = 4.dp),
                 )
@@ -2595,7 +2593,7 @@ private fun CallTypesList(
         items(AudioRoute.entries.toList()) { weg ->
             BigRow(
                 label = stringResource(audioLabel(weg)),
-                surface = if (weg == phone.audioRoute) palette.surfaceAccent else palette.surfaceDefault,
+                selected = weg == phone.audioRoute,
                 onClick = { onChange(phone.copy(audioRoute = weg)) },
             )
         }
@@ -2622,7 +2620,7 @@ private fun CallTypesList(
         items(CallerPhoto.entries.toList()) { groesse ->
             BigRow(
                 label = stringResource(photoLabel(groesse)),
-                surface = if (groesse == phone.callerPhoto) palette.surfaceAccent else palette.surfaceDefault,
+                selected = groesse == phone.callerPhoto,
                 onClick = { onChange(phone.copy(callerPhoto = groesse)) },
             )
         }
@@ -2654,13 +2652,5 @@ private fun groupingHint(art: CallGrouping): Int = when (art) {
     CallGrouping.DIRECTION -> R.string.call_grouping_direction_hint
 }
 
-private fun callDirectionLabel(direction: CallDirection): Int = when (direction) {
-    CallDirection.INCOMING -> R.string.call_type_incoming
-    CallDirection.OUTGOING -> R.string.call_type_outgoing
-    CallDirection.MISSED -> R.string.call_type_missed
-    CallDirection.REJECTED -> R.string.call_type_rejected
-    CallDirection.BLOCKED -> R.string.call_type_blocked
-    CallDirection.OTHER -> R.string.call_type_other
-}
 
 

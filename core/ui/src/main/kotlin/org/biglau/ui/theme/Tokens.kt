@@ -28,6 +28,18 @@ object Tokens {
     /** Auch das Rot ist hell genug, dass weisser Text darauf durchfaellt. */
     const val DARK_ON_DANGER = 0xFF0A0A0AL
 
+    /**
+     * Dasselbe Rot als **Schrift auf dem Hintergrund** - und deshalb ein anderer Wert.
+     *
+     * [DARK_DANGER] ist eine Flaechenfarbe: als Fuellung mit [DARK_ON_DANGER] darauf ist
+     * sie in Ordnung. Als Text auf dem Hintergrund kam sie am 04.09.2026 auf **6,20:1** -
+     * unter der eigenen Schwelle [MIN_TEXT_ON_BACKGROUND] von 7,0. Aufgefallen beim
+     * Nachmessen einer neuen Warnung im Sicherungs-Import, und dann in zwoelf weiteren
+     * Zeilen wiedergefunden: `ContrastTest` prueft die Schwelle seit jeher, aber nur fuer
+     * [DARK_ON_BACKGROUND]. Fuer die Farbe, die **warnt**, hat sie nie jemand geprueft.
+     */
+    const val DARK_DANGER_TEXT = 0xFFFF8080L
+
     /** Sechs Kacheltoene auf gleichem Kontrastniveau, damit keine schwerer wiegt als die andere. */
     val DARK_TILES = listOf(
         0xFF2763CBL, // blau
@@ -42,10 +54,20 @@ object Tokens {
     const val LIGHT_BACKGROUND = 0xFFFAFAFAL
     const val LIGHT_ON_BACKGROUND = 0xFF111111L
     const val LIGHT_EMPTY_TILE = 0xFFE8EAECL
-    const val LIGHT_EMPTY_TILE_BORDER = 0xFF8A8A8AL
+    /**
+     * Der Rahmen der leeren Kachel liegt an **zwei** Gruenden: aussen am Hintergrund,
+     * innen an der Fuellung der Kachel. Bis zum 04.09.2026 wurde nur der aeussere geprueft;
+     * innen kam `#8A8A8A` gegen `#E8EAEC` auf **2,86:1** und blieb damit unter der
+     * Flaechenschwelle von 3,0. Am Emulator im Bildpunkt nachgesehen: der Rahmen sitzt
+     * ohne Zwischenraum auf der Fuellung. `#7A7A7A` schafft 3,56 innen und 4,11 aussen.
+     */
+    const val LIGHT_EMPTY_TILE_BORDER = 0xFF7A7A7AL
     const val LIGHT_ACCENT = 0xFF1565C0L
     const val LIGHT_ON_ACCENT = 0xFFFFFFFFL
     const val LIGHT_DANGER = 0xFFC62828L
+
+    /** Warnschrift auf hellem Grund - siehe [DARK_DANGER_TEXT]. */
+    const val LIGHT_DANGER_TEXT = 0xFF8A1A1AL
     const val LIGHT_ON_DANGER = 0xFFFFFFFFL
 
     val LIGHT_TILES = listOf(
@@ -61,6 +83,9 @@ object Tokens {
     const val CONTRAST_BACKGROUND = 0xFF000000L
     const val CONTRAST_INK = 0xFFFFEB3BL
     const val CONTRAST_DANGER = 0xFFFF5252L
+
+    /** Warnschrift im Kontrastthema - siehe [DARK_DANGER_TEXT]. */
+    const val CONTRAST_DANGER_TEXT = 0xFFFF8080L
     const val CONTRAST_ON_ACCENT = 0xFF000000L
     const val CONTRAST_ON_DANGER = 0xFF000000L
 

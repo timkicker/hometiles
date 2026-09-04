@@ -9,6 +9,9 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.res.stringResource
+import org.biglau.core.ui.R
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.border
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -90,6 +93,64 @@ fun BigRow(
     secondaryMaxLines: Int = 2,
     /** Eigener Rahmen statt des Themenrahmens - fuer Zeilen, deren Flaeche schon etwas sagt. */
     borderColor: Color? = null,
+    /**
+     * Diese Zeile ist die gewaehlte ihrer Liste.
+     *
+     * Faerbt die Flaeche - und sagt es. Bis zum 04.09.2026 stand die Auswahl in
+     * sechsundfuenfzig Zeilen allein in der Farbe; die Vorlesefunktion las die gewaehlte
+     * Zeile wie jede andere, und wer Farben schlecht unterscheidet, sah sie auch nicht. Der
+     * Farbwaehler hatte das schon geloest und die Messung dazu aufgeschrieben: die reine
+     * `selected`-Eigenschaft kommt in der Bedienungshilfen-Schnittstelle nicht an, der
+     * Zustand muss zusaetzlich in den Namen.
+     *
+     * Nur fuer "eines aus mehreren" - genau eine Zeile der Liste gilt. Eine Liste, in der
+     * **mehrere** gleichzeitig gelten koennen (welche Anrufarten erscheinen, welche Apps
+     * ohne PIN starten), ist keine Auswahl: jede Zeile darin ist ein eigener Schalter und
+     * nimmt [checked]. Der Unterschied faellt erst auf, wenn eine Zeile **nicht** gilt -
+     * eine nicht gewaehlte sagt gar nichts, ein ausgeschalteter Schalter sagt "aus".
+     */
+    selected: Boolean = false,
+    /**
+     * Diese Zeile ist ein Schalter, und er steht so.
+     *
+     * Ein Schalter ist nicht ausgewaehlt, er ist **an** - deshalb eine eigene Angabe und
+     * ein eigener Satz. Beim Vorlesen heisst das "an" und "aus", wie bei jedem Schalter des
+     * Systems.
+     *
+     * **Nur, wo die ausgeschaltete Beschriftung eine Einladung ist**, keine Aussage. In
+     * BigLau springt fast jede Schalterzeile mit um, und dann kommt es darauf an, wie:
+     *
+     * * „Vorlesen" / „Liest vor" - die ausgeschaltete Fassung fordert auf und sagt den
+     *   Zustand nicht. Hier hilft „aus", zumal sich die beiden Fassungen im Ohr nur um
+     *   einen Buchstaben unterscheiden.
+     * * „Kein PIN vor der App-Liste" / „PIN vor der App-Liste" - beide Fassungen sagen den
+     *   Zustand schon. „Kein PIN vor der App-Liste, aus" ist doppelt und liest sich wie
+     *   das Gegenteil. Dort bleibt die Zeile ohne Angabe; die Flaeche faerbt der Aufrufer.
+     *
+     * Am 04.09.2026 nachgesehen: von dreiundzwanzig Zeilen waren zwoelf der zweite Fall.
+     */
+    checked: Boolean? = null,
+    /**
+     * Was die Zeile ausserdem ueber sich sagt - "zwei sind ungelesen", "verpasst".
+     *
+     * Fuer Zustaende, die weder Auswahl noch Schalter sind. Sie steckten bis zum 04.09.2026
+     * in der Flaechenfarbe und in einem Symbol ohne Namen: die Anrufliste zeigte die
+     * Richtung als Pfeil - in der einen Liste, in der die Richtung alles ist -, und die
+     * Nachrichtenliste haengte ein blosses "(2)" an den Namen. Vorgelesen war beides nichts.
+     *
+     * Faerbt nichts: was diese Zustaende faerben, ist von Fall zu Fall verschieden
+     * (Warnfarbe fuer verpasst, Akzent fuer ungelesen). Die Farbe bleibt beim Aufrufer.
+     */
+    state: String? = null,
+    /**
+     * Was statt der Beschriftung vorgelesen wird.
+     *
+     * Nur fuer Beschriftungen, die etwas Gemaltes enthalten: die Nachrichtenliste haengt
+     * eine Klammerzahl an den Namen, und [state] sagt dieselbe Zahl schon als Satz. Ohne
+     * das hiess die Zeile "Tim Kicker 1, eine ist ungelesen" - die Zahl zweimal. Die
+     * Anrufliste braucht es nicht: dort steht die Zahl **nur** in der Klammer.
+     */
+    labelSpeech: String? = null,
 ) {
     val palette = LocalBigPalette.current
     val scale = LocalTextScale.current
@@ -98,8 +159,29 @@ fun BigRow(
     val interaction = remember { MutableInteractionSource() }
     val pressed by interaction.collectIsPressedAsState()
     val press by animateFloatAsState(if (pressed) 0.98f else 1f, label = "press")
-    val paint = surface ?: palette.surfaceDefault
+    val paint = surface
+        ?: if (selected || checked == true) palette.surfaceAccent else palette.surfaceDefault
     val border = borderColor ?: palette.tileBorder()
+    // Beschriftung und Zweitzeile stehen sonst als zwei Knoten da; wer den Namen ersetzt,
+    // ersetzt beide und darf die Zweitzeile nicht verlieren.
+    val gesprochen = labelSpeech ?: label
+    val zustand = when {
+        selected -> stringResource(R.string.a11y_chosen, gesprochen)
+        checked == true -> stringResource(R.string.a11y_on, gesprochen)
+        checked == false -> stringResource(R.string.a11y_off, gesprochen)
+        state != null -> stringResource(R.string.a11y_state, gesprochen, state)
+        else -> null
+    }
+    // Angesagt wird auch, wenn nur der **Name** ersetzt ist. Bis zum 04.09.2026 hing der
+    // ganze Semantik-Block an `zustand`: eine Zeile mit `labelSpeech`, aber ohne Zustand,
+    // bekam gar keine `contentDescription` - der gesprochene Name fiel lautlos weg. Am
+    // Emulator aufgefallen, in der Auswahl des Screen-Hintergrunds: fuenf Zeilen, fuenfmal
+    // "Diese Farbe", und der Name der Farbe war zwar uebergeben, aber nirgends zu hoeren.
+    val ansage = when {
+        zustand != null -> zustand + (secondary?.let { ". $it" } ?: "")
+        labelSpeech != null -> gesprochen + (secondary?.let { ". $it" } ?: "")
+        else -> null
+    }
 
     Row(
         modifier = modifier
@@ -120,6 +202,16 @@ fun BigRow(
                             { haptik.longPress(haptikStaerke); echt() }
                         },
                     )
+                },
+            )
+            .then(
+                if (ansage != null) {
+                    Modifier.semantics {
+                        if (selected) this.selected = true
+                        contentDescription = ansage
+                    }
+                } else {
+                    Modifier
                 },
             )
             .heightIn(min = 72.dp)

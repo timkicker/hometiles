@@ -2,7 +2,7 @@
 """Tippt erst, wenn der Bildschirm der erwartete ist.
 
     tools/tippen.py <geraet> <x> <y> <erwartete-activity> [erwartete-beschriftung] [--lang]
-    tools/tippen.py <geraet> wischen <erwartete-activity> [wieoft]
+    tools/tippen.py <geraet> wischen <erwartete-activity> [wieoft] [--hoch]
     tools/tippen.py <geraet> zeile "<Beschriftung>" <erwartete-activity> [--lang]
 
 Prueft drei Dinge, bevor es tippt:
@@ -88,7 +88,7 @@ def offen(geraet):
     return ""
 
 
-def wischen(geraet, erwartet, wieoft):
+def wischen(geraet, erwartet, wieoft, hoch=False):
     """Rollt in einer Liste nach unten - innerhalb, nicht am Rand.
 
     Anfang und Ende bleiben im mittleren Drittel: unten sitzt die Gestenzone des Systems
@@ -97,6 +97,11 @@ def wischen(geraet, erwartet, wieoft):
     """
     breite, hoehe = rand(geraet)
     x, von, nach = breite // 2, int(hoehe * 0.72), int(hoehe * 0.30)
+    # Zurueck nach oben: dieselbe Bahn, andere Richtung. Dazugekommen am 04.09.2026,
+    # nachdem ich an einer Zeile vorbeigescrollt war und mangels Rueckweg den ganzen
+    # Bildschirm neu aufbauen musste.
+    if hoch:
+        von, nach = nach, von
     for zug in range(wieoft):
         aktiv = offen(geraet)
         if erwartet not in aktiv:
@@ -147,8 +152,11 @@ def main():
         return tippen(sys.argv[1], x, y, erwartet, beschriftung, lang)
 
     if len(sys.argv) >= 4 and sys.argv[2] == "wischen":
+        hoch = "--hoch" in sys.argv
+        if hoch:
+            sys.argv.remove("--hoch")
         wieoft = int(sys.argv[4]) if len(sys.argv) > 4 else 1
-        return wischen(sys.argv[1], sys.argv[3], wieoft)
+        return wischen(sys.argv[1], sys.argv[3], wieoft, hoch)
     if len(sys.argv) < 5:
         print(__doc__.strip().splitlines()[2].strip())
         return 2

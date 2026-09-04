@@ -10,7 +10,7 @@ import org.junit.Test
  * Wer ein gefährliches Recht im Manifest anmeldet, muss es auch erfragen.
  *
  * Anlass: `WRITE_CALL_LOG` stand im Manifest, wurde vor jedem Löschen geprüft — und von
- * keiner Zeile je erfragt. Am Telefon des Nutzers stand es auf `granted=false`. Wer dort
+ * keiner Zeile je erfragt. Am Telefon des Nutzers stand es auf `granted=false`. (Stand 02.09.2026) Wer dort
  * einen Anruf löschte, bestätigte die Rückfrage und sah die Zeile unverändert stehen: eine
  * Sackgasse, aus der nichts herausführte, weil nichts fragte. Dieselbe Lücke hatte der
  * Notruf beim Standort — die Nachricht versprach Koordinaten und ging ohne hinaus.

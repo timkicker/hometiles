@@ -42,12 +42,17 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.ime
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.foundation.layout.height
@@ -522,10 +527,24 @@ private fun ThreadList(
                 BigRow(
                     label = thread.titleOr(stringResource(R.string.call_unknown)) +
                         if (thread.hasUnread) " (${thread.unreadCount})" else "",
+                    // Ohne Klammerzahl: sie steht als Satz schon im Zustand darunter.
+                    labelSpeech = thread.titleOr(stringResource(R.string.call_unknown)),
                     secondary = SmsThreads.preview(thread.lastMessage) + " · " +
                         format.format(Date(thread.lastMessage.timestamp)),
                     secondaryMaxLines = 1,
                     surface = if (thread.hasUnread) palette.surfaceAccent else palette.surfaceDefault,
+                    // Am Namen hing ein blosses "(2)". Vorgelesen ist das eine Zahl ohne
+                    // Sache; die Kachel auf dem Startbildschirm sagte laengst "2 sind
+                    // ungelesen" und nimmt denselben Text.
+                    state = if (thread.hasUnread) {
+                        pluralStringResource(
+                            R.plurals.a11y_unread,
+                            thread.unreadCount,
+                            thread.unreadCount,
+                        )
+                    } else {
+                        null
+                    },
                     onClick = { onOpen(thread.threadId) },
                 )
             }
@@ -562,8 +581,16 @@ private fun Conversation(
         SimpleDateFormat(ClockFormat.timePattern(!zwoelfStunden), locale)
     }
     val tagFormat = remember(locale) { SimpleDateFormat(bestDatePattern("EEEEdMMMM", locale), locale) }
+    // Bei offener Tastatur faellt die Ueberschrift weg.
+    //
+    // Am 04.09.2026 bei 200 % Systemschrift gemessen: Ueberschrift 63, Eingabefeld 92,
+    // Senden-Zeile 90 Bildpunkte - zusammen mehr, als ueber der Tastatur uebrig bleibt.
+    // Der Senden-Knopf war zur Haelfte verdeckt und das Wort nicht mehr zu lesen. Von den
+    // drei Zeilen ist die Ueberschrift die entbehrlichste: mit wem man schreibt, hat man
+    // gerade selbst ausgewaehlt, und die Nachrichten darueber stehen ohnehin da.
+    val tastaturOffen = WindowInsets.ime.getBottom(LocalDensity.current) > 0
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        BigHeading(title)
+        if (!tastaturOffen) BigHeading(title)
         // Eine Unterhaltung faengt unten an. Oeffnete sie oben, muesste man erst zur
         // neuesten Nachricht scrollen - und die ist der Grund, aus dem man sie oeffnet.
         val listState = rememberLazyListState()
@@ -584,7 +611,7 @@ private fun Conversation(
                 item {
                     Text(
                         text = stringResource(R.string.sms_not_default),
-                        color = palette.danger,
+                        color = palette.dangerText,
                         fontSize = bigSp(15f),
                         modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp),
                     )
@@ -601,8 +628,23 @@ private fun Conversation(
                         modifier = Modifier.fillMaxWidth().padding(top = 8.dp, bottom = 4.dp),
                     )
                 }
+                // Wer eine Nachricht geschrieben hat, steht in der Blase nirgends: sie
+                // haengt links oder rechts und hat die eine oder die andere Farbe. Beides
+                // ist beim Vorlesen nichts - man hoerte eine Reihe von Saetzen ohne
+                // Absender, und "bin unterwegs" ist ohne Absender das Gegenteil.
+                val wer = stringResource(
+                    if (message.incoming) R.string.a11y_message_in else R.string.a11y_message_out,
+                )
+                val wann = if (message.failed) {
+                    stringResource(R.string.sms_not_sent)
+                } else {
+                    uhrFormat.format(Date(message.timestamp))
+                }
                 Box(
                     modifier = Modifier
+                        .semantics(mergeDescendants = true) {
+                            contentDescription = "$wer: ${message.body}. $wann"
+                        }
                         .fillMaxWidth()
                         .padding(
                             start = if (message.incoming) 0.dp else 40.dp,
@@ -678,16 +720,33 @@ private fun Conversation(
                     else -> null
                 },
                 icon = Icons.AutoMirrored.Filled.Send,
-                surface = if (fragtNach) palette.surfaceDanger else palette.surfaceAccent,
+                // Solange nichts dasteht, ist der Knopf keiner.
+                //
+                // `send` weigert sich bei einer leeren Nachricht - richtig, aber bis zum
+                // 04.09.2026 sah man das nicht: der Knopf stand in voller Akzentfarbe da,
+                // man tippte, und es geschah **schweigend nichts**. Genau der Fall, den
+                // `LaunchFailureTest` fuer die Kacheln festhaelt. `BigRow` sagt es in
+                // seiner eigenen Beschreibung: eine Zeile mit leerer Handlung sieht aus wie
+                // ein Knopf, schluckt den Tipp und wird als Schaltflaeche angesagt.
+                surface = when {
+                    fragtNach -> palette.surfaceDanger
+                    draft.isBlank() -> palette.surfaceDefault
+                    else -> palette.surfaceAccent
+                },
                 modifier = if (sendButtonLarge) Modifier.height(96.dp) else Modifier,
-                onClick = {
-                    // Erst fragen, dann senden - und nur, wenn ueberhaupt etwas dasteht.
-                    // Eine Rueckfrage zu einer leeren Nachricht waere eine Frage ohne Folge.
-                    if (confirmBeforeSending && !fragtNach && draft.isNotBlank()) {
-                        fragtNach = true
-                    } else {
-                        fragtNach = false
-                        onSend()
+                onClick = if (draft.isBlank()) {
+                    null
+                } else {
+                    {
+                        // Erst fragen, dann senden. Eine Rueckfrage zu einer leeren
+                        // Nachricht waere eine Frage ohne Folge - die gibt es hier nicht
+                        // mehr, weil ohne Text gar nicht getippt werden kann.
+                        if (confirmBeforeSending && !fragtNach) {
+                            fragtNach = true
+                        } else {
+                            fragtNach = false
+                            onSend()
+                        }
                     }
                 },
             )

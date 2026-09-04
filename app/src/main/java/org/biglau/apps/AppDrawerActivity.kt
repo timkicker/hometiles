@@ -134,6 +134,11 @@ class AppDrawerActivity : BigLauActivity() {
             // standen zwei Zeilen da und darueber „1 Treffer", und die Lupentaste oeffnete
             // die eine, ohne dass zu sehen war, welche.
             val einstellungTrifft = TextSearch.rank(einstellungen, query.trim()) != null
+            // Was die Suche nicht zeigen darf, weil es ausgeblendet ist - aber sehr wohl
+            // nennen muss. Siehe AppDrawer.hiddenMatches.
+            val versteckteTreffer = remember(all, hidden, query) {
+                AppDrawer.hiddenMatches(all, hidden, query)
+            }
             val treffer = shown.size + if (einstellungTrifft) 1 else 0
             val einzigerTreffer: (() -> Unit)? = when {
                 treffer != 1 -> null
@@ -211,7 +216,10 @@ class AppDrawerActivity : BigLauActivity() {
                             // Suchfeld in einem Tastendruck zu umgehen.
                             onSearch = { einzigerTreffer?.invoke() },
                         )
-                        if (all.isNotEmpty() && shown.isEmpty()) {
+                        // Nicht, wenn eine ausgeblendete App passt: dann steht die Zeile
+                        // darunter und sagt etwas Genaueres. „Keine App passt dazu" waere
+                        // daneben ein Widerspruch.
+                        if (all.isNotEmpty() && shown.isEmpty() && versteckteTreffer.isEmpty()) {
                             Text(
                                 text = stringResource(R.string.search_no_match),
                                 color = palette.onBackground,
@@ -306,14 +314,36 @@ class AppDrawerActivity : BigLauActivity() {
                                     )
                                 }
                             }
-                            if (config.apps.hidden.isNotEmpty() && query.isEmpty()) {
+                            // Eine Zeile, zwei Faelle: ohne Suche zaehlt sie alle
+                            // ausgeblendeten Apps, mit Suche die, die dazu passen. Sie hing
+                            // vorher an `query.isEmpty()` - also war sie genau dann weg,
+                            // wenn sie gebraucht wird: wer eine ausgeblendete App sucht, las
+                            // "Keine App passt dazu" und hatte keinen Anhaltspunkt mehr.
+                            // Dieselbe Sache wie bei der Einstellungszeile darueber.
+                            //
+                            // Und **eine** Zeile, nicht zwei: zwei Zeilen mit demselben
+                            // Symbol in einer Liste sind zwei, die man verwechselt -
+                            // SlopRulesTest hat genau das gemeldet.
+                            val versteckteZeile = when {
+                                query.isNotEmpty() -> versteckteTreffer.size.takeIf { it > 0 }
+                                else -> config.apps.hidden.size.takeIf { it > 0 }
+                            }
+                            if (versteckteZeile != null) {
                                 item {
                                     BigRow(
                                         label = pluralStringResource(
-                                            R.plurals.apps_hidden_count,
-                                            config.apps.hidden.size,
-                                            config.apps.hidden.size,
+                                            if (query.isEmpty()) {
+                                                R.plurals.apps_hidden_count
+                                            } else {
+                                                R.plurals.apps_hidden_match
+                                            },
+                                            versteckteZeile,
+                                            versteckteZeile,
                                         ),
+                                        secondary = versteckteTreffer
+                                            .takeIf { it.isNotEmpty() }
+                                            ?.joinToString(", ") { app -> app.label },
+                                        secondaryMaxLines = 1,
                                         icon = Icons.Filled.VisibilityOff,
                                         onClick = {
                                             startActivity(

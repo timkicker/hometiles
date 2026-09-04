@@ -56,10 +56,17 @@ object ScreenBackground {
     }
 
     /**
-     * Die Tinte fuer alles, was direkt auf dem Hintergrund steht.
+     * Schwarz oder Weiss auf einer beliebigen Farbe - je nachdem, was besser steht.
      *
-     * Nicht die Tinte des Themas: die ist gegen die Themafarbe geprueft, und ein eigener
-     * Hintergrund macht diese Pruefung ungueltig. Hier wird sie neu entschieden.
+     * Gebraucht wird das in der **Farbauswahl**: dort tragen die Farbfelder ihren eigenen
+     * Namen, und die Themafarbe waere darauf mal lesbar und mal nicht.
+     *
+     * Bis zum 04.09.2026 stand hier "die Tinte fuer alles, was direkt auf dem Hintergrund
+     * steht". Das ist zu gross: der Startbildschirm benutzt sie **nicht**, er schreibt in
+     * der Tinte des Themas. Nachgerechnet ist das auch richtig so - bei zwoelf Prozent
+     * Einfaerbung ([STRENGTH]) kommt die Themafarbe auf jedem angebotenen Grund noch auf
+     * 15,0 bis 18,6 zu 1. Eine zweite Tinte waere ein Unterschied ohne Wirkung, und der
+     * Satz hier hat behauptet, es gaebe ihn.
      */
     fun inkFor(background: Long): Long =
         if (contrastRatio(background, 0xFFFFFFFF) >= contrastRatio(background, 0xFF000000)) {

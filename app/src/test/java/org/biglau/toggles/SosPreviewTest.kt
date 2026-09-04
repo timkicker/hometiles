@@ -25,7 +25,7 @@ class SosPreviewTest {
 
     @Test
     fun `in der Probe wird nicht gesendet`() {
-        val vorProbe = quelle.substringBefore("Sos.send(")
+        val vorProbe = Quelltext.ausschnitt(quelle, "", "Sos.send(")
         assertTrue(
             "Vor dem Senden steht keine Abfrage auf die Probe",
             "if (probe)" in vorProbe,

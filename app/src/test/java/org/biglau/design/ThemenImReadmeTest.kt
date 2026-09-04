@@ -1,5 +1,6 @@
 package org.biglau.design
 
+import org.biglau.Quelltext
 import java.io.File
 import org.biglau.data.ThemeName
 import org.junit.Assert.assertEquals
@@ -34,7 +35,7 @@ class ThemenImReadmeTest {
 
     @Test
     fun `der Satz nennt alle vier`() {
-        val stelle = readme.substringAfter("## Gestaltung").substringBefore("##")
+        val stelle = Quelltext.ausschnitt(readme, "## Gestaltung", "##")
         listOf("unkel", "hell", "Kontrast", "Telefon folgen").forEach { wort ->
             assertTrue("Im Abschnitt Gestaltung fehlt: $wort", wort in stelle)
         }

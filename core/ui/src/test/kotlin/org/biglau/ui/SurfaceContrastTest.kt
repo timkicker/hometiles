@@ -60,17 +60,58 @@ class SurfaceContrastTest {
         }
     }
 
+    /**
+     * Ein Rahmen hat **zwei** Gruende: aussen den Hintergrund, innen die Fuellung der
+     * Kachel, um die er liegt. Bis zum 04.09.2026 stand hier nur der aeussere - und innen
+     * kam der helle Rahmen auf 2,86:1, unter der Schwelle. Am Emulator nachgesehen, Bildpunkt
+     * fuer Bildpunkt: bei x=243..245 der Rahmen, ab x=246 die Fuellung, ohne Zwischenraum.
+     *
+     * Der Fehler ist derselbe wie beim Warnrot zwei Stunden vorher: die Regel gab es, sie
+     * war nur an einem von zwei Gruenden gemessen.
+     */
     @Test
     fun `die leere Kachel ist ueber ihren Rahmen auffindbar`() {
         // Die Fuellung ist absichtlich still (1,09:1 im dunklen Thema). Damit ein leerer
         // Platz trotzdem sichtbar ist, muss der Rahmen die Flaechenschwelle erreichen.
         themenUndSystem().forEach { (theme, systemIsDark) ->
             val palette = paletteFor(theme, systemIsDark)
-            val ratio = contrastRatio(palette.emptyTileBorder.argb(), palette.background.argb())
-            assertTrue(
-                "%s: Rahmen %s erreicht nur %.2f:1".format(theme, palette.emptyTileBorder.hex(), ratio),
-                ratio >= Tokens.MIN_TILE_ON_BACKGROUND,
-            )
+            listOf(
+                "aussen, gegen den Hintergrund" to palette.background,
+                "innen, gegen die Fuellung" to palette.emptyTile,
+            ).forEach { (wo, grund) ->
+                val ratio = contrastRatio(palette.emptyTileBorder.argb(), grund.argb())
+                assertTrue(
+                    "%s: Rahmen %s erreicht %s nur %.2f:1".format(
+                        theme, palette.emptyTileBorder.hex(), wo, ratio,
+                    ),
+                    ratio >= Tokens.MIN_TILE_ON_BACKGROUND,
+                )
+            }
+        }
+    }
+
+    /**
+     * Die Warnschrift steht nicht in [org.biglau.ui.theme.BigPalette.allSurfaces] - sie ist
+     * keine Flaeche, sondern ein Ton fuer sich. `ContrastTest` prueft die Tokens; hier wird
+     * die **Palette** geprueft, also auch, dass jedes Thema den richtigen Token verdrahtet
+     * hat. Ein Thema, das versehentlich `danger` einsetzt, faellt sonst nirgends auf.
+     */
+    @Test
+    fun `die Warnschrift jedes Themas liegt ueber der strengen Schwelle`() {
+        themenUndSystem().forEach { (theme, systemIsDark) ->
+            val palette = paletteFor(theme, systemIsDark)
+            listOf(
+                "auf dem Hintergrund" to palette.background,
+                "auf der leeren Kachel" to palette.emptyTile,
+            ).forEach { (wo, grund) ->
+                val ratio = contrastRatio(palette.dangerText.argb(), grund.argb())
+                assertTrue(
+                    "%s: Warnschrift %s erreicht %s nur %.2f:1".format(
+                        theme, palette.dangerText.hex(), wo, ratio,
+                    ),
+                    ratio >= Tokens.MIN_TEXT_ON_BACKGROUND,
+                )
+            }
         }
     }
 

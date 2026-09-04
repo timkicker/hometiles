@@ -18,8 +18,10 @@ enum class DeleteStep {
  * Der Weg zum Schreibrecht auf der Anrufliste.
  *
  * `WRITE_CALL_LOG` stand im Manifest und wurde vor jedem Löschen geprüft, aber nie erfragt;
- * am Telefon des Nutzers stand es auf `granted=false`. Die Rückfrage kam, die Bestätigung
- * ging durch, und die Zeile blieb stehen.
+ * am 03.09.2026 stand es auf dem Gerät des Nutzers auf `granted=false`. Die Rückfrage kam,
+ * die Bestätigung ging durch, und die Zeile blieb stehen. (Seit dem 04.09.2026 hält BigLau
+ * die Telefon-Rolle und bekommt das Recht mit — auf einem Gerät ohne sie gilt der Absatz
+ * weiter, und deshalb bleibt der Weg.)
  *
  * In der Praxis erteilt Android das Recht ohne Dialog, sobald `READ_CALL_LOG` schon da ist -
  * beide gehören zur Gruppe CALL_LOG. Für den Nutzer heißt das: das erste Löschen wirkt

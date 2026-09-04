@@ -25,6 +25,7 @@ import org.biglau.ui.PinGate
 import org.biglau.ui.SystemBarsEffect
 import java.util.Locale
 import org.biglau.ui.AppLocale
+import org.biglau.ui.absorbTouches
 import org.biglau.ui.BigLauActivity
 import org.biglau.ui.BigRow
 import androidx.compose.material.icons.automirrored.filled.Message
@@ -47,6 +48,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
@@ -58,6 +61,7 @@ import androidx.core.graphics.drawable.toBitmap
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.foundation.clickable
 import org.biglau.actions.Intents
+import org.biglau.ui.PermissionState
 import org.biglau.apps.AppDrawerActivity
 import org.biglau.apps.AppRepository
 import org.biglau.data.Builtin
@@ -95,7 +99,6 @@ import org.biglau.shortcuts.ShortcutRepository
 import org.biglau.tiles.ScreenOrder
 import org.biglau.tiles.SwipeGesture
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import org.biglau.web.LinkTarget
 import org.biglau.tiles.TileEditorActivity
@@ -137,15 +140,41 @@ class MainActivity : BigLauActivity() {
     /** Steht die Erklaerung zur Leseberechtigung gerade offen? */
     private val phoneStateAsked = mutableStateOf(false)
 
+    /**
+     * Hat der Nutzer die Empfangs-Berechtigung schon einmal abgelehnt, und fragt Android
+     * noch?
+     *
+     * Nach der **zweiten** Ablehnung fragt es nicht mehr: der Aufruf kehrt sofort zurueck,
+     * ohne dass etwas zu sehen waere. Am 04.09.2026 am Emulator nachgestellt - "Jetzt
+     * fragen" angetippt, und der Bildschirm schloss sich einfach. Die Kachel sagte weiter
+     * "Antippen zum Erlauben", und so ging es endlos.
+     */
+    private val phoneStateDeniedOnce = mutableStateOf(false)
+    private val phoneStateCanAskAgain = mutableStateOf(true)
+
     /** Holt die Leseerlaubnis fuer die Empfangskachel - mehr nicht. */
     private val askPhoneState =
-        registerForActivityResult(ActivityResultContracts.RequestPermission()) { }
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { erteilt ->
+            if (!erteilt) {
+                phoneStateDeniedOnce.value = true
+                phoneStateCanAskAgain.value =
+                    shouldShowRequestPermissionRationale(Manifest.permission.READ_PHONE_STATE)
+            }
+        }
 
     /** Der Kontakt, bei dem gerade "anrufen oder schreiben?" offen steht. */
     private val contactChoice = mutableStateOf<ButtonAction.Contact?>(null)
 
     /** Der gerade geoeffnete Ordner, oder `null`. */
     private val openFolder = mutableStateOf<String?>(null)
+
+    /**
+     * Die gross angezeigte Kachelbeschriftung, oder `null`.
+     *
+     * Auf der Activity und nicht in der Komposition, aus demselben Grund wie [lockedApp]:
+     * [ueberlagerungenSchliessen] muss sie von aussen wegraeumen koennen.
+     */
+    private val popupLabelState = mutableStateOf<String?>(null)
 
     /**
      * Die gesperrte App **und die Kachel, von der sie kam**.
@@ -159,7 +188,12 @@ class MainActivity : BigLauActivity() {
      * **Verknuepfung** startete bis dahin ganz ohne Frage, und damit war die Sperre zu
      * umgehen, indem man die App als Verknuepfung auf eine Kachel legte.
      */
-    private data class GesperrterTipp(val action: ButtonAction, val x: Int, val y: Int)
+    private data class GesperrterTipp(
+        val action: ButtonAction,
+        val screenId: String,
+        val x: Int,
+        val y: Int,
+    )
 
     /**
      * Eine App, die auf die PIN wartet. PLAN.md 4.5 - siehe [org.biglau.apps.AppLock].
@@ -193,9 +227,9 @@ class MainActivity : BigLauActivity() {
         if (intent.getBooleanExtra(EXTRA_EDIT_MODE, false)) {
             editModeRequest.value = true
         } else if (Intent.ACTION_MAIN == intent.action) {
-            // Ein offener Ordner schliesst immer: er ist eine Ueberlagerung, und wer heim
-            // tippt, will nicht weiter darin stehen.
-            openFolder.value = null
+            // Wer heim tippt, will den Startbildschirm - nicht das, was zufaellig darueber
+            // liegt.
+            ueberlagerungenSchliessen()
             // Der Screenwechsel dagegen ist eine Einstellung. Sie stand bisher im Modell
             // und wurde nirgends gelesen - ein Schalter, der nichts tut, ist schlimmer als
             // einer, den es nicht gibt.
@@ -205,6 +239,29 @@ class MainActivity : BigLauActivity() {
         }
     }
 
+
+    /**
+     * Raeumt alles weg, was ueber dem Startbildschirm liegt.
+     *
+     * Fuenf Ueberlagerungen gibt es: der offene Ordner, die grosse Beschriftung, die Frage
+     * "anrufen oder schreiben?", die PIN-Sperre vor einer gesperrten App und die Erklaerung
+     * zur Empfangs-Berechtigung. Bis zum 04.09.2026 raeumte die Heim-Taste **nur** den
+     * Ordner; am Emulator nachgestellt: Kachel "anrufen oder schreiben?" geoeffnet, Heim
+     * gedrueckt - die Frage stand weiter da. Dasselbe mit der grossen Beschriftung.
+     *
+     * Der Grund, der beim Ordner schon dastand, gilt fuer alle fuenf: wer heim tippt, will
+     * den Startbildschirm. Eine Frage, die eine Heim-Taste ueberlebt, ist ein Riegel.
+     *
+     * Auch fuer die PIN-Sperre richtig: sie faellt weg, ohne dass die App startet. Wer die
+     * Sperre umgehen will, kommt so nur auf den Startbildschirm.
+     */
+    private fun ueberlagerungenSchliessen() {
+        openFolder.value = null
+        popupLabelState.value = null
+        contactChoice.value = null
+        lockedApp.value = null
+        phoneStateAsked.value = false
+    }
 
     private val widgetHost by lazy { WidgetHostController.get(this) }
 
@@ -277,7 +334,7 @@ class MainActivity : BigLauActivity() {
             val context = LocalContext.current
             val screenId = currentScreen.value ?: config.homeScreenId
             var editMode by editModeRequest
-            var popupLabel by remember { mutableStateOf<String?>(null) }
+            var popupLabel by popupLabelState
             val screen = config.screenById(screenId) ?: config.homeScreen
             val counts by NotificationRepository.counts.collectAsStateWithLifecycle()
             // Ungesehene verpasste Anrufe, bei jeder Rueckkehr neu gezaehlt: wer die Liste
@@ -358,7 +415,7 @@ class MainActivity : BigLauActivity() {
                                 // Wer den langen Druck gewaehlt hat, will vom kurzen nichts
                                 // ausgeloest bekommen - sonst waere die Einstellung wirkungslos.
                                 config.behaviour.pressMode == PressMode.LONG -> Unit
-                                else -> activate(cell, apps) { currentScreen.value = it }
+                                else -> activate(cell, gezeigt.id, apps) { currentScreen.value = it }
                             }
                         },
                         editMode = editMode,
@@ -374,13 +431,16 @@ class MainActivity : BigLauActivity() {
                                     // Der lange Druck startet die Kachel - fuer Haende, die
                                     // beim Streifen sonst etwas ausloesen wuerden.
                                     LongPressAction.ACTIVATE -> zelle?.let { treffer ->
-                                        activate(treffer, apps) { ziel -> currentScreen.value = ziel }
+                                        activate(treffer, gezeigt.id, apps) { ziel ->
+                                            currentScreen.value = ziel
+                                        }
                                     }
                                     // Die Zweitbelegung: dieselbe Ausfuehrung wie beim
                                     // Kurzdruck, nur mit der anderen Aktion.
                                     LongPressAction.SECOND_ACTION -> zelle?.button?.longPress?.let { zweite ->
                                         activate(
                                             zelle.copy(button = zelle.button.copy(action = zweite)),
+                                            gezeigt.id,
                                             apps,
                                         ) { ziel -> currentScreen.value = ziel }
                                     }
@@ -415,11 +475,32 @@ class MainActivity : BigLauActivity() {
                 hideCutLabels = config.appearance.hideCutLabels,
                 cornerRadiusDp = config.appearance.cornerRadiusDp,
             ) {
+                val ordner = openFolder.value?.let { id ->
+                    config.screens.firstOrNull { it.id == id && it.isFolder }
+                }
+                // Was verdeckt ist, gibt es auch fuer die Vorlesefunktion nicht.
+                //
+                // Die Ueberlagerungen liegen als Geschwister ueber dem Startbildschirm, und
+                // die Kacheln darunter blieben in der Bedienungshilfen-Sicht stehen: am
+                // 04.09.2026 im Knotenabzug nachgemessen, auch im komprimierten - bei
+                // offenem Ordner standen WhatsApp, Maps, HSL, Spotify, Apps und AnkiDroid
+                // weiter darin. Wer sich vorlesen laesst, wandert also durch Kacheln, die
+                // er nicht sieht, und startet mit einem Doppeltipp eine App, die gar nicht
+                // dasteht. `clearAndSetSemantics` nimmt den ganzen Teilbaum heraus.
+                val label = popupLabel
+                val wartend = lockedApp.value
+                val asking = contactChoice.value
+                val verdeckt = ordner != null ||
+                    label != null ||
+                    phoneStateAsked.value ||
+                    wartend != null ||
+                    asking != null
                 Column(
                     Modifier
                         .fillMaxSize()
                         .background(LocalBigPalette.current.background)
-                        .safeDrawingPadding(),
+                        .safeDrawingPadding()
+                        .then(if (verdeckt) Modifier.clearAndSetSemantics {} else Modifier),
                 ) {
                     // Bei jeder Rueckkehr neu fragen. Wer den Balken antippt, waehlt
                     // BigLau im Systemdialog und kommt zurueck - stand der Balken dann
@@ -482,18 +563,25 @@ class MainActivity : BigLauActivity() {
                     zeigeKachel(screen, Modifier.fillMaxSize().then(wischen))
                 }
 
-                val label = popupLabel
                 if (label != null) {
                     LabelPopup(label) { popupLabel = null }
                 }
 
-                val ordner = openFolder.value?.let { id ->
-                    config.screens.firstOrNull { it.id == id && it.isFolder }
-                }
                 if (ordner != null) {
                     FolderOverlay(
                         name = ordner.name,
                         onClose = { openFolder.value = null },
+                        // Der Streifen liegt sonst in der verdeckten Spalte darunter: am
+                        // 04.09.2026 am Jelly 2 nachgestellt - aus einem offenen Ordner in
+                        // die Einstellungen, dort "Kacheln aendern", zurueck in den Ordner,
+                        // und nichts sagte, dass der naechste Tipp den Editor aufmacht. Er
+                        // tat es (die richtige Kachel sogar), nur wusste es niemand - und
+                        // der Weg hinaus steht auf demselben verdeckten Streifen.
+                        banner = if (editMode) {
+                            { EditModeBanner { editMode = false } }
+                        } else {
+                            null
+                        },
                     ) {
                         zeigeKachel(ordner, Modifier.fillMaxSize())
                     }
@@ -501,15 +589,22 @@ class MainActivity : BigLauActivity() {
 
                 if (phoneStateAsked.value) {
                     SignalPermissionExplainer(
+                        blocked = PermissionState.blocked(
+                            phoneStateDeniedOnce.value,
+                            phoneStateCanAskAgain.value,
+                        ),
                         onAsk = {
                             phoneStateAsked.value = false
                             askPhoneState.launch(Manifest.permission.READ_PHONE_STATE)
+                        },
+                        onSettings = {
+                            phoneStateAsked.value = false
+                            Intents.appSettings(this@MainActivity)
                         },
                         onDismiss = { phoneStateAsked.value = false },
                     )
                 }
 
-                val wartend = lockedApp.value
                 if (wartend != null) {
                     PinGate(
                         title = stringResource(R.string.applock_locked),
@@ -519,7 +614,7 @@ class MainActivity : BigLauActivity() {
                         onCheck = { eingabe -> Pin.verify(eingabe, config.security.pin) },
                         onAccept = {
                             lockedApp.value = null
-                            starten(wartend.action, wartend.x, wartend.y, apps)
+                            starten(wartend.action, wartend.screenId, wartend.x, wartend.y, apps)
                         },
                         acceptOnComplete = true,
                     )
@@ -528,7 +623,6 @@ class MainActivity : BigLauActivity() {
                     return@BigLauTheme
                 }
 
-                val asking = contactChoice.value
                 if (asking != null) {
                     ContactChoice(
                         name = asking.name,
@@ -599,8 +693,21 @@ class MainActivity : BigLauActivity() {
      * Weg statt der Wegbeschreibung. Wer das nicht will, kommt mit der Zurueck-Geste
      * heraus. Ohne die Meldung tippt man auf eine Kachel, die einfach nichts tut - und
      * haelt das Telefon fuer kaputt.
+     *
+     * **[screenId] muss der gezeigte Screen sein, nicht [currentScreenId].** Ein Ordner
+     * legt sich ueber den Startbildschirm, ohne den Screen zu wechseln; bis zum 04.09.2026
+     * stand hier `currentScreenId()`, und eine tote Kachel im Ordner Mehr auf (1,2)
+     * oeffnete den Editor auf Feld (1,2) des **Startbildschirms** - also auf der Kachel,
+     * die den Ordner aufmacht. Am Geraet nachgestellt: der Editor sagte "Belegt mit: Mehr".
+     * Wer der Einladung folgte, ueberschrieb seinen Ordner statt der kaputten Kachel.
      */
-    private fun starten(action: ButtonAction, x: Int, y: Int, apps: AppRepository) {
+    private fun starten(
+        action: ButtonAction,
+        screenId: String,
+        x: Int,
+        y: Int,
+        apps: AppRepository,
+    ) {
         val geklappt = when (action) {
             is ButtonAction.App -> apps.launch(action.packageName, action.activityName)
             is ButtonAction.Shortcut ->
@@ -612,16 +719,30 @@ class MainActivity : BigLauActivity() {
             this,
             if (action is ButtonAction.Shortcut) R.string.shortcut_gone else R.string.app_gone,
         )
-        startActivity(TileEditorActivity.intent(this, currentScreenId(), x, y))
+        startActivity(TileEditorActivity.intent(this, screenId, x, y))
     }
 
-    private fun activate(cell: Cell, apps: AppRepository, goToScreen: (String) -> Unit) {
+    private fun activate(
+        cell: Cell,
+        screenId: String,
+        apps: AppRepository,
+        goToScreen: (String) -> Unit,
+    ) {
+        // Jeder Screenwechsel schliesst zuerst den Ordner. Sonst wechselt der Bildschirm
+        // **hinter** der Ueberlagerung, und der Nutzer sieht nichts: am 04.09.2026 am Jelly 2
+        // nachgestellt - eine Kachel "zu Screen 2" im Ordner "Mehr" angetippt, der Ordner
+        // blieb offen, nichts ruehrte sich. Erst nach dem Schliessen stand man woanders.
+        // Betrifft auch die eingebauten "Startbildschirm", "naechster" und "voriger".
+        val wechseln: (String) -> Unit = { ziel ->
+            openFolder.value = null
+            goToScreen(ziel)
+        }
         when (val action = cell.button.action) {
             is ButtonAction.App, is ButtonAction.Shortcut ->
                 if (gesperrt(action)) {
-                    lockedApp.value = GesperrterTipp(action, cell.x, cell.y)
+                    lockedApp.value = GesperrterTipp(action, screenId, cell.x, cell.y)
                 } else {
-                    starten(action, cell.x, cell.y, apps)
+                    starten(action, screenId, cell.x, cell.y, apps)
                 }
 
             is ButtonAction.Contact -> when (action.mode) {
@@ -633,7 +754,7 @@ class MainActivity : BigLauActivity() {
                 ContactMode.ASK -> contactChoice.value = action
             }
 
-            is ButtonAction.GoToScreen -> goToScreen(action.screenId)
+            is ButtonAction.GoToScreen -> wechseln(action.screenId)
             // Ein Ordner wechselt den Screen nicht, er legt sich darueber - deshalb ein
             // eigener Zustand und nicht currentScreen. Zurueck schliesst ihn wieder.
             is ButtonAction.Folder -> openFolder.value = action.screenId
@@ -665,7 +786,7 @@ class MainActivity : BigLauActivity() {
                 Builtin.AIRPLANE -> ToggleActions.run(this, ToggleKind.AIRPLANE)
                 Builtin.RINGER -> ToggleActions.run(this, ToggleKind.RINGER)
                 Builtin.SOS -> startActivity(Intent(this, SosActivity::class.java))
-                Builtin.HOME_SCREEN -> goToScreen(ConfigStore.get(this).current.homeScreenId)
+                Builtin.HOME_SCREEN -> wechseln(ConfigStore.get(this).current.homeScreenId)
                 Builtin.SETTINGS -> startActivity(Intent(this, SettingsActivity::class.java))
                 Builtin.APP_LIST -> startActivity(Intent(this, AppDrawerActivity::class.java))
                 Builtin.MOBILE_DATA -> ToggleActions.run(this, ToggleKind.MOBILE_DATA)
@@ -688,9 +809,9 @@ class MainActivity : BigLauActivity() {
                 // entscheiden. Im else standen bisher stillschweigend "nächster Screen"
                 // und "voriger Screen" und meldeten "demnächst".
                 Builtin.NEXT_SCREEN -> ScreenOrder.next(ConfigStore.get(this).current, currentScreenId())
-                    ?.let { goToScreen(it) }
+                    ?.let { wechseln(it) }
                 Builtin.PREV_SCREEN -> ScreenOrder.previous(ConfigStore.get(this).current, currentScreenId())
-                    ?.let { goToScreen(it) }
+                    ?.let { wechseln(it) }
             }
 
             // Ein Widget bedient sich selbst - ein Antippen der Zelle tut hier nichts.
@@ -782,7 +903,7 @@ private fun LabelPopup(label: String, onDismiss: () -> Unit) {
             Spacer(Modifier.height(24.dp))
             Text(
                 text = stringResource(R.string.tap_to_close),
-                color = palette.onBackground.copy(alpha = 0.7f),
+                color = palette.onBackground.copy(alpha = 0.75f),
                 fontSize = org.biglau.ui.dpSp(16f),
                 textAlign = TextAlign.Center,
             )
@@ -838,7 +959,7 @@ private fun ContactChoice(
             )
             Text(
                 text = stringResource(R.string.tap_to_close),
-                color = palette.onBackground.copy(alpha = 0.7f),
+                color = palette.onBackground.copy(alpha = 0.75f),
                 fontSize = org.biglau.ui.dpSp(15f),
                 modifier = Modifier.padding(horizontal = 4.dp),
             )
@@ -859,6 +980,7 @@ private fun ContactChoice(
 private fun FolderOverlay(
     name: String,
     onClose: () -> Unit,
+    banner: (@Composable () -> Unit)? = null,
     content: @Composable () -> Unit,
 ) {
     val palette = LocalBigPalette.current
@@ -866,6 +988,7 @@ private fun FolderOverlay(
         modifier = Modifier
             .fillMaxSize()
             .background(palette.background)
+            .absorbTouches()
             .safeDrawingPadding()
             .padding(horizontal = 8.dp),
     ) {
@@ -878,6 +1001,7 @@ private fun FolderOverlay(
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.padding(horizontal = 4.dp, vertical = 8.dp),
         )
+        banner?.invoke()
         Box(Modifier.weight(1f)) { content() }
         // Die Zurueck-Geste schliesst ihn auch. Der Streifen ist fuer alle da, die sie nicht
         // benutzen - und er sagt, was er tut, statt nur ein Kreuz zu zeigen.
@@ -898,12 +1022,18 @@ private fun FolderOverlay(
  * Vorwarnung sieht, lehnt zu Recht ab - und hat dann eine Kachel, die nie etwas anzeigt.
  */
 @Composable
-private fun SignalPermissionExplainer(onAsk: () -> Unit, onDismiss: () -> Unit) {
+private fun SignalPermissionExplainer(
+    blocked: Boolean,
+    onAsk: () -> Unit,
+    onSettings: () -> Unit,
+    onDismiss: () -> Unit,
+) {
     val palette = LocalBigPalette.current
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(palette.background)
+            .absorbTouches()
             .safeDrawingPadding()
             .padding(horizontal = 8.dp),
         verticalArrangement = Arrangement.Center,
@@ -932,11 +1062,30 @@ private fun SignalPermissionExplainer(onAsk: () -> Unit, onDismiss: () -> Unit) 
             fontSize = org.biglau.ui.dpSp(16f),
             modifier = Modifier.padding(horizontal = 4.dp, vertical = 8.dp),
         )
-        BigRow(
-            label = stringResource(R.string.signal_permission_ask),
-            surface = palette.surfaceAccent,
-            onClick = onAsk,
-        )
+        // Fragt Android nicht mehr, fuehrt der Knopf in die Systemeinstellungen - nur
+        // dort laesst sich die Entscheidung noch aendern. Denselben Griff hat `PermissionGate`
+        // seit jeher, und sein Kommentar nennt genau diese Falle: "Genau dieser stumme Knopf
+        // ist die Falle, die hier vermieden wird." Dieser Bildschirm war der eine, der ihn
+        // nicht benutzt hat.
+        if (blocked) {
+            Text(
+                text = stringResource(org.biglau.core.ui.R.string.permission_blocked),
+                color = palette.dangerText,
+                fontSize = org.biglau.ui.dpSp(15f),
+                modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp),
+            )
+            BigRow(
+                label = stringResource(org.biglau.core.ui.R.string.permission_open_settings),
+                surface = palette.surfaceAccent,
+                onClick = onSettings,
+            )
+        } else {
+            BigRow(
+                label = stringResource(R.string.signal_permission_ask),
+                surface = palette.surfaceAccent,
+                onClick = onAsk,
+            )
+        }
         BigRow(
             label = stringResource(R.string.signal_permission_no),
             onClick = onDismiss,

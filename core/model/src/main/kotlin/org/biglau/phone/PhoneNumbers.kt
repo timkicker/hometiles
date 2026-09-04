@@ -87,6 +87,28 @@ object PhoneNumbers {
         return grouped(cleaned)
     }
 
+    /**
+     * Dieselbe Nummer, aber zum **Vorlesen**: jedes Zeichen fuer sich.
+     *
+     * Eine Rufnummer ist keine Zahl. Als gewoehnlicher Text gelesen macht ein
+     * Vorleseprogramm aus "123" ein "einhundertdreiundzwanzig" und aus "111001" ein
+     * Wortungetuem - und wer die Nummer nachpruefen will, kann es nicht. Am 04.09.2026 am
+     * Emulator gesehen: die Wähltastatur zeigt die getippte Nummer als schlichten Text,
+     * ohne eine eigene Beschreibung.
+     *
+     * Ziffernweise mit Leerzeichen ist die Fassung, die jedes Vorleseprogramm einzeln
+     * liest. Das Plus bleibt stehen, Gruppierungsluecken fallen weg - sie stehen fuers
+     * Auge da, und das Ohr bekommt ohnehin nach jeder Ziffer eine Pause.
+     *
+     * Buchstabenkennungen ("ADAC") bleiben, wie sie sind: die sind ein Wort und werden als
+     * Wort gelesen.
+     */
+    fun forSpeech(number: String): String {
+        val cleaned = clean(number)
+        if (cleaned.isEmpty()) return number.trim()
+        return cleaned.map { it.toString() }.joinToString(" ")
+    }
+
     /** Der Rueckfall: Dreierbloecke, das Plus bleibt am Anfang stehen. */
     private fun grouped(cleaned: String): String {
         val plus = cleaned.startsWith("+")

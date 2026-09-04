@@ -118,6 +118,8 @@ fun HomeScreenView(
                     appearance = appearance,
                     cellWidth = cellW,
                     cellHeight = cellH,
+                    spalte = x,
+                    zeile = y,
                     modifier = Modifier
                         .offset(
                             x = metrics.offsetX(x, gutter.value).dp,
@@ -379,6 +381,8 @@ private fun TileFor(
             appearance = appearance,
             cellWidth = cellWidth,
             cellHeight = cellHeight,
+            spalte = cell.x,
+            zeile = cell.y,
             label = button.label,
             modifier = modifier,
             onEdit = onLongClick,
@@ -434,15 +438,28 @@ private fun EmptyTile(
     cellWidth: androidx.compose.ui.unit.Dp,
     cellHeight: androidx.compose.ui.unit.Dp,
     modifier: Modifier,
+    /** Platz im Raster, nullbasiert - fuer die Ansage. */
+    spalte: Int,
+    zeile: Int,
     label: String? = null,
     onEdit: () -> Unit,
 ) {
     val palette = LocalBigPalette.current
+    val einladung = label ?: stringResource(R.string.empty_tile_invite)
     BigTile(
         // Ein leerer Zustand ist eine Aufforderung, kein Trauerfall: die Kachel sagt, was
         // sie anbietet, statt was ihr fehlt. In der Beschreibung im Editor bleibt es
         // "Leer" - dort ist es eine Zustandsangabe und keine Einladung.
-        label = label ?: stringResource(R.string.empty_tile_invite),
+        label = einladung,
+        // Wo der Platz ist, steht nur im Bild. Zwei leere Kacheln heissen beide
+        // "Antippen", und wer sie nicht sieht, hat zweimal dasselbe Angebot vor sich -
+        // am 04.09.2026 mit `tools/gleiche-namen.py` auf dem Startbildschirm gefunden.
+        // Danach sagt auch der Editor nicht, welche Zelle er bearbeitet; die Kette
+        // schweigt also durchgehend. Dieselben Worte wie in der Verschieben-Ansicht.
+        contentDescription = TileSpeech.describe(
+            label = einladung,
+            state = stringResource(R.string.move_spot, zeile + 1, spalte + 1),
+        ),
         background = palette.emptyTile,
         cellHeight = cellHeight,
         cellWidth = cellWidth,

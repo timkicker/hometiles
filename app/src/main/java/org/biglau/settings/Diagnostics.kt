@@ -16,7 +16,7 @@ import org.biglau.safety.CrashRecorder
 
 /**
  * Was die App ueber ihre eigene Lage weiss. Beim Bauen kostete jede dieser Zahlen einen
- * adb-Aufruf; auf dem Geraet des Nutzers gibt es kein adb, und "es geht nicht" ohne Zahlen
+ * adb-Aufruf; auf dem Geraet des Nutzers gibt es kein adb (Stand 31.08.2026), und "es geht nicht" ohne Zahlen
  * ist nicht zu beantworten.
  */
 object Diagnostics {
@@ -123,6 +123,12 @@ object Diagnostics {
             add(text(R.string.diag_read_call_log) to yesNo(granted(context, Manifest.permission.READ_CALL_LOG), text))
             add(text(R.string.diag_write_call_log) to yesNo(granted(context, Manifest.permission.WRITE_CALL_LOG), text))
             add(text(R.string.diag_location) to yesNo(granted(context, Manifest.permission.ACCESS_FINE_LOCATION), text))
+            // Die Empfangsbalken haengen an READ_PHONE_STATE, und diese Zeile fehlte.
+            // `DiagnosticsCoverageTest` liess sie mit dem Grund aus, das Recht werde
+            // "bewusst nicht erteilt" - am 04.09.2026 am Jelly 2 nachgesehen: es **ist**
+            // erteilt, BigLau fragt sogar eigens danach (siehe SignalPermissionExplainer).
+            // Wer wissen will, warum die Empfangskachel leer bleibt, fand hier nichts.
+            add(text(R.string.diag_signal) to yesNo(granted(context, Manifest.permission.READ_PHONE_STATE), text))
             // Warum kommt die Erinnerung an ungelesene Nachrichten spät? Der Wecker läuft
             // über `setAndAllowWhileIdle` und wird im Doze deshalb zwar geweckt, aber
             // gedrosselt - bei kurzen Abständen sieht das nach einem Fehler aus und ist
@@ -135,7 +141,10 @@ object Diagnostics {
                 text(R.string.diag_battery_saving) to when (sparen) {
                     true -> text(R.string.diag_battery_saving_off)
                     false -> text(R.string.diag_battery_saving_on)
-                    null -> text(R.string.diag_none)
+                    // Nicht "keine": hier ist die Auskunft **ausgeblieben**, nicht die
+                    // Sache abwesend. Und grammatisch passte das Wort ohnehin nicht - es
+                    // ist fuer "Standard-App: keine" gemacht.
+                    null -> text(R.string.diag_unknown)
                 },
             )
             // Gehört zu den Fehlerspuren: wenn eine unlesbare Einstellungsdatei beiseite
@@ -150,7 +159,10 @@ object Diagnostics {
             add(text(R.string.diag_failed_starts) to recorder.failedStarts.toString())
             add(
                 text(R.string.diag_last_crash) to
-                    (recorder.lastCrash()?.lineSequence()?.firstOrNull() ?: text(R.string.diag_none)),
+                    // "Letzter Absturz: keine" stand hier bis zum 04.09.2026 und war
+                    // schlicht falsches Deutsch - der Absturz ist maennlich. Ein Wort fuer
+                    // vier Zeilen passt in zweien.
+                    (recorder.lastCrash()?.lineSequence()?.firstOrNull() ?: text(R.string.diag_crash_none)),
             )
         }
     }

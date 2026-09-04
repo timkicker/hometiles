@@ -31,7 +31,7 @@ class UnterdrueckungenTest {
     fun `jede unterdrueckung nennt ihren grund`() {
         val ohne = stellen()
             .filter { (_, _, umfeld) ->
-                val davor = umfeld.substringBefore("|")
+                val davor = Quelltext.ausschnitt(umfeld, "", "|")
                 !(davor.startsWith("//") || davor.startsWith("*") || davor.startsWith("/*"))
             }
             .map { it.first }
@@ -46,7 +46,7 @@ class UnterdrueckungenTest {
     @Test
     fun `nichts wird als unbenutzt totgeschwiegen`() {
         val stumm = stellen()
-            .filter { (_, _, umfeld) -> "\"unused\"" in umfeld.substringAfter("|") }
+            .filter { (_, _, umfeld) -> "\"unused\"" in Quelltext.ausschnitt(umfeld, "|") }
             .map { it.first }
         assertEquals(
             "Was niemand ruft, wird gelöscht und nicht mit @Suppress(\"unused\") ruhiggestellt.",

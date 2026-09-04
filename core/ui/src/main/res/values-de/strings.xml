@@ -14,4 +14,80 @@
     <string name="permission_open_settings">Systemeinstellungen öffnen</string>
     <string name="scroll_down">Nach unten blättern</string>
     <string name="scroll_up">Nach oben blättern</string>
+
+    <!--
+      Die Namen der mitgelieferten Icons und ihre Gruppen. Am 04.09.2026 aus :app
+      hierher gezogen, zusammen mit IconCatalogue: der Katalog ist Teil des
+      Design-Systems, und eine Ressource gehoert dorthin, wo ihr Aufrufer wohnt.
+    -->
+    <string name="icon_accessalarm">Wecker</string>
+    <string name="icon_acunit">Schnee</string>
+    <string name="icon_air">Wind</string>
+    <string name="icon_apartment">Haus</string>
+    <string name="icon_apps">Apps</string>
+    <string name="icon_batteryfull">Batterie</string>
+    <string name="icon_book">Buch</string>
+    <string name="icon_calendarmonth">Kalender</string>
+    <string name="icon_call">Telefon</string>
+    <string name="icon_chat">Chat</string>
+    <string name="icon_childcare">Kind</string>
+    <string name="icon_church">Kirche</string>
+    <string name="icon_cloud">Wolke</string>
+    <string name="icon_directionsbus">Bus</string>
+    <string name="icon_directionscar">Auto</string>
+    <string name="icon_elderly">Gehstock</string>
+    <string name="icon_email">E-Mail</string>
+    <string name="icon_emergency">Notfall</string>
+    <string name="icon_favorite">Herz</string>
+    <string name="icon_group">Gruppe</string>
+    <string name="icon_headphones">Kopfhörer</string>
+    <string name="icon_history">Verlauf</string>
+    <string name="icon_home">Zuhause</string>
+    <string name="icon_key">Schlüssel</string>
+    <string name="icon_localhospital">Krankenhaus</string>
+    <string name="icon_localpharmacy">Apotheke</string>
+    <string name="icon_localtaxi">Taxi</string>
+    <string name="icon_locationon">Ort</string>
+    <string name="icon_lock">Schloss</string>
+    <string name="icon_map">Karte</string>
+    <string name="icon_medicalservices">Arzt</string>
+    <string name="icon_medication">Tabletten</string>
+    <string name="icon_message">Nachricht</string>
+    <string name="icon_monitorheart">Herzschlag</string>
+    <string name="icon_movie">Film</string>
+    <string name="icon_musicnote">Musik</string>
+    <string name="icon_newspaper">Zeitung</string>
+    <string name="icon_person">Person</string>
+    <string name="icon_photo">Bild</string>
+    <string name="icon_photocamera">Kamera</string>
+    <string name="icon_powersettingsnew">Ein und aus</string>
+    <string name="icon_radio">Radio</string>
+    <string name="icon_restaurant">Essen</string>
+    <string name="icon_schedule">Uhr</string>
+    <string name="icon_settings">Einstellungen</string>
+    <string name="icons_group_communication">Sprechen</string>
+    <string name="icons_group_everyday">Alltag</string>
+    <string name="icons_group_health">Gesundheit</string>
+    <string name="icons_group_media">Musik und Bilder</string>
+    <string name="icons_group_people">Menschen</string>
+    <string name="icons_group_places">Orte</string>
+    <string name="icons_group_system">Das Telefon</string>
+    <string name="icons_group_time">Zeit</string>
+    <string name="icons_group_weather">Wetter</string>
+    <string name="icon_shoppingcart">Einkauf</string>
+    <string name="icon_star">Stern</string>
+    <string name="icon_store">Geschäft</string>
+    <string name="icon_thunderstorm">Gewitter</string>
+    <string name="icon_timer">Kurzzeitwecker</string>
+    <string name="icon_today">Heute</string>
+    <string name="icon_umbrella">Regenschirm</string>
+    <string name="icon_videocam">Videoanruf</string>
+    <string name="icon_voicemail">Mailbox</string>
+    <string name="icon_wbsunny">Sonne</string>
+    <string name="icon_wifi">WLAN</string>
+    <string name="a11y_chosen">%1$s, ausgewählt</string>
+    <string name="a11y_on">%1$s, an</string>
+    <string name="a11y_off">%1$s, aus</string>
+    <string name="a11y_state">%1$s, %2$s</string>
+    <string name="a11y_pin_empty">Noch keine Ziffer eingegeben</string>
 </resources>

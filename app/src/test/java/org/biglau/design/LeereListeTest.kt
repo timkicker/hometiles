@@ -29,8 +29,8 @@ class LeereListeTest {
                 "auch wenn niemand gesucht hat.",
             "R.string.contacts_none" in kontakte,
         )
-        val stelle = kontakte.substringAfter("R.string.contacts_no_match")
-            .let { kontakte.substringBefore("R.string.contacts_no_match").takeLast(300) + it.take(100) }
+        val stelle = Quelltext.ausschnitt(kontakte, "R.string.contacts_no_match")
+            .let { Quelltext.ausschnitt(kontakte, "", "R.string.contacts_no_match").takeLast(300) + it.take(100) }
         assertTrue(
             "Die Auswahl zwischen den beiden Sätzen hängt an nichts - `hatKontakte` fehlt.",
             "hatKontakte" in stelle,
@@ -51,10 +51,7 @@ class LeereListeTest {
     @Test
     fun `leer und kein Treffer sind nicht derselbe Satz`() {
         listOf("values", "values-de").forEach { sprache ->
-            val texte = Quelltext.texte(sprache).first().readText()
-            fun wert(name: String) = Regex("""<string name="$name">(.*?)</string>""")
-                .find(texte)?.groupValues?.get(1)
-                ?: throw AssertionError("$sprache: $name fehlt")
+            fun wert(name: String) = Quelltext.textWert(name, sprache)
             assertEquals(
                 "$sprache: contacts_none und contacts_no_match sagen dasselbe - dann war " +
                     "die Unterscheidung umsonst.",

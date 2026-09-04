@@ -124,11 +124,21 @@ var granted by remember(fortsetzungen.intValue) { mutableStateOf(repository.hasP
                 if (!granted && !deniedOnce) ask.launch(Manifest.permission.READ_CONTACTS)
             }
 
-            LaunchedEffect(granted) {
+            // Auch bei jeder Rueckkehr, nicht nur beim ersten Mal: von hier fuehrt eine
+            // Zeile in den Editor des Adressbuchs, und von dort kommt kein Ergebnis
+            // zurueck. Wer die Nummer aendert und zurueckkommt, sah bis zum 04.09.2026
+            // weiter die alte - und "Sofort anrufen" waehlte sie auch.
+            LaunchedEffect(granted, fortsetzungen.intValue) {
                 if (granted) {
-                    loading = true
+                    // Beim Wiederkommen steht die Liste schon da; ein zweites "wird
+                    // geladen" sieht aus, als finge der Bildschirm von vorn an.
+                    if (all.isEmpty()) loading = true
                     all = repository.load(resources)
                     loading = false
+                    // Der offene Kontakt kommt aus derselben Liste. Ist er im Adressbuch
+                    // geloescht worden, gibt es nichts mehr zu zeigen - dann zurueck zur
+                    // Liste statt einer Ansicht, die es nicht mehr gibt.
+                    selected = selected?.let { offen -> all.firstOrNull { it.id == offen.id } }
                 }
             }
 
@@ -168,7 +178,14 @@ var granted by remember(fortsetzungen.intValue) { mutableStateOf(repository.hasP
                     if (!granted) {
                         PermissionGate(
                             title = stringResource(R.string.contacts),
-                            explanation = stringResource(R.string.contacts_permission),
+                            // Nicht `contacts_permission`: der Satz dort nennt den
+                            // Grund des Kachel-Editors ("um einen auf eine Kachel zu
+                            // legen"). Hier kommt der Nutzer von der Kontakte-Kachel und
+                            // will anrufen oder schreiben. Am 04.09.2026 am Emulator
+                            // gesehen - ein wahrer Satz am falschen Bildschirm laesst die
+                            // Frage unnoetig aussehen, und wer sie fuer unnoetig haelt,
+                            // lehnt ab.
+                            explanation = stringResource(R.string.contacts_permission_list),
                             blocked = PermissionState.blocked(deniedOnce, canAskAgain),
                             onAsk = { ask.launch(Manifest.permission.READ_CONTACTS) },
                             onSettings = { Intents.appSettings(this@ContactsActivity) },
@@ -193,7 +210,7 @@ var granted by remember(fortsetzungen.intValue) { mutableStateOf(repository.hasP
                                     askWrite.launch(Manifest.permission.WRITE_CONTACTS)
                                 }
                             },
-                            onEdit = { startActivity(repository.editIntent(current.id)) },
+                            onEdit = { Intents.open(this@ContactsActivity, repository.editIntent(current.id)) },
                         )
                     } else {
                         ContactList(
@@ -227,7 +244,7 @@ var granted by remember(fortsetzungen.intValue) { mutableStateOf(repository.hasP
                                 )
                             },
                             onShowAll = { favouritesOnly = false },
-                            onCreate = { startActivity(repository.createIntent()) },
+                            onCreate = { Intents.open(this@ContactsActivity, repository.createIntent()) },
                         )
                     }
                 }
@@ -290,7 +307,12 @@ private fun ContactList(
         if (query.isEmpty() && favouritesOnly) {
             // Ohne diesen Weg waere eine leere Favoritenliste eine Sackgasse - und auch
             // eine gefuellte laesst sonst niemanden zu den uebrigen Kontakten.
-            if (contacts.isEmpty()) {
+            //
+            // **Und nicht, solange gelesen wird.** Der Satz stand ueber der Ladepruefung
+            // weiter unten; wer die Liste auf Favoriten gestellt hatte, las beim Oeffnen
+            // erst „noch keine Favoriten" und dann sprangen sie hinein. Dritte Stelle
+            // derselben Sorte an einem Tag - siehe LadenTest.
+            if (contacts.isEmpty() && !loading) {
                 Text(
                     text = stringResource(R.string.favourites_none),
                     color = palette.onBackground,

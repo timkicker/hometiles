@@ -42,9 +42,6 @@ import org.biglau.phone.PhoneNumbers
 import org.biglau.actions.Intents
 import org.biglau.ui.BigLauActivity
 import org.biglau.R
-import org.biglau.actions.Sos
-import org.biglau.actions.SosLocation
-import org.biglau.actions.SosFailure
 import org.biglau.data.ConfigStore
 import org.biglau.ui.BigHeading
 import org.biglau.ui.BigRow
@@ -271,7 +268,7 @@ class SosActivity : BigLauActivity() {
                                 ) {
                                     Text(
                                         text = remaining.toString(),
-                                        color = palette.danger,
+                                        color = palette.dangerText,
                                         fontSize = dpSp(120f),
                                         fontWeight = FontWeight.Bold,
                                         textAlign = TextAlign.Center,

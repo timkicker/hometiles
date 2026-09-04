@@ -43,6 +43,13 @@ data class BigPalette(
     val onAccent: Color,
     val danger: Color,
     val onDanger: Color,
+    /**
+     * Warnschrift auf dem Hintergrund.
+     *
+     * Nicht [danger]: das ist eine **Flaechen**farbe und traegt [onDanger]. Als Schrift auf
+     * dem Hintergrund verfehlt sie die eigene Schwelle - siehe `Tokens.DARK_DANGER_TEXT`.
+     */
+    val dangerText: Color,
 ) {
     val surfaceDefault: BigSurface get() = BigSurface(emptyTile, onBackground)
     val surfaceAccent: BigSurface get() = BigSurface(accent, onAccent)
@@ -71,6 +78,7 @@ private val Dark = BigPalette(
     onAccent = c(Tokens.DARK_ON_ACCENT),
     danger = c(Tokens.DARK_DANGER),
     onDanger = c(Tokens.DARK_ON_DANGER),
+    dangerText = c(Tokens.DARK_DANGER_TEXT),
 )
 
 private val Light = BigPalette(
@@ -84,6 +92,7 @@ private val Light = BigPalette(
     onAccent = c(Tokens.LIGHT_ON_ACCENT),
     danger = c(Tokens.LIGHT_DANGER),
     onDanger = c(Tokens.LIGHT_ON_DANGER),
+    dangerText = c(Tokens.LIGHT_DANGER_TEXT),
 )
 
 private val HighContrast = BigPalette(
@@ -97,6 +106,7 @@ private val HighContrast = BigPalette(
     onAccent = c(Tokens.CONTRAST_ON_ACCENT),
     danger = c(Tokens.CONTRAST_DANGER),
     onDanger = c(Tokens.CONTRAST_ON_DANGER),
+    dangerText = c(Tokens.CONTRAST_DANGER_TEXT),
 )
 
 /**

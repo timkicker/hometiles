@@ -1,5 +1,6 @@
-package org.biglau.actions
+package org.biglau.toggles
 
+import org.biglau.actions.SosMessage
 import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager

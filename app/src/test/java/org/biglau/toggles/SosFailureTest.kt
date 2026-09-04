@@ -1,4 +1,4 @@
-package org.biglau.actions
+package org.biglau.toggles
 
 import org.biglau.R
 import org.junit.Assert.assertEquals

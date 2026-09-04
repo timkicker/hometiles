@@ -24,7 +24,7 @@ class RoleRequestTest {
     private val intents = Quelltext.ohneKommentare("org/biglau/actions/Intents.kt")
 
     private fun rollenTeil(): String =
-        intents.substringAfter("fun homeRoleIntent").substringBefore("private inline fun start")
+        Quelltext.ausschnitt(intents, "fun homeRoleIntent", "private inline fun start")
 
     /**
      * `createRequestRoleIntent` darf in dieser Datei nur als **Absicht zurückgegeben**

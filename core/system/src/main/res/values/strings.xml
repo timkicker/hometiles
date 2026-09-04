@@ -1,0 +1,14 @@
+<resources>
+    <string name="call_type_incoming">Answered calls</string>
+    <string name="call_type_outgoing">Calls you made</string>
+    <string name="call_type_missed">Missed calls</string>
+    <string name="call_type_rejected">Calls you turned down</string>
+    <string name="call_type_blocked">Blocked calls</string>
+    <string name="call_type_other">Everything else</string>
+    <string name="call_dir_incoming">answered</string>
+    <string name="call_dir_outgoing">you called</string>
+    <string name="call_dir_missed">missed</string>
+    <string name="call_dir_rejected">turned down</string>
+    <string name="call_dir_blocked">blocked</string>
+    <string name="call_dir_other">direction unknown</string>
+</resources>

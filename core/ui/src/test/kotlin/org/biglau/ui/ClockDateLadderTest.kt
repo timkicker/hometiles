@@ -10,7 +10,7 @@ import org.junit.Test
 /**
  * Erst kuerzen, dann umbrechen - auch beim Datum auf der Uhr-Kachel.
  *
- * Am Telefon des Nutzers gesehen: auf der 1x1-Kachel stand „Wednesday, September" und
+ * Am Telefon des Nutzers gesehen (03.09.2026): auf der 1x1-Kachel stand „Wednesday, September" und
  * darunter die **2 allein**. Im Quelltext stand dazu „Auf der Kachel ist Platz fuer die
  * langen Namen" - eine Behauptung ueber ein Geraet, die niemand nachgemessen hatte.
  *

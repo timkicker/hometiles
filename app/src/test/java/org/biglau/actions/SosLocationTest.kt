@@ -44,7 +44,7 @@ class SosLocationTest {
 
     @Test
     fun `die Suche hoert wieder auf`() {
-        val aufraeumen = bildschirm.substringAfter("onDispose {").substringBefore("}")
+        val aufraeumen = Quelltext.ausschnitt(bildschirm, "onDispose {", "}")
         assertTrue("die Ortung laeuft weiter: $aufraeumen", "ortung.stop()" in aufraeumen)
     }
 }

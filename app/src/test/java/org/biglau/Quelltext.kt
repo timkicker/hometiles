@@ -48,6 +48,9 @@ object Quelltext {
     val resWurzeln: List<File> = listOf(
         File("src/main/res"),
         File("../core/ui/src/main/res"),
+        // Am 04.09.2026 dazugekommen: die sechs Woerter fuer die Richtung eines Anrufs
+        // liegen bei `CallDirection`, damit sie nicht zweimal gefuehrt werden muessen.
+        File("../core/system/src/main/res"),
     )
 
     /**
@@ -63,6 +66,31 @@ object Quelltext {
      */
     fun texte(verzeichnis: String, name: String = "strings.xml"): List<File> =
         resWurzeln.map { File(it, "$verzeichnis/$name") }.filter { it.isFile }
+            // Leer heisst nicht "nichts zu pruefen", sondern "hier stimmt etwas nicht":
+            // eine Regel, die ueber null Dateien laeuft, ist gruen und hat nichts
+            // angesehen. Kein Modul mit Texten zu finden ist immer ein Fehler.
+            .also {
+                if (it.isEmpty()) {
+                    throw AssertionError(
+                        "Kein Modul hat $verzeichnis/$name. Jede Regel, die hier nachsieht, " +
+                            "waere von jetzt an gruen, ohne etwas zu pruefen.",
+                    )
+                }
+            }
+
+    /**
+     * Der Wert eines Textes, ueber alle Module und mit lautem Nein, wenn es ihn nicht gibt.
+     *
+     * Fuenf Regeln lasen dafuer `texte(sprache).first()` - also **nur** `:app`. Heute Nacht
+     * sind Texte dreimal in ein anderes Modul gezogen (`a11y_chosen` nach `core:ui`, die
+     * Anrufarten nach `core:system`); danach haetten diese Regeln den Text nicht mehr
+     * gefunden und je nach Schreibweise laut gestolpert oder still nichts mehr geprueft.
+     */
+    fun textWert(name: String, sprache: String): String =
+        texte(sprache).firstNotNullOfOrNull { datei ->
+            Regex("""<string name="$name">(.*?)</string>""", RegexOption.DOT_MATCHES_ALL)
+                .find(datei.readText())?.groupValues?.get(1)
+        } ?: throw AssertionError("Den Text $name gibt es in $sprache in keinem Modul.")
 
     /** Jede Textdatei ueber alle Module und beide Sprachen. */
     fun alleTexte(): List<File> =
@@ -88,6 +116,23 @@ object Quelltext {
 
     /** Jede Kotlin-Datei des Testquelltexts. */
     fun testDateien(): List<File> = kt(testWurzeln)
+
+    /**
+     * Dieselbe Liste, aber mit der Zusage, dass etwas darin steht.
+     *
+     * Fuer Regeln, die eine Auswahl treffen und dann ueber sie laufen: trifft die Auswahl
+     * nichts, laeuft die Schleife nicht, und die Regel ist gruen. Wer hier fragt, sagt
+     * damit, wie viele Treffer er mindestens erwartet.
+     */
+    fun mindestens(treffer: List<*>, wieviele: Int, was: String): List<*> {
+        if (treffer.size < wieviele) {
+            throw AssertionError(
+                "$was: $wieviele erwartet, ${treffer.size} gefunden. Die Regel liefe ueber " +
+                    "eine zu kurze Liste und bliebe gruen, ohne das Gemeinte zu pruefen.",
+            )
+        }
+        return treffer
+    }
 
     /**
      * Eine einzelne Datei ueber ihren Paketpfad, z. B. `org/biglau/data/Model.kt`.
@@ -119,6 +164,66 @@ object Quelltext {
         .readLines()
         .filterNot { it.trim().startsWith("//") || it.trim().startsWith("*") || it.trim().startsWith("/*") }
         .joinToString("\n")
+
+    /**
+     * Der Ausschnitt zwischen zwei Marken - und ein lautes Nein, wenn eine fehlt.
+     *
+     * `substringAfter` gibt bei fehlender Marke **den ganzen Text** zurueck, `substringBefore`
+     * auch. Eine Regel, die so schneidet, prueft danach nicht mehr das, was sie meint,
+     * sondern irgendetwas - und bleibt dabei gruen. In der Nacht auf den 04.09.2026 ist das
+     * zweimal passiert: `AuswahlAnsageTest` nahm den Farbtonwaehler mit, weil die Endmarke
+     * hinter dem Abschnitt lag, und `FremdeAbsichtTest` haette bei einer umbenannten
+     * Variablen den ganzen Rest der Datei durchsucht.
+     *
+     * [von] leer heisst "vom Anfang", [bis] `null` heisst "bis zum Ende". [hoechstens]
+     * begrenzt zusaetzlich - ein Fenster, das nicht an einem Namen haengt.
+     */
+    fun ausschnitt(
+        text: String,
+        von: String,
+        bis: String? = null,
+        hoechstens: Int = Int.MAX_VALUE,
+        /**
+         * Die Anfangsmarke darf mehrfach vorkommen; gemeint ist die erste.
+         *
+         * Nur setzen, wenn das wirklich so gemeint ist. Sonst entscheidet die Reihenfolge
+         * im Quelltext, welche Stelle geprueft wird - und die aendert sich beim naechsten
+         * Umsortieren, ohne dass jemand es merkt.
+         */
+        mehrfach: Boolean = false,
+    ): String {
+        val ab = text.indexOf(von)
+        if (von.isNotEmpty() && !mehrfach) {
+            val wieOft = Regex(Regex.escape(von)).findAll(text).count()
+            if (wieOft > 1) {
+                throw AssertionError(
+                    "Die Marke \"$von\" steht ${wieOft}mal im Text. Welche Stelle die Regel " +
+                        "ansieht, entscheidet dann die Reihenfolge - und die aendert sich " +
+                        "beim Umsortieren. Genauer schneiden, oder mehrfach = true setzen.",
+                )
+            }
+        }
+        if (ab < 0) {
+            throw AssertionError(
+                "Die Marke \"$von\" steht nicht mehr im Text. Die Regel wuerde ins Leere " +
+                    "schneiden und danach gruen bleiben, ohne noch etwas zu pruefen.",
+            )
+        }
+        val rest = text.substring(ab + von.length)
+        val ende = if (bis == null) {
+            rest.length
+        } else {
+            rest.indexOf(bis).also {
+                if (it < 0) {
+                    throw AssertionError(
+                        "Die Endmarke \"$bis\" steht nicht mehr hinter \"$von\". Der " +
+                            "Ausschnitt liefe bis zum Dateiende.",
+                    )
+                }
+            }
+        }
+        return rest.take(minOf(ende, hoechstens))
+    }
 
     private fun kt(orte: List<File>): List<File> =
         orte.flatMap { it.walkTopDown().filter { datei -> datei.extension == "kt" } }

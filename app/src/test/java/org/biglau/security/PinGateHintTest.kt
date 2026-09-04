@@ -22,7 +22,7 @@ class PinGateHintTest {
 
     @Test
     fun `das Schloss zeigt den kurzen Satz`() {
-        val stelle = einstellungen.substringAfter("Page.GATE -> PinGate(").substringBefore("wrongText")
+        val stelle = Quelltext.ausschnitt(einstellungen, "Page.GATE -> PinGate(", "wrongText")
         assertTrue("Der kurze Satz fehlt: $stelle", "security_forgot" in stelle)
         assertTrue("Der lange Text steht wieder auf dem Schloss: $stelle", "security_explainer" !in stelle)
     }
@@ -30,10 +30,8 @@ class PinGateHintTest {
     @Test
     fun `der kurze Satz nennt die dreissig Sekunden`() {
         listOf("values", "values-de").forEach { sprache ->
-            val text = Regex("""<string name="security_forgot">([^<]*)</string>""")
-                .find(Quelltext.texte(sprache).joinToString("\n") { it.readText() })?.groupValues?.get(1)
-            assertTrue("$sprache: security_forgot fehlt", text != null)
-            assertTrue("$sprache: ohne die Dauer nützt der Satz nichts", "30" in text!!)
+            val text = Quelltext.textWert("security_forgot", sprache)
+            assertTrue("$sprache: ohne die Dauer nützt der Satz nichts", "30" in text)
             assertTrue("$sprache: zu lang für das Schloss (${text.length})", text.length <= 60)
         }
     }

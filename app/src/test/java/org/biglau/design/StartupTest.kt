@@ -28,7 +28,7 @@ class StartupTest {
 
     @Test
     fun `die Einrichtung wird nicht auf dem Startfaden eingelesen`() {
-        val vorDemFaden = app.substringBefore("Thread {")
+        val vorDemFaden = Quelltext.ausschnitt(app, "", "Thread {")
         assertTrue("kein eigener Faden im Start", "Thread {" in app)
         assertTrue(
             "ConfigStore wird noch auf dem Startfaden gebaut",
@@ -40,7 +40,7 @@ class StartupTest {
     fun `der Absturzschreiber bleibt vorne`() {
         // Er kostet zwei Millisekunden und muss stehen, bevor irgendetwas abstuerzen kann -
         // sonst hat der Notmodus beim naechsten Start nichts anzuzeigen.
-        val vorDemFaden = app.substringBefore("Thread {")
+        val vorDemFaden = Quelltext.ausschnitt(app, "", "Thread {")
         assertTrue("CrashRecorder fehlt am Anfang", "CrashRecorder.get" in vorDemFaden)
     }
 }

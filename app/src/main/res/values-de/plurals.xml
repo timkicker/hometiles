@@ -1,5 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <plurals name="sos_numbers_saved_n">
+        <item quantity="one">%1$d Nummer gespeichert.</item>
+        <item quantity="other">%1$d Nummern gespeichert.</item>
+    </plurals>
     <plurals name="sos_counting_plural">
         <item quantity="one">Wird an einen Kontakt gesendet in</item>
         <item quantity="other">Wird an %1$d Kontakte gesendet in</item>
@@ -107,5 +111,9 @@
     <plurals name="apps_hidden_count">
         <item quantity="one">Eine ausgeblendete App</item>
         <item quantity="other">%1$d ausgeblendete Apps</item>
+    </plurals>
+    <plurals name="apps_hidden_match">
+        <item quantity="one">Eine ausgeblendete App passt dazu</item>
+        <item quantity="other">%1$d ausgeblendete Apps passen dazu</item>
     </plurals>
 </resources>

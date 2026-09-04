@@ -70,6 +70,65 @@ class ContrastTest {
         )
     }
 
+    /**
+     * Die Warnfarbe wird an fuenfzehn Stellen als **Schrift** auf dem Hintergrund
+     * gezeichnet - dort, wo etwas schiefgehen kann. Bis zum 04.09.2026 hat das niemand
+     * geprueft: die Regel darueber sah nur `ON_BACKGROUND` an, und `DANGER` kam in keinem
+     * einzigen Test gegen einen Hintergrund vor.
+     *
+     * Nachgemessen war das alte Rot bei **6,20:1** (dunkel), **5,39:1** (hell) und
+     * **6,58:1** (Kontrast) - dreimal unter der eigenen Schwelle von 7,0. Deshalb gibt es
+     * jetzt einen eigenen Schriftton; die Flaechenfarbe bleibt, wie sie war.
+     */
+    @Test
+    fun `die Warnschrift erreicht die strengere Schwelle in jedem Thema`() {
+        listOf(
+            Triple("dunkel", Tokens.DARK_DANGER_TEXT, Tokens.DARK_BACKGROUND),
+            Triple("hell", Tokens.LIGHT_DANGER_TEXT, Tokens.LIGHT_BACKGROUND),
+            Triple("Kontrast", Tokens.CONTRAST_DANGER_TEXT, Tokens.CONTRAST_BACKGROUND),
+            // Auch auf der leeren Kachel: dort steht sie im Kachel-Editor.
+            Triple("dunkel, leere Kachel", Tokens.DARK_DANGER_TEXT, Tokens.DARK_EMPTY_TILE),
+            Triple("hell, leere Kachel", Tokens.LIGHT_DANGER_TEXT, Tokens.LIGHT_EMPTY_TILE),
+        ).forEach { (name, schrift, grund) ->
+            val ratio = contrastRatio(schrift, grund)
+            assertTrue(
+                "Warnschrift ($name) erreicht nur %.2f:1, verlangt sind %.1f"
+                    .format(ratio, Tokens.MIN_TEXT_ON_BACKGROUND),
+                ratio >= Tokens.MIN_TEXT_ON_BACKGROUND,
+            )
+        }
+    }
+
+    /**
+     * Die Flaechenfarbe bleibt eine Flaechenfarbe: sie muss sich vom Hintergrund abheben
+     * und ihre eigene Beschriftung tragen. Beides galt vorher und gilt weiter - der neue
+     * Schriftton ersetzt sie nicht, er steht daneben.
+     */
+    @Test
+    fun `die Warnflaeche bleibt eine Flaeche`() {
+        listOf(
+            Triple("dunkel", Tokens.DARK_DANGER, Tokens.DARK_BACKGROUND),
+            Triple("hell", Tokens.LIGHT_DANGER, Tokens.LIGHT_BACKGROUND),
+        ).forEach { (name, flaeche, grund) ->
+            val ratio = contrastRatio(flaeche, grund)
+            assertTrue(
+                "Warnflaeche ($name) hebt sich nur %.2f:1 ab".format(ratio),
+                ratio >= Tokens.MIN_TILE_ON_BACKGROUND,
+            )
+        }
+        listOf(
+            Triple("dunkel", Tokens.DARK_ON_DANGER, Tokens.DARK_DANGER),
+            Triple("hell", Tokens.LIGHT_ON_DANGER, Tokens.LIGHT_DANGER),
+            Triple("Kontrast", Tokens.CONTRAST_ON_DANGER, Tokens.CONTRAST_DANGER),
+        ).forEach { (name, schrift, flaeche) ->
+            val ratio = contrastRatio(schrift, flaeche)
+            assertTrue(
+                "Schrift auf der Warnflaeche ($name) erreicht nur %.2f:1".format(ratio),
+                ratio >= Tokens.MIN_LABEL_ON_TILE,
+            )
+        }
+    }
+
     @Test
     fun `das Kontrastthema bleibt bei Schwarz und Gelb`() {
         val ratio = contrastRatio(Tokens.CONTRAST_INK, Tokens.CONTRAST_BACKGROUND)

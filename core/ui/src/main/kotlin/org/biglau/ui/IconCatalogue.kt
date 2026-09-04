@@ -58,7 +58,7 @@ import androidx.compose.material.icons.filled.Voicemail
 import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material.icons.filled.Wifi
 import androidx.compose.ui.graphics.vector.ImageVector
-import org.biglau.R
+import org.biglau.core.ui.R
 
 /**
  * Die Symbole, die man einer Kachel selbst geben kann. `PLAN.md` 2.2 und 3.4.

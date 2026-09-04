@@ -167,7 +167,7 @@ fun HomeHeader(
                 val standStil = tabellenZiffern().copy(fontWeight = FontWeight.Bold)
                 Text(
                     text = standText,
-                    color = if (low) palette.danger else palette.onBackground,
+                    color = if (low) palette.dangerText else palette.onBackground,
                     fontSize = dpSp(
                         fittedSingleLineDp(
                             text = standText,
@@ -187,7 +187,7 @@ fun HomeHeader(
                     Icon(
                         imageVector = Icons.Filled.Bolt,
                         contentDescription = stringResource(R.string.battery_charging),
-                        tint = if (low) palette.danger else palette.onBackground,
+                        tint = if (low) palette.dangerText else palette.onBackground,
                         modifier = Modifier.padding(start = 4.dp).size(dpSp(20f * scale).value.dp),
                     )
                 }

@@ -20,7 +20,7 @@ class ImportMessageTest {
 
     @Test
     fun `nicht lesbar und nicht lesbar-als-Sicherung sind zwei Faelle`() {
-        val block = quelle.substringAfter("text = when {").substringBefore("},")
+        val block = Quelltext.ausschnitt(quelle, "text = when {", "},")
         assertTrue("Der Lesefehler fehlt: $block", "transfer_unreadable" in block)
         assertTrue("Der Formatfehler fehlt: $block", "transfer_bad_file" in block)
         assertTrue(

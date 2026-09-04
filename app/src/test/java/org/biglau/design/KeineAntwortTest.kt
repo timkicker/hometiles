@@ -54,7 +54,7 @@ class KeineAntwortTest {
         val quelle = editor.readText()
         val anfang = quelle.indexOf("private fun ShortcutList(")
         assertTrue("ShortcutList gibt es nicht mehr", anfang > 0)
-        val rumpf = quelle.substring(anfang).substringBefore("\n@Composable")
+        val rumpf = Quelltext.ausschnitt(quelle.substring(anfang), "", "\n@Composable")
 
         assertTrue(
             "ShortcutList kennt den Fehlschlag nicht mehr - dann trifft der Satz ueber die " +

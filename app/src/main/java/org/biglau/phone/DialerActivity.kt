@@ -47,6 +47,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -131,9 +133,13 @@ var logGranted by remember(fortsetzungen.intValue) { mutableStateOf(callLog.hasP
             val contactRepo = remember { ContactRepository.get(this@DialerActivity) }
 
             // Das Recht, die Anrufliste zu *aendern*, ist ein zweites neben dem Lesen, und
-            // niemand hat es je erfragt: am Telefon des Nutzers stand es auf granted=false.
-            // Wer dort einen Eintrag loeschte, bestaetigte die Rueckfrage und sah die Zeile
-            // danach unveraendert stehen - eine Sackgasse ohne Ausweg, denn nichts fragte.
+            // niemand hat es je erfragt: am 03.09.2026 stand es auf dem Geraet des Nutzers
+            // auf granted=false. Wer dort einen Eintrag loeschte, bestaetigte die
+            // Rueckfrage und sah die Zeile danach unveraendert stehen - eine Sackgasse ohne
+            // Ausweg, denn nichts fragte.
+            //
+            // **Nachtrag 04.09.2026:** seit BigLau die Telefon-Rolle haelt, erteilt Android
+            // das Recht mit. Der Weg hier bleibt trotzdem: er darf an keiner Rolle haengen.
             var writeDeniedOnce by remember { mutableStateOf(false) }
             var writeCanAskAgain by remember { mutableStateOf(true) }
             // Wenn Android nicht mehr fragt, bleibt nur der Weg ueber die Systemeinstellungen.
@@ -234,10 +240,19 @@ var logGranted by remember(fortsetzungen.intValue) { mutableStateOf(callLog.hasP
 
             // Beim ersten Blick in die Anrufliste fragt das System von selbst. Nach einer
             // Ablehnung nicht mehr - sonst stuende dort nur ein Satz und kein Knopf.
+            // **Solange gelesen wird, sagt die Liste nicht, sie sei leer.**
+            //
+            // `groups` faengt leer an, und `CallLogEmpty.reason` macht daraus „Noch keine
+            // Anrufe." - eine Falschaussage, solange der Anbieter noch liest. Auf diesem
+            // Telefon ist das kurz; auf einem mit tausend Eintraegen und eingeschalteter
+            // Gruppierung ist es zu sehen. Dieselbe Luecke wie in der Nachrichtenliste,
+            // dieselbe Loesung. Siehe LadenTest.
+            var laedt by remember { mutableStateOf(true) }
             LaunchedEffect(tab, logGranted) {
                 if (tab != Tab.LOG) return@LaunchedEffect
                 if (logGranted) {
                     groups = callLog.load(mode = config.phone.callGrouping)
+                    laedt = false
                     // Gesehen ist gesehen: sonst stuende die Zahl weiter auf der Kachel,
                     // obwohl der Nutzer die Liste gerade gelesen hat.
                     //
@@ -253,8 +268,11 @@ var logGranted by remember(fortsetzungen.intValue) { mutableStateOf(callLog.hasP
                     if (gesehen != config.phone.lastSeenMissedAt) {
                         store.update { it.copy(phone = it.phone.copy(lastSeenMissedAt = gesehen)) }
                     }
-                } else if (!logDeniedOnce) {
-                    askLog.launch(Manifest.permission.READ_CALL_LOG)
+                } else {
+                    // Ohne Recht wird nicht gelesen - dann ist die Liste nicht am Laden,
+                    // sondern gesperrt, und darueber steht ohnehin ein eigener Bildschirm.
+                    laedt = false
+                    if (!logDeniedOnce) askLog.launch(Manifest.permission.READ_CALL_LOG)
                 }
             }
 
@@ -311,6 +329,7 @@ var logGranted by remember(fortsetzungen.intValue) { mutableStateOf(callLog.hasP
                                 // Kurzwahlname die Nummer, die gerade entsteht.
                                 if (typed.isEmpty()) SpeedDial.targetFor(config.phone, key)?.name else null
                             },
+                            kurzwahlBelegt = SpeedDial.anyAssigned(config.phone),
                             onDigit = { typed += it },
                             onLongDigit = { key ->
                                 val target = SpeedDial.targetFor(config.phone, key)
@@ -356,6 +375,7 @@ var logGranted by remember(fortsetzungen.intValue) { mutableStateOf(callLog.hasP
                         )
 
                         Tab.LOG -> CallList(
+                            laedt = laedt,
                             scrollButtons = config.behaviour.accessibility.scrollButtons,
                             // Ungefiltert hinein: die Liste muss unterscheiden koennen, ob
                             // sie leer ist oder leer gefiltert wurde.
@@ -469,6 +489,7 @@ var logGranted by remember(fortsetzungen.intValue) { mutableStateOf(callLog.hasP
 private fun Keypad(
     typed: String,
     hintFor: (Char) -> String?,
+    kurzwahlBelegt: Boolean,
     onDigit: (Char) -> Unit,
     onLongDigit: (Char) -> Unit,
     onBackspace: () -> Unit,
@@ -476,6 +497,7 @@ private fun Keypad(
     onLog: () -> Unit,
 ) {
     val palette = LocalBigPalette.current
+    val waehlbar = PhoneNumbers.isDialable(typed)
     Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxSize()) {
         Box(
             modifier = Modifier.fillMaxWidth().height(64.dp).padding(horizontal = 4.dp),
@@ -499,7 +521,18 @@ private fun Keypad(
                         maxLines = 1,
                     )
                     Text(
-                        text = stringResource(R.string.dialer_speeddial_hint),
+                        // Was das Halten **jetzt** tut, nicht was die Funktion heisst: auf
+                        // einer leeren Taste fuehrt es ins Belegen, auf einer belegten
+                        // waehlt es sofort. Bis zum 04.09.2026 stand in beiden Faellen
+                        // derselbe Satz - im harmlosen Zustand derselbe wie im
+                        // gefaehrlichen.
+                        text = stringResource(
+                            if (kurzwahlBelegt) {
+                                R.string.dialer_speeddial_hint_call
+                            } else {
+                                R.string.dialer_speeddial_hint_assign
+                            },
+                        ),
                         color = palette.onBackground,
                         fontSize = dpSp(14f),
                         maxLines = 1,
@@ -517,6 +550,11 @@ private fun Keypad(
                     Text(
                         text = gezeigt,
                         color = palette.onBackground,
+                        // Vorgelesen ziffernweise: als gewoehnlicher Text wuerde aus "123"
+                        // ein "einhundertdreiundzwanzig". Siehe PhoneNumbers.forSpeech.
+                        modifier = Modifier.semantics {
+                            contentDescription = PhoneNumbers.forSpeech(gezeigt)
+                        },
                         fontSize = dpSp(
                             fittedSingleLineDp(gezeigt, nummerStil, 40f, maxWidth),
                         ),
@@ -541,9 +579,17 @@ private fun Keypad(
             BigRow(
                 label = stringResource(R.string.dialer_call),
                 icon = Icons.Filled.Call,
-                surface = palette.surfaceAccent,
+                // Ohne Nummer ist der Knopf keiner.
+                //
+                // `dial` weigert sich bei etwas, das keine Nummer ist
+                // (`isDialable`) - richtig, aber bis zum 04.09.2026 sah man das nicht: die
+                // Zeile stand in voller Akzentfarbe da, man tippte, und es geschah
+                // schweigend nichts. Auf der Waehltastatur ist das die Zeile, auf die man
+                // sich am meisten verlaesst. Derselbe Fall wie beim Senden-Knopf in den
+                // Nachrichten.
+                surface = if (waehlbar) palette.surfaceAccent else palette.surfaceDefault,
                 modifier = Modifier.weight(1f),
-                onClick = onCall,
+                onClick = if (waehlbar) onCall else null,
             )
             // Ein Symbol statt eines Wortes: "Anrufliste" brach hier mitten im Wort um,
             // sobald eine Kurzwahl die Tastatur hoeher macht. Zwei beschriftete Knoepfe
@@ -583,6 +629,7 @@ private fun CallList(
     /** Angetippt wurde ein Eintrag ohne waehlbare Nummer - eine unterdrueckte etwa. */
     onNotCallable: () -> Unit,
     scrollButtons: Boolean,
+    laedt: Boolean,
 ) {
     // Steht in der Zeile, wenn die Nummer unterdrueckt war - vorher ein festes "?".
     val unbekannt = stringResource(R.string.call_unknown)
@@ -726,11 +773,17 @@ private fun CallList(
             if (granted && leerWeil != null) {
                 item {
                     Text(
+                        // Solange gelesen wird, ist die Liste nicht leer, sondern noch
+                        // nicht da. Der Grund kommt danach.
                         text = stringResource(
-                            when (leerWeil) {
-                                EmptyCallLog.NO_CALLS -> R.string.calllog_empty
-                                EmptyCallLog.HIDDEN_BY_TYPE -> R.string.calllog_all_hidden
-                                EmptyCallLog.NO_MISSED -> R.string.calllog_no_missed
+                            if (laedt) {
+                                R.string.calllog_loading
+                            } else {
+                                when (leerWeil) {
+                                    EmptyCallLog.NO_CALLS -> R.string.calllog_empty
+                                    EmptyCallLog.HIDDEN_BY_TYPE -> R.string.calllog_all_hidden
+                                    EmptyCallLog.NO_MISSED -> R.string.calllog_no_missed
+                                }
                             },
                         ),
                         color = palette.onBackground,
@@ -757,6 +810,15 @@ private fun CallList(
                         append(group.name ?: PhoneNumbers.forDisplay(group.number).ifBlank { unbekannt })
                         if (group.count > 1) append(" (${group.count})")
                     },
+                    // Steht statt eines Namens eine **Nummer** da, wird sie ziffernweise
+                    // gelesen: sonst macht ein Vorleseprogramm aus "222222" eine Zahl,
+                    // und wer vor dem Rueckruf nachhoeren will, wen er da anruft, erfaehrt
+                    // es nicht. Ein Name bleibt ein Name. Am 04.09.2026 am Emulator gesehen.
+                    labelSpeech = if (group.name == null) {
+                        PhoneNumbers.forSpeech(group.number).ifBlank { unbekannt }
+                    } else {
+                        null
+                    },
                     secondary = format.format(Date(group.latest.timestamp)),
                     secondaryMaxLines = 1,
                     // Erschoepfend, und zwar aus einem handfesten Grund: der else-Zweig
@@ -773,6 +835,10 @@ private fun CallList(
                         CallDirection.OTHER -> Icons.Filled.QuestionMark
                     },
                     surface = if (group.hasMissed) palette.surfaceDanger else palette.surfaceDefault,
+                    // Der Pfeil sagt die Richtung, aber nur dem Auge. Vorgelesen hiess die
+                    // Zeile bis zum 04.09.2026 nur "Mama (3), 02:31" - in der einen Liste,
+                    // in der die Richtung alles ist.
+                    state = stringResource(callDirectionSpeech(group.latest.direction)),
                     // Nicht sofort waehlen: PLAN.md 3.1, Leitsatz 5 nennt "Anrufen aus dem
                     // Verlauf" ausdruecklich unter dem, was eine Rueckfrage braucht. In
                     // einer Liste, die man mit zittriger Hand durchsieht, ist ein Tipp
@@ -829,6 +895,20 @@ private fun AssignList(
     val palette = LocalBigPalette.current
     LazyColumn(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         item { BigHeading(stringResource(R.string.speeddial_assign, key.toString())) }
+        // Derselbe Satz wie auf dem Tastenfeld - aber **hier**, wo entschieden wird. Auf dem
+        // Tastenfeld steht er erst, wenn schon eine Kurzwahl belegt ist; wer die erste
+        // einrichtet, erfuhr also erst hinterher, worauf er sich einlaesst. Und ausgerechnet
+        // hier weicht BigLau von seiner eigenen Regel ab: ueberall sonst wird vor dem
+        // Anrufen gefragt (`PLAN.md` 3.1, Leitsatz 5), beim Langdruck auf eine Kurzwahl
+        // nicht.
+        item {
+            Text(
+                text = stringResource(R.string.dialer_speeddial_hint_call),
+                color = palette.onBackground,
+                fontSize = bigSp(15f),
+                modifier = Modifier.padding(horizontal = 4.dp, vertical = 8.dp),
+            )
+        }
         if (assigned != null) {
             item {
                 BigRow(

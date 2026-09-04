@@ -22,7 +22,7 @@ class IconZahlTest {
 
     private fun katalog(): List<String> {
         val quelle = Quelltext.datei("org/biglau/ui/IconCatalogue.kt").readText()
-        val ab = quelle.substringAfter("val GROUPS")
+        val ab = Quelltext.ausschnitt(quelle, "val GROUPS")
         return Regex("""listOf\(([^)]*)\)""").findAll(ab)
             .flatMap { Regex(""""([A-Za-z]+)"""").findAll(it.groupValues[1]) }
             .map { it.groupValues[1] }

@@ -2,8 +2,11 @@
 //
 // 2.1 nennt es die *einzige* Stelle, die Android-Framework-APIs direkt anfasst. So weit ist
 // es noch nicht; hier stehen zunaechst die Anbieter-Leser: LauncherApps, Kontakte,
-// Anrufliste, Telephony. Sie haben keine Oberflaeche und keine Texte - deshalb koennen sie
-// zuerst gehen, ohne dass Ressourcen mitwandern muessen.
+// Anrufliste, Telephony. Sie haben keine Oberflaeche - deshalb konnten sie zuerst gehen.
+//
+// "Und keine Texte" stand hier bis zum 04.09.2026 und stimmt seit demselben Tag nicht mehr:
+// mit `CallDirectionLabels` sind `values/` und `values-de/` mitgewandert. Jede Regel, die
+// Texte sucht, muss dieses Modul also mitlesen - `Quelltext.texte` tut das.
 plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.kotlin.android)

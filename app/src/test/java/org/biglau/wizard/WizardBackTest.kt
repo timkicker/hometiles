@@ -28,7 +28,7 @@ class WizardBackTest {
 
     @Test
     fun `der Assistent schliesst sich, wenn es nicht weiter zurueckgeht`() {
-        val block = quelle.substringAfter("BackHandler(enabled = true)").substringBefore("}")
+        val block = Quelltext.ausschnitt(quelle, "BackHandler(enabled = true)", "}")
         assertTrue("Kein finish() im Zurueck-Weg: $block", "finish()" in block)
     }
 }

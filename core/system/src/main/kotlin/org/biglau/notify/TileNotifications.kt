@@ -17,9 +17,8 @@ object TileNotifications {
         is ButtonAction.App -> action.packageName
         is ButtonAction.Action -> when (action.builtin) {
             Builtin.MESSAGES -> system.sms
-            Builtin.DIALER -> system.dialer
-            // MISSED_CALLS steht bewusst nicht hier: die zaehlt die Anrufliste, nicht
-            // fremde Meldungen. Siehe badgeFor.
+            // MISSED_CALLS und DIALER stehen bewusst nicht hier: die zaehlen die
+            // Anrufliste, nicht fremde Meldungen. Siehe badgeFor.
             else -> null
         }
         else -> null
@@ -65,6 +64,17 @@ object TileNotifications {
         val action = button.action
         if (action is ButtonAction.Action) {
             if (action.builtin == Builtin.MISSED_CALLS) return missed
+            // **Die Telefon-Kachel auch.** Dieselbe Falle wie eine Zeile darueber, nur
+            // spaeter gesehen: `watchedPackage` schickt sie auf `system.dialer`, und das
+            // ist BigLau selbst, sobald es die Rolle haelt (seit 04.09.2026 auf dem Geraet
+            // des Nutzers). BigLau meldet aber **Nachrichten** - die Telefon-Kachel
+            // blinkte damit, wenn eine SMS ankam.
+            //
+            // Was eine blinkende Telefon-Kachel heissen soll, ist ohnehin nur eines: du
+            // hast einen Anruf verpasst. Vor der Rolle stand dort die Meldung des
+            // System-Dialers, die genau das bedeutete; jetzt steht die Anrufliste dahinter,
+            // die es genauer weiss und keine fremden Meldungen braucht.
+            if (action.builtin == Builtin.DIALER) return missed
             // Ungelesene Nachrichten weiss der Anbieter genauer als die Meldungen. Null
             // heisst: BigLau darf nicht lesen - dann bleiben die Meldungen die beste
             // Auskunft, die es gibt.

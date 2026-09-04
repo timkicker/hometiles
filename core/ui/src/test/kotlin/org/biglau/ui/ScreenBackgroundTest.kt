@@ -44,6 +44,39 @@ class ScreenBackgroundTest {
         assertEquals(emptyList<String>(), schwach)
     }
 
+    /**
+     * Auf einem eigenen Hintergrund steht **mehr** als eine Kachel.
+     *
+     * Geprüft war bis zum 04.09.2026 nur die Kachel. Daneben liegen dort aber auch der
+     * Rahmen der leeren Kachel — der einzige Hinweis, dass da ein freier Platz ist — und
+     * die Warnschrift. Beide sind gegen die *Themafarbe* geprüft, und genau diese Prüfung
+     * macht ein eigener Hintergrund ungültig; das steht wörtlich im Kommentar von
+     * `ScreenBackground.inkFor`, war aber nur für die Tinte gedacht.
+     *
+     * Nachgerechnet halten beide — knapp: der Rahmen kommt im dunklen Thema auf 3,06, die
+     * Warnschrift auf 7,23. Bei zwölf Prozent Einfärbung ist das kein Zufall, sondern die
+     * Zahl, die dort gewählt wurde. Wer sie erhöht oder eine der beiden Farben anfasst,
+     * soll es hier merken und nicht am Gerät.
+     */
+    @Test
+    fun `auch Rahmen und Warnschrift halten auf jedem eigenen Hintergrund`() {
+        val schwach = mutableListOf<String>()
+        for ((thema, systemIsDark) in themenUndSystem()) {
+            val palette = paletteFor(thema, systemIsDark)
+            for (grund in ScreenBackground.choicesFor(thema, systemIsDark)) {
+                val rahmen = contrastRatio(palette.emptyTileBorder.value.toLong() shr 32, grund)
+                if (rahmen < 3.0) {
+                    schwach += "$thema/Rahmen/${grund.toString(16)}: %.2f".format(rahmen)
+                }
+                val warnung = contrastRatio(palette.dangerText.value.toLong() shr 32, grund)
+                if (warnung < 7.0) {
+                    schwach += "$thema/Warnschrift/${grund.toString(16)}: %.2f".format(warnung)
+                }
+            }
+        }
+        assertEquals(emptyList<String>(), schwach)
+    }
+
     // Die Tinte auf dem Hintergrund wird neu entschieden, nicht vom Thema uebernommen -
     // die Tinte des Themas ist gegen die Themafarbe geprueft, nicht gegen diese hier.
     @Test

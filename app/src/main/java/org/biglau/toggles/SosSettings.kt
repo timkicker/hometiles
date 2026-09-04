@@ -31,6 +31,8 @@ import org.biglau.data.SosConfig
 import androidx.compose.foundation.lazy.items
 import org.biglau.ui.BigHeading
 import org.biglau.ui.BigRow
+import org.biglau.ui.AppLocale
+import org.biglau.ui.Notice
 import org.biglau.ui.bigSp
 import org.biglau.ui.theme.LocalBigPalette
 
@@ -97,17 +99,55 @@ internal fun SosSettings(
             item {
                 Text(
                     text = stringResource(R.string.sos_numbers_rejected, rejected.joinToString(", ")),
-                    color = palette.danger,
+                    color = palette.dangerText,
                     fontSize = bigSp(15f),
                     modifier = Modifier.padding(horizontal = 4.dp),
                 )
             }
         }
         item {
+            // Zwei Dinge, die am 04.09.2026 am Emulator gefehlt haben.
+            //
+            // Erstens: der Knopf sah immer gleich aus. Wer nichts geaendert hat, konnte ihn
+            // druecken, und es geschah nichts - derselbe Fall wie beim Senden ohne Text und
+            // beim Anrufen ohne Nummer. Ohne Aenderung ist er kein Knopf.
+            //
+            // Zweitens: nach dem Speichern sah der Bildschirm genauso aus wie davor. Bei
+            // Nummern, die man einmal eintraegt und hoffentlich nie braucht, ist "hat es
+            // geklappt?" die einzige Frage, die zaehlt.
+            val geaendert = numbersText != SosNumbers.format(config.numbers)
+            val zusammenhang = LocalContext.current
             BigRow(
                 label = stringResource(R.string.sos_numbers_save),
-                surface = palette.surfaceAccent,
-                onClick = { onChange(config.copy(numbers = SosNumbers.parse(numbersText))) },
+                surface = if (geaendert) palette.surfaceAccent else palette.surfaceDefault,
+                onClick = if (geaendert) {
+                    {
+                        // Sagen, was wirklich passiert ist. "Nummern gespeichert" nach einer
+                        // Eingabe, von der nichts brauchbar war, waere ein wahrer Satz an der
+                        // falschen Stelle - die rote Zeile darueber sagt ja schon, dass die
+                        // Eingabe nicht taugt. Am 04.09.2026 am Emulator mit einem "x"
+                        // ausprobiert und genau so gesehen.
+                        val genommen = SosNumbers.parse(numbersText)
+                        onChange(config.copy(numbers = genommen))
+                        // Ueber AppLocale, nicht ueber den rohen Context: BigLau hat eine
+                        // eigene Sprache, und die Meldung soll in ihr stehen.
+                        val texte = AppLocale.forApp(zusammenhang)
+                        Notice.show(
+                            zusammenhang,
+                            if (genommen.isEmpty()) {
+                                texte.getString(R.string.sos_numbers_cleared)
+                            } else {
+                                texte.resources.getQuantityString(
+                                    R.plurals.sos_numbers_saved_n,
+                                    genommen.size,
+                                    genommen.size,
+                                )
+                            },
+                        )
+                    }
+                } else {
+                    null
+                },
             )
         }
 
@@ -134,6 +174,11 @@ internal fun SosSettings(
                 fallback = defaultMessage,
                 ageNote = laengstesAlter,
             )
+            // Dieselbe Frage wie bei den Nummern - und dieselbe Antwort. Verglichen wird
+            // gegen das, was gespeichert **wuerde**: steht im Feld der Vorgabetext und in
+            // der Einrichtung nichts, ist das kein Unterschied.
+            val nachrichtGeaendert = messageText.trim() != config.message.ifBlank { defaultMessage }
+            val zusammenhang = LocalContext.current
             BigRow(
                 label = stringResource(R.string.sos_message_save),
                 // Vorschau mit Beispielkoordinaten: der Nutzer soll sehen, was ankommt,
@@ -143,8 +188,15 @@ internal fun SosSettings(
                     SosMessage.partsNeeded(preview),
                     SosMessage.partsNeeded(preview),
                 ),
-                surface = palette.surfaceAccent,
-                onClick = { onChange(config.copy(message = messageText.trim())) },
+                surface = if (nachrichtGeaendert) palette.surfaceAccent else palette.surfaceDefault,
+                onClick = if (nachrichtGeaendert) {
+                    {
+                        onChange(config.copy(message = messageText.trim()))
+                        Notice.show(zusammenhang, R.string.sos_message_saved)
+                    }
+                } else {
+                    null
+                },
             )
         }
 
@@ -156,7 +208,7 @@ internal fun SosSettings(
                 } else {
                     pluralStringResource(R.plurals.sos_countdown_seconds, seconds, seconds)
                 },
-                surface = if (seconds == config.countdownSeconds) palette.surfaceAccent else palette.surfaceDefault,
+                selected = seconds == config.countdownSeconds,
                 onClick = { onChange(config.copy(countdownSeconds = SosCountdown.clamp(seconds))) },
             )
         }
@@ -184,7 +236,7 @@ internal fun SosSettings(
                     if (config.alarmSound) R.string.sos_alarm_sound_on else R.string.sos_alarm_sound_off,
                 ),
                 secondary = stringResource(R.string.sos_alarm_sound_hint),
-                surface = if (config.alarmSound) palette.surfaceAccent else palette.surfaceDefault,
+                checked = config.alarmSound,
                 onClick = { onChange(config.copy(alarmSound = !config.alarmSound)) },
             )
         }
@@ -193,7 +245,7 @@ internal fun SosSettings(
                 label = stringResource(
                     if (config.alarmFlash) R.string.sos_alarm_flash_on else R.string.sos_alarm_flash_off,
                 ),
-                surface = if (config.alarmFlash) palette.surfaceAccent else palette.surfaceDefault,
+                checked = config.alarmFlash,
                 onClick = { onChange(config.copy(alarmFlash = !config.alarmFlash)) },
             )
         }
@@ -241,7 +293,7 @@ internal fun SosSettings(
             item {
                 Text(
                     text = stringResource(R.string.sos_location_missing),
-                    color = palette.danger,
+                    color = palette.dangerText,
                     fontSize = bigSp(15f),
                     modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp),
                 )

@@ -27,8 +27,14 @@ class CountPluralTest {
      * seit `core:ui` eigene Texte hat, war es das nicht mehr — und ein zählender Text in
      * einem anderen Modul wäre stillschweigend ungeprüft geblieben. Genau der Grund, aus dem
      * es `Quelltext` gibt.
+     *
+     * Und seit dem 4.9.2026 **beide Sprachen**. Bis dahin las die Regel nur `values`, also
+     * Englisch — dabei war der Anlass ein deutscher Satz („1 Einträge gelöscht"). Ein Text,
+     * der nur auf Deutsch zählt, wäre nie aufgefallen. Heute sind alle zwölf deutschen
+     * Zähltexte Ausnahmen mit Grund; die Regel findet also nichts Neues, aber sie sieht ab
+     * jetzt dorthin, wo der Fehler herkam.
      */
-    private val strings = Quelltext.texte("values")
+    private val strings = Quelltext.texte("values") + Quelltext.texte("values-de")
 
     /**
      * Zahlen, die nichts zählen.
@@ -48,6 +54,8 @@ class CountPluralTest {
         "wizard_position" to "Position: Schritt 2 von 5",
         "sos_numbers_hint" to "Obergrenze, nie eins: bis zu 5 Menschen",
         "move_spot" to "Position im Raster: Zeile 2, Spalte 1",
+        "editor_where" to "Position im Raster, mit Screen davor: Start, Zeile 4, Spalte 1",
+        "move_which" to "Position im Raster, mit der Kachel davor: Kontakte, Zeile 2, Spalte 1",
         "a11y_signal_bars" to "Maß: gefüllte von vier Stufen, wie 2 × 3 Felder",
     )
 
@@ -78,11 +86,53 @@ class CountPluralTest {
         }
     }
 
+    /**
+     * Ein Plural, dessen Einzahl und Mehrzahl derselbe Satz sind, ist keiner.
+     *
+     * Die Form stimmt dann - `one` und `other` sind da, `TranslationsTest` ist zufrieden -,
+     * und am Bildschirm steht trotzdem „1 Einträge". Genau der Fehler, gegen den diese
+     * Datei geschrieben wurde, nur eine Ebene tiefer versteckt.
+     */
+    @Test
+    fun `kein Plural sagt zweimal dasselbe`() {
+        val gleich = Quelltext.alleTexte()
+            .filter { it.name == "plurals.xml" }
+            .flatMap { datei ->
+                Regex("""<plurals name="([^"]+)">(.*?)</plurals>""", RegexOption.DOT_MATCHES_ALL)
+                    .findAll(datei.readText())
+                    .mapNotNull { treffer ->
+                        val formen = Regex("""<item quantity="([^"]+)">(.*?)</item>""", RegexOption.DOT_MATCHES_ALL)
+                            .findAll(treffer.groupValues[2])
+                            .associate { it.groupValues[1] to it.groupValues[2].trim() }
+                        val einzahl = formen["one"]
+                        val mehrzahl = formen["other"]
+                        if (einzahl != null && einzahl == mehrzahl) {
+                            datei.parentFile.name + "/" + treffer.groupValues[1] + ": " + einzahl
+                        } else {
+                            null
+                        }
+                    }
+            }
+        assertEquals(
+            "Einzahl und Mehrzahl sind hier derselbe Satz - dann ist die Mehrzahlform nur " +
+                "Form und der Text liest sich bei 1 weiter falsch",
+            emptyList<String>(),
+            gleich,
+        )
+    }
+
     @Test
     fun `die Regel wuerde einen zaehlenden Text finden`() {
         // Gegenprobe: ohne sie winkte ein kaputter Suchausdruck alles durch.
         val probe = """<string name="test_zaehler">%1${'$'}d Einträge</string>"""
         val treffer = Regex("""<string name="([^"]+)">([^<]*%\d\${'$'}d[^<]*)</string>""").find(probe)
         assertTrue("ein zählender Text muss auffallen", treffer != null)
+
+        // Und dieselbe Gegenprobe fuer den doppelten Plural.
+        val doppelt = """<plurals name="test"><item quantity="one">%1${'$'}d Eintraege</item><item quantity="other">%1${'$'}d Eintraege</item></plurals>"""
+        val formen = Regex("""<item quantity="([^"]+)">(.*?)</item>""", RegexOption.DOT_MATCHES_ALL)
+            .findAll(doppelt)
+            .associate { it.groupValues[1] to it.groupValues[2].trim() }
+        assertEquals("die Gegenprobe muss zwei gleiche Formen sehen", formen["one"], formen["other"])
     }
 }

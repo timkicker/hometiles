@@ -65,22 +65,58 @@ class AuswegTest {
         assertTrue(
             "Nach der Meldung wird die Liste nicht neu geladen - der tote Eintrag bliebe " +
                 "stehen und täte beim nächsten Tipp wieder nichts.",
-            "loadApps()" in liste.substringAfter("R.string.app_gone_list").take(200),
+            "loadApps()" in Quelltext.ausschnitt(liste, "R.string.app_gone_list").take(200),
         )
     }
 
-    /** Und die beiden Sätze sagen dasselbe, in beiden Sprachen. */
+    /**
+     * Und die beiden Meldungen geben **denselben** Rat, in beiden Sprachen.
+     *
+     * Die erste Fassung nagelte den Satz fest („Kachel neu belegen"). Damit hing die Regel
+     * am Wortlaut: wer die Meldung besser formuliert, macht sie rot, obwohl der Ausweg
+     * dasteht - und wer sie in **einer** der beiden Meldungen umformuliert, macht sie
+     * gruen, obwohl sie auseinandergelaufen sind. Geprueft wird deshalb die Gleichheit,
+     * nicht der Wortlaut.
+     *
+     * Und `app_gone_list` muss einen **anderen** Rat geben: in der App-Liste gibt es keine
+     * Kachel, die man neu belegen koennte.
+     */
     @Test
-    fun `der Rat zum Neubelegen steht in beiden Meldungen`() {
-        listOf("values" to "Assign the tile again", "values-de" to "Kachel neu belegen")
-            .forEach { (sprache, satz) ->
-                val texte = Quelltext.texte(sprache).first().readText()
-                listOf("app_gone", "shortcut_gone").forEach { name ->
-                    val wert = Regex("""<string name="$name">(.*?)</string>""").find(texte)
-                        ?.groupValues?.get(1)
-                        ?: throw AssertionError("$sprache: $name fehlt")
-                    assertTrue("$sprache/$name rät nicht zum Neubelegen: $wert", satz in wert)
-                }
+    fun `der Rat steht in beiden Meldungen und ist derselbe`() {
+        listOf("values", "values-de").forEach { sprache ->
+            val raete = listOf("app_gone", "shortcut_gone").map { name ->
+                name to letzterSatz(sprache, name)
             }
+            raete.forEach { (name, rat) ->
+                assertTrue(
+                    "$sprache/$name nennt nur das Problem und keinen Ausweg - dann steht " +
+                        "man davor und weiss nicht, was jetzt.",
+                    rat.isNotBlank(),
+                )
+            }
+            assertEquals(
+                "Die beiden toten Kacheln raten Verschiedenes. Derselbe Fall, derselbe " +
+                    "Weg heraus - sonst glaubt man beim zweiten Mal keiner von beiden.",
+                raete[0].second,
+                raete[1].second,
+            )
+            assertTrue(
+                "Die App-Liste gibt denselben Rat wie die Kachel, aber dort gibt es keine " +
+                    "Kachel, die man neu belegen koennte.",
+                letzterSatz(sprache, "app_gone_list") != raete[0].second,
+            )
+        }
+    }
+
+    /**
+     * Der letzte Satz eines Textes - dort steht der Ausweg, wenn einer dasteht.
+     *
+     * Ueber alle Textdateien und nicht nur die von `:app`: zieht ein Text mit seinem Modul
+     * um, soll die Regel ihn weiter finden statt lautlos nichts mehr zu pruefen.
+     */
+    private fun letzterSatz(sprache: String, name: String): String {
+        val wert = Quelltext.textWert(name, sprache)
+        val saetze = wert.split(". ").filter { it.isNotBlank() }
+        return if (saetze.size < 2) "" else saetze.last().trim()
     }
 }

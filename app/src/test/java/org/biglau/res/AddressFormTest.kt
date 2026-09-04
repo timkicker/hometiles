@@ -37,6 +37,50 @@ class AddressFormTest {
         """\b([Dd]u|[Dd]ir|[Dd]ich|[Dd]ein|[Dd]eine|[Dd]einen|[Dd]einem|[Dd]einer|[Dd]eines)\b""",
     )
 
+    /**
+     * Und die Befehlsform, die ohne Fuerwort auskommt.
+     *
+     * „Oeffne sie in der Nachrichten-App", „Tippe einen Pfeil", „Waehle zuerst, was offen
+     * bleibt" — drei Texte duzten, ohne ein einziges der Woerter oben zu enthalten. Sie
+     * standen seit Wochen da; gefunden am 04.09.2026, als ich aus einem anderen Grund alle
+     * Satzanfaenge durchsah.
+     *
+     * **Was diese Liste kann und was nicht:** sie kennt die Verben, mit denen diese App
+     * Anweisungen gibt. Ein neues Verb faellt hier nicht auf. Das ist eine Schwaeche und
+     * keine Absicht — wer eine Anweisung schreibt, die nicht in dieser Liste steht, muss
+     * selbst daran denken. Die Liste ist besser als nichts und schlechter als eine
+     * Grammatik.
+     */
+    private val befehlsform = Regex(
+        """(Öffne|Tippe|Halte|Wähle|Schalte|Versuche|Drücke|Lege|Setze|Trage|Gib|Nimm|""" +
+            """Schau|Prüfe|Wische|Starte|Warte|Lösche|Ändere|Speichere|Rufe|Sende|Ziehe|""" +
+            """Klicke|Mache|Denke|Lass)""",
+    )
+
+    @Test
+    fun `die deutschen Texte befehlen nicht in der Du-Form`() {
+        val treffer = mutableListOf<String>()
+        dateien.forEach { datei ->
+            datei.readLines().forEachIndexed { index, zeile ->
+                val inhalt = Regex(""">([^<]+)<""").find(zeile)?.groupValues?.get(1) ?: return@forEachIndexed
+                // **Nur am Satzanfang.** „die Suche" und „eine Stelle" sind Hauptwoerter und
+                // stehen mitten im Satz; die erste Fassung meldete sie und haette mich fast
+                // dazu gebracht, richtige Texte zu aendern. Eine Befehlsform faengt an.
+                inhalt.split(Regex("""(?<=[.!?—:])\s+""")).forEach { satz ->
+                    val erstes = satz.trim().substringBefore(" ").trim(',', '.', ':', ';')
+                    if (befehlsform.matches(erstes)) {
+                        treffer += "${datei.name}:${index + 1}: $erstes …"
+                    }
+                }
+            }
+        }
+        assertTrue(
+            "Hier steht eine Anweisung in der Du-Form, ohne ein Fuerwort zu benutzen - " +
+                "deshalb faellt sie der Regel oben nicht auf:\n" + treffer.joinToString("\n"),
+            treffer.isEmpty(),
+        )
+    }
+
     @Test
     fun `die deutschen Texte siezen`() {
         val treffer = mutableListOf<String>()

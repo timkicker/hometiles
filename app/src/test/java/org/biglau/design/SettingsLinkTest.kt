@@ -25,7 +25,7 @@ class SettingsLinkTest {
 
     @Test
     fun `die Einstellungen beantworten die Absicht`() {
-        val block = manifest.substringAfter(".settings.SettingsActivity").substringBefore("</activity>")
+        val block = Quelltext.ausschnitt(manifest, ".settings.SettingsActivity", "</activity>")
         assertTrue(
             "SettingsActivity hat keinen Filter fuer ${SettingsLink.ACTION}: $block",
             SettingsLink.ACTION in block,
@@ -73,7 +73,7 @@ class SettingsLinkTest {
      */
     @Test
     fun `der wartende Hinweis wird ueber eine Absicht geoeffnet`() {
-        val block = manifest.substringAfter(".ui.NoticeActivity").substringBefore("</activity>")
+        val block = Quelltext.ausschnitt(manifest, ".ui.NoticeActivity", "</activity>")
         assertTrue("NoticeActivity hat keinen Filter fuer ${Notice.ACTION}: $block", Notice.ACTION in block)
         assertTrue("ohne DEFAULT-Kategorie startet keine implizite Absicht", "category.DEFAULT" in block)
         val quelle = Quelltext.datei("org/biglau/ui/Notice.kt").readLines()

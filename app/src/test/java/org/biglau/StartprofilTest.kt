@@ -9,9 +9,11 @@ import org.junit.Test
  * Das mitgelieferte Startprofil ist da, und es beschreibt den Start.
  *
  * Frisch installiert übersetzt Android nichts: die App steht auf `run-from-apk` und
- * dolmetscht beim ersten Start jede Zeile. Am 3.9.2026 am Jelly 2 gemessen — je fünf
- * Kaltstarts mit `am start -W`, Median: **2275 ms** so, **670 ms** nach einer vollen
- * Übersetzung. Das ist der Abstand, um den es hier geht.
+ * dolmetscht beim ersten Start jede Zeile. Am 4.9.2026 am Jelly 2 gemessen — je fünf Starts
+ * mit `am start -W -S`, Median: **3018 ms** so, **688 ms** auf `quicken`. Das ist der
+ * Abstand, um den es hier geht. (Bis zum 4.9. standen hier 2275 und 670 ms, gemessen ohne
+ * `-S` und mit einer Übersetzung, die nie stattgefunden hat — `StartzahlenTest` haelt fest,
+ * was zu so einer Zahl dazugehoert.)
  *
  * Zwei Dinge können daran lautlos kaputtgehen: die Datei landet am falschen Platz (AGP 8
  * liest `src/main/baselineProfiles/`, nicht mehr `src/main/baseline-prof.txt` — genau darauf

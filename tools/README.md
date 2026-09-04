@@ -27,6 +27,23 @@ gehalten.
 tools/bildschirm-wache.sh <seriennummer> wache.log 0 20   # ganze Nacht, alle 20 s
 ```
 
+## `gleiche-namen.py`
+
+Sucht anklickbare Flächen, die auf demselben Bildschirm **denselben Namen** tragen.
+
+```sh
+tools/gleiche-namen.py emulator-5554
+```
+
+Zwei Angebote, die gleich heissen, sind für jemanden mit einem Vorleseprogramm dasselbe
+Angebot; unterschieden werden sie dann durch etwas, das nicht gesagt wird — eine Farbe, ein
+Symbol, die Reihenfolge. Der Name einer Fläche ist ihre `content-desc`, sonst der Text der
+Knoten darin; das ist dieselbe Regel, nach der ein Vorleseprogramm vorgeht.
+
+Ein Treffer ist ein Anfangsverdacht. Doppelknoten auf **denselben** Massen — Compose legt
+für eine Zeile oft einen anklickbaren und einen benannten an — rechnet das Werkzeug selbst
+heraus und sagt am Ende, wie viele es waren.
+
 ## `stumme-knoepfe.py`
 
 Sucht anklickbare Flächen ohne Namen auf dem gerade sichtbaren Bildschirm.
@@ -54,6 +71,62 @@ Zeilen: eine Fläche am Rand ist abgeschnitten, ihre Beschriftung liegt gar nich
 Baum. Solche Flächen stehen jetzt getrennt unter „am Rand abgeschnitten". Der Maßstab dafür
 ist nicht eine feste Pixelzahl — die erste Fassung hatte 33 und liess den zweiten Fall (60
 Pixel) durch —, sondern die mittlere Höhe der anklickbaren Zeilen dieses Bildschirms.
+
+## `kleine-knoepfe.py`
+
+Sucht antippbare Flächen unter 48 dp auf dem gerade sichtbaren Bildschirm.
+
+```sh
+tools/kleine-knoepfe.py <seriennummer>
+```
+
+48 dp ist das Mindestmaß für einen Fingertipp; auf dem Jelly 2 (220 dpi) sind das 66
+Bildpunkte. Kein Unit-Test sieht die fertige Fläche — sie entsteht erst aus Schrift, Füllung
+und dem Platz, der übrig bleibt.
+
+Zeilen am Rand zählt das Werkzeug **nicht** mit — sie sind angeschnitten, nicht klein, und
+was `uiautomator` meldet, ist dort nicht das Gezeichnete. Zwei Ränder gibt es: den des
+**Fensters** (oben wie unten) und den einer **Liste** — die letzte Zeile darin ragt fast
+immer darüber hinaus. Zu **schmale** Flächen bleiben trotzdem ein Befund, auch am Rand: die
+Breite kann vom Anschneiden nicht kommen. Wie viele herausgerechnet wurden, steht als
+Nachsatz dabei.
+
+Was übrig bleibt, ist ein Anfangsverdacht, kein Urteil. Der häufigste Fall, der keiner ist:
+ein Eingabefeld, das kleiner ist als die Zeile, die es zeigt. Dann kommt es darauf an, ob die
+ganze Zeile den Tipp annimmt. Am Gerät prüfen:
+`adb shell dumpsys input_method | grep mInputShown` vor und nach dem Tipp.
+
+Am 04.09.2026 damit die Suchzeile der App-Liste gefunden: gezeichnet 64 dp, Feld darin 48 dp
+(mit Trefferzahl darunter nur 38), und ein Tipp auf die oberen vierzehn Bildpunkte tat
+nichts. Seitdem nimmt die ganze Zeile den Tipp an.
+
+## `kontrast.py`
+
+Misst den Kontrast dort, wo er ankommt: in einem Bildschirmfoto.
+
+```sh
+adb -s <seriennummer> exec-out screencap -p > home.png
+tools/kontrast.py home.png 20 284 130 314        # die Beschriftungszone einer Kachel
+tools/kontrast.py home.png --grund 240 45 28 59 200 103   # Text gegen den Hintergrund
+```
+
+`SurfaceContrastTest` prüft die Farbkonstanten gegeneinander — jedes Flächenpaar jedes
+Themas. Was daraus auf dem Bildschirm wird, steht auf einem anderen Blatt: eine Kachel kann
+eine eigene Farbe tragen, ein Foto, einen Verlauf darüber, und die Schrift wird mit
+Kantenglättung gezeichnet. Dieses Werkzeug liest die Bildpunkte und rechnet nach WCAG.
+
+Für jedes Rechteck gibt es den hellsten und den dunkelsten Bildpunkt darin — in einem Feld
+mit Text sind das die Schrift und ihr Grund. Wo im Rechteck fast nur Schrift liegt, nennt
+man mit `--grund` einen Punkt daneben.
+
+Die Schwellen stehen in `Tokens.kt`: **4,5** für Schrift auf einer Kachel, **3,0** für eine
+Kachel gegen den Hintergrund, **7,0** für Text außerhalb einer Kachel.
+
+Am 04.09.2026 damit am Jelly 2 nachgemessen, alle acht Kacheln des Startbildschirms:
+dunkel 5,61–5,67:1, hell 7,66–7,87:1, Kontrast-Thema 17,20:1 für alle acht. Die Kopfzeile
+liegt bei 18,1 / 15,7 / 17,2. Damit ist die Zusage aus `PLAN.md` („alle sechs liegen
+absichtlich auf demselben Kontrastniveau") nicht nur in den Konstanten wahr, sondern auch
+auf dem Glas.
 
 ## `tippen.py`
 

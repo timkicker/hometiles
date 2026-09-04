@@ -55,10 +55,12 @@ class PlainLanguageTest {
      */
     @Test
     fun `der Hinweis auf einer leeren Kachel bleibt kurz`() {
-        val zulang = texte.mapNotNull { datei ->
-            val text = Regex("""<string name="empty_tile_invite">([^<]*)</string>""")
-                .find(datei.readText())?.groupValues?.get(1)
-            if (text != null && text.length > 12) "${datei.name}: \"$text\" (${text.length})" else null
+        // Ueber die Sprachen und nicht ueber die gefundenen Dateien: `mapNotNull` liesse
+        // die Regel gruen, wenn es den Text nirgends mehr gibt - sie haette dann nichts
+        // angesehen. `textWert` faellt in dem Fall um.
+        val zulang = listOf("values", "values-de").mapNotNull { sprache ->
+            val text = Quelltext.textWert("empty_tile_invite", sprache)
+            if (text.length > 12) "$sprache: \"$text\" (${text.length})" else null
         }
         assertEquals(emptyList<String>(), zulang)
     }

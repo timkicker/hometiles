@@ -1,5 +1,6 @@
 package org.biglau.design
 
+import org.biglau.Quelltext
 import java.io.File
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -20,7 +21,7 @@ import org.junit.Test
 class OffeneFragenTest {
 
     private val plan = File("../PLAN.md").readText()
-    private val fragen = plan.substringAfter("## 9. Offene Fragen")
+    private val fragen = Quelltext.ausschnitt(plan, "## 9. Offene Fragen")
 
     @Test
     fun `die Lizenzfrage steht nicht mehr offen`() {

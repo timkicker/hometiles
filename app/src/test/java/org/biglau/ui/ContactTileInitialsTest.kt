@@ -20,8 +20,7 @@ class ContactTileInitialsTest {
 
     private val zweig = Quelltext.datei("org/biglau/ui/HomeScreenView.kt")
         .readText()
-        .substringAfter("is ButtonAction.Contact -> BigTile(")
-        .substringBefore("is ButtonAction.Shortcut")
+        .let { Quelltext.ausschnitt(it, "is ButtonAction.Contact -> BigTile(", "is ButtonAction.Shortcut") }
 
     @Test
     fun `die Kontaktkachel reicht Initialen weiter`() {

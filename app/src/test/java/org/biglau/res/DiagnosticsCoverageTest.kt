@@ -32,12 +32,16 @@ class DiagnosticsCoverageTest {
      * `ACCESS_COARSE_LOCATION` steht mit dem feinen zusammen in einer Zeile — beide werden
      * gemeinsam erfragt, und zwei Zeilen für dieselbe Frage sind auf drei Zoll Ballast.
      * `WRITE_CONTACTS` und `RECEIVE_SMS` hängen an einer Rolle, die die Seite ohnehin zeigt.
+     *
+     * `READ_PHONE_STATE` stand hier bis zum 04.09.2026 mit dem Grund, es werde „bewusst
+     * nicht erteilt". Am Gerät nachgesehen war es erteilt — BigLau fragt eigens danach,
+     * damit die Empfangsbalken etwas anzeigen. Der Grund war eine gemessene Tatsache, die
+     * gealtert ist; die Zeile steht jetzt auf der Seite.
      */
     private val ausnahmen = mapOf(
         "ACCESS_COARSE_LOCATION" to "steht zusammen mit ACCESS_FINE_LOCATION in einer Zeile",
         "WRITE_CONTACTS" to "haengt an derselben Frage wie READ_CONTACTS",
         "RECEIVE_SMS" to "haengt an der SMS-Rolle, die die Seite als Standard-SMS-App zeigt",
-        "READ_PHONE_STATE" to "bewusst nicht erteilt, siehe STATUS - die Signalstaerke bleibt draussen",
     )
 
     private fun angemeldet(): Set<String> =

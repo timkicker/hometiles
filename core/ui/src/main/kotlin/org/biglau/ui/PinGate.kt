@@ -22,6 +22,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -105,6 +108,10 @@ fun PinGate(
         modifier = Modifier
             .fillMaxSize()
             .background(palette.background)
+            // Die Sperre liegt auf dem Startbildschirm **ueber** den Kacheln, statt sie zu
+            // ersetzen. Ohne dies startete ein Tipp in ihren Rand die Kachel darunter -
+            // eine Sperre, an der man vorbeitippt, ist keine.
+            .absorbTouches()
             .safeDrawingPadding(),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
@@ -151,11 +158,18 @@ fun PinGate(
                     fontWeight = FontWeight.Bold,
                 )
 
+                // `liveRegion`, sonst ist der Grund still. Die Punktreihe sagt schon,
+                // dass keine Ziffer mehr dasteht (siehe PinDots) - **warum** nicht, stand
+                // bis zum 04.09.2026 nur da. Am Emulator nachgestellt: vier Ziffern
+                // eingegeben, "Fertig", und die Ansage war "Noch keine Ziffer eingegeben".
+                // Wer nicht hinsieht, haelt sich fuers Vertippen und tippt dieselbe falsche
+                // PIN noch einmal.
                 wrong -> Text(
                     text = wrongText,
-                    color = palette.danger,
+                    color = palette.dangerText,
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
+                    modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
                 )
 
                 explainer != null -> Text(
@@ -179,18 +193,27 @@ fun PinGate(
             )
         }
 
+        // Ohne eine einzige Ziffer ist "Fertig" kein Knopf. Er sah bis zum 04.09.2026 aus
+        // wie einer, war einer, und antwortete auf einen Tipp mit "Diese PIN stimmt nicht."
+        // - was nicht stimmt: eingegeben war gar nichts. Am Emulator nachgestellt. Derselbe
+        // Griff wie beim Senden ohne Text und beim Anrufen ohne Nummer: keine Farbe, kein
+        // onClick, keine falsche Auskunft.
         BigRow(
             label = confirmLabel,
-            surface = palette.surfaceAccent,
-            onClick = {
-                if (onCheck(entered)) {
-                    onAccept(entered)
-                } else {
-                    // Eingabe leeren. Blieb sie stehen, tippte man die naechste PIN hinten
-                    // an die falsche an und kam nie wieder heraus - acht Punkte voll, und
-                    // jede weitere Ziffer fiel lautlos weg.
-                    wrong = true
-                    entered = ""
+            surface = if (entered.isEmpty()) palette.surfaceDefault else palette.surfaceAccent,
+            onClick = if (entered.isEmpty()) {
+                null
+            } else {
+                {
+                    if (onCheck(entered)) {
+                        onAccept(entered)
+                    } else {
+                        // Eingabe leeren. Blieb sie stehen, tippte man die naechste PIN
+                        // hinten an die falsche an und kam nie wieder heraus - acht Punkte
+                        // voll, und jede weitere Ziffer fiel lautlos weg.
+                        wrong = true
+                        entered = ""
+                    }
                 }
             },
         )

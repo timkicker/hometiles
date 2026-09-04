@@ -21,7 +21,12 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.SolidColor
@@ -60,11 +65,25 @@ fun BigSearchField(
     val scale = LocalTextScale.current
     val border = palette.tileBorder()
 
+    // Ein Tipp irgendwo in die Zeile setzt die Schreibmarke.
+    //
+    // Am 04.09.2026 am Jelly 2 gemessen: die gezeichnete Zeile ist 64 dp hoch, das
+    // Eingabefeld darin nur 48 - und mit der Trefferzahl darunter sogar 38. Ein Tipp auf
+    // die oberen vierzehn Bildpunkte der Zeile tat gar nichts (`mInputShown` blieb
+    // `false`), obwohl dort ein Feld gezeichnet ist. Die Hand, fuer die BigLau gebaut ist,
+    // trifft den Rand regelmaessig.
+    //
+    // `pointerInput` und nicht `clickable`: eine anklickbare Zeile waere fuer die
+    // Vorlesefunktion eine Schaltflaeche - siehe BigRow. Hier ist sie ein Eingabefeld.
+    val schreibmarke = remember { FocusRequester() }
     Row(
         modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(LocalCornerRadius.current))
             .background(palette.emptyTile)
+            .pointerInput(Unit) {
+                detectTapGestures { schreibmarke.requestFocus() }
+            }
             .then(if (border != null) Modifier.border(3.dp, border, RoundedCornerShape(LocalCornerRadius.current)) else Modifier)
             .heightIn(min = 64.dp)
             .padding(horizontal = 16.dp, vertical = 8.dp),
@@ -102,6 +121,7 @@ fun BigSearchField(
                 // aufgemalte Platzhalter ist fuer ihn nicht das Gleiche wie eine Beschriftung.
                 modifier = Modifier
                     .fillMaxWidth()
+                    .focusRequester(schreibmarke)
                     .semantics { contentDescription = hint },
             )
             }

@@ -87,8 +87,8 @@ class KeinNotrufTest {
 
     @Test
     fun `ohne Nummer geht nichts hinaus`() {
-        val send = Quelltext.datei("org/biglau/actions/Sos.kt").readText()
-            .substringAfter("fun send(")
+        val send = Quelltext.datei("org/biglau/toggles/Sos.kt").readText()
+            .let { Quelltext.ausschnitt(it, "fun send(") }
         val erste = send.lines().drop(1).first { it.isNotBlank() }
         assertTrue(
             "Die erste Zeile von Sos.send prueft nicht mehr, ob ueberhaupt eine Nummer " +

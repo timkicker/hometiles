@@ -67,16 +67,17 @@ class FeatureKantenTest {
         val ausSettings = kanten.entries
             .filter { (paar, _) -> gehoertZu[paar.first] == "settings" && gehoertZu[paar.second] != null && gehoertZu[paar.second] != "settings" }
             .flatMap { it.value }
-            .map { it.substringAfter(": ") }
+            .map { Quelltext.ausschnitt(it, ": ") }
             .toSortedSet()
 
         assertEquals(
             "Der Einstellungsbaum kennt mehr oder weniger Bereiche als am 3.9.2026 " +
                 "gezählt. Weniger ist gut - dann diese Liste kürzen. Mehr macht die " +
                 "offene Frage aus STATUS.md teurer.",
-            sortedSetOf(
-                "MessagesSettingsList", "NotificationRepository", "SosSettings",
-            ),
+            // Am 04.09.2026 von drei auf zwei: `NotificationRepository` ist mitsamt dem
+            // Dienst nach `core:system` gezogen. Uebrig sind genau die beiden
+            // Einstellungsseiten - also die Entwurfsfrage selbst, ohne Beiwerk.
+            sortedSetOf("MessagesSettingsList", "SosSettings"),
             ausSettings,
         )
     }

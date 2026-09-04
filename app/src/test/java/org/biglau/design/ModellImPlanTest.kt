@@ -56,13 +56,13 @@ class ModellImPlanTest {
     fun `der Plan verspricht keine Hintergrundbilder mehr`() {
         assertTrue(
             "Im Modell gibt es Background.Image - dann darf der Plan es auch nennen.",
-            "Image(" !in modell.substringAfter("interface Background").take(400),
+            "Image(" !in Quelltext.ausschnitt(modell, "interface Background").take(400),
         )
         // Nur im **Codeblock**, nicht in der Prosa: der Absatz darunter erklaert, dass der
         // erste Entwurf `Image(uri, scale)` vorsah und was daran hing. Eine Regel, die auch
         // das verbietet, zwingt den Plan, seine eigene Geschichte zu verschweigen - derselbe
         // Fehler, den `VerweiseTest` heute schon einmal gemacht hat.
-        val block = plan.substringAfter("### 2.2").substringAfter("```kotlin").substringBefore("```")
+        val block = Quelltext.ausschnitt(Quelltext.ausschnitt(plan, "### 2.2"), "```kotlin", "```")
         assertTrue(
             "Der Modell-Entwurf in PLAN.md 2.2 nennt wieder ein Hintergrundbild, das es " +
                 "nicht gibt.",

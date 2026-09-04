@@ -28,8 +28,7 @@ class DeviceClaimsTest {
         // Die Nachrichten-Einstellungen sind am 3.9.2026 in den Bereich `sms` gezogen -
         // der Hinweis mit ihnen. Diese Regel fiel beim Umzug laut auf, wie sie soll.
         val stelle = quelle("org/biglau/sms/MessagesSettingsList.kt")
-            .substringAfter("sms_filter_numbers_heading")
-            .substringBefore("OutlinedTextField")
+            .let { Quelltext.ausschnitt(it, "sms_filter_numbers_heading", "OutlinedTextField") }
         // Am 3.9.2026 wanderte der Aufruf aus der Seite heraus: die SMS-Rolle vergibt das
         // System, und wer sie erteilt und zurueckkommt, soll nicht denselben Satz noch
         // einmal lesen - der Wert kommt jetzt als `istStandardApp` von der Activity. Die
@@ -45,8 +44,7 @@ class DeviceClaimsTest {
     @Test
     fun `der Text vor der Telefonstatus-Frage sieht nach CALL_PHONE`() {
         val stelle = quelle("org/biglau/MainActivity.kt")
-            .substringAfter("R.string.signal_permission_title")
-            .substringBefore("BigRow")
+            .let { Quelltext.ausschnitt(it, "R.string.signal_permission_title", "BigRow") }
         assertTrue("sieht nicht nach CALL_PHONE: $stelle", "CALL_PHONE" in stelle)
         assertTrue("zweite Fassung fehlt: $stelle", "signal_permission_body_may_call" in stelle)
     }
@@ -54,15 +52,19 @@ class DeviceClaimsTest {
     /**
      * Die Nummernsperre versprach „werden abgewiesen, ohne zu klingeln". Eingehende Anrufe
      * sieht aber nur die Standard-Telefon-App - ohne die Rolle wirkt die Sperre allein nach
-     * außen. Auf dem Telefon des Nutzers hält die Rolle ein anderes Programm; dort war der
-     * Satz falsch.
+     * außen. Am 02.09.2026 hielt die Rolle auf dem Telefon des Nutzers ein anderes
+     * Programm; dort war der Satz falsch.
+     *
+     * Seit dem 04.09.2026 hält BigLau die Rolle, und der erste Satz stimmt dort wieder.
+     * Genau deshalb bleibt die Regel: die Seite darf nicht davon ausgehen, sondern muss
+     * fragen — auf einem anderen Gerät ist es wieder anders, und auf diesem war es zweimal
+     * verschieden.
      */
     @Test
     fun `der Hinweis zur Nummernsperre fragt nach der Telefon-Rolle`() {
         val quelltext = quelle("org/biglau/settings/SettingsActivity.kt")
         val stelle = quelltext
-            .substringAfter("R.string.blocked_numbers)")
-            .substringBefore("OutlinedTextField")
+            .let { Quelltext.ausschnitt(it, "R.string.blocked_numbers)", "OutlinedTextField") }
         assertTrue("Die Rolle wird nirgends gelesen", "DialerRole.held(" in quelltext)
         assertTrue("sieht nicht nach der Rolle: $stelle", "hatTelefonRolle" in stelle)
         assertTrue("zweite Fassung fehlt: $stelle", "blocked_numbers_hint_outgoing" in stelle)
@@ -86,8 +88,7 @@ class DeviceClaimsTest {
             "values" to listOf("missed calls", "unread messages"),
         ).forEach { (verzeichnis, woerter) ->
             val satz = Quelltext.texte(verzeichnis).joinToString("\n") { it.readText() }
-                .substringAfter("name=\"blink_explainer\"")
-                .substringBefore("</string>")
+                .let { Quelltext.ausschnitt(it, "name=\"blink_explainer\"", "</string>") }
             woerter.forEach { wort ->
                 assertTrue("$verzeichnis: $wort fehlt im Satz: $satz", wort in satz)
             }

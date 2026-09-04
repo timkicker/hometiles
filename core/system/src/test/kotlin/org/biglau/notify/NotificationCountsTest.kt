@@ -12,7 +12,49 @@ class NotificationCountsTest {
         clearable: Boolean = true,
         ongoing: Boolean = false,
         groupSummary: Boolean = false,
-    ) = NotificationRow(pkg, clearable, ongoing, groupSummary)
+        category: String? = null,
+        mediaStyle: Boolean = false,
+    ) = NotificationRow(pkg, clearable, ongoing, groupSummary, 0, category, mediaStyle)
+
+    /**
+     * Die pausierte Wiedergabe: der Fall, der am 04.09.2026 am Jelly 2 blinkte.
+     *
+     * Waehrend Spotify spielt, ist die Anzeige `ongoing` und faellt schon durch die alte
+     * Regel. Pausiert ist sie es nicht mehr, laesst sich wegwischen und sah damit aus wie
+     * eine wartende Nachricht. Sie ist aber dieselbe Anzeige und meldet nichts Neues.
+     */
+    @Test
+    fun `eine pausierte Wiedergabe zaehlt nicht`() {
+        val pausiert = row("musik", clearable = true, ongoing = false, mediaStyle = true)
+        assertTrue("die Vorlage allein muss reichen", !NotificationCounts.counts(pausiert))
+        assertEquals(
+            emptyMap<String, Int>(),
+            NotificationCounts.summarise(listOf(pausiert)),
+        )
+    }
+
+    @Test
+    fun `Anzeigen ueber etwas Laufendes zaehlen nicht`() {
+        // Was die App selbst als Kategorie angibt. Alles hier ist eine Anzeige ueber etwas,
+        // das laeuft oder gilt, und keine Nachricht, auf die jemand antworten wuerde.
+        listOf("transport", "service", "progress", "navigation", "call", "alarm", "sys").forEach {
+            assertTrue(
+                "Kategorie $it darf nicht blinken",
+                !NotificationCounts.counts(row("app", category = it)),
+            )
+        }
+    }
+
+    @Test
+    fun `eine Nachricht zaehlt weiterhin`() {
+        // Die Gegenprobe: ohne sie koennte die Liste zu weit werden und alles wegfiltern.
+        listOf(null, "msg", "email", "social", "event", "reminder").forEach {
+            assertTrue(
+                "Kategorie $it ist eine Nachricht und muss zaehlen",
+                NotificationCounts.counts(row("app", category = it)),
+            )
+        }
+    }
 
     @Test
     fun `normale Nachrichten werden pro Paket gezaehlt`() {

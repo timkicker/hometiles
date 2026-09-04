@@ -8,7 +8,7 @@ import org.junit.Test
 /**
  * Die Bezeichnung einer Nummer kommt vom System, nicht von uns.
  *
- * Am Telefon des Nutzers gesehen: unter der Nummer seines Vaters stand **„Mobil"**,
+ * Am Telefon des Nutzers gesehen (03.09.2026): unter der Nummer seines Vaters stand **„Mobil"**,
  * während der Knopf daneben „Call straight away" hieß. Das Gerät steht auf Englisch; drei
  * deutsche Wörter waren fest im Quelltext einer Zuordnung eingetragen, und alles außerhalb
  * dieser drei - Fax, Pager, Hauptanschluss, eigene Bezeichnungen - hatte gar keine.

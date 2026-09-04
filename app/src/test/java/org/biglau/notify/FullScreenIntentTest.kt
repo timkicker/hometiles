@@ -39,7 +39,7 @@ class FullScreenIntentTest {
      */
     @Test
     fun `die Nachrichtenansicht steht nicht dauerhaft ueber dem Schloss`() {
-        val block = manifest.substringAfter(".sms.SmsActivity").substringBefore("</activity>")
+        val block = Quelltext.ausschnitt(manifest, ".sms.SmsActivity", "</activity>")
         assertTrue("showWhenLocked gehört nicht ins Manifest: $block", "showWhenLocked" !in block)
     }
 }

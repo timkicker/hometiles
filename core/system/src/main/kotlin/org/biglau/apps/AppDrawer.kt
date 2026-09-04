@@ -59,6 +59,26 @@ object AppDrawer {
         query: String,
     ): List<LaunchableApp> = TextSearch.filter(visible(apps, hidden), query) { it.label }
 
+    /**
+     * Die **ausgeblendeten** Apps, die zur Suche passen.
+     *
+     * Wer eine App ausgeblendet hat und sie Monate spaeter sucht, bekam „Keine App passt
+     * dazu" - ein Satz, der ueber die sichtbare Liste stimmt und ueber das Telefon nicht.
+     * Die Zeile zu den ausgeblendeten Apps stand nur da, solange das Suchfeld leer war,
+     * also genau dann nicht, wenn sie gebraucht wird. Denselben Fehler hatte die
+     * Einstellungszeile eine Zeile darueber schon einmal.
+     */
+    fun hiddenMatches(
+        apps: List<LaunchableApp>,
+        hidden: Set<String>,
+        query: String,
+    ): List<LaunchableApp> =
+        if (query.isBlank()) {
+            emptyList()
+        } else {
+            TextSearch.filter(apps.filter { keyOf(it) in hidden }, query) { it.label }
+        }
+
     /** Ausblenden umschalten. */
     fun toggleHidden(hidden: Set<String>, app: LaunchableApp): Set<String> {
         val key = keyOf(app)

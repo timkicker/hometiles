@@ -28,16 +28,27 @@ class TileNotificationsTest {
         assertEquals("andere.sms", TileNotifications.watchedPackage(action, SystemPackages(sms = "andere.sms")))
     }
 
+    /**
+     * Die Telefon-Kachel sieht auf **gar keine** fremden Meldungen mehr.
+     *
+     * Hier stand bis zum 04.09.2026 das Gegenteil: sie folge dem eingestellten
+     * Standard-Dialer. Das war richtig, solange das eine fremde App war - deren Meldung
+     * ueber einen verpassten Anruf war genau das, was die Kachel meinen sollte.
+     *
+     * Sobald BigLau die Rolle haelt, ist der Standard-Dialer BigLau selbst. Und BigLau
+     * meldet **Nachrichten**: die Telefon-Kachel haette geblinkt, wenn eine SMS ankommt.
+     * Dieselbe Falle wie bei den verpassten Anrufen, nur einen Tag spaeter gesehen - und
+     * dieser Test hielt sie fest, statt sie zu finden.
+     */
     @Test
-    fun `die Telefon-Kachel folgt dem eingestellten Standard-Dialer`() {
+    fun `die Telefon-Kachel folgt keiner fremden App mehr`() {
         val action = ButtonAction.Action(Builtin.DIALER)
-        assertEquals("com.dialer.app", TileNotifications.watchedPackage(action, system))
+        assertNull(TileNotifications.watchedPackage(action, system))
     }
 
     @Test
     fun `ohne gesetzte Standard-App wird nichts beobachtet`() {
         assertNull(TileNotifications.watchedPackage(ButtonAction.Action(Builtin.MESSAGES), SystemPackages()))
-        assertNull(TileNotifications.watchedPackage(ButtonAction.Action(Builtin.DIALER), SystemPackages()))
     }
 
     @Test
@@ -101,6 +112,45 @@ class TileNotificationsTest {
         assertEquals(
             3,
             TileNotifications.badgeFor(kachel, mapOf("com.dialer.app" to 7), system, missed = 3),
+        )
+    }
+
+
+    /**
+     * Und die **Telefon**-Kachel genauso — dieselbe Falle, nur spaeter gesehen.
+     *
+     * Sie zaehlte die Meldungen der Standard-Telefon-App. Seit BigLau die Rolle haelt
+     * (04.09.2026 auf dem Geraet des Nutzers), ist das BigLau selbst — und BigLau meldet
+     * **Nachrichten**. Die Telefon-Kachel haette geblinkt, wenn eine SMS ankommt.
+     *
+     * Was eine blinkende Telefon-Kachel heissen soll, ist ohnehin nur eines: du hast einen
+     * Anruf verpasst.
+     */
+    @Test
+    fun `die Telefon-Kachel zaehlt verpasste Anrufe, nicht eigene Meldungen`() {
+        val kachel = Button(action = ButtonAction.Action(Builtin.DIALER), blink = true)
+        assertEquals(
+            2,
+            TileNotifications.badgeFor(
+                kachel,
+                mapOf("org.biglau" to 5),
+                SystemPackages(sms = "org.biglau", dialer = "org.biglau"),
+                missed = 2,
+            ),
+        )
+    }
+
+    @Test
+    fun `ohne verpasste Anrufe bleibt die Telefon-Kachel still`() {
+        val kachel = Button(action = ButtonAction.Action(Builtin.DIALER), blink = true)
+        assertEquals(
+            0,
+            TileNotifications.badgeFor(
+                kachel,
+                mapOf("org.biglau" to 5),
+                SystemPackages(sms = "org.biglau", dialer = "org.biglau"),
+                missed = 0,
+            ),
         )
     }
 

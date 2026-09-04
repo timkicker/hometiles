@@ -1,7 +1,9 @@
 package org.biglau.actions
 
 import android.content.ActivityNotFoundException
+import android.app.Activity
 import android.content.Context
+import android.content.ContextWrapper
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
@@ -168,8 +170,45 @@ object Intents {
         start(context) { Intent(Settings.ACTION_MANAGE_DEFAULT_APPS_SETTINGS) }
     }
 
+    /**
+     * Eine Absicht starten, die anderswo gebaut wurde.
+     *
+     * Fuer die Faelle, in denen das Bauen woanders hingehoert - der Kontakt-Editor kommt
+     * aus `ContactRepository`, weil dort auch gelesen und geschrieben wird. Gestartet wird
+     * er trotzdem hier, denn hier haengt der Auffang: bis zum 04.09.2026 rief die
+     * Kontaktliste `startActivity` selbst, und ohne Adressbuch-App waere BigLau beim Tippen
+     * auf "Im Adressbuch bearbeiten" abgestuerzt.
+     *
+     * Alles, was einen eigenen Namen hat, bekommt weiter eine eigene Funktion. Das hier ist
+     * die Ausnahme, nicht der Weg.
+     */
+    fun open(context: Context, intent: Intent) = start(context) { intent }
+
+    /**
+     * Der Bildschirm hinter einem Kontext - oder `null`, wenn keiner dahintersteht.
+     *
+     * In einer Compose-Funktion ist `LocalContext.current` selten die Activity selbst,
+     * sondern eine Huelle darum. Ein `context is Activity` waere dort immer falsch, und der
+     * Rueckweg bliebe genau da kaputt, wo die meisten Aufrufe herkommen.
+     */
+    fun bildschirmHinter(context: Context): Activity? {
+        var da: Context? = context
+        while (da is ContextWrapper) {
+            if (da is Activity) return da
+            da = da.baseContext
+        }
+        return null
+    }
+
     private inline fun start(context: Context, build: () -> Intent) {
-        val intent = build().addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        // Eine neue Aufgabe nur, wenn es keine gibt. Von einem Bildschirm aus gestartet
+        // gehoert die fremde App **in** BigLaus Aufgabe, sonst fuehrt die Zurueck-Taste
+        // nicht zurueck: am 04.09.2026 gemessen - "Im Adressbuch bearbeiten", einmal
+        // zurueck, und man stand in der Kontaktliste des Systems statt wieder bei BigLau.
+        // Wer von dort weiterkommt, ist nicht mehr in der grossen Schrift.
+        val intent = build().let {
+            if (bildschirmHinter(context) != null) it else it.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
         try {
             context.startActivity(intent)
         } catch (e: ActivityNotFoundException) {

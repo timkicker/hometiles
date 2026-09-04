@@ -46,7 +46,7 @@ class SosAlarmTest {
         // Nach dem Inhalt gefragt, nicht nach der Schreibweise: im selben Aufraeumen steht
         // inzwischen auch das Abmelden der Ortung, und daran soll diese Regel nicht
         // zerbrechen.
-        val aufraeumen = sosQuelle.substringAfter("onDispose {").substringBefore("}")
+        val aufraeumen = Quelltext.ausschnitt(sosQuelle, "onDispose {", "}")
         assertTrue("Es fehlt das onDispose dazu: $aufraeumen", "SosAlarm.stop" in aufraeumen)
     }
 }

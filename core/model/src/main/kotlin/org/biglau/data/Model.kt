@@ -505,9 +505,10 @@ data class PhoneConfig(
      *
      * **Damit ein Abzeichen kein Schreibrecht braucht.** Bisher zaehlte BigLau die vom
      * System als „neu" gefuehrten verpassten Anrufe und setzte dieses Kennzeichen beim
-     * Oeffnen zurueck - das verlangt `WRITE_CALL_LOG`, und auf dem Telefon des Nutzers ist
-     * es nicht erteilt. Die Zahl auf der Kachel waere dort nie erloschen, egal wie oft er
-     * die Liste liest.
+     * Oeffnen zurueck - das verlangt `WRITE_CALL_LOG`, und am 03.09.2026 war es auf dem
+     * Geraet des Nutzers nicht erteilt. Die Zahl auf der Kachel waere dort nie erloschen,
+     * egal wie oft er die Liste liest. (Seit dem 04.09.2026 haelt BigLau die Telefon-Rolle
+     * und bekommt das Recht mit - der Weg hier bleibt, weil er an keiner Rolle haengt.)
      *
      * Gezaehlt werden jetzt nur Anrufe, die **juenger** sind als dieser Zeitpunkt. Das
      * Kennzeichen des Systems bleibt zusaetzlich in der Bedingung: raeumt die

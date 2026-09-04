@@ -338,7 +338,7 @@ private fun <T> Choice(
             items(options) { (label, value) ->
                 BigRow(
                     label = label,
-                    surface = if (value == selected) palette.surfaceAccent else palette.surfaceDefault,
+                    selected = value == selected,
                     onClick = { onPick(value) },
                 )
             }
@@ -353,6 +353,11 @@ private fun <T> Choice(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             if (scrollable) {
+                // Nur die Hoehe. Die Breite kommt aus der Untergrenze in `PageButton`
+                // (48 dp, das Mindestmass fuer einen Fingertipp) - hier eine groessere zu
+                // setzen war ein Fehlversuch: mit 72 dp blieb fuer "Weiter" bei 200 %
+                // Schrift so wenig Platz, dass das Wort mitten durchbrach ("Weite/r").
+                // Am Emulator gesehen, beide Male.
                 ScrollButtonPair(listState) { up, down ->
                     up(Modifier.height(72.dp))
                     down(Modifier.height(72.dp))

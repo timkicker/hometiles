@@ -8,10 +8,14 @@ import org.junit.Test
  * Das Abzeichen für verpasste Anrufe braucht kein Schreibrecht.
  *
  * Vorher zählte BigLau nur das Kennzeichen `NEW = 1` des Systems und setzte es beim Öffnen
- * der Liste zurück. Das verlangt `WRITE_CALL_LOG`, und auf dem Telefon des Nutzers ist
- * genau dieses Recht **nicht erteilt** — die Zahl auf der Kachel wäre dort nie erloschen,
- * egal wie oft er die Liste liest. Ein Abzeichen ist kein Grund, das Recht zum *Ändern* der
- * Anrufliste zu verlangen.
+ * der Liste zurück. Das verlangt `WRITE_CALL_LOG`, und am 03.09.2026 war genau dieses Recht
+ * auf dem Gerät des Nutzers **nicht erteilt** — die Zahl auf der Kachel wäre dort nie
+ * erloschen, egal wie oft er die Liste liest. Ein Abzeichen ist kein Grund, das Recht zum
+ * *Ändern* der Anrufliste zu verlangen.
+ *
+ * Seit dem 04.09.2026 hält BigLau die Telefon-Rolle und bekommt das Recht mit. Der Weg ohne
+ * Schreibrecht bleibt trotzdem der richtige: er hängt an keiner Rolle, und wer BigLau ohne
+ * sie benutzt, hat dieselbe Kachel.
  */
 class MissedCallsTest {
 

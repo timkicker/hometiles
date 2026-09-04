@@ -14,4 +14,80 @@
     <string name="permission_open_settings">Open system settings</string>
     <string name="scroll_down">Page down</string>
     <string name="scroll_up">Page up</string>
+
+    <!--
+      Die Namen der mitgelieferten Icons und ihre Gruppen. Am 04.09.2026 aus :app
+      hierher gezogen, zusammen mit IconCatalogue: der Katalog ist Teil des
+      Design-Systems, und eine Ressource gehoert dorthin, wo ihr Aufrufer wohnt.
+    -->
+    <string name="icon_accessalarm">Alarm</string>
+    <string name="icon_acunit">Snow</string>
+    <string name="icon_air">Wind</string>
+    <string name="icon_apartment">Building</string>
+    <string name="icon_apps">Apps</string>
+    <string name="icon_batteryfull">Battery</string>
+    <string name="icon_book">Book</string>
+    <string name="icon_calendarmonth">Calendar</string>
+    <string name="icon_call">Phone</string>
+    <string name="icon_chat">Chat</string>
+    <string name="icon_childcare">Child</string>
+    <string name="icon_church">Church</string>
+    <string name="icon_cloud">Cloud</string>
+    <string name="icon_directionsbus">Bus</string>
+    <string name="icon_directionscar">Car</string>
+    <string name="icon_elderly">Walking stick</string>
+    <string name="icon_email">Email</string>
+    <string name="icon_emergency">Emergency</string>
+    <string name="icon_favorite">Heart</string>
+    <string name="icon_group">Group</string>
+    <string name="icon_headphones">Headphones</string>
+    <string name="icon_history">History</string>
+    <string name="icon_home">Home</string>
+    <string name="icon_key">Key</string>
+    <string name="icon_localhospital">Hospital</string>
+    <string name="icon_localpharmacy">Pharmacy</string>
+    <string name="icon_localtaxi">Taxi</string>
+    <string name="icon_locationon">Place</string>
+    <string name="icon_lock">Lock</string>
+    <string name="icon_map">Map</string>
+    <string name="icon_medicalservices">Doctor</string>
+    <string name="icon_medication">Pills</string>
+    <string name="icon_message">Message</string>
+    <string name="icon_monitorheart">Heartbeat</string>
+    <string name="icon_movie">Film</string>
+    <string name="icon_musicnote">Music</string>
+    <string name="icon_newspaper">Newspaper</string>
+    <string name="icon_person">Person</string>
+    <string name="icon_photo">Picture</string>
+    <string name="icon_photocamera">Camera</string>
+    <string name="icon_powersettingsnew">Power</string>
+    <string name="icon_radio">Radio</string>
+    <string name="icon_restaurant">Food</string>
+    <string name="icon_schedule">Clock</string>
+    <string name="icon_settings">Settings</string>
+    <string name="icons_group_communication">Talking</string>
+    <string name="icons_group_everyday">Everyday</string>
+    <string name="icons_group_health">Health</string>
+    <string name="icons_group_media">Music and pictures</string>
+    <string name="icons_group_people">People</string>
+    <string name="icons_group_places">Places</string>
+    <string name="icons_group_system">The phone</string>
+    <string name="icons_group_time">Time</string>
+    <string name="icons_group_weather">Weather</string>
+    <string name="icon_shoppingcart">Shopping</string>
+    <string name="icon_star">Star</string>
+    <string name="icon_store">Shop</string>
+    <string name="icon_thunderstorm">Storm</string>
+    <string name="icon_timer">Timer</string>
+    <string name="icon_today">Today</string>
+    <string name="icon_umbrella">Umbrella</string>
+    <string name="icon_videocam">Video call</string>
+    <string name="icon_voicemail">Voicemail</string>
+    <string name="icon_wbsunny">Sun</string>
+    <string name="icon_wifi">Wi-Fi</string>
+    <string name="a11y_chosen">%1$s, chosen</string>
+    <string name="a11y_on">%1$s, on</string>
+    <string name="a11y_off">%1$s, off</string>
+    <string name="a11y_state">%1$s, %2$s</string>
+    <string name="a11y_pin_empty">No digit entered yet</string>
 </resources>

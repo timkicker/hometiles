@@ -37,11 +37,16 @@ private fun vibrationLabel(dauer: Int): Int = when (dauer) {
 /**
  * Nachrichten (`PLAN.md` 4.7).
  *
- * Der Filter **verbirgt**, er sperrt nicht: BigLau hält die SMS-Rolle nicht und kann eine
- * Nachricht weder abweisen noch am Speichern hindern. Sie kommt an und liegt in der
- * Datenbank des Systems — sie steht nur nicht in dieser Liste. Genau das sagen die Texte
+ * Der Filter **verbirgt**, er sperrt nicht. Eine gefilterte Nachricht kommt an und liegt in
+ * der Datenbank des Systems — sie steht nur nicht in dieser Liste. Genau das sagen die Texte
  * hier auch; eine Sperre, die man für dichter hält, als sie ist, ist gefährlicher als eine,
  * deren Grenze man kennt.
+ *
+ * Bis zum 04.09.2026 stand hier als Begründung „BigLau hält die SMS-Rolle nicht". Seit
+ * BigLau sie hält, stimmt das nicht mehr — an der Sache ändert es nichts: abweisen kann
+ * auch die Standard-App eine SMS nicht, das Netz hat sie längst zugestellt. Die beiden
+ * Texte `sms_filter_hint` und `sms_filter_hint_default` sagen deshalb je nach Rolle
+ * dasselbe mit dem richtigen Grund.
  */
 @Composable
 internal fun MessagesSettingsList(
@@ -62,15 +67,22 @@ internal fun MessagesSettingsList(
     var woerterText by remember(sms.hiddenWords) { mutableStateOf(SmsFilter.formatWords(sms.hiddenWords)) }
     LazyColumn(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         item { BigHeading(stringResource(R.string.settings_messages)) }
-        // Was BigLau **nicht** kann, und zwar bevor jemand es zur Nachrichten-App macht:
-        // eine MMS steht nicht in der Meldung, sie wird ueber die Datenverbindung vom
-        // MMSC geholt. BigLau hat keine INTERNET-Berechtigung - der Satz im README
-        // ("ohne Netzwerkzugriff") ist genau das, was hier den Preis hat. Bis zum
-        // 03.09.2026 stand das nirgends; wer die Rolle vergibt, haette es erst gemerkt,
-        // wenn ein Bild nicht ankommt.
+        // Was BigLau **nicht** kann: eine MMS steht nicht in der Meldung, sie wird ueber
+        // die Datenverbindung vom MMSC geholt. BigLau hat keine INTERNET-Berechtigung -
+        // der Satz im README ("ohne Netzwerkzugriff") ist genau das, was hier den Preis
+        // hat. Bis zum 03.09.2026 stand das nirgends; wer die Rolle vergibt, haette es
+        // erst gemerkt, wenn ein Bild nicht ankommt.
+        //
+        // **Zwei Fassungen seit dem 04.09.2026.** Der erste Satz war als Warnung *vor* der
+        // Rollenvergabe geschrieben und endete mit "die Nachrichten-App des Telefons kann
+        // sie weiterhin oeffnen". Danach stimmt das nicht mehr: eine MMS holt nur die
+        // Standard-App, und das ist dann BigLau. Ein Trost, der nach der Entscheidung
+        // falsch wird, ist schlimmer als keiner.
         item {
             Text(
-                text = stringResource(R.string.sms_no_mms),
+                text = stringResource(
+                    if (istStandardApp) R.string.sms_no_mms_default else R.string.sms_no_mms,
+                ),
                 color = palette.onBackground,
                 fontSize = bigSp(15f),
                 modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp),
@@ -82,7 +94,7 @@ internal fun MessagesSettingsList(
         items(ConversationText.CHOICES) { wert ->
             BigRow(
                 label = "${(wert * 100).toInt()} %",
-                surface = if (wert == sms.conversationScale) palette.surfaceAccent else palette.surfaceDefault,
+                selected = wert == sms.conversationScale,
                 onClick = { onChange(sms.copy(conversationScale = wert)) },
             )
         }
@@ -92,7 +104,7 @@ internal fun MessagesSettingsList(
                     if (sms.fullScreenAlert) R.string.sms_fullscreen_on else R.string.sms_fullscreen_off,
                 ),
                 secondary = stringResource(R.string.sms_fullscreen_hint),
-                surface = if (sms.fullScreenAlert) palette.surfaceAccent else palette.surfaceDefault,
+                checked = sms.fullScreenAlert,
                 onClick = { onChange(sms.copy(fullScreenAlert = !sms.fullScreenAlert)) },
             )
         }
@@ -106,7 +118,7 @@ internal fun MessagesSettingsList(
                 } else {
                     pluralStringResource(R.plurals.sms_repeat_minutes, minuten, minuten)
                 },
-                surface = if (minuten == sms.repeatMinutes) palette.surfaceAccent else palette.surfaceDefault,
+                selected = minuten == sms.repeatMinutes,
                 onClick = {
                     onChange(sms.copy(repeatMinutes = minuten))
                     // Aus heisst sofort aus, nicht erst bei der naechsten Nachricht: sonst
@@ -124,7 +136,7 @@ internal fun MessagesSettingsList(
                 // Kurz, mittel, lang statt Millisekunden: eine Zahl in ms sagt niemandem,
                 // wie sich das anfuehlt, und diese App richtet sich nicht an Techniker.
                 label = stringResource(vibrationLabel(dauer)),
-                surface = if (dauer == sms.vibrationMs) palette.surfaceAccent else palette.surfaceDefault,
+                selected = dauer == sms.vibrationMs,
                 onClick = { onChange(sms.copy(vibrationMs = dauer)) },
             )
         }

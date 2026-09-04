@@ -7,6 +7,8 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -103,6 +105,21 @@ fun ScrollButtonPair(
     )
 }
 
+/**
+ * Wie blass ein Knopf am Listenende wird.
+ *
+ * Blass heisst **nicht** unsichtbar: wer nicht weiterblaettern kann, soll sehen, dass der
+ * Knopf noch da ist - sonst sucht er ihn. Ein Symbol ist eine Flaeche, keine Schrift, also
+ * gilt `Tokens.MIN_TILE_ON_BACKGROUND` (3,0).
+ *
+ * Bis zum 04.09.2026 stand hier 0,4. Nachgerechnet und am Emulator im Bildpunkt bestaetigt:
+ * dunkel 3,81, Kontrast 3,18 - und **hell 2,59**. Im hellen Thema war das blasse Symbol
+ * `#999999` auf `#F3F4F4` und damit unter der Schwelle. Mit 0,5 sind es 5,37 / 4,53 / 3,44,
+ * und der Abstand zum wachen Knopf (18,10 / 17,20 / 15,66) bleibt gross genug, dass man den
+ * Unterschied sieht.
+ */
+internal const val BLASS = 0.5f
+
 @Composable
 private fun PageButton(
     icon: ImageVector,
@@ -114,13 +131,23 @@ private fun PageButton(
     val palette = LocalBigPalette.current
     val surface = palette.surfaceDefault
     Box(
-        // Hoehe zuerst, damit ein Aufrufer sie ueberschreiben kann: neben einer 72-dp-Zeile
-        // saehe ein 56-dp-Knopf nach einem Versehen aus.
+        // Der Aufrufer zuerst, dann die Untergrenzen.
+        //
+        // Bis zum 04.09.2026 stand hier `.height(56.dp).then(modifier)` mit dem Kommentar
+        // "Hoehe zuerst, damit ein Aufrufer sie ueberschreiben kann". Das Gegenteil war der
+        // Fall: eine feste Groesse **vor** dem Aufrufer-Modifier begrenzt ihn. Der Assistent
+        // bat um 72 dp und bekam 56 - am Emulator nachgemessen, 77 statt 99 Bildpunkten.
+        //
+        // `heightIn`/`widthIn` sind Untergrenzen und tun genau, was der alte Kommentar
+        // versprach: wer nichts sagt, bekommt 56 dp hoch; wer etwas sagt, bekommt es. Die
+        // 48 dp Breite sind das Mindestmass fuer einen Fingertipp - ohne sie war der Knopf
+        // im Assistenten 40,7 dp breit, weil er sich seine Breite vom Symbol holte.
         modifier = Modifier
-            .height(56.dp)
             .then(modifier)
+            .heightIn(min = 56.dp)
+            .widthIn(min = 48.dp)
             .clip(RoundedCornerShape(LocalCornerRadius.current))
-            .background(if (enabled) surface.fill else surface.fill.copy(alpha = 0.4f))
+            .background(if (enabled) surface.fill else surface.fill.copy(alpha = BLASS))
             .clickable(enabled = enabled, onClick = onClick)
             .semantics { contentDescription = description },
         contentAlignment = Alignment.Center,
@@ -128,7 +155,7 @@ private fun PageButton(
         Icon(
             imageVector = icon,
             contentDescription = null,
-            tint = if (enabled) surface.ink else surface.ink.copy(alpha = 0.4f),
+            tint = if (enabled) surface.ink else surface.ink.copy(alpha = BLASS),
             modifier = Modifier.padding(4.dp).height(36.dp),
         )
     }

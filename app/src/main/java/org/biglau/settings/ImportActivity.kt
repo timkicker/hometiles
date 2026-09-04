@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.material3.Text
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -22,6 +23,8 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.biglau.ui.bigSp
 import org.biglau.ui.BigLauActivity
@@ -53,13 +56,34 @@ class ImportActivity : BigLauActivity() {
 
         val uri: Uri? = intent?.data
         val store = ConfigStore.get(this)
-        val text: String? = uri?.let { read(it) }
-        val loaded: LauncherConfig? = text?.let(ConfigTransfer::import)
-        val vonNeuerer = text != null && ConfigTransfer.isFromNewerVersion(text)
 
         setContent {
             val config by store.config.collectAsStateWithLifecycle()
             var done by remember { mutableStateOf(false) }
+
+            // **Die Datei wird nicht im Hauptthread gelesen.**
+            //
+            // Bis zum 04.09.2026 stand `read(uri)` in `onCreate`, direkt und blockierend.
+            // Bei einer Datei auf dem Geraet faellt das nicht auf; der Weg, den der
+            // Klassenkopf beschreibt - Sicherung aus einer Cloud-App oder einem
+            // Mailanhang - geht aber ueber einen fremden Anbieter, und der holt sie unter
+            // Umstaenden erst aus dem Netz. Dann steht der Bildschirm, bis Android die App
+            // fuer haengend erklaert. Jede andere Stelle im Programm liest ueber
+            // `withContext(Dispatchers.IO)`; diese war die Ausnahme.
+            var inhalt by remember { mutableStateOf<String?>(null) }
+            var laedt by remember { mutableStateOf(uri != null) }
+            LaunchedEffect(uri) {
+                if (uri == null) {
+                    laedt = false
+                    return@LaunchedEffect
+                }
+                inhalt = read(uri)
+                laedt = false
+            }
+            val loaded: LauncherConfig? = remember(inhalt) { inhalt?.let(ConfigTransfer::import) }
+            val vonNeuerer = remember(inhalt) {
+                inhalt?.let { ConfigTransfer.isFromNewerVersion(it) } == true
+            }
 
             BigLauTheme(
                 config.appearance.theme,
@@ -89,7 +113,8 @@ class ImportActivity : BigLauActivity() {
                                 // wie eine, die keine Sicherung ist. Vorher stand beides
                                 // unter "Das ist keine BigLau-Sicherung" - und wer die Datei
                                 // gerade selbst geschrieben hatte, suchte den Fehler bei ihr.
-                                text == null -> stringResource(R.string.transfer_unreadable)
+                                laedt -> stringResource(R.string.transfer_reading)
+                                inhalt == null -> stringResource(R.string.transfer_unreadable)
                                 loaded == null -> stringResource(R.string.transfer_bad_file)
                                 done && vonNeuerer -> stringResource(R.string.transfer_imported_older)
                                 done -> stringResource(R.string.transfer_imported)
@@ -124,6 +149,23 @@ class ImportActivity : BigLauActivity() {
                             fontSize = bigSp(17f),
                             modifier = Modifier.padding(horizontal = 4.dp, vertical = 8.dp),
                         )
+                        // Die Warnung gehoert **vor** die Entscheidung.
+                        //
+                        // `transfer_imported_older` gab es schon, aber erst danach: erst
+                        // war die ganze Einrichtung ersetzt, dann stand da, dass etwas
+                        // fehlt. Am 04.09.2026 am Emulator nachgestellt, mit einer
+                        // Sicherung, die `"version": 99` trug - die Rueckfrage sagte nur
+                        // "2 Bildschirme mit 12 Kacheln", geladen, und **danach** kam der
+                        // Satz. Wer sie danach liest, kann nichts mehr entscheiden; seine
+                        // alte Belegung ist weg.
+                        if (loaded != null && !done && vonNeuerer) {
+                            Text(
+                                text = stringResource(R.string.transfer_confirm_newer),
+                                color = palette.dangerText,
+                                fontSize = bigSp(16f),
+                                modifier = Modifier.padding(horizontal = 4.dp),
+                            )
+                        }
                         if (loaded != null && !done) {
                             BigRow(
                                 label = stringResource(R.string.transfer_confirm_yes),
@@ -144,7 +186,16 @@ class ImportActivity : BigLauActivity() {
         }
     }
 
-    private fun read(uri: Uri): String? = runCatching {
-        contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() }
-    }.getOrNull()
+    /**
+     * Liest die Datei - und wechselt den Faden selbst.
+     *
+     * Nicht am Aufrufer, sondern hier: eine Funktion, die von der Platte liest und das dem
+     * Aufrufer ueberlaesst, wird irgendwann aus dem Hauptthread gerufen. Als `suspend` mit
+     * eigenem `withContext` kann sie es gar nicht.
+     */
+    private suspend fun read(uri: Uri): String? = withContext(Dispatchers.IO) {
+        runCatching {
+            contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() }
+        }.getOrNull()
+    }
 }

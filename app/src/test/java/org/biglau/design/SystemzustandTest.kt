@@ -28,7 +28,7 @@ class SystemzustandTest {
     @Test
     fun `die gemeinsame Basis zaehlt die Rueckkehr`() {
         assertTrue("BigLauActivity kennt `fortsetzungen` nicht mehr", "fortsetzungen" in basis)
-        val resume = basis.substringAfter("override fun onResume()").substringBefore("\n    }")
+        val resume = Quelltext.ausschnitt(basis, "override fun onResume()", "\n    }")
         assertTrue(
             "onResume zählt nicht mehr hoch - dann merkt niemand, dass der Bildschirm " +
                 "wieder vorn ist.",
@@ -39,7 +39,7 @@ class SystemzustandTest {
     @Test
     fun `der Benachrichtigungszugriff wird beim Wiederkommen neu gelesen`() {
         val stelle = Quelltext.datei("org/biglau/settings/SettingsActivity.kt").readText()
-            .substringAfter("accessGranted =")
+            .let { Quelltext.ausschnitt(it, "accessGranted =") }
             .take(200)
         assertTrue(
             "accessGranted wird wieder einmalig gelesen. Wer den Zugriff erteilt und " +
@@ -60,7 +60,7 @@ class SystemzustandTest {
     @Test
     fun `der Assistent liest seinen Zustand beim Wiederkommen neu`() {
         val stelle = Quelltext.datei("org/biglau/wizard/WizardActivity.kt").readText()
-            .substringAfter("var state by")
+            .let { Quelltext.ausschnitt(it, "var state by") }
             .take(120)
         assertTrue(
             "Der Assistent liest seinen Zustand wieder nur einmal - dann steht ein " +

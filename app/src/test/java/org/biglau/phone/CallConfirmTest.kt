@@ -24,7 +24,7 @@ class CallConfirmTest {
     /** Die Zeile öffnet die Rückfrage, statt zu wählen. */
     @Test
     fun `die Zeile im Verlauf fragt erst`() {
-        val zeile = quelle.substringAfter("items(groups, key =").substringBefore("onLongClick")
+        val zeile = Quelltext.ausschnitt(quelle, "items(groups, key =", "onLongClick")
         assertTrue("Die Zeile ruft onAskCall auf: $zeile", "onAskCall(" in zeile)
         assertTrue("Die Zeile darf nicht unmittelbar waehlen: $zeile", "onCall(" !in zeile)
     }
@@ -44,7 +44,7 @@ class CallConfirmTest {
      */
     @Test
     fun `der Notrufweg bleibt vor der Sperre`() {
-        val dial = quelle.substringAfter("private fun dial(").substringBefore("\n    }")
+        val dial = Quelltext.ausschnitt(quelle, "private fun dial(", "\n    }")
         assertTrue(
             "Der Notruf muss vor der Nummernsperre geprüft werden",
             dial.indexOf("looksLikeEmergency") < dial.indexOf("CallBlocking.isBlocked"),

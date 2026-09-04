@@ -94,9 +94,11 @@ class CallLogRepository(context: Context) {
      * jemand die Liste oeffnet. Ohne diesen Schritt bliebe die Zahl auf der Kachel stehen,
      * obwohl der Nutzer sie gerade gelesen hat.
      *
-     * **Und genau das passiert auf dem Telefon des Nutzers.** `WRITE_CALL_LOG` steht dort
-     * auf `granted=false` (nachgesehen am 03.09.2026), also gibt diese Funktion still 0
-     * zurueck und die Kachel blinkt weiter. Der Rueckgabewert wird beim Aufruf nicht
+     * **Und genau das passierte auf dem Geraet des Nutzers.** `WRITE_CALL_LOG` stand dort
+     * am 03.09.2026 auf `granted=false`, also gab diese Funktion still 0 zurueck und die
+     * Kachel blinkte weiter. Seit dem 04.09.2026 haelt BigLau die Telefon-Rolle und
+     * bekommt das Recht mit; auf einem Geraet ohne diese Rolle gilt der Absatz weiter.
+     * Der Rueckgabewert wird beim Aufruf nicht
      * ausgewertet - er koennte es auch nicht sinnvoll, denn eine Meldung "konnte nicht als
      * gelesen markiert werden" hilft niemandem.
      *

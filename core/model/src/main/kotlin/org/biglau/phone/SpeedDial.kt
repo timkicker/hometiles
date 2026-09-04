@@ -28,4 +28,14 @@ object SpeedDial {
 
     fun clear(config: PhoneConfig, key: Char): PhoneConfig =
         config.copy(speedDial = config.speedDial - key.toString())
+
+    /**
+     * Ist ueberhaupt eine Taste belegt?
+     *
+     * Danach richtet sich, was ein Langdruck **tut**: auf einer leeren Taste fuehrt er ins
+     * Belegen, auf einer belegten waehlt er sofort. Der Hinweis ueber der Tastatur sagte
+     * bis zum 04.09.2026 in beiden Faellen dasselbe („Halten fuer Kurzwahl") - also im
+     * harmlosen Zustand denselben Satz wie im gefaehrlichen.
+     */
+    fun anyAssigned(config: PhoneConfig): Boolean = ASSIGNABLE.any { targetFor(config, it) != null }
 }

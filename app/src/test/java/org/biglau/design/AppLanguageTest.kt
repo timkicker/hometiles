@@ -42,7 +42,13 @@ class AppLanguageTest {
                 .map { it.groupValues[1] }
                 .toSet()
             datei.readLines().forEachIndexed { index, zeile ->
-                val treffer = Regex("""(\w+)?\.?getString\(R\.string""").find(zeile)
+                // **Beide** Wege zu einem Text, nicht nur einer. Bis zum 04.09.2026 sah
+                // diese Regel nur `getString` an; `getQuantityString` holt genauso einen
+                // Text und kam genauso aus dem rohen Context. Aufgefallen, als eine neue
+                // Meldung auf der SOS-Seite beides benutzte und nur die eine Haelfte
+                // gemeldet wurde.
+                val treffer = Regex("""(\w+)?\.?(?:resources\.)?get(?:String|QuantityString)\(R\.(?:string|plurals)""")
+                    .find(zeile)
                     ?: return@forEachIndexed
                 val empfaenger = treffer.groupValues[1]
                 val gewrappt = empfaenger in erlaubt ||

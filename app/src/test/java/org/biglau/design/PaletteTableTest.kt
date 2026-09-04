@@ -104,17 +104,20 @@ class PaletteTableTest {
         listOf(
             Tokens.DARK_BACKGROUND, Tokens.DARK_EMPTY_TILE, Tokens.DARK_EMPTY_TILE_BORDER,
             Tokens.DARK_ON_BACKGROUND, Tokens.DARK_ACCENT, Tokens.DARK_DANGER,
+            Tokens.DARK_DANGER_TEXT,
         ).forEach { assertTrue("dunkel: ${hex(it)} fehlt in der Zeile", hex(it) in dunkel) }
 
         val hell = zeile("| **Hell**")
         listOf(
             Tokens.LIGHT_BACKGROUND, Tokens.LIGHT_EMPTY_TILE, Tokens.LIGHT_EMPTY_TILE_BORDER,
             Tokens.LIGHT_ON_BACKGROUND, Tokens.LIGHT_ACCENT, Tokens.LIGHT_DANGER,
+            Tokens.LIGHT_DANGER_TEXT,
         ).forEach { assertTrue("hell: ${hex(it)} fehlt in der Zeile", hex(it) in hell) }
 
         val kontrast = zeile("| **Kontrast**")
         listOf(
             Tokens.CONTRAST_BACKGROUND, Tokens.CONTRAST_INK, Tokens.CONTRAST_DANGER,
+            Tokens.CONTRAST_DANGER_TEXT,
         ).forEach { assertTrue("kontrast: ${hex(it)} fehlt in der Zeile", hex(it) in kontrast) }
     }
 }

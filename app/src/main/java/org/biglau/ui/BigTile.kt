@@ -1,6 +1,6 @@
 package org.biglau.ui
 
-import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
@@ -66,6 +66,18 @@ import org.biglau.ui.theme.LocalTextScale
 import org.biglau.ui.theme.tileBorder
 import org.biglau.R
 import org.biglau.a11y.TileSpeech
+
+/**
+ * Wie lange der Rand von duenn nach dick braucht. Hin und zurueck ist das Doppelte.
+ *
+ * Bis zum 04.09.2026 waren es 500 ms mit gleichmaessigem Verlauf, also gut eine Sekunde
+ * fuer den ganzen Weg. Der Nutzer hat es am Jelly 2 als hektisch beschrieben: es lenkt ab,
+ * statt zu sagen, dass etwas da ist. Ein Hinweis darf auffallen, ohne zu draengen.
+ *
+ * Dazu ein weicher Verlauf statt eines linearen: der lineare kehrt an beiden Enden
+ * abrupt um, und genau das macht das Zucken aus.
+ */
+private const val PULSDAUER_MS = 1400
 
 /**
  * Eine Kachel im Schild-Entwurf (PLAN.md 3.0): vollflaechige Farbe bis an die Kante,
@@ -207,7 +219,7 @@ fun BigTile(
             initialValue = 2f,
             targetValue = 5f,
             animationSpec = infiniteRepeatable(
-                animation = tween(500, easing = LinearEasing),
+                animation = tween(PULSDAUER_MS, easing = FastOutSlowInEasing),
                 repeatMode = RepeatMode.Reverse,
             ),
             label = "borderWidth",

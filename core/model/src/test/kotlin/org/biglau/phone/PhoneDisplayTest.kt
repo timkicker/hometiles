@@ -7,7 +7,7 @@ import org.junit.Test
 /**
  * Wie eine Rufnummer am Bildschirm steht.
  *
- * Der Anlass steht am Geraet: auf dem Telefon des Nutzers stand eine oesterreichische
+ * Der Anlass steht am Geraet: auf dem Telefon des Nutzers (02.09.2026) stand eine oesterreichische
  * Mobilnummer als „+436 641 234 567" da. „+436" ist kein Land - Oesterreich ist „+43", und
  * wer die Nummer so abliest oder vorliest, liest sie falsch. Die Gruppierung in Dreierbloecke
  * kannte keine Vorwahlen, und das war auch so aufgeschrieben („waere ohne Bibliothek

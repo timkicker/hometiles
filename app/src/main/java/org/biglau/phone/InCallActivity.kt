@@ -418,7 +418,7 @@ private fun AudioChoice(
                     AudioRoute.BLUETOOTH -> Icons.Filled.Bluetooth
                     AudioRoute.EARPIECE -> Icons.Filled.PhoneInTalk
                 },
-                surface = if (weg == current) palette.surfaceAccent else palette.surfaceDefault,
+                selected = weg == current,
                 modifier = Modifier.height(72.dp),
                 onClick = { onPick(weg) },
             )

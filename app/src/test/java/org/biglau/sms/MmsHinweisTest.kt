@@ -24,8 +24,7 @@ class MmsHinweisTest {
 
     @Test
     fun `der WAP-Push-Empfaenger schweigt nicht mehr`() {
-        val stelle = empfaenger.substringAfter("class WapPushDeliverReceiver")
-            .substringBefore("\n}")
+        val stelle = Quelltext.ausschnitt(empfaenger, "class WapPushDeliverReceiver", "\n}")
         assertTrue(
             "WapPushDeliverReceiver meldet die Bildnachricht nicht mehr - dann kommt sie " +
                 "still an und niemand erfährt davon.",
@@ -59,18 +58,46 @@ class MmsHinweisTest {
         )
     }
 
+    /**
+     * Der Hinweis nennt einen Ausweg, der auch **funktioniert**.
+     *
+     * Bis zum 04.09.2026 stand dort: „Öffne sie in der Nachrichten-App des Telefons."
+     * Das war richtig, solange eine andere App die Standard-App war. Eine MMS kann aber
+     * **nur die Standard-App** holen — sobald BigLau die Rolle hält und sie nicht holt,
+     * kann es auch keine andere. Der Ausweg zeigte auf eine Tür, die zu ist.
+     *
+     * Der Ausweg, der bleibt, ist die Rolle zurückzugeben. Deshalb prüft die Regel jetzt
+     * zweierlei: der Hinweis nennt die Einstellungen, und er schickt niemanden mehr zu
+     * einer anderen Nachrichten-App.
+     *
+     * Die erste Fassung dieser Regel prüfte die Wörter „network" und „Nachrichten-App" —
+     * und hätte den neuen, richtigen Text abgelehnt, weil er sie nicht mehr enthält. Sie
+     * hing am Wortlaut, nicht an der Sache.
+     */
     @Test
-    fun `der Hinweis nennt Grund und Ausweg, in beiden Sprachen`() {
-        listOf("values" to listOf("network", "messaging app"),
-               "values-de" to listOf("Netzzugang", "Nachrichten-App"))
-            .forEach { (sprache, woerter) ->
-                val text = Regex("""<string name="mms_arrived_body">(.*?)</string>""")
-                    .find(Quelltext.texte(sprache).first().readText())
-                    ?.groupValues?.get(1)
-                    ?: throw AssertionError("$sprache: mms_arrived_body fehlt")
-                woerter.forEach {
-                    assertTrue("$sprache: der Hinweis sagt nichts über „$it\"", it in text)
-                }
+    fun `der Hinweis nennt einen Ausweg, den es noch gibt`() {
+        listOf(
+            "values" to Triple("settings", listOf("in the messaging app"), "cannot"),
+            "values-de" to Triple("Einstellungen", listOf("in der Nachrichten-App"), "nicht"),
+        ).forEach { (sprache, was) ->
+            val (ausweg, sackgassen, grund) = was
+            val text = Quelltext.textWert("mms_arrived_body", sprache)
+            assertTrue(
+                "$sprache: der Hinweis nennt keinen Ausweg - er muss auf die Einstellungen " +
+                    "zeigen, wo sich die Rolle zurueckgeben laesst.",
+                ausweg in text,
+            )
+            assertTrue(
+                "$sprache: der Hinweis nennt keinen Grund.",
+                grund in text,
+            )
+            sackgassen.forEach {
+                assertTrue(
+                    "$sprache: der Hinweis schickt zu einer anderen Nachrichten-App. Die " +
+                        "kann eine MMS nicht holen, solange BigLau die Rolle haelt.",
+                    it !in text,
+                )
             }
+        }
     }
 }

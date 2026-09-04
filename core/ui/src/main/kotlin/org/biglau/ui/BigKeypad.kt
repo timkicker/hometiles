@@ -21,6 +21,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -141,12 +144,32 @@ private fun KeypadKey(
     )
 }
 
-/** Punktreihe fuer eine verdeckte Eingabe. */
+/** Wie deutlich der Rand eines leeren Punktes ist - siehe die Begruendung an [PinDots]. */
+internal const val PUNKTRAND = 0.55f
+
+/**
+ * Punktreihe fuer eine verdeckte Eingabe.
+ *
+ * Wie viele Ziffern schon dastehen, sagten bis zum 04.09.2026 allein die gefuellten Punkte.
+ * Wer sie nicht sieht, bekam auf diesem Bildschirm ueberhaupt keine Rueckmeldung: BigLau
+ * macht absichtlich keinen Ton, und ob eine Taste angekommen ist, war nur zu sehen. Die
+ * Zahl der Ziffern verraet die PIN nicht; sie zu verschweigen hilft niemandem.
+ *
+ * `liveRegion`, damit es beim Tippen gesagt wird und nicht erst beim Antasten.
+ */
 @Composable
 fun PinDots(length: Int, total: Int = 8, modifier: Modifier = Modifier) {
     val palette = LocalBigPalette.current
+    val ansage = if (length == 0) {
+        stringResource(R.string.a11y_pin_empty)
+    } else {
+        pluralStringResource(R.plurals.a11y_pin_digits, length, length)
+    }
     Row(
-        modifier = modifier,
+        modifier = modifier.semantics {
+            contentDescription = ansage
+            liveRegion = LiveRegionMode.Polite
+        },
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -155,7 +178,16 @@ fun PinDots(length: Int, total: Int = 8, modifier: Modifier = Modifier) {
                 Modifier
                     .clip(RoundedCornerShape(50))
                     .background(if (index < length) palette.accent else palette.emptyTile)
-                    .border(2.dp, palette.onBackground.copy(alpha = 0.35f), RoundedCornerShape(50))
+                    // Der Rand traegt den leeren Punkt allein: seine Fuellung ist die
+                    // stille Kachelfarbe und steht mit 1,09:1 (dunkel) bis 1,16:1 (hell)
+                    // praktisch auf dem Hintergrund. Bei 0,35 kam der Rand im hellen Thema
+                    // auf 2,23:1 und im Kontrastthema auf 2,64 - unter der Flaechenschwelle
+                    // von 3,0. Am 04.09.2026 am Emulator im Bildpunkt bestaetigt: (157,158,160)
+                    // auf (232,234,236). Mit 0,55 sind es 6,12 / 3,94 / 5,28.
+                    //
+                    // Das ist dieselbe Sache wie beim Rahmen der leeren Kachel: wo die
+                    // Fuellung absichtlich still ist, muss der Rand die Auffindbarkeit tragen.
+                    .border(2.dp, palette.onBackground.copy(alpha = PUNKTRAND), RoundedCornerShape(50))
                     .size(18.dp)
             )
         }

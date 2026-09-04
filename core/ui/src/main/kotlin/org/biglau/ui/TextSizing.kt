@@ -94,7 +94,7 @@ fun longestWord(text: String): String =
  * Die groesste Schriftgroesse bis [wunschDp], bei der [text] in **eine** Zeile passt.
  *
  * `singleLineSizeSp` rechnet mit einer mittleren Zeichenbreite von 0,60 - eine Schaetzung,
- * und sie lag daneben: auf dem Telefon des Nutzers (Hyperlegible, Textgroesse 200 %) stand
+ * und sie lag daneben: auf dem Telefon des Nutzers (03.09.2026) (Hyperlegible, Textgroesse 200 %) stand
  * auf der Uhr-Kachel **„2:33"**. Das „AM" war abgeschnitten, lautlos, weil die Zeile
  * `softWrap = false` und kein Kuerzungszeichen hat. Eine Uhrzeit ohne AM/PM ist auf einem
  * Zwoelfstundentelefon keine Uhrzeit.

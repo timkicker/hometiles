@@ -33,5 +33,11 @@ class BigNotificationListener : NotificationListenerService() {
         ongoing = isOngoing,
         groupSummary = notification.flags and android.app.Notification.FLAG_GROUP_SUMMARY != 0,
         number = notification.number,
+        category = notification.category,
+        // Die Vorlage steht in den Extras und nicht in einer Flagge. Eine pausierte
+        // Medienanzeige ist nicht mehr `ongoing`, traegt die Vorlage aber weiter.
+        mediaStyle = notification.extras
+            ?.getString("android.template")
+            ?.endsWith("MediaStyle") == true,
     )
 }

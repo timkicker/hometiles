@@ -29,8 +29,8 @@ class GrundNennenTest {
 
     @Test
     fun `ein Fehlschlag beim Senden unterscheidet die fehlende Berechtigung`() {
-        val stelle = sms.substringAfter("R.string.sms_send_failed").take(400) +
-            sms.substringBefore("R.string.sms_send_failed").takeLast(700)
+        val stelle = Quelltext.ausschnitt(sms, "R.string.sms_send_failed").take(400) +
+            Quelltext.ausschnitt(sms, "", "R.string.sms_send_failed").takeLast(700)
         assertTrue(
             "Der Fehlschlag beim Senden zeigt immer denselben Satz. Die fehlende " +
                 "SEND_SMS-Berechtigung ist der eine Grund, den man beheben kann - der " +
@@ -42,7 +42,7 @@ class GrundNennenTest {
     /** Und die Sendestelle fragt nicht selbst nach dem Recht zu senden. */
     @Test
     fun `die Sendestelle beschafft sich kein Senderecht`() {
-        val versand = sms.substringAfter("private fun send(")
+        val versand = Quelltext.ausschnitt(sms, "private fun send(")
         assertEquals(
             "In `send` wird eine Berechtigung angefordert. Diese Stelle sendet - sie soll " +
                 "nicht auch das Recht dazu beschaffen, sonst steht am Ende einer Kette aus " +
@@ -55,10 +55,7 @@ class GrundNennenTest {
     @Test
     fun `der Hinweis nennt den Ort in beiden Sprachen`() {
         listOf("values" to "app settings", "values-de" to "App-Einstellungen").forEach { (sprache, ort) ->
-            val text = Regex("""<string name="sms_send_no_permission">(.*?)</string>""")
-                .find(Quelltext.texte(sprache).first().readText())
-                ?.groupValues?.get(1)
-                ?: throw AssertionError("$sprache: sms_send_no_permission fehlt")
+            val text = Quelltext.textWert("sms_send_no_permission", sprache)
             assertTrue("$sprache: der Hinweis nennt den Ort nicht: $text", ort in text)
         }
     }
