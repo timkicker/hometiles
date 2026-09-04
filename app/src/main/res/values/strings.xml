@@ -138,7 +138,7 @@
     <string name="blocked_numbers_rejected">Too short, not taken: %1$s</string>
     <string name="blocked_outgoing">This number is blocked. You can unblock it in the settings.</string>
     <string name="call_audio_earpiece">Earpiece</string>
-    <string name="call_audio_speaker">Loudspeaker</string>
+    <string name="call_audio_speaker">Speaker</string>
     <string name="call_audio_bluetooth">Bluetooth</string>
     <string name="call_speaker_out_on">Loudspeaker when you dial</string>
     <string name="call_speaker_out_off">No loudspeaker when you dial</string>
@@ -598,7 +598,7 @@
     <string name="editor_long_press_kind_builtin">A built-in function</string>
     <string name="editor_long_press_kind_contact">Someone from the contacts</string>
     <string name="editor_long_press_kind_shortcut">A shortcut inside an app</string>
-    <string name="editor_long_press_kind_screen">Jump to a screen</string>
+    <string name="editor_long_press_kind_screen">Jump to screen</string>
     <string name="editor_long_press_kind_link">Open a web page</string>
     <string name="editor_pick_message">Message to a fixed number</string>
     <string name="message_number_example">0664 1234567</string>

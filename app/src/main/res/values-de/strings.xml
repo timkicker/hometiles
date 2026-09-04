@@ -597,7 +597,7 @@
     <string name="editor_long_press_kind_builtin">Eine eingebaute Funktion</string>
     <string name="editor_long_press_kind_contact">Jemand aus den Kontakten</string>
     <string name="editor_long_press_kind_shortcut">Eine Verknüpfung in einer App</string>
-    <string name="editor_long_press_kind_screen">Zu einem Bildschirm springen</string>
+    <string name="editor_long_press_kind_screen">Zu Screen springen</string>
     <string name="editor_long_press_kind_link">Eine Webseite öffnen</string>
     <string name="editor_pick_message">Nachricht an eine feste Nummer</string>
     <string name="message_number_example">0664 1234567</string>

@@ -128,6 +128,35 @@ liegt bei 18,1 / 15,7 / 17,2. Damit ist die Zusage aus `PLAN.md` („alle sechs 
 absichtlich auf demselben Kontrastniveau") nicht nur in den Konstanten wahr, sondern auch
 auf dem Glas.
 
+## `kontrastgang.py`
+
+Misst den Kontrast **jeder** beschrifteten Fläche eines Bildschirms auf einmal.
+
+```sh
+tools/kontrastgang.py emulator-5554
+```
+
+`kontrast.py` misst ein Rechteck, das man ihm nennt. Das ist richtig, wenn man eine Stelle im
+Verdacht hat, und mühsam, wenn man einen ganzen Bildschirm durchsehen will: am 04.09.2026
+waren es sechs Bildschirme mit zusammen über achtzig beschrifteten Flächen. Von Hand hieße
+das, achtzig Rechtecke abzutippen, und wer abtippt, lässt welche aus, meist die
+unauffälligen.
+
+Deshalb kommen die Rechtecke aus dem Knotenabzug: jeder Knoten mit Text ist eine Stelle, an
+der jemand etwas lesen muss. Gerechnet wird mit den Funktionen aus `kontrast.py`, damit es
+nur eine Formel gibt.
+
+Am Ende steht immer die schlechteste Stelle, auch wenn sie besteht. Eine Messung, die nur
+schweigt, sagt nicht, ob sie hingesehen hat.
+
+Zwei Grenzen: gemessen wird der hellste gegen den dunkelsten Punkt im Rechteck, was bei
+Feldern mit fast nur Schrift zu streng oder zu milde sein kann; dort ist `kontrast.py
+--grund` genauer. Und abgetastet wird jeder zweite Bildpunkt, sonst dauert ein Bildschirm
+eine Minute.
+
+Erster Durchgang am 04.09.2026 über sechs Bildschirme: Startbildschirm, Nachrichten,
+Telefon, Kontakte, App-Liste, Einstellungen. Nichts unter 4,5:1, schlechteste Stelle 5,61:1.
+
 ## `tippen.py`
 
 Tippt erst, wenn der Bildschirm der erwartete ist.
