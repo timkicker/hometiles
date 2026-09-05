@@ -1,9 +1,9 @@
-// :core:data aus PLAN.md 2.1 - die gespeicherte Konfiguration.
+// :core:data from PLAN.md 2.1 - the stored configuration.
 //
-// Anders als :core:model ist das ein Android-Modul, und zwar aus genau einem Grund:
-// ConfigStore braucht `Context`, um an `filesDir` zu kommen. Alles, was ohne Android
-// auskommt - das Modell selbst, das Lesen und Schreiben der Datei, die Sicherung -,
-// bleibt drueben, wo der Compiler die Reinheit erzwingt.
+// unlike :core:model this is an android module, for exactly one reason: ConfigStore needs a
+// `Context` to reach `filesDir`. everything that works without android - the model itself,
+// reading and writing the file, the backup - stays over there, where the compiler enforces
+// the purity.
 plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.kotlin.android)
@@ -28,8 +28,8 @@ android {
 
 dependencies {
     api(project(":core:model"))
-    // Der StateFlow und der Schreib-Mutex. In :app kam das bisher nur zufaellig ueber
-    // androidx mit; ein Modul, das es benutzt, nennt es selbst.
+    // the state flow and the write mutex. in :app this came along by accident through
+    // androidx; a module that uses it names it itself.
     api(libs.kotlinx.coroutines.core)
     testImplementation(libs.junit)
 }

@@ -1,8 +1,8 @@
-// :core:ui aus PLAN.md 2.1 - das Design-System: Farben, Schrift, Rastermasse, Haptik.
+// :core:ui from PLAN.md 2.1 - the design system: colours, typeface, grid measures, haptics.
 //
-// Hier liegt, was **jeder** Bildschirm braucht und was keinen Text kennt. Die Schriftdateien
-// wandern mit: `Fonts.kt` verweist auf sie, und eine Ressource, die woanders liegt als der
-// Quelltext, der sie nennt, ist die naechste stille Falle.
+// what **every** screen needs and what knows no text. the font files travel with it:
+// `Fonts.kt` points at them, and a resource lying somewhere other than the source naming it
+// is the next silent trap.
 plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.kotlin.android)
@@ -50,12 +50,12 @@ dependencies {
     api(libs.androidx.ui)
     api(libs.androidx.ui.graphics)
     api(libs.androidx.material3)
-    // Der Rückschritt-Pfeil auf dem Tastenfeld.
+    // the backspace arrow on the keypad.
     implementation(libs.androidx.material.icons.extended)
-    // `ContactAvatar` zeigt das Kontaktfoto; dieselbe Bibliothek, die :app schon nutzt.
+    // `ContactAvatar` shows the contact photo; the same library :app already uses.
     implementation(libs.coil.compose)
     implementation(libs.androidx.core.ktx)
-    // `BigLauActivity` ist die Grundlage jedes Bildschirms und hängt die Sprache um.
+    // `BigLauActivity` is the base of every screen and switches the language.
     api(libs.androidx.activity.compose)
     testImplementation(libs.junit)
 }

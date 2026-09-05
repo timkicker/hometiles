@@ -1,8 +1,8 @@
-// :core:model aus PLAN.md 2.1 - Datenklassen und ihre Serialisierung, sonst nichts.
+// :core:model from PLAN.md 2.1 - data classes and their serialisation, nothing else.
 //
-// Das ist ein reines Kotlin-Modul, absichtlich **ohne** Android-Plugin: damit ist die
-// Regel „keine Android-Abhaengigkeit" nicht aufgeschrieben, sondern vom Compiler
-// durchgesetzt. Ein `import android.…` hier faellt beim Bauen um, nicht erst in einem Test.
+// a plain kotlin module, deliberately **without** the android plugin: that way the rule "no
+// android dependency" is not written down but enforced by the compiler. an `import android.`
+// here falls over while building, not in a test later.
 plugins {
     alias(libs.plugins.kotlin.jvm)
     alias(libs.plugins.kotlin.serialization)
@@ -19,8 +19,8 @@ kotlin {
     }
 }
 
-// Der Round-Trip-Test gegen eine echte Konfiguration bekommt ihren Pfad durchgereicht -
-// dieselbe Durchreiche wie in :app, denn der Test ist mit dem Modell hierher gewandert.
+// the round trip test against a real configuration gets its path handed through - the same
+// hand-through as in :app, since the test moved here with the model.
 tasks.withType<Test> {
     System.getenv("BIGLAU_REAL_CONFIG")?.let { environment("BIGLAU_REAL_CONFIG", it) }
 }

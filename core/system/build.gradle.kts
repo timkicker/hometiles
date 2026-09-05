@@ -1,12 +1,12 @@
-// :core:system aus PLAN.md 2.1 - die Leseseite des Systems.
+// :core:system from PLAN.md 2.1 - the reading side of the system.
 //
-// 2.1 nennt es die *einzige* Stelle, die Android-Framework-APIs direkt anfasst. So weit ist
-// es noch nicht; hier stehen zunaechst die Anbieter-Leser: LauncherApps, Kontakte,
-// Anrufliste, Telephony. Sie haben keine Oberflaeche - deshalb konnten sie zuerst gehen.
+// 2.1 calls it the *only* place that touches android framework apis directly. it is not
+// there yet; for now these are the provider readers: LauncherApps, contacts, call log,
+// telephony. they have no surface, which is why they could move first.
 //
-// "Und keine Texte" stand hier bis zum 04.09.2026 und stimmt seit demselben Tag nicht mehr:
-// mit `CallDirectionLabels` sind `values/` und `values-de/` mitgewandert. Jede Regel, die
-// Texte sucht, muss dieses Modul also mitlesen - `Quelltext.texte` tut das.
+// "and no texts" stood here until 04.09.2026 and stopped being true that same day: with
+// `CallDirectionLabels` the `values/` folders moved along. every rule that searches texts has
+// to read this module too - `Quelltext.texts` does.
 plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.kotlin.android)

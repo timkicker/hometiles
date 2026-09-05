@@ -7,7 +7,7 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
 }
 
-// Der Round-Trip-Test gegen eine echte Konfiguration bekommt ihren Pfad durchgereicht.
+// the round trip test against a real configuration gets its path handed through.
 tasks.withType<Test> {
     System.getenv("BIGLAU_REAL_CONFIG")?.let { environment("BIGLAU_REAL_CONFIG", it) }
 }
@@ -40,9 +40,9 @@ android {
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-            // Bewusst keine Signatur: ein mit dem Debug-Schluessel signiertes Release waere
-            // eine Luege ueber seine Herkunft. F-Droid signiert selbst, alle anderen sollen
-            // ihren eigenen Schluessel eintragen.
+            // deliberately unsigned: a release signed with the debug key would be a lie
+            // about where it came from. F-Droid signs its own builds, everybody else brings
+            // their own key.
         }
         debug {
             applicationIdSuffix = ".debug"
@@ -83,34 +83,35 @@ dependencies {
     implementation(libs.androidx.material.icons.extended)
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.coil.compose)
-    // Legt das mitgelieferte Startprofil (src/main/baseline-prof.txt) beim ersten Start in
-    // die Profildatei der App. Ohne diese Bibliothek liegt das Profil zwar im Archiv, und
-    // bis Android 8 nimmt es der Installer selbst - auf dem Zielgerät (Android 11) nicht.
+    // puts the shipped startup profile (src/main/baselineProfiles/) into the app's profile
+    // file on first launch. without this library the profile does lie in the archive, and up
+    // to android 8 the installer takes it itself - on the target device (android 11) it does
+    // not.
     implementation(libs.androidx.profileinstaller)
     debugImplementation(libs.androidx.ui.tooling)
     testImplementation(libs.junit)
 }
 
 /**
- * Knapp die Hälfte der Tests in `:app` liest Dateien statt Verhalten: das Manifest, die
- * Texte, den Quelltext der anderen Module. Gradle weiss davon nichts — für die Testaufgabe
- * zählen nur die Klassenpfade. Am 3.9.2026 gemessen: ein absichtlich kaputtgemachtes
- * Manifest liess die Regel dazu `UP-TO-DATE` durchgehen, also grün, ohne zu laufen. Genau
- * die Sorte stiller Erosion, gegen die diese Regeln geschrieben wurden.
+ * nearly half the rules in `:app` read files rather than behaviour: the manifest, the texts,
+ * the source of the other modules. gradle knows nothing of that - for the test task only the
+ * class paths count. measured on 03.09.2026: a deliberately broken manifest let its rule pass
+ * as `UP-TO-DATE`, green without running. exactly the silent erosion these rules exist
+ * against.
  *
- * Deshalb stehen hier die Verzeichnisse, die sie wirklich lesen.
+ * so the files they really read stand here.
  */
 tasks.withType<Test>().configureEach {
     inputs.file("src/main/AndroidManifest.xml").withPathSensitivity(PathSensitivity.RELATIVE)
     inputs.file("../README.md").withPathSensitivity(PathSensitivity.RELATIVE)
-    // `DeviceMetricsTest` liest den Plan - dieselbe Luecke wie am 03.09.2026 bei README und
-    // Manifest: Gradle hielt den Testlauf fuer aktuell, obwohl sich die gelesene Datei
-    // geaendert hatte. Am 10:18 nachgetragen, nachdem ich den Plan aendern konnte, ohne dass
-    // ein einziger Test noch einmal lief.
-    // Am 04.09.2026 dieselbe Luecke eine Datei weiter: `ProsaStricheTest` liest STATUS.md
-    // und README.md, beide standen hier nicht. Ein Eintrag in STATUS.md, danach ein Testlauf,
-    // und Gradle meldete den Erfolg von vorhin. Die Regel lief nicht. Die Lehre von 10:18
-    // war notiert, aber nur fuer die eine Datei angewendet, an der sie auffiel.
+    // `DeviceMetricsTest` reads the plan - the same hole as on 03.09.2026 with the README
+    // and the manifest: gradle held the run to be current although the file it reads had
+    // changed. added at 10:18, after the plan could be changed without a single test running
+    // again.
+    // on 04.09.2026 the same hole one file further: `ProseDashesTest` reads STATUS.md and
+    // README.md, neither of which stood here. an entry in STATUS.md, then a test run, and
+    // gradle reported the success from before. the rule did not run. the lesson from 10:18
+    // was written down but applied only to the one file where it showed.
     inputs.file("../PLAN.md").withPathSensitivity(PathSensitivity.RELATIVE)
     inputs.file("../STATUS.md").withPathSensitivity(PathSensitivity.RELATIVE)
     inputs.file("../README.md").withPathSensitivity(PathSensitivity.RELATIVE)

@@ -33,6 +33,9 @@ class PlanNamesTest {
         "SPALTENxZEILEN" to
             "no type but a placeholder in the description of what the original offers as a " +
             "grid input. it stays german because the plan is german.",
+        "SHA256SUMS" to
+            "no type but the name of the checksum file the release workflow puts beside the " +
+            "apk. the convention writes it in capitals, which is what makes it look like one.",
     )
 
     private val plan = File("../PLAN.md").readText()
