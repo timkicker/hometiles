@@ -133,8 +133,8 @@ class SmsActivity : BigLauActivity() {
             // Die SMS-Rolle vergibt das **System**, und von dort kommt kein Ergebnis
             // zurueck. Einmal beim Zeichnen gelesen bliebe der Hinweis „BigLau ist nicht
             // deine Nachrichten-App" stehen, nachdem man sie gerade erteilt hat. Siehe
-            // `BigLauActivity.fortsetzungen`.
-            val istStandardApp = remember(fortsetzungen.intValue) { repository.isDefaultSmsApp() }
+            // `BigLauActivity.resumes`.
+            val istStandardApp = remember(resumes.intValue) { repository.isDefaultSmsApp() }
             var messages by remember { mutableStateOf<List<SmsMessage>>(emptyList()) }
             var names by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
             var openThread by remember { mutableStateOf<Long?>(null) }
@@ -148,12 +148,12 @@ class SmsActivity : BigLauActivity() {
             // Vorbelegt, wenn eine andere App uns eine Nachricht zum Senden gegeben hat
             // ("Anruf mit Nachricht ablehnen") - siehe RespondViaMessageService.
             var draft by remember { mutableStateOf(intent?.getStringExtra(EXTRA_BODY).orEmpty()) }
-                        // `fortsetzungen` als Schluessel: dieser Bildschirm schickt den Nutzer bei
+                        // `resumes` als Schluessel: dieser Bildschirm schickt den Nutzer bei
             // dauerhaft verweigerter Berechtigung in die **App-Einstellungen**, und von dort
             // kommt kein Ergebnis zurueck. Ohne das Neulesen beim Wiederkommen stuende hier
             // weiter „keine Berechtigung" - auf einem Bildschirm, der einen selbst dorthin
-            // geschickt hat. Siehe `BigLauActivity.fortsetzungen`.
-var granted by remember(fortsetzungen.intValue) { mutableStateOf(repository.hasReadPermission()) }
+            // geschickt hat. Siehe `BigLauActivity.resumes`.
+var granted by remember(resumes.intValue) { mutableStateOf(repository.hasReadPermission()) }
 
             // Ohne Rueckfrage-Oberflaeche: sagt jemand nein, bleibt die Liste die Stelle,
             // an der er nachsieht. Ein zweiter Sackgassen-Bildschirm dafuer waere zu viel.

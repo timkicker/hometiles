@@ -11,51 +11,45 @@ import org.biglau.phone.PhoneNumbers
 import org.biglau.ui.AppLocale
 
 /**
- * Die Meldung zu „Anruf mit Nachricht ablehnen".
+ * the notice for rejecting a call with a message.
  *
- * Eine andere App hat BigLau gebeten, eine Nachricht zu schicken. BigLau schickt sie
- * **nicht von sich aus** — siehe [org.biglau.sms.RespondViaMessageService]. Damit das kein
- * stummes Nichts bleibt, steht die Bitte als Meldung da und führt in die Unterhaltung, den
- * Text schon im Feld.
+ * another app asked BigLau to send one; BigLau does not send it by itself (see
+ * [org.biglau.sms.RespondViaMessageService]). so that this is not a silent nothing, the
+ * request stands as a notice leading into the conversation with the text already in place.
  */
 object RespondNotice {
 
     const val CHANNEL_ID = "respond-via-message"
 
-    /**
-     * Was in der Meldung steht.
-     *
-     * Ohne Text hätte die andere App nichts mitgegeben; dann steht dort der Hinweis statt
-     * einer leeren Zeile — eine Meldung ohne Inhalt ist schlimmer als keine.
-     */
+    /** with no text from the other app the hint stands there: an empty notice is worse than none. */
     fun body(text: String, fallback: String): String = text.trim().ifEmpty { fallback }
 
-    /** Eine Kennung je Nummer: eine zweite Bitte ersetzt die erste. */
+    /** one id per number: a second request replaces the first. */
     fun notificationId(address: String): Int =
         ("respond" + PhoneNumbers.clean(address).ifEmpty { address }).hashCode()
 
     fun show(context: Context, address: String, text: String) {
         val manager = context.getSystemService(NotificationManager::class.java) ?: return
-        // Texte in der Sprache der App, nicht der des Telefons. Siehe AppLocale.forApp.
-        val texte = AppLocale.forApp(context)
+        // texts in the app's language, not the phone's. see AppLocale.forApp.
+        val texts = AppLocale.forApp(context)
         manager.createNotificationChannel(
             NotificationChannel(
                 CHANNEL_ID,
-                texte.getString(R.string.messages),
+                texts.getString(R.string.messages),
                 NotificationManager.IMPORTANCE_DEFAULT,
             ),
         )
-        val oeffnen = Intent(context, SmsActivity::class.java)
+        val open = Intent(context, SmsActivity::class.java)
             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
             .putExtra(SmsActivity.EXTRA_ADDRESS, address)
             .putExtra(SmsActivity.EXTRA_BODY, text)
         val notification = Notification.Builder(context, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_stat_message)
-            .setContentTitle(texte.getString(R.string.respond_not_sent))
-            .setContentText(body(text, texte.getString(R.string.respond_not_sent_hint)))
+            .setContentTitle(texts.getString(R.string.respond_not_sent))
+            .setContentText(body(text, texts.getString(R.string.respond_not_sent_hint)))
             .setStyle(
                 Notification.BigTextStyle()
-                    .bigText(body(text, texte.getString(R.string.respond_not_sent_hint))),
+                    .bigText(body(text, texts.getString(R.string.respond_not_sent_hint))),
             )
             .setCategory(Notification.CATEGORY_MESSAGE)
             .setAutoCancel(true)
@@ -63,7 +57,7 @@ object RespondNotice {
                 PendingIntent.getActivity(
                     context,
                     notificationId(address),
-                    oeffnen,
+                    open,
                     PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
                 ),
             )

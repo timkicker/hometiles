@@ -27,7 +27,7 @@ class SperreAnJederKachelTest {
         val starts = zeilen.withIndex()
             .filter { (_, z) ->
                 val nackt = z.trim()
-                !nackt.startsWith("//") && !nackt.startsWith("*") &&
+                !Quelltext.istKommentarzeile(z) &&
                     ("apps.launch(" in nackt || Regex("""ShortcutRepository[^)]*\)\.launch\(""").containsMatchIn(nackt))
             }
             .map { it.index + 1 }

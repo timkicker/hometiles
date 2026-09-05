@@ -24,11 +24,11 @@ class SuchzeileTrefferTest {
         assertTrue(
             "Die Suchzeile reicht den Tipp nicht an das Feld weiter - dann tut ein Tipp " +
                 "auf ihren Rand nichts.",
-            "detectTapGestures { schreibmarke.requestFocus() }" in feld,
+            "detectTapGestures { caret.requestFocus() }" in feld,
         )
         assertTrue(
             "Das Eingabefeld nimmt die Schreibmarke nicht entgegen.",
-            "focusRequester(schreibmarke)" in feld,
+            "focusRequester(caret)" in feld,
         )
     }
 

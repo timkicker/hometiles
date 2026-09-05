@@ -51,7 +51,7 @@ class DurchsichtigTest {
         themen.forEach { thema ->
             val palette = paletteFor(thema, false)
             val fuellung = palette.emptyTile.argb()
-            val rand = ueber(palette.onBackground.argb(), fuellung, PUNKTRAND)
+            val rand = ueber(palette.onBackground.argb(), fuellung, DOT_BORDER)
             val ratio = contrastRatio(rand, fuellung)
             assertTrue(
                 ("%s: der Rand des leeren PIN-Punktes erreicht nur %.2f:1 - und seine " +

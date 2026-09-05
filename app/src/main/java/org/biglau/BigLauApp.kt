@@ -12,38 +12,24 @@ class BigLauApp : Application() {
 
     override fun onCreate() {
         super.onCreate()
-        // Zuerst und auf diesem Faden: Abstuerze festhalten, damit der Notmodus etwas
-        // anzuzeigen hat. Das kostet zwei Millisekunden.
+        // first and on this thread: catching crashes gives safe mode something to show.
+        // costs two milliseconds.
         CrashRecorder.get(this).installHandler()
 
-        // Die Einrichtung einlesen kostet am Jelly 2 **186 ms** - nicht die Datei (zwoelf
-        // Kilobyte), sondern das erste Benutzen des Umwandlers. Auf diesem Faden liegt das
-        // vor allem anderen; daneben laeuft es waehrend des Startens der Activity mit.
-        //
-        // Gefahrlos, weil `ConfigStore.get` ohnehin gegen zwei gleichzeitige Aufrufe
-        // gesichert ist: kommt die Oberflaeche frueher, wartet sie eben - genauso lange wie
-        // vorher, keinen Augenblick laenger.
+        // reading the config costs 186 ms on the jelly 2, not for the twelve kilobytes but
+        // for the first use of the serialiser. safe beside the activity start, because
+        // `ConfigStore.get` is guarded against two callers anyway.
         Thread {
             ConfigStore.get(this)
             AppRepository.get(this)
-            // Schreibweise und Land fuer Nummern ohne Vorwahl. Ohne diese Auskunft
-            // schreibt BigLau Rufnummern in blossen Dreierbloecken, und die
-            // Laendervorwahl klebt am Ortsnetz - siehe PhoneNumbers.forDisplay.
-            // Braucht keine Berechtigung.
+            // spelling and country for numbers without an area code; without it numbers
+            // come out in bare groups of three. see PhoneNumbers.forDisplay.
             SystemNumbers.install(this)
-            // Den Wecker fuer die wiederholte Erinnerung wieder stellen.
+            // set the reminder alarm again: it hangs on `ELAPSED_REALTIME_WAKEUP` and is
+            // gone after a restart. no `BOOT_COMPLETED` receiver for it, since BigLau is
+            // the home screen and runs after every restart anyway.
             //
-            // Er haengt an `ELAPSED_REALTIME_WAKEUP` und ist nach einem Neustart des
-            // Telefons weg - ein `BOOT_COMPLETED`-Empfaenger stuende dafuer im Manifest und
-            // braeuchte eine weitere Berechtigung. Die braucht es nicht: BigLau **ist** der
-            // Startbildschirm und laeuft nach jedem Neustart ohnehin. Ohne diese Zeile
-            // erinnerte eine Nachricht, die vor dem Neustart ungelesen war, nie wieder -
-            // lautlos, und das ist genau das, was die Einstellung verspricht.
-            //
-            // Gefahrlos, wenn nichts ansteht: `MessageReminderReceiver` prueft selbst, ob
-            // die Erinnerung an ist, ob BigLau die Standard-SMS-App ist und ob ueberhaupt
-            // etwas ungelesen ist - sonst tut der Weckruf nichts und stellt sich auch nicht
-            // neu.
+            // harmless when nothing is due: the receiver checks by itself.
             val sms = ConfigStore.get(this).current.sms
             if (SmsReminder.active(sms)) {
                 MessageReminderReceiver.schedule(this, sms.repeatMinutes)

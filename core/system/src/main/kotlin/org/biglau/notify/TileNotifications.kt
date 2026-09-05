@@ -5,11 +5,10 @@ import org.biglau.data.Button
 import org.biglau.data.ButtonAction
 
 /**
- * Welches Paket eine Kachel beobachtet.
+ * which package a tile watches.
  *
- * Eine App-Kachel beobachtet ihre eigene App. Die Kacheln "Telefon" und "Nachrichten" zeigen
- * dagegen auf das, was das System gerade als Standard fuehrt - wechselt der Nutzer seine
- * SMS-App, blinkt die Kachel weiter richtig, ohne dass er etwas umstellen muss.
+ * an app tile watches its own app; phone and messages follow whatever the system holds as
+ * default, so the tile keeps blinking right when the user switches their sms app.
  */
 object TileNotifications {
 
@@ -17,20 +16,13 @@ object TileNotifications {
         is ButtonAction.App -> action.packageName
         is ButtonAction.Action -> when (action.builtin) {
             Builtin.MESSAGES -> system.sms
-            // MISSED_CALLS und DIALER stehen bewusst nicht hier: die zaehlen die
-            // Anrufliste, nicht fremde Meldungen. Siehe badgeFor.
+            // MISSED_CALLS and DIALER count the call log, not foreign notices. see badgeFor.
             else -> null
         }
         else -> null
     }
 
-    /**
-     * Kann diese Kachel ueberhaupt blinken?
-     *
-     * Nur, wenn hinter ihr eine App steckt, die benachrichtigen kann. Einen Schalter fuer
-     * eine Uhr oder eine leere Kachel anzubieten hiesse, etwas zu versprechen, das nie
-     * eintritt - und der Nutzer suchte den Fehler dann bei sich.
-     */
+    /** only a tile with a notifying app behind it: a clock would promise something that never comes. */
     fun canBlink(action: ButtonAction): Boolean = when (action) {
         is ButtonAction.App -> true
         is ButtonAction.Action -> action.builtin in setOf(
@@ -41,18 +33,6 @@ object TileNotifications {
         else -> false
     }
 
-    /**
-     * Anzahl fuer diese Kachel; null oder abgeschaltet ergibt null Treffer.
-     *
-     * **Verpasste Anrufe zaehlen anders**, und das war ein Fehler: die Kachel sah auf die
-     * Meldungen der Standard-Telefon-App - und das ist BigLau selbst, sobald sie die Rolle
-     * hat. Die Meldung ueber einen verpassten Anruf kommt aber vom System (Telecom), nicht
-     * von der Telefon-App. Am Emulator standen **elf ungesehene verpasste Anrufe** in der
-     * Liste, und auf der Kachel stand nichts.
-     *
-     * Deshalb zaehlt sie jetzt die Anrufliste selbst - das ist ohnehin die Quelle, die der
-     * Nutzer meint, und sie braucht keinen Zugriff auf fremde Meldungen.
-     */
     fun badgeFor(
         button: Button,
         counts: Map<String, Int>,
@@ -63,21 +43,12 @@ object TileNotifications {
         if (!button.blink) return 0
         val action = button.action
         if (action is ButtonAction.Action) {
+            // both count the call log. the notice about a missed call comes from telecom,
+            // not from the dialer app, and the default dialer is BigLau itself once it
+            // holds the role, which notifies about messages.
             if (action.builtin == Builtin.MISSED_CALLS) return missed
-            // **Die Telefon-Kachel auch.** Dieselbe Falle wie eine Zeile darueber, nur
-            // spaeter gesehen: `watchedPackage` schickt sie auf `system.dialer`, und das
-            // ist BigLau selbst, sobald es die Rolle haelt (seit 04.09.2026 auf dem Geraet
-            // des Nutzers). BigLau meldet aber **Nachrichten** - die Telefon-Kachel
-            // blinkte damit, wenn eine SMS ankam.
-            //
-            // Was eine blinkende Telefon-Kachel heissen soll, ist ohnehin nur eines: du
-            // hast einen Anruf verpasst. Vor der Rolle stand dort die Meldung des
-            // System-Dialers, die genau das bedeutete; jetzt steht die Anrufliste dahinter,
-            // die es genauer weiss und keine fremden Meldungen braucht.
             if (action.builtin == Builtin.DIALER) return missed
-            // Ungelesene Nachrichten weiss der Anbieter genauer als die Meldungen. Null
-            // heisst: BigLau darf nicht lesen - dann bleiben die Meldungen die beste
-            // Auskunft, die es gibt.
+            // null means we may not read: then the notices are the best answer there is.
             if (action.builtin == Builtin.MESSAGES && unread != null) return unread
         }
         val watched = watchedPackage(action, system) ?: return 0

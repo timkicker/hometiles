@@ -60,7 +60,7 @@ import org.biglau.ui.BigKeypad
 import org.biglau.ui.BigHeading
 import org.biglau.ui.BigRow
 import org.biglau.ui.ContactAvatar
-import org.biglau.ui.tabellenZiffern
+import org.biglau.ui.tabularFigures
 import org.biglau.ui.dpSp
 import org.biglau.ui.theme.BigLauTheme
 import org.biglau.ui.theme.LocalBigPalette
@@ -219,7 +219,7 @@ class InCallActivity : BigLauActivity() {
                                 fontSize = dpSp(20f),
                                 // Die Dauer laeuft im Sekundentakt - ohne Tabellenziffern
                                 // wackelt sie bei jeder Sekunde. PLAN.md 3.7.
-                                style = tabellenZiffern(),
+                                style = tabularFigures(),
                             )
                             // Waehrend eines Gespraechs klingelt es: ohne diese Zeile
                             // stuende hier nur der neue Anrufer, und dass nebenan noch

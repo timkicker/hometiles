@@ -75,8 +75,8 @@ class WizardActivity : BigLauActivity() {
             // den Systemeinstellungen erteilte und zurueckkam, sah den erledigten Schritt
             // weiter stehen - und dasselbe gilt fuer den Rueckfallweg bei der
             // Startbildschirm-Rolle, der ueber `startActivity` geht und gar kein Ergebnis
-            // liefert. Siehe `BigLauActivity.fortsetzungen` und `SystemzustandTest`.
-            var state by remember(fortsetzungen.intValue) { mutableStateOf(readState()) }
+            // liefert. Siehe `BigLauActivity.resumes` und `SystemzustandTest`.
+            var state by remember(resumes.intValue) { mutableStateOf(readState()) }
 
             val askPermissions = rememberLauncherForActivityResult(
                 ActivityResultContracts.RequestMultiplePermissions(),

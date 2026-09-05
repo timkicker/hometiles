@@ -212,8 +212,20 @@ object Quelltext {
      */
     fun ohneKommentare(pfad: String): String = datei(pfad)
         .readLines()
-        .filterNot { it.trim().startsWith("//") || it.trim().startsWith("*") || it.trim().startsWith("/*") }
+        .filterNot { istKommentarzeile(it) }
         .joinToString("\n")
+
+    /**
+     * Eine Zeile, die nur Kommentar ist.
+     *
+     * Die dritte Form ist die, die immer vergessen wird: der einzeilige Kommentar, der mit
+     * einem Schraegstrich und zwei Sternen beginnt. Vierzehn Regeln hatten nur die ersten
+     * beiden Formen und haben deshalb einen einzeiligen Kommentar fuer Quelltext gehalten.
+     */
+    fun istKommentarzeile(zeile: String): Boolean {
+        val nackt = zeile.trim()
+        return nackt.startsWith("//") || nackt.startsWith("*") || nackt.startsWith("/*")
+    }
 
     /**
      * Der Ausschnitt zwischen zwei Marken - und ein lautes Nein, wenn eine fehlt.

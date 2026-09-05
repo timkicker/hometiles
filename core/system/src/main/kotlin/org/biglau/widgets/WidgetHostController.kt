@@ -12,13 +12,11 @@ import android.os.Build
 import android.util.TypedValue
 
 /**
- * Haelt die Widgets am Leben.
+ * keeps the widgets alive.
  *
- * Zwei Dinge sind hier nicht offensichtlich. Erstens muss der Host beim Anzeigen zuhoeren
- * und beim Verlassen aufhoeren, sonst laufen Widget-Aktualisierungen im Hintergrund weiter
- * und kosten Akku. Zweitens darf nur der Standard-Launcher ein Widget ohne Rueckfrage
- * binden; sonst muss der Nutzer im Systemdialog zustimmen - das ist kein Fehler, sondern
- * der vorgesehene Weg, und die Oberflaeche muss ihn anbieten koennen.
+ * the host must listen while shown and stop on leaving, or updates keep running and cost
+ * battery. only the default launcher may bind without asking; the system dialog is the
+ * intended path otherwise, not a failure.
  */
 class WidgetHostController(context: Context) {
 
@@ -57,13 +55,13 @@ class WidgetHostController(context: Context) {
         runCatching { host.deleteAppWidgetId(widgetId) }
     }
 
-    /** Bindet ohne Rueckfrage - geht nur als Standard-Launcher. */
+    /** binds without asking; only works as the default launcher. */
     fun bindDirectly(widgetId: Int, component: String): Boolean {
         val target = component.toComponent() ?: return false
         return runCatching { manager.bindAppWidgetIdIfAllowed(widgetId, target) }.getOrDefault(false)
     }
 
-    /** Der Systemdialog, in dem der Nutzer der Bindung zustimmt. */
+    /** the system dialog where the user agrees to the binding. */
     fun bindRequestIntent(widgetId: Int, component: String): Intent? {
         val target = component.toComponent() ?: return null
         return Intent(AppWidgetManager.ACTION_APPWIDGET_BIND).apply {
@@ -82,14 +80,13 @@ class WidgetHostController(context: Context) {
         return runCatching { host.createView(context, widgetId, info) }.getOrNull()
     }
 
-    /** Teilt dem Widget mit, wie viel Platz es hat - sonst zeichnet es fuer eine Standardgroesse. */
+    /** tells the widget its size, else it draws for a default one. */
     fun resize(view: AppWidgetHostView, widthDp: Int, heightDp: Int) {
         runCatching {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                 view.updateAppWidgetSize(android.os.Bundle.EMPTY, widthDp, heightDp, widthDp, heightDp)
             } else {
-                // `updateAppWidgetSize(Bundle, …)` ist seit Android 12 durch die Fassung mit
-                // Größenliste abgelöst; auf Android 11 gibt es nur diese.
+                // android 11 has only this form; from 12 on the size-list one replaces it.
                 @Suppress("DEPRECATION")
                 view.updateAppWidgetSize(null, widthDp, heightDp, widthDp, heightDp)
             }

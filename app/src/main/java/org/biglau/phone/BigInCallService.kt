@@ -8,22 +8,21 @@ import android.telecom.CallAudioState
 import android.telecom.InCallService
 
 /**
- * Uebernimmt die Gespraechsansicht, sobald BigLau die Telefon-Rolle haelt.
+ * takes over the call screen once BigLau holds the phone role.
  *
- * Der Dienst haelt bewusst wenig: er uebersetzt den Zustand und reicht ihn weiter. Alles,
- * was entscheidet, welche Knoepfe erscheinen, steht in [CallActions] und ist dort geprueft -
- * hier waere es weder testbar noch zu ueberblicken.
+ * the service holds little: it translates the state and passes it on. what decides which
+ * buttons appear sits in [CallActions], where it can be tested.
  */
 class BigInCallService : InCallService() {
 
     private var audioState: CallAudioState? = null
 
-    /** Gespraeche, deren Ton schon einmal gestellt wurde - siehe [CallAudio]. */
-    private val tonGestellt = mutableSetOf<Call>()
+    /** calls whose audio has been set once already; see [CallAudio]. */
+    private val audioSet = mutableSetOf<Call>()
 
     private val callback = object : Call.Callback() {
         override fun onStateChanged(call: Call, state: Int) {
-            stelleTon(call, state)
+            setAudio(call, state)
             publish(call)
         }
         override fun onDetailsChanged(call: Call, details: Call.Details) = publish(call)
@@ -31,18 +30,17 @@ class BigInCallService : InCallService() {
 
     override fun onCallAdded(call: Call) {
         super.onCallAdded(call)
-        // Gesperrte Nummer: abweisen, bevor der Bildschirm aufgeht. Sonst klingelt es
-        // kurz und der Anrufbildschirm blitzt auf - eine Sperre, die man sieht, ist
-        // fuer den Genervten keine.
-        val nummer = call.details?.handle?.schemeSpecificPart.orEmpty()
-        if (CallBlocking.isBlocked(nummer, ConfigStore.get(this).current.phone.blockedNumbers)) {
+        // reject before the screen opens, or it rings briefly and the call screen flashes:
+        // a block one can see is no block to the person being pestered.
+        val number = call.details?.handle?.schemeSpecificPart.orEmpty()
+        if (CallBlocking.isBlocked(number, ConfigStore.get(this).current.phone.blockedNumbers)) {
             runCatching { call.reject(false, null) }
             return
         }
         InCallRepository.attach(this)
         call.registerCallback(callback)
         publish(call)
-        // Vollbild statt einer Benachrichtigung: darum geht es bei dieser App.
+        // full screen instead of a notification: that is what this app is about.
         startActivity(
             Intent(this, InCallActivity::class.java)
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP),
@@ -50,24 +48,22 @@ class BigInCallService : InCallService() {
     }
 
     /**
-     * Beim Verbinden einmal den Ton umstellen, wenn die Einstellung es verlangt.
-     *
-     * Einmal je Gespraech: bei jedem Zustandswechsel nachzuziehen wuerde den Lautsprecher
-     * wieder einschalten, den der Nutzer gerade von Hand ausgemacht hat.
+     * set the route once on connecting, if the setting asks for it. once per call: following
+     * every state change would switch the speaker back on right after the user turned it off.
      */
-    private fun stelleTon(call: Call, state: Int) {
-        if (state != Call.STATE_ACTIVE || !tonGestellt.add(call)) return
-        val ausgehend = call.details?.callDirection == Call.Details.DIRECTION_OUTGOING
-        val weg = CallAudio.routeOnConnect(
+    private fun setAudio(call: Call, state: Int) {
+        if (state != Call.STATE_ACTIVE || !audioSet.add(call)) return
+        val outgoing = call.details?.callDirection == Call.Details.DIRECTION_OUTGOING
+        val route = CallAudio.routeOnConnect(
             ConfigStore.get(this).current.phone,
-            outgoing = ausgehend,
+            outgoing = outgoing,
         ) ?: return
-        runCatching { setAudioRoute(AudioRoutes.toTelecom(weg)) }
+        runCatching { setAudioRoute(AudioRoutes.toTelecom(route)) }
     }
 
     override fun onCallRemoved(call: Call) {
         super.onCallRemoved(call)
-        tonGestellt.remove(call)
+        audioSet.remove(call)
         call.unregisterCallback(callback)
         if (calls.isEmpty()) {
             InCallRepository.detach()
@@ -82,31 +78,25 @@ class BigInCallService : InCallService() {
         calls.firstOrNull()?.let(::publish)
     }
 
-    /**
-     * Welcher Anruf gezeigt wird.
-     *
-     * Vorher der zuletzt veraenderte - also mal der eine, mal der andere. Die Reihenfolge
-     * steht in [CallForeground] und ist dort geprueft.
-     */
-    private fun vordergrund(): Call? {
-        val liste = calls
-        val index = CallForeground.pick(liste.map { statusOf(it.state) }) ?: return null
-        return liste.getOrNull(index)
+    /** which call is shown; the order sits in [CallForeground] and is checked there. */
+    private fun foreground(): Call? {
+        val list = calls
+        val index = CallForeground.pick(list.map { statusOf(it.state) }) ?: return null
+        return list.getOrNull(index)
     }
 
     private fun publish(call: Call) {
-        val gezeigt = vordergrund() ?: call
-        if (gezeigt != call) return publish(gezeigt)
-        val zweiter = calls.firstOrNull { it != call }
+        val shown = foreground() ?: call
+        if (shown != call) return publish(shown)
+        val second = calls.firstOrNull { it != call }
         val details = call.details
         InCallRepository.publish(
             call = call,
             view = CallView(
                 status = statusOf(call.state),
                 number = details?.handle?.schemeSpecificPart.orEmpty(),
-                // Erst das Adressbuch, dann was das Netz mitschickt. Der Name aus dem
-                // Netz (CNAP) kommt in Oesterreich praktisch nie, und ohne ihn stand hier
-                // nur eine Ziffernfolge.
+                // the phone book first, then what the network sends: CNAP practically
+                // never arrives here, and without it only digits stood there.
                 name = CallerName.lookup(
                     this,
                     details?.handle?.schemeSpecificPart.orEmpty(),
@@ -121,13 +111,13 @@ class BigInCallService : InCallService() {
                 bluetoothAvailable = AudioRoutes.bluetoothAvailable(
                     audioState?.supportedRouteMask,
                 ),
-                otherName = zweiter?.let {
-                    val nummer = it.details?.handle?.schemeSpecificPart.orEmpty()
-                    CallerName.lookup(this, nummer) ?: nummer.takeIf { n -> n.isNotBlank() }
+                otherName = second?.let {
+                    val other = it.details?.handle?.schemeSpecificPart.orEmpty()
+                    CallerName.lookup(this, other) ?: other.takeIf { n -> n.isNotBlank() }
                 },
-                otherHeld = zweiter?.state == Call.STATE_HOLDING,
+                otherHeld = second?.state == Call.STATE_HOLDING,
             ),
-            other = zweiter,
+            other = second,
         )
     }
 

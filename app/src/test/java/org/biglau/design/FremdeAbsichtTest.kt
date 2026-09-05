@@ -74,14 +74,14 @@ class FremdeAbsichtTest {
         assertTrue(
             "Die Kontakte werden nur einmal gelesen. Nach dem Bearbeiten im Adressbuch " +
                 "stuende hier weiter die alte Nummer.",
-            quelle.contains("LaunchedEffect(granted, fortsetzungen.intValue)"),
+            quelle.contains("LaunchedEffect(granted, resumes.intValue)"),
         )
         // Ein festes Fenster statt einer Grenze an einem Variablennamen: `substringBefore`
         // auf einen Namen, den es eines Tages nicht mehr gibt, liefert **den ganzen Rest**
         // der Datei - und die Regel waere gruen, ohne noch etwas zu pruefen. Genau das ist
         // heute Nacht schon einmal passiert.
         val fenster = quelle
-            .let { Quelltext.ausschnitt(it, "LaunchedEffect(granted, fortsetzungen.intValue)") }
+            .let { Quelltext.ausschnitt(it, "LaunchedEffect(granted, resumes.intValue)") }
             .take(800)
         assertTrue(
             "Der geoeffnete Kontakt wird beim Neulesen nicht mitgenommen: $laden",
@@ -109,7 +109,7 @@ class FremdeAbsichtTest {
         assertTrue(
             "Intents haengt jede fremde App in eine eigene Aufgabe; die Zurueck-Taste " +
                 "fuehrt dann nicht zu BigLau zurueck:\n$start",
-            start.contains("bildschirmHinter(context) != null"),
+            start.contains("activityBehind(context) != null"),
         )
         val kontakte = Quelltext.ohneKommentare("org/biglau/contacts/ContactRepository.kt")
         assertTrue(

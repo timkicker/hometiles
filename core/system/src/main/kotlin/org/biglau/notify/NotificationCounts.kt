@@ -1,25 +1,23 @@
 package org.biglau.notify
 
-/** Eine Benachrichtigung, so weit sie uns interessiert - ohne Android-Typen, damit pruefbar. */
+/** one notification as far as it concerns us, without android types so it can be tested. */
 data class NotificationRow(
     val packageName: String,
     val clearable: Boolean,
     val ongoing: Boolean,
     val groupSummary: Boolean,
     val number: Int = 0,
-    /** Was die App selbst sagt, wofuer die Anzeige da ist. Die meisten sagen nichts. */
+    /** what the app itself says the notification is for. most say nothing. */
     val category: String? = null,
-    /** Traegt die Anzeige die Medien-Vorlage? Dann ist sie eine Wiedergabe, keine Nachricht. */
+    /** the media template means a playback, not a message. */
     val mediaStyle: Boolean = false,
 )
 
 /**
- * Zaehlt Benachrichtigungen pro Paket.
+ * counts notifications per package.
  *
- * Was hier falsch gezaehlt wird, blinkt spaeter grundlos - und eine Kachel, die immer blinkt,
- * ist schlimmer als gar kein Hinweis, weil man sie zu ignorieren lernt. Deshalb fliegen
- * dauerhafte Anzeigen raus (Musikwiedergabe, USB-Debugging, Ladeanzeige) und
- * Gruppenzusammenfassungen, die dieselben Nachrichten ein zweites Mal melden.
+ * miscounting here makes a tile blink for no reason, and a tile that always blinks is worse
+ * than no hint at all, because one learns to ignore it - and then misses the one that counts.
  */
 object NotificationCounts {
 
@@ -29,39 +27,32 @@ object NotificationCounts {
         .eachCount()
 
     /**
-     * Anzeigen, die keine Nachricht an den Nutzer sind.
+     * notifications that are not a message to the user.
      *
-     * Android laesst die App selbst sagen, wofuer eine Anzeige da ist. Was hier steht, ist
-     * eine Anzeige **ueber etwas**, das laeuft oder gilt, und keine Nachricht, auf die man
-     * antworten wuerde: die Wiedergabe, ein Dienst im Hintergrund, ein Fortschritt, eine
-     * Navigation, das laufende Gespraech, der Wecker, die Stoppuhr, eine Statuszeile.
+     * android lets the app say what its notification is for. these are notices **about
+     * something** running or holding, not something one would answer: playback, a background
+     * service, progress, navigation, the running call, the alarm, a stopwatch, a status line.
      */
-    private val NICHT_GEMEINT = setOf(
+    private val NOT_MEANT = setOf(
         "transport", "service", "progress", "navigation", "call", "alarm", "stopwatch",
         "sys", "status",
     )
 
     /**
-     * Zaehlt diese eine Benachrichtigung?
-     *
-     * `ongoing` allein reicht nicht, und das ist am 04.09.2026 am Jelly 2 aufgefallen:
-     * **Spotify blinkte.** Eine Medienanzeige ist nur waehrend der Wiedergabe `ongoing`;
-     * pausiert laesst sie sich wegwischen und ist damit nach der alten Regel eine
-     * Nachricht. Sie ist aber weiter dieselbe Anzeige und meldet nichts Neues.
-     *
-     * Eine Kachel, die immer blinkt, ist schlimmer als gar kein Hinweis: man lernt, sie zu
-     * ignorieren, und uebersieht dann die eine, die zaehlt.
+     * `ongoing` alone is not enough: a media notification is only `ongoing` while playing, so
+     * paused it becomes swipeable and counted as a message, although it is the same notice
+     * and reports nothing new.
      */
     fun counts(row: NotificationRow): Boolean = when {
-        row.ongoing -> false        // laufende Wiedergabe, Navigation, Dateiuebertragung
-        row.mediaStyle -> false     // Medien-Vorlage: eine Wiedergabe, auch pausiert
-        row.category in NICHT_GEMEINT -> false
-        !row.clearable -> false     // laesst sich nicht wegwischen, also keine Nachricht an den Nutzer
-        row.groupSummary -> false   // meldet nur, was die Einzeleintraege schon melden
+        row.ongoing -> false        // playback, navigation, file transfer
+        row.mediaStyle -> false     // media template: a playback, paused or not
+        row.category in NOT_MEANT -> false
+        !row.clearable -> false     // cannot be swiped away, so not a message to the user
+        row.groupSummary -> false   // only reports what the single entries already report
         else -> true
     }
 
-    /** Anzahl fuer die Anzeige auf der Kachel; ueber 9 wird nicht mehr gezaehlt, sondern gestapelt. */
+    /** past nine it stacks instead of counting. */
     fun badgeText(count: Int): String? = when {
         count <= 0 -> null
         count > 9 -> "9+"

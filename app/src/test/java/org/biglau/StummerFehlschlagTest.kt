@@ -21,7 +21,7 @@ class StummerFehlschlagTest {
     fun `in ToggleActions endet kein Versuch stumm`() {
         val zeilen = Quelltext.datei("org/biglau/toggles/ToggleActions.kt").readLines()
         val ohneAusweg = zeilen.withIndex()
-            .filter { (_, zeile) -> "runCatching" in zeile && !zeile.trim().startsWith("//") }
+            .filter { (_, zeile) -> "runCatching" in zeile && !Quelltext.istKommentarzeile(zeile) }
             .filter { (i, _) ->
                 // Der Ausweg darf im selben Ausdruck stehen - eine Zeile weiter oder bis
                 // zur schliessenden Klammer des Blocks.

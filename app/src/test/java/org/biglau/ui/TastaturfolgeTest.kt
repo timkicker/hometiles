@@ -34,17 +34,17 @@ class TastaturfolgeTest {
         assertTrue(
             "Die Tastatur legt keine Anker mehr an. Ohne sie kann sie den Fokus nicht " +
                 "fuehren, und unter einer Ueberlagerung laeuft er weg.",
-            Regex("""anker = remember\([\s\S]{0,80}FocusRequester\(\)""").containsMatchIn(tastatur),
+            Regex("""anchors = remember\([\s\S]{0,80}FocusRequester\(\)""").containsMatchIn(tastatur),
         )
         assertTrue(
             "Die Anker haengen nicht mehr an den Tasten.",
-            "focusRequester(anker[zeile][spalte])" in tastatur,
+            "focusRequester(anchors[rowIndex][columnIndex])" in tastatur,
         )
     }
 
     @Test
     fun `jede Richtungstaste wird verbraucht`() {
-        val weg = Quelltext.ausschnitt(tastatur, ".onPreviewKeyEvent { taste ->", "verticalArrangement")
+        val weg = Quelltext.ausschnitt(tastatur, ".onPreviewKeyEvent { event ->", "verticalArrangement")
         listOf("DirectionUp", "DirectionDown", "DirectionLeft", "DirectionRight").forEach {
             assertTrue(
                 "Key.$it wird nicht behandelt. Eine Richtungstaste, die durchrutscht, " +
@@ -78,15 +78,15 @@ class TastaturfolgeTest {
         assertTrue(
             "Die Tastatur kennt keinen Weg nach unten hinaus. Die Fertig-Zeile darunter " +
                 "waere dann mit Tasten unerreichbar.",
-            "unten?.let" in tastatur,
+            "below?.let" in tastatur,
         )
         assertTrue(
             "Die PIN-Eingabe reicht den Anker ihrer Fertig-Zeile nicht mehr durch.",
-            "unten = fertigAnker" in sperre && "focusRequester(fertigAnker)" in sperre,
+            "below = doneAnchor" in sperre && "focusRequester(doneAnchor)" in sperre,
         )
         assertTrue(
             "Die PIN-Eingabe laesst die Tastatur den Fokus nicht mehr holen.",
-            "holtFokus = true" in sperre,
+            "takesFocus = true" in sperre,
         )
     }
 }

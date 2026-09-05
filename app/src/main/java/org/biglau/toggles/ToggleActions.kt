@@ -11,11 +11,10 @@ import org.biglau.actions.Flashlight
 import org.biglau.ui.Notice
 
 /**
- * Fuehrt aus, was [Toggles] fuer moeglich haelt.
+ * carries out what [Toggles] thinks possible.
  *
- * Wo Android uns nicht schalten laesst, oeffnen wir die Systemblende - und sagen es auch.
- * Stillschweigend die Einstellungen aufzumachen, waere fuer jemanden, der eine Kachel
- * "WLAN" drueckt, ein Bruch des Versprechens.
+ * where android does not let us switch, the system panel opens, and we say so: opening the
+ * settings silently breaks the promise a tile called wifi makes.
  */
 object ToggleActions {
 
@@ -35,29 +34,27 @@ object ToggleActions {
 
             ToggleKind.RINGER -> {
                 val audio = context.getSystemService(Context.AUDIO_SERVICE) as? AudioManager ?: return
-                // Nur zwischen Klingeln und Vibrieren: Lautlos verlangt Zugriff auf
-                // "Nicht stoeren", und den erfragen wir nicht fuer einen Schalter.
+                // ring and vibrate only: silent needs do-not-disturb access, which we do
+                // not ask for over a switch.
                 val next = if (audio.ringerMode == AudioManager.RINGER_MODE_NORMAL) {
                     AudioManager.RINGER_MODE_VIBRATE
                 } else {
                     AudioManager.RINGER_MODE_NORMAL
                 }
-                // Bei eingeschaltetem „Bitte nicht stoeren" wirft das System hier eine
-                // SecurityException: der Klingelmodus gehoert dann nicht mehr uns. Ohne
-                // ein Wort dazu tippt man auf den Schalter und es geschieht nichts.
+                // with do-not-disturb on the system throws here: the ringer mode is no
+                // longer ours, and without a word the switch would simply do nothing.
                 runCatching { audio.ringerMode = next }
                     .onFailure { Notice.show(context, R.string.toggle_ringer_blocked) }
             }
 
             ToggleKind.BLUETOOTH -> {
-                // `getDefaultAdapter` ist seit Android 13 abgelöst; `BluetoothManager` gibt es
-                // zwar länger, liefert vor Android 12 aber keinen Adapter ohne Berechtigung.
+                // `BluetoothManager` is older but hands out no adapter before android 12
+                // without a permission.
                 @Suppress("DEPRECATION")
                 val adapter = BluetoothAdapter.getDefaultAdapter() ?: return
                 runCatching {
-                    // `enable`/`disable` sind seit Android 13 abgelöst und wirkungslos. Auf
-                    // Android 11 schalten sie noch; schlagen sie fehl, öffnen wir die
-                    // Einstellungen - der Rückfall steht direkt darunter.
+                    // `enable`/`disable` still switch on android 11 and are inert from 13
+                    // on; the fallback to the settings sits right below.
                     @Suppress("DEPRECATION")
                     if (adapter.isEnabled) adapter.disable() else adapter.enable()
                 }.onFailure { openSettings(context, kind) }
@@ -98,11 +95,8 @@ object ToggleActions {
     }
 
     /**
-     * Der letzte Halt: hier gibt es keinen weiteren Rueckfall mehr.
-     *
-     * Nicht jedes Geraet hat jede Einstellungsseite - `ACTION_DATA_ROAMING_SETTINGS` etwa
-     * fehlt auf manchen Fassungen. Schlaegt das fehl und wir schweigen, dann tippt jemand
-     * auf eine Kachel, und das Telefon tut ueberhaupt nichts. Genau das darf nicht sein.
+     * the last stop, with no further fallback: not every device has every settings page, and
+     * a silent failure means a tile that does nothing at all.
      */
     private fun start(context: Context, intent: Intent) {
         runCatching { context.startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }

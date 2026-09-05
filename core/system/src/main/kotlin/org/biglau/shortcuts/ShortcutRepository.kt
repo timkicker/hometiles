@@ -9,11 +9,10 @@ import android.os.Process
 import android.os.UserHandle
 
 /**
- * Verknuepfungen einer App.
+ * shortcuts of an app.
  *
- * Android gibt sie nur an den Standard-Launcher heraus. Solange BigLau das nicht ist, liefert
- * [available] false und die Oberflaeche sagt das - statt eine leere Liste zu zeigen, aus der
- * niemand schliessen kann, ob die App keine hat oder wir nicht fragen duerfen.
+ * android hands them to the default launcher only; while BigLau is not it, [available] is
+ * false and the screen says so instead of showing an empty list.
  */
 class ShortcutRepository(context: Context) {
 
@@ -22,16 +21,11 @@ class ShortcutRepository(context: Context) {
         appContext.getSystemService(Context.LAUNCHER_APPS_SERVICE) as LauncherApps
     private val user: UserHandle = Process.myUserHandle()
 
-    /** Duerfen wir ueberhaupt fragen? */
     fun available(): Boolean =
         Build.VERSION.SDK_INT >= Build.VERSION_CODES.N_MR1 &&
             runCatching { launcherApps.hasShortcutHostPermission() }.getOrDefault(false)
 
-    /**
-     * Die Verknuepfungen einer App - oder [ShortcutAnswer.Failed], wenn wir nicht fragen
-     * durften oder Android nichts geantwortet hat. `getShortcuts` liefert selbst null,
-     * wenn die Berechtigung fehlt; auch das ist keine Antwort, sondern keine.
-     */
+    /** `getShortcuts` returns null without the permission: that is no answer, not an empty one. */
     fun forPackage(packageName: String): ShortcutAnswer {
         if (!available()) return ShortcutAnswer.Failed
         val query = LauncherApps.ShortcutQuery()

@@ -369,12 +369,12 @@ class TileEditorActivity : BigLauActivity() {
                     }
                 }
             }
-                        // `fortsetzungen` als Schluessel: dieser Bildschirm schickt den Nutzer bei
+                        // `resumes` als Schluessel: dieser Bildschirm schickt den Nutzer bei
             // dauerhaft verweigerter Berechtigung in die **App-Einstellungen**, und von dort
             // kommt kein Ergebnis zurueck. Ohne das Neulesen beim Wiederkommen stuende hier
             // weiter „keine Berechtigung" - auf einem Bildschirm, der einen selbst dorthin
-            // geschickt hat. Siehe `BigLauActivity.fortsetzungen`.
-var contactsGranted by remember(fortsetzungen.intValue) { mutableStateOf(contacts.hasPermission()) }
+            // geschickt hat. Siehe `BigLauActivity.resumes`.
+var contactsGranted by remember(resumes.intValue) { mutableStateOf(contacts.hasPermission()) }
             val askForContacts = rememberLauncherForActivityResult(
                 ActivityResultContracts.RequestPermission(),
             ) { granted ->

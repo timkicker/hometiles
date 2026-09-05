@@ -13,59 +13,55 @@ import org.biglau.contacts.ContactRepository
 import org.biglau.data.ConfigStore
 
 /**
- * Der Wecker für die wiederholte Erinnerung. `PLAN.md` 4.7.
+ * the alarm for the repeated reminder. `PLAN.md` 4.7.
  *
- * Die Kette hängt nicht an einem gemerkten Zustand, sondern fragt jedes Mal die Datenbank:
- * gibt es noch ungelesene Nachrichten? Nur dann meldet sie sich wieder und stellt den
- * nächsten Wecker. Damit hört sie von selbst auf, sobald jemand liest - ein gemerkter
- * Zustand wäre nach einem Neustart oder einem Absturz falsch, und eine Erinnerung, die zu
- * viel weiss, erinnert an Nachrichten, die es nicht mehr gibt.
+ * the chain asks the database every time instead of keeping state: only unread messages
+ * make it report again and set the next alarm, so it stops by itself once someone reads.
+ * kept state would be wrong after a restart and would remind about messages that are gone.
  *
- * Ungenau geweckt (`setAndAllowWhileIdle`): auf die Minute genau zu wecken verlangt ab
- * Android 12 eine eigene Berechtigung, und eine Erinnerung braucht keine Sekunden.
+ * woken inexactly: to the minute needs its own permission from android 12 on.
  */
 class MessageReminderReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent) {
-        val fertig = goAsync()
+        val done = goAsync()
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                erinnern(context.applicationContext)
+                remind(context.applicationContext)
             } finally {
-                fertig.finish()
+                done.finish()
             }
         }
     }
 
-    private suspend fun erinnern(context: Context) {
+    private suspend fun remind(context: Context) {
         val config = ConfigStore.get(context).current.sms
         if (!SmsReminder.active(config)) return
-        // Nur als Standard-App. Sonst meldet die richtige Standard-App dieselbe Nachricht
-        // und BigLau legte seine Erinnerung daneben - zweimal dasselbe, aus zwei Apps.
+        // only as the default app, or the real one reports the same message beside ours.
         if (!SmsRepository.get(context).isDefaultSmsApp()) return
-        val offen = SmsReminder.due(SmsRepository.get(context).load(), config)
-        if (offen.isEmpty()) return
-        val kontakte = ContactRepository.get(context)
-        offen.forEach { nachricht ->
-            SmsNotifications.show(context, nachricht, kontakte.nameFor(nachricht.address), config)
+        val open = SmsReminder.due(SmsRepository.get(context).load(), config)
+        if (open.isEmpty()) return
+        val contacts = ContactRepository.get(context)
+        open.forEach { message ->
+            SmsNotifications.show(context, message, contacts.nameFor(message.address), config)
         }
         schedule(context, config.repeatMinutes)
     }
 
     companion object {
 
-        /** Stellt den nächsten Wecker. Ein zweiter Aufruf ersetzt den ersten, statt zu stapeln. */
+        /** a second call replaces the first instead of stacking. */
         fun schedule(context: Context, minutes: Int) {
             val manager = context.getSystemService(AlarmManager::class.java) ?: return
-            val absicht = pendingIntent(context)
+            val intent = pendingIntent(context)
             if (minutes <= 0) {
-                manager.cancel(absicht)
+                manager.cancel(intent)
                 return
             }
             manager.setAndAllowWhileIdle(
                 AlarmManager.ELAPSED_REALTIME_WAKEUP,
                 SystemClock.elapsedRealtime() + SmsReminder.delayMs(minutes),
-                absicht,
+                intent,
             )
         }
 

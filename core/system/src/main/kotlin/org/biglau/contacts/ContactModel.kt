@@ -1,6 +1,6 @@
 package org.biglau.contacts
 
-/** Eine Zeile, wie sie aus ContactsContract kommt: pro Nummer eine. */
+/** one row per number, as ContactsContract delivers it. */
 data class ContactRow(
     val contactId: Long,
     val name: String,
@@ -12,7 +12,6 @@ data class ContactRow(
 
 data class PhoneNumber(val number: String, val label: String?)
 
-/** Ein Kontakt mit allen seinen Nummern - so, wie ihn die Auswahl zeigt. */
 data class PhoneContact(
     val id: Long,
     val name: String,
@@ -20,27 +19,21 @@ data class PhoneContact(
     val numbers: List<PhoneNumber>,
     val starred: Boolean = false,
 ) {
-    /**
-     * Die erste Nummer, oder `null`.
-     *
-     * Bewusst nullbar und nicht `first()`: die Liste kommt heute aus einer Abfrage, die
-     * ohne Nummer gar keine Zeile liefert - aber ein Kontakt ohne Nummer ist nichts
-     * Unmoegliches, und ein `first()` auf einer leeren Liste wuerde den Launcher
-     * abschiessen. Ein abgestuerzter Launcher ist ein schwarzes Telefon.
-     */
+    /** nullable and not `first()`: a contact without a number would kill the launcher. */
     val primaryNumber: String? get() = numbers.firstOrNull()?.number
     val hasChoice: Boolean get() = numbers.size > 1
     val isCallable: Boolean get() = numbers.isNotEmpty()
 }
 
 /**
- * Fasst die Zeilen zu Kontakten zusammen. Die Anbieter-Datenbank liefert pro Nummer eine
- * Zeile und dieselbe Nummer gern mehrfach - einmal aus dem Telefonbuch, einmal aus einem
- * synchronisierten Konto. Ungefiltert stuende in der Auswahl dreimal dasselbe.
+ * folds the rows into contacts.
+ *
+ * the provider gives one row per number and the same number more than once: from the
+ * phone book and again from a synchronised account.
  */
 object ContactMerge {
 
-    /** Nur Ziffern und ein fuehrendes Plus - reicht, um Schreibweisen derselben Nummer zu erkennen. */
+    /** digits and a leading plus: enough to spot two spellings of one number. */
     fun normalizeNumber(number: String): String {
         val digits = number.filter { it.isDigit() }
         return if (number.trimStart().startsWith("+")) "+$digits" else digits
@@ -53,8 +46,7 @@ object ContactMerge {
             val seen = LinkedHashMap<String, PhoneNumber>()
             group.forEach { row ->
                 val key = normalizeNumber(row.number)
-                // Die erste Schreibweise gewinnt, aber eine Zeile mit Bezeichnung
-                // ersetzt eine zuvor gesehene ohne.
+                // first spelling wins, but a labelled row replaces an unlabelled one.
                 val existing = seen[key]
                 if (existing == null || (existing.label == null && row.label != null)) {
                     seen[key] = PhoneNumber(row.number.trim(), row.label)

@@ -49,11 +49,8 @@ import org.biglau.ui.theme.LocalBigPalette
 import org.biglau.ui.theme.tileBorder
 
 /**
- * Zifferntastatur in der Formsprache der Kacheln. Die Tasten fuellen die verfuegbare Flaeche
- * aus, statt eine feste Groesse zu haben - auf drei Zoll ist jede ungenutzte Flaeche eine
- * verpasste Trefferflaeche.
- *
- * Wird spaeter die Grundlage der Waehltastatur.
+ * digit keypad in the tiles' shape language. the keys fill the available area instead of
+ * having a fixed size: on three inches every unused area is a missed target.
  */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -62,28 +59,20 @@ fun BigKeypad(
     onBackspace: () -> Unit,
     modifier: Modifier = Modifier,
     onLongDigit: ((Char) -> Unit)? = null,
-    /** Kurzhinweis unter der Ziffer, etwa der Name der Kurzwahl. */
+    /** short hint under the digit, such as the speed-dial name. */
     hintFor: (Char) -> String? = { null },
-    /**
-     * Zusatztaste unten links. Die Waehltastatur setzt dort das Plus fuer Auslandsnummern;
-     * die PIN-Eingabe laesst den Platz leer, weil dort kein Plus hingehoert.
-     */
+    /** extra key bottom left: the dialer puts the plus there, the pin entry leaves it empty. */
     extraKey: Char? = null,
     /**
-     * Soll die Tastatur beim Erscheinen den Fokus holen?
-     *
-     * Nur, wo sie die Hauptsache des Bildschirms ist - bei der PIN-Eingabe. Die
-     * Waehltastatur hat ein Nummernfeld darueber und soll es ihm nicht wegnehmen.
+     * only where the keypad is the screen's main thing, the pin entry: the dialer has a
+     * number field above it and must not take the focus from it.
      */
-    holtFokus: Boolean = false,
+    takesFocus: Boolean = false,
     /**
-     * Wohin der Fokus geht, wenn er unten aus der Tastatur hinauslaeuft.
-     *
-     * Unter der PIN-Tastatur steht `Fertig`. Ohne diesen Anker waere die Zeile mit Tasten
-     * unerreichbar - derselbe Fall wie der Streifen unter dem Rasterrahmen, und dieselbe
-     * Antwort: ein benannter Anker statt einer blinden Suche.
+     * where the focus goes when it runs out at the bottom. without this anchor that row is
+     * unreachable by key: a named anchor, never a blind search.
      */
-    unten: FocusRequester? = null,
+    below: FocusRequester? = null,
 ) {
     val rows = listOf(
         listOf("1", "2", "3"),
@@ -92,73 +81,70 @@ fun BigKeypad(
         listOf(extraKey?.toString() ?: "", "0", "⌫"),
     )
 
-    // Die Bewegung wird gefuehrt, nicht gesucht.
+    // the movement is led, not searched.
     //
-    // Am 04.09.2026 gemessen: ueber dem Startbildschirm bekam die Tastatur den Fokus zwar
-    // auf die Eins, aber jede Richtungstaste lief ins Leere - Compose sucht das naechste
-    // Ziel und findet es unter der Ueberlagerung, auf Kacheln, die niemand sieht. Nach
-    // zehnmal hoch war der Fokus ganz weg, und damit die gesperrte App nicht mehr zu
-    // oeffnen.
+    // over the home screen the keypad did take focus on the one, but every direction key
+    // ran into nothing: compose searches for the next target and finds it under the
+    // overlay, on tiles nobody sees. after ten ups the focus was gone entirely, and with it
+    // any way into the locked app.
     //
-    // Ein `moveFocus` in die Richtung der Taste war der erste Versuch und half nicht: am
-    // Rand verliess es die Tastatur genauso. Deshalb je Taste ein Anker und eine eigene
-    // Rechnung, wie im Rasterrahmen. Leere Plaetze werden uebersprungen; am Rand passiert
-    // nichts, ausser unten, wo [unten] steht.
-    val anker = remember(rows.size) { rows.map { zeile -> zeile.map { FocusRequester() } } }
-    var wo by remember { mutableStateOf(0 to 0) }
+    // a `moveFocus` in the key's direction left the keypad at the edge just the same, so
+    // each key has an anchor and its own arithmetic. empty slots are skipped; at an edge
+    // nothing happens, except at the bottom, where [below] stands.
+    val anchors = remember(rows.size) { rows.map { row -> row.map { FocusRequester() } } }
+    var at by remember { mutableStateOf(0 to 0) }
 
-    fun belegt(zeile: Int, spalte: Int): Boolean =
-        rows.getOrNull(zeile)?.getOrNull(spalte)?.isNotEmpty() == true
+    fun filled(row: Int, column: Int): Boolean =
+        rows.getOrNull(row)?.getOrNull(column)?.isNotEmpty() == true
 
-    /** Die naechste belegte Taste in dieser Richtung, oder null am Rand. */
-    fun nachbar(zeile: Int, spalte: Int, dz: Int, ds: Int): Pair<Int, Int>? {
-        var z = zeile + dz
-        var sp = spalte + ds
-        while (z in rows.indices && sp in 0..2) {
-            if (belegt(z, sp)) return z to sp
-            z += dz
-            sp += ds
+    /** the next filled key in this direction, or null at the edge. */
+    fun neighbour(row: Int, column: Int, dr: Int, dc: Int): Pair<Int, Int>? {
+        var r = row + dr
+        var c = column + dc
+        while (r in rows.indices && c in 0..2) {
+            if (filled(r, c)) return r to c
+            r += dr
+            c += dc
         }
         return null
     }
 
-    fun geheZu(ziel: Pair<Int, Int>?): Boolean {
-        if (ziel == null) return false
-        wo = ziel
-        return runCatching { anker[ziel.first][ziel.second].requestFocus() }.isSuccess
+    fun goTo(target: Pair<Int, Int>?): Boolean {
+        if (target == null) return false
+        at = target
+        return runCatching { anchors[target.first][target.second].requestFocus() }.isSuccess
     }
 
-    LaunchedEffect(holtFokus) { if (holtFokus) geheZu(0 to 0) }
+    LaunchedEffect(takesFocus) { if (takesFocus) goTo(0 to 0) }
 
     Column(
         modifier = modifier
             .fillMaxSize()
-            .onPreviewKeyEvent { taste ->
-                if (taste.type != KeyEventType.KeyDown) {
+            .onPreviewKeyEvent { event ->
+                if (event.type != KeyEventType.KeyDown) {
                     false
                 } else {
-                    val (z, sp) = wo
-                    when (taste.key) {
+                    val (r, c) = at
+                    when (event.key) {
                         Key.DirectionUp -> {
-                            geheZu(nachbar(z, sp, -1, 0))
+                            goTo(neighbour(r, c, -1, 0))
                             true
                         }
                         Key.DirectionDown -> {
-                            val ziel = nachbar(z, sp, 1, 0)
-                            if (ziel != null) {
-                                geheZu(ziel)
+                            val target = neighbour(r, c, 1, 0)
+                            if (target != null) {
+                                goTo(target)
                             } else {
-                                // Unter der letzten Reihe steht, was der Aufrufer angibt.
-                                unten?.let { runCatching { it.requestFocus() } }
+                                below?.let { runCatching { it.requestFocus() } }
                             }
                             true
                         }
                         Key.DirectionLeft -> {
-                            geheZu(nachbar(z, sp, 0, -1))
+                            goTo(neighbour(r, c, 0, -1))
                             true
                         }
                         Key.DirectionRight -> {
-                            geheZu(nachbar(z, sp, 0, 1))
+                            goTo(neighbour(r, c, 0, 1))
                             true
                         }
                         else -> false
@@ -167,22 +153,22 @@ fun BigKeypad(
             },
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        rows.forEachIndexed { zeile, row ->
+        rows.forEachIndexed { rowIndex, row ->
             Row(
                 modifier = Modifier.fillMaxWidth().weight(1f),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                row.forEachIndexed { spalte, key ->
-                    val platz = Modifier
-                        .focusRequester(anker[zeile][spalte])
-                        .onFocusChanged { if (it.isFocused) wo = zeile to spalte }
+                row.forEachIndexed { columnIndex, key ->
+                    val slot = Modifier
+                        .focusRequester(anchors[rowIndex][columnIndex])
+                        .onFocusChanged { if (it.isFocused) at = rowIndex to columnIndex }
                     when (key) {
                         "" -> Box(Modifier.weight(1f))
                         "⌫" -> KeypadKey(
-                            Modifier.weight(1f).then(platz),
+                            Modifier.weight(1f).then(slot),
                             onClick = onBackspace,
-                            // Ohne Beschreibung ist die Taste fuer TalkBack stumm - und
-                            // im Baum ueberhaupt nicht auffindbar.
+                            // without a description the key is silent to TalkBack and not
+                            // findable in the tree at all.
                             description = stringResource(R.string.keypad_backspace),
                         ) {
                             Icon(
@@ -192,7 +178,7 @@ fun BigKeypad(
                             )
                         }
                         else -> KeypadKey(
-                            Modifier.weight(1f).then(platz),
+                            Modifier.weight(1f).then(slot),
                             onClick = { onDigit(key[0]) },
                             onLongClick = onLongDigit?.let { handler -> { handler(key[0]) } },
                             description = key,
@@ -246,30 +232,29 @@ private fun KeypadKey(
     )
 }
 
-/** Wie deutlich der Rand eines leeren Punktes ist - siehe die Begruendung an [PinDots]. */
-internal const val PUNKTRAND = 0.55f
+/** how visible the border of an empty dot is; the reason sits at [PinDots]. */
+internal const val DOT_BORDER = 0.55f
 
 /**
- * Punktreihe fuer eine verdeckte Eingabe.
+ * dot row for a hidden entry.
  *
- * Wie viele Ziffern schon dastehen, sagten bis zum 04.09.2026 allein die gefuellten Punkte.
- * Wer sie nicht sieht, bekam auf diesem Bildschirm ueberhaupt keine Rueckmeldung: BigLau
- * macht absichtlich keinen Ton, und ob eine Taste angekommen ist, war nur zu sehen. Die
- * Zahl der Ziffern verraet die PIN nicht; sie zu verschweigen hilft niemandem.
+ * how many digits stand there was said by the filled dots alone, so anyone who cannot see
+ * them got no answer at all: BigLau makes no sound on purpose. the count does not give the
+ * pin away, and withholding it helps nobody.
  *
- * `liveRegion`, damit es beim Tippen gesagt wird und nicht erst beim Antasten.
+ * `liveRegion`, so it is said while typing and not only when touched.
  */
 @Composable
 fun PinDots(length: Int, total: Int = 8, modifier: Modifier = Modifier) {
     val palette = LocalBigPalette.current
-    val ansage = if (length == 0) {
+    val announcement = if (length == 0) {
         stringResource(R.string.a11y_pin_empty)
     } else {
         pluralStringResource(R.plurals.a11y_pin_digits, length, length)
     }
     Row(
         modifier = modifier.semantics {
-            contentDescription = ansage
+            contentDescription = announcement
             liveRegion = LiveRegionMode.Polite
         },
         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -280,16 +265,11 @@ fun PinDots(length: Int, total: Int = 8, modifier: Modifier = Modifier) {
                 Modifier
                     .clip(RoundedCornerShape(50))
                     .background(if (index < length) palette.accent else palette.emptyTile)
-                    // Der Rand traegt den leeren Punkt allein: seine Fuellung ist die
-                    // stille Kachelfarbe und steht mit 1,09:1 (dunkel) bis 1,16:1 (hell)
-                    // praktisch auf dem Hintergrund. Bei 0,35 kam der Rand im hellen Thema
-                    // auf 2,23:1 und im Kontrastthema auf 2,64 - unter der Flaechenschwelle
-                    // von 3,0. Am 04.09.2026 am Emulator im Bildpunkt bestaetigt: (157,158,160)
-                    // auf (232,234,236). Mit 0,55 sind es 6,12 / 3,94 / 5,28.
-                    //
-                    // Das ist dieselbe Sache wie beim Rahmen der leeren Kachel: wo die
-                    // Fuellung absichtlich still ist, muss der Rand die Auffindbarkeit tragen.
-                    .border(2.dp, palette.onBackground.copy(alpha = PUNKTRAND), RoundedCornerShape(50))
+                    // the border carries the empty dot alone: its fill is the quiet tile
+                    // colour and sits at 1.09:1 to 1.16:1 against the background. at 0.35
+                    // the border reached 2.23:1 in the light theme, under the area
+                    // threshold of 3.0; at 0.55 it is 6.12 / 3.94 / 5.28.
+                    .border(2.dp, palette.onBackground.copy(alpha = DOT_BORDER), RoundedCornerShape(50))
                     .size(18.dp)
             )
         }

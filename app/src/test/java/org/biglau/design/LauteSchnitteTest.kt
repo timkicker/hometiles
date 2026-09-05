@@ -42,7 +42,7 @@ class LauteSchnitteTest {
             .flatMap { datei ->
                 datei.readLines().mapIndexedNotNull { nummer, zeile ->
                     val text = zeile.trim()
-                    if (text.startsWith("//") || text.startsWith("*")) {
+                    if (Quelltext.istKommentarzeile(zeile)) {
                         null
                     } else if (Regex("""\.substring(After|Before)\(""").containsMatchIn(zeile)) {
                         "${datei.name}:${nummer + 1}: $text"
@@ -77,7 +77,7 @@ class LauteSchnitteTest {
                 // Kommentare zaehlen nicht: zum dritten Mal in dieser Nacht hat eine
                 // Regel ihre eigene Begruendung als Verstoss gemeldet.
                 val text = zeile.trim()
-                if (text.startsWith("//") || text.startsWith("*")) {
+                if (Quelltext.istKommentarzeile(zeile)) {
                     null
                 } else if (Regex("""texte\([^)]*\)\s*\.first\(\)""").containsMatchIn(zeile)) {
                     "${datei.name}:${nummer + 1}: ${zeile.trim()}"

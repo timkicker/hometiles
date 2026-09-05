@@ -17,37 +17,31 @@ import org.biglau.data.IconVisibility
 import org.biglau.ui.LocalHaptics
 
 /**
- * Eine Flaeche samt ihrer Schriftfarbe. Getrennt waren die beiden dreimal auseinandergelaufen -
- * weisser Text auf hellem Akzent und hellem Rot, jeweils unter 3:1. Als Paar ist das nicht
- * mehr moeglich, ohne es absichtlich zu tun.
+ * a surface together with its ink. kept apart, the two drifted three times: white text on a
+ * bright accent and on a bright red, both under 3:1.
  */
 @Immutable
 data class BigSurface(val fill: Color, val ink: Color)
 
-/**
- * Ein Theme besteht aus Hintergrund, Textfarbe und einer Palette fuer die Kacheln.
- * Die Kachelfarben sind bewusst kraeftig und untereinander gut unterscheidbar.
- */
+/** background, ink and a palette for the tiles; the tile colours are strong and distinct. */
 @Immutable
 data class BigPalette(
     val background: Color,
     val onBackground: Color,
     val tiles: List<Color>,
     val onTile: Color,
-    /** Kachel ohne Belegung - sichtbar, aber deutlich zurueckgenommen. */
+    /** an unassigned tile: visible, but clearly held back. */
     val emptyTile: Color,
-    /** Umrandung der leeren Kachel; traegt die Auffindbarkeit statt der Fuellung. */
+    /** border of the empty tile; it carries the findability, not the fill. */
     val emptyTileBorder: Color,
     val accent: Color,
-    /** Text und Icons auf der Akzentflaeche. */
+    /** text and icons on the accent surface. */
     val onAccent: Color,
     val danger: Color,
     val onDanger: Color,
     /**
-     * Warnschrift auf dem Hintergrund.
-     *
-     * Nicht [danger]: das ist eine **Flaechen**farbe und traegt [onDanger]. Als Schrift auf
-     * dem Hintergrund verfehlt sie die eigene Schwelle - siehe `Tokens.DARK_DANGER_TEXT`.
+     * warning text on the background. not [danger], which is an area colour carrying
+     * [onDanger] and misses its own threshold as text; see `Tokens.DARK_DANGER_TEXT`.
      */
     val dangerText: Color,
 ) {
@@ -56,17 +50,14 @@ data class BigPalette(
     val surfaceDanger: BigSurface get() = BigSurface(danger, onDanger)
     fun surfaceTile(index: Int): BigSurface = BigSurface(tiles[index.mod(tiles.size)], onTile)
 
-    /** Alle Paare, die es gibt - der Kontrasttest laeuft ueber genau diese Liste. */
+    /** every pair there is; the contrast test runs over exactly this list. */
     fun allSurfaces(): List<BigSurface> =
         listOf(surfaceDefault, surfaceAccent, surfaceDanger) + tiles.indices.map(::surfaceTile)
 }
 
 private fun c(argb: Long) = Color(argb.toInt())
 
-/**
- * Hauptthema. Alle Werte kommen aus [Tokens]; die Kontrastschwellen dahinter
- * sind in ContrastTest festgenagelt.
- */
+/** the main theme; every value comes from [Tokens], the thresholds are nailed in ContrastTest. */
 private val Dark = BigPalette(
     background = c(Tokens.DARK_BACKGROUND),
     onBackground = c(Tokens.DARK_ON_BACKGROUND),
@@ -110,11 +101,10 @@ private val HighContrast = BigPalette(
 )
 
 /**
- * Die Palette zu einem Thema.
+ * the palette of a theme.
  *
- * [systemIsDark] wird nur fuer [ThemeName.SYSTEM] gebraucht und steht trotzdem ohne
- * Vorgabewert da: ein stiller Standard haette an jeder Stelle, die ihn vergisst, das
- * falsche Thema gemalt - und zwar erst auf einem Telefon, das gerade hell steht.
+ * [systemIsDark] is needed only for [ThemeName.SYSTEM] and still has no default: a silent
+ * one would paint the wrong theme wherever it was forgotten.
  */
 fun paletteFor(theme: ThemeName, systemIsDark: Boolean): BigPalette = when (theme) {
     ThemeName.DARK -> Dark
@@ -123,29 +113,28 @@ fun paletteFor(theme: ThemeName, systemIsDark: Boolean): BigPalette = when (them
     ThemeName.SYSTEM -> if (systemIsDark) Dark else Light
 }
 
-/** Kachelrahmen: nur im Hochkontrast-Theme sichtbar, dort aber tragend. */
+/** tile border: visible only in the high contrast theme, but load-bearing there. */
 fun BigPalette.tileBorder(): Color? =
     if (this === HighContrast) Color(0xFFFFEB3B) else null
 
 val LocalBigPalette = staticCompositionLocalOf { Dark }
 val LocalTextScale = staticCompositionLocalOf { 1.0f }
 
-/** Beschriftung auf der Kachel, zusaetzlich zur globalen Textgroesse. PLAN.md 4.2. */
+/** label on the tile, on top of the global text size. `PLAN.md` 4.2. */
 val LocalLabelScale = staticCompositionLocalOf { 1.0f }
 
-/** Icongroesse als Prozent der kuerzeren Zellenkante. PLAN.md 4.2. */
+/** icon size as a percent of the shorter cell edge. `PLAN.md` 4.2. */
 val LocalIconPercent = staticCompositionLocalOf { 40 }
 
-/** Ob ein Symbol auf der Kachel steht - ja, nein, oder nur wenn Platz. PLAN.md 4.2. */
+/** whether an icon stands on the tile: always, never, or only if there is room. `PLAN.md` 4.2. */
 val LocalIconVisibility = staticCompositionLocalOf { IconVisibility.ALWAYS }
 
-/** Beschriftung weglassen, wenn sie abgeschnitten wuerde. PLAN.md 3.2. */
+/** drop the label when it would be cut off. `PLAN.md` 3.2. */
 val LocalHideCutLabels = staticCompositionLocalOf { false }
 
 /**
- * Der eine Eckenradius fuer alle Flaechen. PLAN.md 3.7 verbietet einen zweiten Radius
- * daneben - und genau das entstand, als er an fuenfzehn Stellen als 12.dp im Quelltext
- * stand: wer die Kacheln eckig stellte, bekam eckige Kacheln und runde Zeilen.
+ * the one corner radius for every surface. `PLAN.md` 3.7 forbids a second one beside it,
+ * which is what fifteen hard-written 12.dp produced: square tiles beside round rows.
  */
 val LocalCornerRadius = staticCompositionLocalOf { 12.dp }
 
@@ -153,7 +142,7 @@ val LocalCornerRadius = staticCompositionLocalOf { 12.dp }
 fun BigLauTheme(
     theme: ThemeName = ThemeName.DARK,
     textScale: Float = 1.0f,
-    /** Spuerbare Rueckmeldung beim Antippen - Einstellung aus `Behaviour`. */
+    /** haptic answer on a tap, from the `Behaviour` setting. */
     haptics: HapticStrength = HapticStrength.LIGHT,
     font: FontChoice = FontChoice.HYPERLEGIBLE,
     labelScale: Float = 1.0f,

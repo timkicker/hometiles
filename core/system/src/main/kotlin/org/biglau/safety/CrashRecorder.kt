@@ -10,10 +10,10 @@ import java.util.Date
 import java.util.Locale
 
 /**
- * Zaehlt Fehlstarts und haelt den letzten Absturz fest.
+ * counts failed starts and keeps the last crash.
  *
- * Bewusst SharedPreferences und nicht die Konfigurationsdatei: wenn die kaputt ist, muss
- * dieser Zaehler trotzdem lesbar bleiben - sonst kaeme man aus dem Notmodus nie heraus.
+ * SharedPreferences and not the config file: a broken config must still leave this counter
+ * readable, or there is no way out of safe mode.
  */
 class CrashRecorder(context: Context) {
 
@@ -36,10 +36,10 @@ class CrashRecorder(context: Context) {
         if (failedStarts != 0) failedStarts = CrashGuard.onRendered()
     }
 
-    /** Der Fangnetz-Handler, den wir gesetzt haben - fuer [armed]. */
+    /** the handler we installed, for [armed]. */
     private var ours: Thread.UncaughtExceptionHandler? = null
 
-    /** Haengt sich in den Standard-Handler ein, ohne ihn zu ersetzen. */
+    /** chains into the default handler instead of replacing it. */
     fun installHandler() {
         val previous = Thread.getDefaultUncaughtExceptionHandler()
         val handler = Thread.UncaughtExceptionHandler { thread, error ->
@@ -51,16 +51,10 @@ class CrashRecorder(context: Context) {
     }
 
     /**
-     * Haengt unser Netz noch?
+     * is our net still hanging?
      *
-     * Am 03.09.2026 stand in der Diagnose „letzter Absturz: keiner", obwohl es um 02:24
-     * einen gegeben hatte - und `files/last-crash.txt` fehlte. Der Handler wird seit dem
-     * 31.08. als Erstes in `BigLauApp` gesetzt; er haette also schreiben muessen.
-     *
-     * Wer spaeter `setDefaultUncaughtExceptionHandler` ruft und den vorherigen **nicht**
-     * weiterreicht, haengt unser Netz lautlos aus. Das ist von aussen nicht zu sehen -
-     * ausser man fragt nach. Genau dafuer ist das hier: eine Zeile in der Diagnose, die
-     * „ja" oder „nein" sagt, statt einer Vermutung.
+     * anyone calling `setDefaultUncaughtExceptionHandler` later without chaining the
+     * previous one unhooks it silently, and that is invisible unless asked.
      */
     fun armed(): Boolean = ours != null && Thread.getDefaultUncaughtExceptionHandler() === ours
 

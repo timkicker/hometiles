@@ -33,11 +33,10 @@ import org.biglau.a11y.Paging
 import org.biglau.ui.theme.LocalBigPalette
 
 /**
- * Zwei große Knöpfe zum Blättern, unter der Liste.
+ * two big paging buttons under the list, full width where the thumb already rests.
  *
- * Sie sitzen unten und über die volle Breite, weil dort der Daumen ohnehin liegt. Am
- * Listenende wird der jeweilige Knopf sichtbar blass — ein Knopf, der aussieht wie immer
- * und nichts tut, lässt einen an der eigenen Bedienung zweifeln.
+ * at the end of the list the button goes visibly pale: one that looks as always and does
+ * nothing makes people doubt their own handling.
  */
 @Composable
 fun ScrollButtons(
@@ -53,10 +52,7 @@ fun ScrollButtons(
     }
 }
 
-/**
- * Dieselben zwei Knoepfe, aber der Aufrufer bestimmt, wo sie liegen. Der Assistent setzt
- * sie neben "Weiter" statt in eine eigene Zeile - dort waere jede Zeile eine zu viel.
- */
+/** the same two buttons, placed by the caller; the wizard puts them beside Next. */
 @Composable
 fun ScrollButtonPair(
     state: LazyListState,
@@ -106,17 +102,11 @@ fun ScrollButtonPair(
 }
 
 /**
- * Wie blass ein Knopf am Listenende wird.
+ * how pale a button goes at the end of the list.
  *
- * Blass heisst **nicht** unsichtbar: wer nicht weiterblaettern kann, soll sehen, dass der
- * Knopf noch da ist - sonst sucht er ihn. Ein Symbol ist eine Flaeche, keine Schrift, also
- * gilt `Tokens.MIN_TILE_ON_BACKGROUND` (3,0).
- *
- * Bis zum 04.09.2026 stand hier 0,4. Nachgerechnet und am Emulator im Bildpunkt bestaetigt:
- * dunkel 3,81, Kontrast 3,18 - und **hell 2,59**. Im hellen Thema war das blasse Symbol
- * `#999999` auf `#F3F4F4` und damit unter der Schwelle. Mit 0,5 sind es 5,37 / 4,53 / 3,44,
- * und der Abstand zum wachen Knopf (18,10 / 17,20 / 15,66) bleibt gross genug, dass man den
- * Unterschied sieht.
+ * pale is not invisible: the button must stay findable. an icon is an area, not text, so
+ * `Tokens.MIN_TILE_ON_BACKGROUND` (3.0) applies. at 0.4 the light theme reached 2.59, under
+ * the threshold; 0.5 gives 5.37 / 4.53 / 3.44 against 18.10 / 17.20 / 15.66 when awake.
  */
 internal const val BLASS = 0.5f
 
@@ -131,17 +121,9 @@ private fun PageButton(
     val palette = LocalBigPalette.current
     val surface = palette.surfaceDefault
     Box(
-        // Der Aufrufer zuerst, dann die Untergrenzen.
-        //
-        // Bis zum 04.09.2026 stand hier `.height(56.dp).then(modifier)` mit dem Kommentar
-        // "Hoehe zuerst, damit ein Aufrufer sie ueberschreiben kann". Das Gegenteil war der
-        // Fall: eine feste Groesse **vor** dem Aufrufer-Modifier begrenzt ihn. Der Assistent
-        // bat um 72 dp und bekam 56 - am Emulator nachgemessen, 77 statt 99 Bildpunkten.
-        //
-        // `heightIn`/`widthIn` sind Untergrenzen und tun genau, was der alte Kommentar
-        // versprach: wer nichts sagt, bekommt 56 dp hoch; wer etwas sagt, bekommt es. Die
-        // 48 dp Breite sind das Mindestmass fuer einen Fingertipp - ohne sie war der Knopf
-        // im Assistenten 40,7 dp breit, weil er sich seine Breite vom Symbol holte.
+        // caller first, then the floors. a fixed size *before* the caller's modifier
+        // bounds it: the wizard asked for 72 dp and got 56. `heightIn`/`widthIn` are
+        // floors, and 48 dp is the minimum for a fingertip.
         modifier = Modifier
             .then(modifier)
             .heightIn(min = 56.dp)

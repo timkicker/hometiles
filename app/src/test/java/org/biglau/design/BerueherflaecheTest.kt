@@ -23,8 +23,7 @@ class BerueherflaecheTest {
         val treffer = Quelltext.dateien()
             .filter { datei ->
                 datei.readLines().any { zeile ->
-                    "AlertDialog" in zeile && !zeile.trim().startsWith("*") &&
-                        !zeile.trim().startsWith("//")
+                    "AlertDialog" in zeile && !Quelltext.istKommentarzeile(zeile)
                 }
             }
             .map { it.name }

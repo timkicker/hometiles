@@ -39,8 +39,7 @@ class HauptfadenTest {
                 zeilen.withIndex()
                     .filter { (_, z) ->
                         val nackt = z.trim()
-                        langsam.any { it in nackt } &&
-                            !nackt.startsWith("//") && !nackt.startsWith("*")
+                        langsam.any { it in nackt } && !Quelltext.istKommentarzeile(z)
                     }
                     .filterNot { (i, _) ->
                         // Im richtigen Faden, oder in einer Funktion, die selbst nur aus

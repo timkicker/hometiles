@@ -14,137 +14,108 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 /**
- * Wandelt eine in dp gedachte Groesse in eine Schriftgroesse um, die von der
- * Systemschriftskalierung unberuehrt bleibt.
+ * a size thought of in dp, turned into a font size the system font scale does not touch.
  *
- * Warum das noetig ist (PLAN.md 3.2): unsere Kachel- und Kopfzeilenschriften werden aus der
- * verfuegbaren Flaeche gerechnet - die Flaeche ist bereits die Antwort auf "wie gross darf
- * das sein". Wuerde die Systemskalierung obendrauf multiplizieren, liefe der Text ueber:
- * auf dem Zielgeraet steht sie auf 1,35, aus 26 werden also 35, und die zweite Zeile fiel
- * unten aus der Kopfzeile heraus.
- *
- * Fuer Fliesstext in den Einstellungen gilt das nicht - dort folgt die App der
- * Systemeinstellung wie jede andere App auch.
+ * tile and header sizes are computed from the available area (`PLAN.md` 3.2), which is
+ * already the answer to how big this may be; the device font scale sits at 1.35, so 26
+ * would become 35 and the second line would fall out of the header.
  */
 @Composable
 @ReadOnlyComposable
 fun dpSp(value: Float): TextUnit = with(LocalDensity.current) { value.dp.toSp() }
 
 /**
- * Tabellenziffern - `PLAN.md` 3.7: „Zahlen (Anrufliste, Waehltastatur, Dauer) mit
- * Tabellenziffern […], damit Spalten nicht springen."
+ * tabular figures, `PLAN.md` 3.7, so columns do not jump.
  *
- * **Vom Stil der Oberflaeche aus, nicht frisch gebaut.** Hier stand ein eigenstaendiges
- * `TextStyle`, und `Text(style = …)` *ersetzt* den Stil der Umgebung, statt ihn zu
- * ergaenzen: Uhr, Ladestand, Waehltastatur und Gespraechsdauer standen damit in der
- * Systemschrift, waehrend alles daneben in der eingestellten Schrift stand. Der Absatz
- * darunter sagt „die mitgelieferte Schrift kann tnum" - genau die war an diesen Stellen
- * nicht im Einsatz.
+ * built *from* the surrounding style: `Text(style = ...)` replaces the ambient style
+ * instead of adding to it, and a fresh `TextStyle` here put the clock, the battery, the
+ * keypad and the call duration in the system font while everything beside them was not.
  *
- * Gemessen, bevor es das gab: „11 %" in der Kopfzeile war 64 Pixel breit, „88 %" 74. Die
- * Anzeige rutschte also bei jedem Prozent hin und her, und dasselbe tat die Uhr zur vollen
- * Minute und die Gespraechsdauer im Sekundentakt. Die mitgelieferte Schrift kann `tnum`;
- * sie wurde nur nie danach gefragt.
+ * measured before: 11 % was 64 pixels wide in the header, 88 % was 74.
  */
 @Composable
 @ReadOnlyComposable
-fun tabellenZiffern(): TextStyle =
+fun tabularFigures(): TextStyle =
     LocalTextStyle.current.copy(fontFeatureSettings = "tnum")
 
 /**
- * Fliesstext in der eingestellten Textgroesse.
+ * running text in the chosen text size.
  *
- * Die Einstellung heisst schlicht **„Textgroesse"** - und hielt nur zur Haelfte, was sie
- * versprach: Kacheln, Zeilen und Ueberschriften wuchsen mit, der erklaerende Text daneben
- * nicht. Bei 200 % standen also grosse Knoepfe neben kleiner Schrift, und zwar bei genau
- * den Saetzen, die man am ehesten vergroessert lesen will.
+ * the setting is called text size and kept only half of it: tiles, rows and headings grew,
+ * the explaining text beside them did not.
  *
- * Der Unterschied zu [dpSp]: dort ist die Groesse aus der Flaeche gerechnet und darf
- * **nicht** noch einmal skaliert werden, sonst laeuft sie ueber. Hier ist sie gesetzt, und
- * die Einstellung des Nutzers gehoert obendrauf - zusaetzlich zur Systemschrift, der diese
- * Texte wie in jeder anderen App folgen.
+ * unlike [dpSp], where the size comes from the area and must not be scaled again.
  */
 @Composable
 @ReadOnlyComposable
 fun bigSp(value: Float): TextUnit = (value * org.biglau.ui.theme.LocalTextScale.current).sp
 
 /**
- * Die eingestellte Textgroesse, nach oben begrenzt.
+ * the chosen text size, capped.
  *
- * Fuer Bildschirme, die **nicht scrollen** und deren Knopfhoehe fest ist: dort frisst jede
- * weitere Vergroesserung die Flaeche, auf die man tippen muss, oder schneidet die
- * Beschriftung ab. Zweimal am Emulator gesehen - die PIN-Tasten waren bei 200 % noch 21 dp
- * hoch, und im Gespraech stand auf dem Knopf "Lautsprec…".
- *
- * Nach unten wird nie begrenzt: wer 75 % einstellt, bekommt 75 %.
+ * for screens that do not scroll and whose button height is fixed: at 200 % the pin keys
+ * were 21 dp high, and the call screen offered a button reading "Lautsprec...". never
+ * capped downwards: 75 percent stays 75 percent.
  */
 fun cappedTextScale(current: Float, max: Float): Float = minOf(current, max)
 
 /**
- * Das laengste Wort eines Textes - das, an dem die Zeile bricht.
+ * the longest word of a text, the one the line breaks at.
  *
- * Compose trennt ein Wort mitten hindurch, wenn es allein nicht in die Zeile passt. Bei
- * 200 % stand ueber der Ruecksetzen-Seite „Alles zuruecksetze / n". Ob eine Ueberschrift
- * passt, entscheidet also nicht ihre Laenge, sondern ihr laengstes Wort.
+ * compose splits a word that does not fit on its own, so at 200 % a heading read
+ * "Alles zuruecksetze / n". whether a heading fits is decided by its longest word.
  */
 fun longestWord(text: String): String =
     text.split(' ', '\n', '\t').maxByOrNull { it.length }.orEmpty().ifEmpty { text }
 
 /**
- * Die groesste Schriftgroesse bis [wunschDp], bei der [text] in **eine** Zeile passt.
+ * the largest size up to [desiredDp] at which [text] fits on *one* line.
  *
- * `singleLineSizeSp` rechnet mit einer mittleren Zeichenbreite von 0,60 - eine Schaetzung,
- * und sie lag daneben: auf dem Telefon des Nutzers (03.09.2026) (Hyperlegible, Textgroesse 200 %) stand
- * auf der Uhr-Kachel **„2:33"**. Das „AM" war abgeschnitten, lautlos, weil die Zeile
- * `softWrap = false` und kein Kuerzungszeichen hat. Eine Uhrzeit ohne AM/PM ist auf einem
- * Zwoelfstundentelefon keine Uhrzeit.
+ * an estimate of 0.60 average character width was wrong on the device: the clock tile read
+ * "2:33" with the AM cut off silently, the line having `softWrap = false` and no ellipsis.
  *
- * Gemessen wird mit dem Stil, der auch gezeichnet wird - dieselbe Lehre wie bei den
- * Kachelbeschriftungen: mit einer fremden Schrift gemessen kommt die falsche Stufe heraus.
+ * measured with the style that is actually drawn: a foreign font gives the wrong step.
  */
 @Composable
 fun fittedSingleLineDp(
     text: String,
-    stil: TextStyle,
-    wunschDp: Float,
+    style: TextStyle,
+    desiredDp: Float,
     maxWidth: Dp,
     minDp: Float = 12f,
 ): Float {
-    val messer = rememberTextMeasurer()
-    val dichte = LocalDensity.current
-    return remember(text, stil, wunschDp, maxWidth, minDp) {
-        val breite = with(dichte) { maxWidth.toPx() }.toInt().coerceAtLeast(1)
-        largestFitting(wunschDp, minDp) { groesse ->
-            !messer.measure(
+    val measurer = rememberTextMeasurer()
+    val density = LocalDensity.current
+    return remember(text, style, desiredDp, maxWidth, minDp) {
+        val width = with(density) { maxWidth.toPx() }.toInt().coerceAtLeast(1)
+        largestFitting(desiredDp, minDp) { size ->
+            !measurer.measure(
                 text = text,
-                style = stil.copy(fontSize = with(dichte) { groesse.dp.toSp() }),
+                style = style.copy(fontSize = with(density) { size.dp.toSp() }),
                 maxLines = 1,
                 softWrap = false,
-                constraints = Constraints(maxWidth = breite),
+                constraints = Constraints(maxWidth = width),
             ).hasVisualOverflow
         }
     }
 }
 
 /**
- * Die groesste ganze dp-Stufe zwischen [minDp] und [wunschDp], fuer die [passt] gilt.
+ * the largest whole dp step between [minDp] and [desiredDp] for which [fits] holds.
  *
- * Halbierend statt Schritt fuer Schritt: die Uhr wechselt jede Minute den Text, und von 64
- * dp abwaerts waeren das bis zu zweiundfuenfzig Messungen - jede eine Textvermessung mit
- * Schriftladen. So sind es sieben. Auf einem Telefon, dessen Kaltstart eine Sekunde dauert,
- * ist das kein Feilen an Nachkommastellen.
+ * halving instead of stepping: the clock changes its text every minute, and from 64 dp
+ * downwards that would be up to fifty-two text measurements. this way it is seven.
  *
- * Vorausgesetzt ist, dass groessere Schrift breiter ist: passt eine Stufe, passen alle
- * kleineren. Fuer eine feste Zeichenkette gilt das.
+ * assumes larger text is wider, so if one step fits, every smaller one does.
  */
-internal fun largestFitting(wunschDp: Float, minDp: Float, passt: (Float) -> Boolean): Float {
-    if (wunschDp <= minDp) return minDp
-    if (passt(wunschDp)) return wunschDp
-    var unten = minDp.toInt()
-    var oben = wunschDp.toInt()
-    while (unten + 1 < oben) {
-        val mitte = (unten + oben) / 2
-        if (passt(mitte.toFloat())) unten = mitte else oben = mitte
+internal fun largestFitting(desiredDp: Float, minDp: Float, fits: (Float) -> Boolean): Float {
+    if (desiredDp <= minDp) return minDp
+    if (fits(desiredDp)) return desiredDp
+    var low = minDp.toInt()
+    var high = desiredDp.toInt()
+    while (low + 1 < high) {
+        val middle = (low + high) / 2
+        if (fits(middle.toFloat())) low = middle else high = middle
     }
-    return unten.toFloat().coerceAtLeast(minDp)
+    return low.toFloat().coerceAtLeast(minDp)
 }

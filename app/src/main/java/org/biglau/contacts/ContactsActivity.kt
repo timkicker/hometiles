@@ -86,12 +86,12 @@ class ContactsActivity : BigLauActivity() {
 
         setContent {
             val config by store.config.collectAsStateWithLifecycle()
-                        // `fortsetzungen` als Schluessel: dieser Bildschirm schickt den Nutzer bei
+                        // `resumes` als Schluessel: dieser Bildschirm schickt den Nutzer bei
             // dauerhaft verweigerter Berechtigung in die **App-Einstellungen**, und von dort
             // kommt kein Ergebnis zurueck. Ohne das Neulesen beim Wiederkommen stuende hier
             // weiter „keine Berechtigung" - auf einem Bildschirm, der einen selbst dorthin
-            // geschickt hat. Siehe `BigLauActivity.fortsetzungen`.
-var granted by remember(fortsetzungen.intValue) { mutableStateOf(repository.hasPermission()) }
+            // geschickt hat. Siehe `BigLauActivity.resumes`.
+var granted by remember(resumes.intValue) { mutableStateOf(repository.hasPermission()) }
             var all by remember { mutableStateOf<List<PhoneContact>>(emptyList()) }
             var query by rememberSaveable { mutableStateOf("") }
             // Von der Favoritenkachel aus: nur die mit Stern, ohne Suche davor.
@@ -128,7 +128,7 @@ var granted by remember(fortsetzungen.intValue) { mutableStateOf(repository.hasP
             // Zeile in den Editor des Adressbuchs, und von dort kommt kein Ergebnis
             // zurueck. Wer die Nummer aendert und zurueckkommt, sah bis zum 04.09.2026
             // weiter die alte - und "Sofort anrufen" waehlte sie auch.
-            LaunchedEffect(granted, fortsetzungen.intValue) {
+            LaunchedEffect(granted, resumes.intValue) {
                 if (granted) {
                     // Beim Wiederkommen steht die Liste schon da; ein zweites "wird
                     // geladen" sieht aus, als finge der Bildschirm von vorn an.

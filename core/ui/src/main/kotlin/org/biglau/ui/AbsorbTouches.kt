@@ -5,26 +5,18 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
 
 /**
- * Schluckt jeden Tipp, der nicht schon von einer Kachel darin verbraucht wurde.
+ * swallows every tap a tile inside has not already consumed.
  *
- * Fuer Bildschirme, die sich **ueber** einen anderen legen statt ihn zu ersetzen. Ohne das
- * geht ein Tipp neben eine Kachel - in den Rand, in die Fuge - durch auf das, was darunter
- * liegt. Am 04.09.2026 am Jelly 2 gemessen: bei offenem Ordner startete ein Tipp auf
- * (14, 250), also im linken Rand des Ordners, die Kontakte-Kachel des Startbildschirms.
- *
- * Auf drei Zoll ist der Rand ein paar Bildpunkte breit, und die Hand, fuer die BigLau
- * gebaut ist, trifft ihn regelmaessig. Ein Tipp, der etwas Unsichtbares startet, ist der
- * schlimmste Fehlgriff, den ein Startbildschirm anbieten kann.
- *
- * Die Kacheln der Ueberlagerung selbst merken nichts davon: sie bekommen den Tipp zuerst
- * und verbrauchen ihn; hier landet nur, was niemand haben wollte.
+ * for screens that lie *over* another instead of replacing it: a tap into the margin or a
+ * gap otherwise reaches through. measured on the jelly 2: with a folder open, a tap at
+ * (14, 250) started the contacts tile of the home screen behind it.
  */
 fun Modifier.absorbTouches(): Modifier = pointerInput(Unit) {
     awaitEachGesture {
         while (true) {
-            val ereignis = awaitPointerEvent()
-            ereignis.changes.forEach { it.consume() }
-            if (ereignis.changes.all { !it.pressed }) break
+            val event = awaitPointerEvent()
+            event.changes.forEach { it.consume() }
+            if (event.changes.all { !it.pressed }) break
         }
     }
 }

@@ -2,26 +2,15 @@ package org.biglau.apps
 
 import org.biglau.search.TextSearch
 
-/**
- * Was die App-Liste zeigt und in welcher Reihenfolge.
- *
- * Getrennt von der Oberflaeche, weil hier die Entscheidungen liegen: was ausgeblendet ist,
- * was als "zuletzt benutzt" oben steht, und was passiert, wenn eine App deinstalliert wurde,
- * die noch in der Liste der zuletzt benutzten steht.
- */
+/** what the app list shows and in which order. */
 object AppDrawer {
 
-    /** Eindeutiger Schluessel einer startbaren App. */
     fun keyOf(app: LaunchableApp): String = "${app.packageName}/${app.activityName}"
 
-    /** Alles, was nicht ausgeblendet ist. */
     fun visible(apps: List<LaunchableApp>, hidden: Set<String>): List<LaunchableApp> =
         apps.filterNot { keyOf(it) in hidden || it.packageName in hidden }
 
-    /**
-     * Die zuletzt benutzten, in der gespeicherten Reihenfolge. Schluessel, zu denen es keine
-     * App mehr gibt, fallen still weg - eine deinstallierte App darf keine Luecke hinterlassen.
-     */
+    /** keys without an app fall away: an uninstalled app must leave no gap. */
     fun recents(
         apps: List<LaunchableApp>,
         recentKeys: List<String>,
@@ -33,26 +22,16 @@ object AppDrawer {
         return recentKeys.mapNotNull { byKey[it] }.take(limit)
     }
 
-    /**
-     * Wie viele Einträge überhaupt gespeichert werden.
-     *
-     * Muss mindestens so groß sein wie die größte anzeigbare Zahl, sonst wäre eine
-     * Einstellung wählbar, die nie erreicht wird. Am 01.09.2026 stand die Liste nach einem
-     * Tag Gebrauch genau auf diesem Wert - zwölf verschiedene Apps an einem Tag.
-     */
+    /** at least the largest displayable count, else a setting would never be reached. */
     const val STORAGE_CAP = 12
 
-    /** Was die Einstellung zur Auswahl stellt. 0 heißt: gar keine Vorschläge. */
+    /** 0 means no suggestions at all. */
     val RECENT_CHOICES = listOf(0, 4, 6, 8, 12)
 
-    /**
-     * Merkt sich einen Start. Zuletzt benutzt heisst ganz vorn, jeder Schluessel nur einmal,
-     * und die Liste waechst nicht unbegrenzt.
-     */
     fun remember(recentKeys: List<String>, key: String, cap: Int = STORAGE_CAP): List<String> =
         (listOf(key) + recentKeys.filterNot { it == key }).take(cap.coerceAtLeast(1))
 
-    /** Die vollstaendige, durchsuchte Liste. Leere Anfrage heisst alphabetisch. */
+    /** an empty query means alphabetical. */
     fun search(
         apps: List<LaunchableApp>,
         hidden: Set<String>,
@@ -60,13 +39,10 @@ object AppDrawer {
     ): List<LaunchableApp> = TextSearch.filter(visible(apps, hidden), query) { it.label }
 
     /**
-     * Die **ausgeblendeten** Apps, die zur Suche passen.
+     * hidden apps matching the query.
      *
-     * Wer eine App ausgeblendet hat und sie Monate spaeter sucht, bekam „Keine App passt
-     * dazu" - ein Satz, der ueber die sichtbare Liste stimmt und ueber das Telefon nicht.
-     * Die Zeile zu den ausgeblendeten Apps stand nur da, solange das Suchfeld leer war,
-     * also genau dann nicht, wenn sie gebraucht wird. Denselben Fehler hatte die
-     * Einstellungszeile eine Zeile darueber schon einmal.
+     * without it, searching for an app you hid months ago answers no app matches, which is
+     * true of the visible list and false of the phone.
      */
     fun hiddenMatches(
         apps: List<LaunchableApp>,
@@ -79,7 +55,6 @@ object AppDrawer {
             TextSearch.filter(apps.filter { keyOf(it) in hidden }, query) { it.label }
         }
 
-    /** Ausblenden umschalten. */
     fun toggleHidden(hidden: Set<String>, app: LaunchableApp): Set<String> {
         val key = keyOf(app)
         return if (key in hidden) hidden - key else hidden + key

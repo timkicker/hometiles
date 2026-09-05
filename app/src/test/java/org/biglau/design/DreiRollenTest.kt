@@ -54,7 +54,7 @@ class DreiRollenTest {
             assertTrue(
                 "$anfang liest den Zustand nur einmal - dann steht nach dem Erteilen " +
                     "weiter die Aufforderung da.",
-                "fortsetzungen.intValue" in baum.substring(stelle, stelle + 60),
+                "resumes.intValue" in baum.substring(stelle, stelle + 60),
             )
         }
     }

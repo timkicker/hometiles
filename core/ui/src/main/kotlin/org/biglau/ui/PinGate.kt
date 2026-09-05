@@ -34,28 +34,20 @@ import kotlinx.coroutines.delay
 import org.biglau.security.Pin
 import org.biglau.ui.theme.LocalBigPalette
 
-/** Bis hierher wirkt die eingestellte Textgroesse auf der PIN-Eingabe. */
+/** the text size setting acts on the pin entry only up to here. */
 const val PIN_MAX_TEXT_SCALE = 1.25f
 
-/**
- * Die Textgroesse, die auf der PIN-Eingabe gilt.
- *
- * Gedeckelt, weil auf diesem Bildschirm die Tasten mehr zaehlen als die Worte - die
- * Begruendung steht bei ihrem Gebrauch. Kleiner als eingestellt wird nie: wer 75 % gewaehlt
- * hat, bekommt 75 %.
- */
+/** capped because the keys matter more than the words here; never smaller than chosen. */
 fun pinTextScale(current: Float): Float = cappedTextScale(current, PIN_MAX_TEXT_SCALE)
 
-/** Wie lange der Notausstieg gehalten werden muss. */
+/** how long the emergency exit must be held. */
 const val EMERGENCY_HOLD_MILLIS = 30_000L
 
 /**
- * PIN-Eingabe. Zwei Betriebsarten: pruefen gegen einen gespeicherten Wert, oder eine neue
- * PIN aufnehmen ([onAccept] gesetzt).
+ * pin entry: check against a stored value, or take a new pin ([onAccept] set).
  *
- * Der Notausstieg sitzt bewusst hier und nicht auf der ersten Kachel: die reagiert schon nach
- * einer halben Sekunde mit dem Editor, ein 30-Sekunden-Druck kaeme dort nie an. Und hier ist
- * die Stelle, an der eine vergessene PIN ueberhaupt erst wehtut.
+ * the emergency exit sits here and not on the first tile, which answers after half a second
+ * with the editor, so a thirty-second press would never arrive there.
  */
 @Composable
 fun PinGate(
@@ -73,9 +65,9 @@ fun PinGate(
     var wrong by remember { mutableStateOf(false) }
     var holding by remember { mutableStateOf(false) }
     var heldSeconds by remember { mutableStateOf(0) }
-    // Der Anker der Fertig-Zeile. Die Tastatur schickt den Fokus dorthin, wenn er unter
-    // der letzten Reihe hinauslaeuft; ohne ihn waere die Zeile mit Tasten unerreichbar.
-    val fertigAnker = remember { FocusRequester() }
+    // the keypad sends the focus here when it runs out below the last row; without the
+    // anchor this row is unreachable by key.
+    val doneAnchor = remember { FocusRequester() }
 
     if (onEmergencyExit != null) {
         LaunchedEffect(holding) {
@@ -89,33 +81,21 @@ fun PinGate(
         }
     }
 
-    // Auf diesem Bildschirm zaehlen die Tasten mehr als die Worte.
-    //
-    // Bei 200 % Textgroesse wuchsen Ueberschrift und Bestaetigungsknopf so weit, dass fuer
-    // die Tastatur nur ein Streifen blieb: die Zifferntasten waren am Emulator noch
-    // **21 dp** hoch - auf einem Bildschirm, auf dem man genau treffen muss, und fuer
-    // jemanden, der 200 % nicht zum Spass eingestellt hat. Deshalb wirkt die Einstellung
-    // hier nur bis 125 %; die Ziffern selbst sind ohnehin aus der Flaeche gerechnet und
-    // bleiben damit so gross, wie der Platz es zulaesst.
-    val gedeckelt = pinTextScale(LocalTextScale.current)
-    CompositionLocalProvider(LocalTextScale provides gedeckelt) {
+    // the keys matter more than the words here: at 200 % the heading and the confirm row
+    // grew until only a strip was left for the keypad, whose digit keys measured 21 dp on a
+    // screen one has to hit exactly. the digits themselves come from the area anyway.
+    val capped = pinTextScale(LocalTextScale.current)
+    CompositionLocalProvider(LocalTextScale provides capped) {
     Column(
-        // Deckend: die Sperre wurde sonst ueber den Startbildschirm gezeichnet, und die
-        // Kacheln schienen zwischen den Tasten durch - am Emulator gesehen. Ein Schloss,
-        // durch das man hindurchsieht, sieht nicht nach Schloss aus, und die Tastatur war
-        // ueber den bunten Flaechen kaum zu lesen. Die anderen Aufrufer setzen den
-        // Hintergrund selbst; einer hatte ihn vergessen, und dass es nur einer war, sah man
-        // erst am Bildschirm.
-        // safeDrawingPadding gehoert hierher und nicht nur zu den Aufrufern: auf dem
-        // Startbildschirm lag der Bestaetigungsknopf sonst **hinter der Navigationsleiste**
-        // - am Emulator gesehen, nur die obere Kante schaute hervor. Wo ein Aufrufer die
-        // Abstaende schon gesetzt hat, kommt hier nichts dazu; Compose verbraucht sie.
+        // opaque: over the home screen the tiles shone through between the keys, and a
+        // lock one can see through does not look like a lock. safeDrawingPadding belongs
+        // here too, or the confirm row hides behind the navigation bar; where a caller has
+        // set the insets already nothing is added, compose consumes them.
         modifier = Modifier
             .fillMaxSize()
             .background(palette.background)
-            // Die Sperre liegt auf dem Startbildschirm **ueber** den Kacheln, statt sie zu
-            // ersetzen. Ohne dies startete ein Tipp in ihren Rand die Kachel darunter -
-            // eine Sperre, an der man vorbeitippt, ist keine.
+            // the lock lies *over* the tiles instead of replacing them: without this a tap
+            // into its margin started the tile underneath, and a lock one taps past is none.
             .absorbTouches()
             .safeDrawingPadding(),
         verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -145,10 +125,8 @@ fun PinGate(
             PinDots(entered.length)
         }
 
-        // Erklaerung und Fehlermeldung teilen sich einen Platz fester Hoehe. Vorher
-        // wechselten sie einander ab - fuenf Zeilen Erklaerung gegen eine Zeile Fehler -,
-        // und die Tastatur sprang bei jedem Fehlversuch um mehrere Zentimeter. Wer dann
-        // weitertippt, trifft die Taste daneben und haelt sich fuer vertippt.
+        // explanation and error share a slot of fixed height: five lines against one made
+        // the keypad jump by centimetres on every wrong try.
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -163,12 +141,9 @@ fun PinGate(
                     fontWeight = FontWeight.Bold,
                 )
 
-                // `liveRegion`, sonst ist der Grund still. Die Punktreihe sagt schon,
-                // dass keine Ziffer mehr dasteht (siehe PinDots) - **warum** nicht, stand
-                // bis zum 04.09.2026 nur da. Am Emulator nachgestellt: vier Ziffern
-                // eingegeben, "Fertig", und die Ansage war "Noch keine Ziffer eingegeben".
-                // Wer nicht hinsieht, haelt sich fuers Vertippen und tippt dieselbe falsche
-                // PIN noch einmal.
+                // `liveRegion`, or the reason stays silent: the dot row says there is no
+                // digit left, and the announcement was that alone, so anyone not looking
+                // types the same wrong pin again.
                 wrong -> Text(
                     text = wrongText,
                     color = palette.dangerText,
@@ -187,21 +162,18 @@ fun PinGate(
             }
         }
 
-        // Der Fokus muss in die Tastatur, sonst ist die Sperre mit Tasten nicht zu oeffnen.
+        // the focus must go into the keypad, or the lock cannot be opened by key.
         //
-        // Als Bildschirm einer Activity stimmt es von selbst: das Fenster bekommt den Fokus
-        // und Compose sucht sich das erste Ziel. Als **Ueberlagerung** ueber dem
-        // Startbildschirm nicht - am 04.09.2026 gemessen, gesperrte App angetippt: elf
-        // anklickbare Flaechen, null erreicht. Die ganze Tastatur war unerreichbar, und
-        // damit die App dahinter auch.
+        // as an activity's screen that happens by itself; as an *overlay* over the home
+        // screen it does not: measured eleven clickable areas, zero reached, which left the
+        // app behind the lock unreachable too.
         //
-        // `holtFokus` setzt ihn auf die Eins, und die Tastatur fuehrt die Bewegung von dort
-        // aus selbst. Beides gehoert zusammen: ein Fokus, der sich nicht bewegen laesst,
-        // ist nur die haelfte des Weges.
+        // `takesFocus` puts it on the one, and the keypad leads the movement from there.
+        // both belong together: a focus that cannot move is half the way.
         Box(Modifier.weight(1f)) {
             BigKeypad(
-                holtFokus = true,
-                unten = fertigAnker,
+                takesFocus = true,
+                below = doneAnchor,
                 onDigit = { digit ->
                     wrong = false
                     if (entered.length < Pin.MAX_LENGTH) entered += digit
@@ -211,14 +183,12 @@ fun PinGate(
             )
         }
 
-        // Ohne eine einzige Ziffer ist "Fertig" kein Knopf. Er sah bis zum 04.09.2026 aus
-        // wie einer, war einer, und antwortete auf einen Tipp mit "Diese PIN stimmt nicht."
-        // - was nicht stimmt: eingegeben war gar nichts. Am Emulator nachgestellt. Derselbe
-        // Griff wie beim Senden ohne Text und beim Anrufen ohne Nummer: keine Farbe, kein
-        // onClick, keine falsche Auskunft.
+        // without a single digit, done is not a button. it used to look like one and
+        // answered a tap with this pin is wrong, which was untrue: nothing was entered. the
+        // same grip as sending without text and calling without a number.
         BigRow(
             label = confirmLabel,
-            modifier = Modifier.focusRequester(fertigAnker),
+            modifier = Modifier.focusRequester(doneAnchor),
             surface = if (entered.isEmpty()) palette.surfaceDefault else palette.surfaceAccent,
             onClick = if (entered.isEmpty()) {
                 null
@@ -227,9 +197,8 @@ fun PinGate(
                     if (onCheck(entered)) {
                         onAccept(entered)
                     } else {
-                        // Eingabe leeren. Blieb sie stehen, tippte man die naechste PIN
-                        // hinten an die falsche an und kam nie wieder heraus - acht Punkte
-                        // voll, und jede weitere Ziffer fiel lautlos weg.
+                        // clear the entry: left standing, the next pin was appended to the
+                        // wrong one and every further digit fell away silently.
                         wrong = true
                         entered = ""
                     }

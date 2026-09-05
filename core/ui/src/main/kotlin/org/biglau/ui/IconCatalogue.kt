@@ -61,20 +61,16 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import org.biglau.core.ui.R
 
 /**
- * Die Symbole, die man einer Kachel selbst geben kann. `PLAN.md` 2.2 und 3.4.
+ * icons a tile can be given by hand. `PLAN.md` 2.2 and 3.4.
  *
- * Bis hierher leitete die App jedes Symbol aus der Aktion ab. Das trifft meistens, aber nicht
- * immer: der Ordner mit den Bankgeschaeften traegt keinen Ordner, sondern eine Karte, und die
- * Kachel fuer den Hausarzt kein Personensymbol, sondern ein Kreuz. Ohne Wahl bleibt in so
- * einem Fall nur die Beschriftung - und die liest man langsamer als ein Bild.
+ * derived icons are right most of the time, but the banking folder wants a card and the
+ * doctor's tile a cross.
  *
- * **Abweichung mit Grund:** `PLAN.md` 3.4 nennt "grob 120 Symbole". Es sind hier 50, in neun
- * Gruppen. Auf drei Zoll passen vier nebeneinander; 120 waeren dreissig Zeilen zum
- * Durchsehen, und die Wahl wird mit jedem aehnlichen Symbol schwerer statt leichter. Wer
- * eines vermisst, bekommt es dazu - eine Zeile hier.
+ * a deviation with a reason: 3.4 names roughly 120 icons, these are 50 in nine groups. four
+ * fit side by side on three inches, so 120 would be thirty rows to look through, and each
+ * similar icon makes the choice harder rather than easier.
  *
- * Gespeichert wird der **Name**, nicht das Bild: eine Sicherung soll auch dann noch lesbar
- * sein, wenn die Symbolbibliothek eine andere ist.
+ * the *name* is stored and not the image, so a backup stays readable with another library.
  */
 object IconCatalogue {
 
@@ -92,15 +88,12 @@ object IconCatalogue {
         Group(R.string.icons_group_everyday, listOf("ShoppingCart", "Restaurant", "DirectionsBus", "DirectionsCar", "LocalTaxi", "Newspaper", "Book", "Key")),
     )
 
-    /** Alle Namen, in der Reihenfolge der Gruppen. */
+    /** every name, in group order. */
     val NAMES: List<String> = GROUPS.flatMap { it.names }
 
     /**
-     * Das Wort zum Symbol.
-     *
-     * `PLAN.md` 3.6: „Keine reinen Icon-Buttons ohne Label irgendwo in der App." Eine Wand
-     * aus Symbolen ohne Wort ist ein Ratespiel - fuer jemanden, der schlecht sieht, und fuer
-     * einen Screenreader erst recht. Null bei einem unbekannten Namen.
+     * the word for an icon; `PLAN.md` 3.6 allows no icon-only buttons anywhere in the app.
+     * null for an unknown name.
      */
     fun labelFor(name: String): Int? = when (name) {
         "Call" -> R.string.icon_call
@@ -162,12 +155,7 @@ object IconCatalogue {
         else -> null
     }
 
-    /**
-     * Das Bild zu einem Namen, oder `null`.
-     *
-     * Null bei einem unbekannten Namen: eine Sicherung aus einer spaeteren Fassung darf eine
-     * Kachel nicht leer lassen, sondern faellt auf das abgeleitete Symbol zurueck.
-     */
+    /** null for an unknown name: a newer backup falls back to the derived icon, not to empty. */
     fun vectorFor(name: String?): ImageVector? = when (name) {
         "Call" -> Icons.Filled.Call
         "Message" -> Icons.AutoMirrored.Filled.Message

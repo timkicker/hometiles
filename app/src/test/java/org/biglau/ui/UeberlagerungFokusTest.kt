@@ -56,7 +56,7 @@ class UeberlagerungFokusTest {
         // In `verdeckt` heisst sie `asking`, im Quelltext `ContactChoice`.
         "asking" to "anchors.first().requestFocus()",
         // Die Tastatur holt den Fokus selbst, siehe BigKeypad und TastaturfolgeTest.
-        "wartend" to "holtFokus = true",
+        "wartend" to "takesFocus = true",
         "phoneStateAsked" to "anchors.first().requestFocus()",
     )
 

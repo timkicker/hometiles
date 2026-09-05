@@ -79,7 +79,7 @@ import org.biglau.ui.BigIconButton
 import org.biglau.ui.BigRow
 import org.biglau.ui.SettingsLink
 import org.biglau.ui.ScrollButtons
-import org.biglau.ui.tabellenZiffern
+import org.biglau.ui.tabularFigures
 import org.biglau.ui.dpSp
 import org.biglau.ui.fittedSingleLineDp
 import org.biglau.ui.theme.LocalTextScale
@@ -113,12 +113,12 @@ class DialerActivity : BigLauActivity() {
                 mutableStateOf(intent?.data?.schemeSpecificPart?.let(PhoneNumbers::clean).orEmpty())
             }
             var groups by remember { mutableStateOf<List<CallGroup>>(emptyList()) }
-                        // `fortsetzungen` als Schluessel: dieser Bildschirm schickt den Nutzer bei
+                        // `resumes` als Schluessel: dieser Bildschirm schickt den Nutzer bei
             // dauerhaft verweigerter Berechtigung in die **App-Einstellungen**, und von dort
             // kommt kein Ergebnis zurueck. Ohne das Neulesen beim Wiederkommen stuende hier
             // weiter „keine Berechtigung" - auf einem Bildschirm, der einen selbst dorthin
-            // geschickt hat. Siehe `BigLauActivity.fortsetzungen`.
-var logGranted by remember(fortsetzungen.intValue) { mutableStateOf(callLog.hasPermission()) }
+            // geschickt hat. Siehe `BigLauActivity.resumes`.
+var logGranted by remember(resumes.intValue) { mutableStateOf(callLog.hasPermission()) }
             var assigningKey by remember { mutableStateOf<Char?>(null) }
             var missedOnly by rememberSaveable { mutableStateOf(intent?.getBooleanExtra(EXTRA_MISSED, false) == true) }
             var pendingDelete by remember { mutableStateOf<Pair<String, List<Long>>?>(null) }
@@ -545,7 +545,7 @@ private fun Keypad(
                 // laenger. Dazu eine feste Breite von 330 dp statt der wirklichen. Beides
                 // schnitt die Nummer ab, ohne ein Zeichen dafuer zu setzen.
                 val gezeigt = PhoneNumbers.forDisplay(typed)
-                val nummerStil = tabellenZiffern().copy(fontWeight = FontWeight.Bold)
+                val nummerStil = tabularFigures().copy(fontWeight = FontWeight.Bold)
                 BoxWithConstraints(Modifier.fillMaxWidth()) {
                     Text(
                         text = gezeigt,

@@ -36,7 +36,7 @@ class KeinNotrufTest {
             datei.readLines().withIndex()
                 .filter { (_, z) ->
                     val nackt = z.trim()
-                    !nackt.startsWith("//") && !nackt.startsWith("*") &&
+                    !Quelltext.istKommentarzeile(z) &&
                         ("ACTION_CALL" in nackt || "Intents.call(" in nackt)
                 }
                 .map { (i, z) -> "${datei.name}:${i + 1}: ${z.trim()}" }

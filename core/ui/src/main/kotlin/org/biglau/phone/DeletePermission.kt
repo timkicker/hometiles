@@ -2,31 +2,24 @@ package org.biglau.phone
 
 import org.biglau.ui.PermissionState
 
-/** Was als Nächstes passiert, wenn jemand das Löschen eines Anrufs bestätigt hat. */
 enum class DeleteStep {
-    /** Das Recht ist da - löschen. */
+    /** the right is there, delete. */
     DELETE,
 
-    /** Android fragt noch - den Systemdialog öffnen. */
+    /** android still asks, open the system dialog. */
     ASK,
 
-    /** Android fragt nicht mehr - den Weg in die Systemeinstellungen zeigen. */
+    /** android asks no more, show the way into the system settings. */
     GATE,
 }
 
 /**
- * Der Weg zum Schreibrecht auf der Anrufliste.
+ * the path to the write right on the call log.
  *
- * `WRITE_CALL_LOG` stand im Manifest und wurde vor jedem Löschen geprüft, aber nie erfragt;
- * am 03.09.2026 stand es auf dem Gerät des Nutzers auf `granted=false`. Die Rückfrage kam,
- * die Bestätigung ging durch, und die Zeile blieb stehen. (Seit dem 04.09.2026 hält BigLau
- * die Telefon-Rolle und bekommt das Recht mit — auf einem Gerät ohne sie gilt der Absatz
- * weiter, und deshalb bleibt der Weg.)
- *
- * In der Praxis erteilt Android das Recht ohne Dialog, sobald `READ_CALL_LOG` schon da ist -
- * beide gehören zur Gruppe CALL_LOG. Für den Nutzer heißt das: das erste Löschen wirkt
- * einfach. [GATE] ist der Fall, den keine Shell herstellen kann und der trotzdem nicht
- * unbeantwortet bleiben darf.
+ * `WRITE_CALL_LOG` was checked before every delete but never asked for, so a confirmed
+ * delete left the row standing. android grants it without a dialog once `READ_CALL_LOG` is
+ * there, both being in the CALL_LOG group; [GATE] is the case no shell can produce and
+ * that must still have an answer.
  */
 object DeletePermission {
 

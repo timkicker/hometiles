@@ -26,7 +26,7 @@ class StartAufgabenTest {
      */
     private val start = Quelltext.datei("org/biglau/BigLauApp.kt")
         .readLines()
-        .filterNot { it.trim().startsWith("//") }
+        .filterNot { Quelltext.istKommentarzeile(it) }
         .joinToString("\n")
 
     @Test

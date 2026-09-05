@@ -6,17 +6,13 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import org.biglau.data.HapticStrength
 
 /**
- * Ob eine Berührung spürbar quittiert wird.
+ * whether a touch is answered by feel.
  *
- * Für unsichere Hände ist das mehr als Zierrat: eine Kachel, die sich beim Treffen meldet,
- * sagt „angekommen", bevor irgendetwas auf dem Bildschirm passiert. Wer daneben tippt,
- * merkt es sofort statt erst an der App, die nicht aufgeht.
- *
- * Die Einstellung stand seit dem ersten Tag im Modell und wurde nirgends gelesen.
+ * for unsteady hands this says arrived before anything happens on screen, so a miss is
+ * noticed at once rather than at the app that fails to open.
  */
 val LocalHaptics = staticCompositionLocalOf { HapticStrength.LIGHT }
 
-/** Quittung beim Antippen. */
 fun HapticFeedback.tap(strength: HapticStrength) {
     when (strength) {
         HapticStrength.OFF -> Unit
@@ -25,15 +21,11 @@ fun HapticFeedback.tap(strength: HapticStrength) {
     }
 }
 
-/**
- * Quittung beim langen Druck. Hier passiert gleich etwas anderes als beim Tippen, deshalb
- * ist auch die leichte Stufe deutlich - sonst bliebe der Unterschied ungemeldet.
- */
+/** a long press does something else than a tap, so even the light step is distinct. */
 fun HapticFeedback.longPress(strength: HapticStrength) {
     if (strength != HapticStrength.OFF) performHapticFeedback(HapticFeedbackType.LongPress)
 }
 
-/** Die eine Einstellung, drei Stufen: aus, leicht, kräftig, und wieder von vorn. */
 object Haptics {
     fun next(current: HapticStrength): HapticStrength = when (current) {
         HapticStrength.OFF -> HapticStrength.LIGHT

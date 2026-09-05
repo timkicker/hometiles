@@ -408,13 +408,13 @@ class SettingsActivity : BigLauActivity() {
                             onContacts = { page = Page.CONTACTS },
                             onCallTypes = { page = Page.CALL_TYPES },
                             onMessages = { page = Page.MESSAGES },
-                            istStartbildschirm = remember(fortsetzungen.intValue) {
+                            istStartbildschirm = remember(resumes.intValue) {
                                 Diagnostics.isDefaultHome(this@SettingsActivity)
                             },
-                            istTelefonApp = remember(fortsetzungen.intValue) {
+                            istTelefonApp = remember(resumes.intValue) {
                                 DialerRole.held(this@SettingsActivity)
                             },
-                            istNachrichtenApp = remember(fortsetzungen.intValue) {
+                            istNachrichtenApp = remember(resumes.intValue) {
                                 SmsRepository.get(this@SettingsActivity).isDefaultSmsApp()
                             },
                             onHomeApp = {
@@ -563,8 +563,8 @@ class SettingsActivity : BigLauActivity() {
 
                         Page.BEHAVIOUR -> BehaviourList(
                             blinkOn = config.behaviour.blinkOnNotification,
-                            // Beim Wiederkommen neu nachsehen - siehe `fortsetzungen`.
-                            accessGranted = remember(fortsetzungen.intValue) {
+                            // Beim Wiederkommen neu nachsehen - siehe `resumes`.
+                            accessGranted = remember(resumes.intValue) {
                                 NotificationRepository.isEnabled(this@SettingsActivity)
                             },
                             onToggleBlink = {
@@ -775,7 +775,7 @@ class SettingsActivity : BigLauActivity() {
                         Page.MESSAGES -> MessagesSettingsList(
                             sms = config.sms,
                             onChange = { neu -> store.update { it.copy(sms = neu) } },
-                            istStandardApp = remember(fortsetzungen.intValue) {
+                            istStandardApp = remember(resumes.intValue) {
                                 SmsRepository.get(this@SettingsActivity).isDefaultSmsApp()
                             },
                         )
@@ -817,7 +817,7 @@ class SettingsActivity : BigLauActivity() {
                         Page.CALL_TYPES -> CallTypesList(
                             phone = config.phone,
                             onChange = { neu -> store.update { it.copy(phone = neu) } },
-                            hatTelefonRolle = remember(fortsetzungen.intValue) {
+                            hatTelefonRolle = remember(resumes.intValue) {
                                 DialerRole.held(this@SettingsActivity)
                             },
                             onDialerApp = {
@@ -2050,7 +2050,7 @@ private fun SecurityList(
 
 @Composable
 // `BigLauActivity` statt `ComponentActivity`: die Diagnose liest Zustaende, die das System
-// vergibt, und braucht dafuer `fortsetzungen` - siehe dort. Eine Diagnoseseite, die veraltete
+// vergibt, und braucht dafuer `resumes` - siehe dort. Eine Diagnoseseite, die veraltete
 // Werte zeigt, ist schlimmer als keine.
 private fun DiagnosticsList(activity: BigLauActivity) {
     // Was nach den Systemleisten uebrig bleibt - genau die Flaeche, die eine Kachel
@@ -2083,10 +2083,10 @@ private fun DiagnosticsList(activity: BigLauActivity) {
         )
     }
     val zusammenhang = LocalContext.current
-    // `fortsetzungen` als zweiter Schluessel: die Diagnose liest Rollen und Berechtigungen,
+    // `resumes` als zweiter Schluessel: die Diagnose liest Rollen und Berechtigungen,
     // die das System vergibt. Wer sie erteilt und zurueckkommt, bekam sonst die alten Werte -
     // auf ausgerechnet der Seite, die man aufschlaegt, um nachzusehen, was stimmt.
-    val lines = remember(nutzbar, activity.fortsetzungen.intValue) {
+    val lines = remember(nutzbar, activity.resumes.intValue) {
         Diagnostics.collect(activity, nutzbar) { id -> zusammenhang.getString(id) }
     }
     LazyColumn(verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -2481,7 +2481,7 @@ private fun CallTypesList(
      * Haelt BigLau die Telefon-Rolle?
      *
      * Kommt von aussen, weil das **System** sie vergibt: wer sie erteilt und zurueckkommt,
-     * soll nicht denselben Hinweis noch einmal lesen. Siehe `BigLauActivity.fortsetzungen`.
+     * soll nicht denselben Hinweis noch einmal lesen. Siehe `BigLauActivity.resumes`.
      */
     hatTelefonRolle: Boolean,
 ) {

@@ -18,10 +18,7 @@ import coil.compose.AsyncImage
 import org.biglau.ui.theme.LocalCornerRadius
 import org.biglau.ui.theme.LocalBigPalette
 
-/**
- * Kontaktbild. Ohne Foto die Initialen auf einer Palettenfarbe - abgeleitet aus dem Namen,
- * damit derselbe Kontakt immer dieselbe Farbe bekommt und wiedererkennbar bleibt.
- */
+/** contact picture; without a photo the initials on a palette colour derived from the name. */
 @Composable
 fun ContactAvatar(
     name: String,
@@ -57,10 +54,9 @@ fun ContactAvatar(
 }
 
 /**
- * Bis zu zwei Initialen aus dem ersten und letzten Namensteil.
+ * up to two initials, from the first and last part of the name.
  *
- * Gezaehlt werden nur Buchstaben und Ziffern: im echten Telefonbuch stehen Namen wie
- * "? (Wien) (Sus)", und daraus Initialen wie "?(" zu machen sieht nach Fehler aus.
+ * letters and digits only: a real phone book holds names like "? (Wien) (Sus)".
  */
 fun initialsOf(name: String): String {
     val parts = name.trim()
@@ -74,17 +70,14 @@ fun initialsOf(name: String): String {
 }
 
 /**
- * Initialen fuer eine Kachel - oder `null`, wenn im Namen kein Buchstabe steht.
- *
- * Am Emulator gesehen: eine Kachel fuer eine Nummer ohne Kontakt heisst "055 501 00", und
- * daraus wurden die Initialen "00". Zwei Nullen sagen nichts und sehen nach Fehler aus. Auf
- * der Kachel ist die Alternative leerer Platz, und leer ist hier besser als falsch - anders
- * als im [ContactAvatar], wo ein Kaestchen ohne Inhalt schlimmer waere.
+ * initials for a tile, or `null` when the name holds no letter: a tile for the bare number
+ * "055 501 00" produced the initials "00". empty is better than wrong here, unlike in
+ * [ContactAvatar] where an empty box would be worse.
  */
 fun tileInitials(name: String): String? =
     if (name.any { it.isLetter() }) initialsOf(name) else null
 
-/** Stabile Farbe pro Name - nicht zufaellig, sonst springt sie bei jedem Neuzeichnen. */
+/** stable per name; a random one would jump on every redraw. */
 fun colorIndexFor(name: String): Int {
     var hash = 0
     name.trim().lowercase().forEach { hash = hash * 31 + it.code }

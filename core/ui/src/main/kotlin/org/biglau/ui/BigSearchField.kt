@@ -53,9 +53,10 @@ import org.biglau.ui.theme.LocalTextScale
 import org.biglau.ui.theme.tileBorder
 
 /**
- * Suchfeld in der Formsprache der Kacheln: flaechig, ohne Schatten, grosse Schrift.
- * Bekommt bewusst keinen Fokus beim Oeffnen - auf drei Zoll frisst die Tastatur
- * sonst sofort die halbe Liste, bevor der Nutzer ueberhaupt geschaut hat.
+ * search field in the tiles' shape language: flat, no shadow, large type.
+ *
+ * takes no focus on opening: on three inches the keyboard would eat half the list before
+ * anyone has looked at it.
  */
 @Composable
 fun BigSearchField(
@@ -63,34 +64,30 @@ fun BigSearchField(
     onValueChange: (String) -> Unit,
     hint: String,
     modifier: Modifier = Modifier,
-    /** Zweite Zeile im Feld, etwa die Zahl der Treffer. */
+    /** second line in the field, such as the number of matches. */
     secondary: String? = null,
-    /** Die Lupentaste der Tastatur. */
+    /** the keyboard's search key. */
     onSearch: (() -> Unit)? = null,
 ) {
     val palette = LocalBigPalette.current
     val scale = LocalTextScale.current
     val border = palette.tileBorder()
 
-    // Ein Tipp irgendwo in die Zeile setzt die Schreibmarke.
+    // a tap anywhere in the row places the caret. the drawn row is 64 dp high, the input
+    // inside it only 48, and 38 with the match count below: a tap on the top fourteen
+    // pixels did nothing at all although a field is drawn there.
     //
-    // Am 04.09.2026 am Jelly 2 gemessen: die gezeichnete Zeile ist 64 dp hoch, das
-    // Eingabefeld darin nur 48 - und mit der Trefferzahl darunter sogar 38. Ein Tipp auf
-    // die oberen vierzehn Bildpunkte der Zeile tat gar nichts (`mInputShown` blieb
-    // `false`), obwohl dort ein Feld gezeichnet ist. Die Hand, fuer die BigLau gebaut ist,
-    // trifft den Rand regelmaessig.
-    //
-    // `pointerInput` und nicht `clickable`: eine anklickbare Zeile waere fuer die
-    // Vorlesefunktion eine Schaltflaeche - siehe BigRow. Hier ist sie ein Eingabefeld.
-    val schreibmarke = remember { FocusRequester() }
-    val fokus = LocalFocusManager.current
+    // `pointerInput` and not `clickable`: a clickable row would be a button to the screen
+    // reader (see BigRow), and this is an input field.
+    val caret = remember { FocusRequester() }
+    val focus = LocalFocusManager.current
     Row(
         modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(LocalCornerRadius.current))
             .background(palette.emptyTile)
             .pointerInput(Unit) {
-                detectTapGestures { schreibmarke.requestFocus() }
+                detectTapGestures { caret.requestFocus() }
             }
             .then(if (border != null) Modifier.border(3.dp, border, RoundedCornerShape(LocalCornerRadius.current)) else Modifier)
             .heightIn(min = 64.dp)
@@ -125,37 +122,28 @@ fun BigSearchField(
                 cursorBrush = SolidColor(palette.accent),
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
                 keyboardActions = KeyboardActions(onSearch = { onSearch?.invoke() }),
-                // Ohne diesen Namen meldet ein Screenreader nur "Eingabefeld" - der
-                // aufgemalte Platzhalter ist fuer ihn nicht das Gleiche wie eine Beschriftung.
+                // without this name a screen reader says only "input field": the painted
+                // placeholder is not a label to it.
                 modifier = Modifier
                     .fillMaxWidth()
-                    .focusRequester(schreibmarke)
-                    // Die Lupentaste, die der Text `search_matches` nennt. `ImeAction.Search`
-                    // deckt nur die Eingabetaste ab; auf einem Telefon mit Tastatur gibt es
-                    // die Lupe wirklich, und ein Hinweis auf eine Taste, die nichts tut, ist
-                    // schlimmer als gar keiner. Am 04.09.2026 am Emulator gemessen.
-                    .onPreviewKeyEvent { taste ->
-                        if (taste.type != KeyEventType.KeyDown) {
+                    .focusRequester(caret)
+                    .onPreviewKeyEvent { event ->
+                        if (event.type != KeyEventType.KeyDown) {
                             false
                         } else {
-                            when (taste.key) {
-                                // Die Lupentaste, die der Text `search_matches` nennt.
-                                // `ImeAction.Search` deckt nur die Eingabetaste ab; auf einem
-                                // Telefon mit Tastatur gibt es die Lupe wirklich, und ein
-                                // Hinweis auf eine Taste, die nichts tut, ist schlimmer als
-                                // gar keiner.
+                            when (event.key) {
+                                // the search key `search_matches` names. `ImeAction.Search`
+                                // covers the enter key only, and a phone with a keyboard
+                                // really has the magnifier.
                                 Key.Search -> {
                                     onSearch?.invoke()
                                     true
                                 }
-                                // Nach unten gehoert der Liste. Ein `EditText` nimmt den
-                                // Fokus und gibt ihn von selbst nicht weiter; am 04.09.2026
-                                // in App-Liste und Kontakten gemessen, vier Druecke ohne
-                                // Bewegung, und damit war die ganze Liste mit Tasten
-                                // unerreichbar. Das Feld ist einzeilig, ein Druck nach unten
-                                // kann darin keinen Text erreichen.
+                                // down belongs to the list. an `EditText` takes the focus
+                                // and does not pass it on: measured four presses without
+                                // movement, which left the whole list unreachable by key.
                                 Key.DirectionDown -> {
-                                    fokus.moveFocus(FocusDirection.Down)
+                                    focus.moveFocus(FocusDirection.Down)
                                     true
                                 }
                                 else -> false
@@ -165,24 +153,22 @@ fun BigSearchField(
                     .semantics { contentDescription = hint },
             )
             }
-            // Auf drei Zoll verdeckt die Tastatur die Trefferliste vollstaendig. Die Zahl
-            // der Treffer steht deshalb im Feld selbst - der einzigen Zeile, die sichtbar
-            // bleibt, waehrend man tippt.
+            // on three inches the keyboard covers the result list entirely, so the count
+            // stands in the field itself, the one line that stays visible while typing.
             if (secondary != null) {
                 Text(
                     text = secondary,
                     color = palette.onBackground,
                     fontSize = (14f * scale).sp,
-                    // Zwei Zeilen: bei 1,35-facher Systemschrift passt der Hinweis zur
-                    // Lupentaste sonst nicht, und abgeschnitten erklaert er nichts.
+                    // two lines: at 1.35 system scale the search-key hint does not fit one.
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
             }
         }
         if (value.isNotEmpty()) {
-            // Eigene Flaeche statt eines nackten Symbols: 48 dp ist das Mindestmass fuer
-            // einen Fingertipp, und ein Knopf ohne Namen bleibt fuer TalkBack stumm.
+            // a surface of its own: 48 dp is the minimum for a fingertip, and an unnamed
+            // button stays silent to TalkBack.
             val clear = stringResource(R.string.search_clear)
             Box(
                 modifier = Modifier

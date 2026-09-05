@@ -12,10 +12,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.withContext
 
-/**
- * Liest Nachrichten aus der Anbieter-Datenbank. Das geht auch ohne die Standard-SMS-Rolle,
- * solange READ_SMS erteilt ist - schreiben duerfte nur die Standard-App.
- */
+/** reads messages from the provider; READ_SMS is enough, writing needs the default role. */
 class SmsRepository(context: Context) {
 
     private val appContext = context.applicationContext
@@ -28,15 +25,11 @@ class SmsRepository(context: Context) {
         Telephony.Sms.getDefaultSmsPackage(appContext) == appContext.packageName
 
     /**
-     * Merkt sich, dass diese Unterhaltung gelesen wurde.
+     * marks this conversation as read, so the count beside the name stops standing forever
+     * and the reminder chain ends.
      *
-     * Ohne das bleibt die Zahl neben dem Namen für immer stehen: „Oma (3)" auch dann noch,
-     * wenn man alle drei gelesen hat. Am Emulator gesehen - eine geöffnete Unterhaltung
-     * zählte weiter als ungelesen, und damit wäre auch jede Erinnerung an ungelesene
-     * Nachrichten eine, die nie aufhört.
-     *
-     * Schreiben darf nur die Standard-SMS-App. Ist BigLau es nicht, führt eine andere App
-     * diesen Zustand, und dann ist er nicht unserer - siehe [SmsDelivery.mayWrite].
+     * only the default sms app may write; otherwise another app keeps this state and it is
+     * not ours. see [SmsDelivery.mayWrite].
      */
     suspend fun markRead(threadId: Long): Boolean = withContext(Dispatchers.IO) {
         if (!isDefaultSmsApp()) return@withContext false
@@ -54,13 +47,10 @@ class SmsRepository(context: Context) {
     }
 
     /**
-     * Wie viele eingegangene Nachrichten noch ungelesen sind.
+     * how many incoming messages are still unread.
      *
-     * Die Kachel „Nachrichten" zaehlte bis hierher **Meldungen** der Standard-SMS-App. Das
-     * hat zwei Loecher: es braucht den Zugriff auf fremde Meldungen (eine eigene Erlaubnis,
-     * die niemand von selbst erteilt), und sobald BigLau selbst die Standard-App ist, haengt
-     * die Zahl an der eigenen Meldung statt an dem, was wirklich ungelesen ist. Der Anbieter
-     * weiss es genauer, und lesen darf BigLau ihn ohnehin.
+     * counted from the provider, not from notices: those need access to foreign notices,
+     * and once BigLau is the default app the number would hang on its own notice.
      */
     suspend fun unreadCount(): Int = withContext(Dispatchers.IO) {
         if (!hasReadPermission()) return@withContext 0
@@ -115,7 +105,7 @@ class SmsRepository(context: Context) {
     companion object {
         private val _changes = MutableStateFlow(0L)
 
-        /** Zaehler, auf den die Oberflaeche horcht - eine neue Nachricht laedt die Liste neu. */
+        /** the screen listens on this: a new message reloads the list. */
         val changes: StateFlow<Long> = _changes.asStateFlow()
 
         fun notifyChanged() {

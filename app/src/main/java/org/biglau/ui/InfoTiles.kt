@@ -92,12 +92,12 @@ fun ClockContent(
         // Gemessen statt geschaetzt: `singleLineSizeSp` rechnet mit einer mittleren
         // Zeichenbreite, und bei 200 % Textgroesse und Hyperlegible stand hier „2:33" -
         // das „AM" war abgeschnitten. Siehe fittedSingleLineDp.
-        val zeitStil = tabellenZiffern().copy(fontWeight = FontWeight.Bold)
+        val zeitStil = tabularFigures().copy(fontWeight = FontWeight.Bold)
         BoxWithConstraints(Modifier.fillMaxWidth()) {
             val zeitSp = fittedSingleLineDp(
                 text = timeText,
-                stil = zeitStil,
-                wunschDp = timeSize,
+                style = zeitStil,
+                desiredDp = timeSize,
                 maxWidth = maxWidth,
             )
             Text(
@@ -180,7 +180,7 @@ fun BatteryContent(
     ) {
         // Gemessen statt geschaetzt - siehe fittedSingleLineDp. Bei „100 %" und grosser
         // Schrift waere sonst das Prozentzeichen der erste Kandidat zum Abschneiden.
-        val zahlStil = tabellenZiffern().copy(fontWeight = FontWeight.Bold)
+        val zahlStil = tabularFigures().copy(fontWeight = FontWeight.Bold)
         BoxWithConstraints(Modifier.fillMaxWidth()) {
             Text(
                 text = percentText,
@@ -291,8 +291,8 @@ fun SignalContent(
                     fontSize = dpSp(
                         fittedSingleLineDp(
                             text = wort,
-                            stil = wortStil,
-                            wunschDp = singleLineSizeSp(
+                            style = wortStil,
+                            desiredDp = singleLineSizeSp(
                                 wort, cellWidth.value, cellHeight.value, scale, maxSp = 22f,
                             ),
                             maxWidth = maxWidth,

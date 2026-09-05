@@ -8,11 +8,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
 /**
- * Der laufende Anruf, zwischen Dienst und Oberflaeche.
+ * the running call, between service and screen.
  *
- * Bewusst ein einzelner Anruf: Zweitanruf und Konferenz kommen spaeter und muessen dann
- * hier landen, nicht in der Oberflaeche. Die [Call]-Referenz bleibt im Dienst-Prozess -
- * die Oberflaeche ruft nur die Verben auf.
+ * the [Call] reference stays in the service process; the screen only calls the verbs.
  */
 object InCallRepository {
 
@@ -21,11 +19,11 @@ object InCallRepository {
 
     private var current: Call? = null
 
-    /** Der zweite Anruf, falls es einen gibt - fuer [switchCall]. */
+    /** the second call, if there is one, for [switchCall]. */
     private var other: Call? = null
-    // `InCallService` und nicht `BigInCallService`: gebraucht werden nur `setMuted` und
-    // `setAudioRoute`, und die kommen vom System. Mit der eigenen Klasse im Typ hing die
-    // Ablage am Programmodul fest - als einzige von acht.
+
+    // `InCallService`, not `BigInCallService`: only `setMuted` and `setAudioRoute` are
+    // needed, and both come from the system. the own class would tie this to the app module.
     private var service: InCallService? = null
 
     fun attach(inCallService: InCallService) {
@@ -51,11 +49,9 @@ object InCallRepository {
     fun hold() = runCatching { current?.hold() }
     fun unhold() = runCatching { current?.unhold() }
 
-    /**
-     * Zurueck zum gehaltenen Anruf. Das System legt den laufenden dabei selbst auf Halten -
-     * beides von Hand zu tun, wuerde die Reihenfolge verlieren, in der es geschieht.
-     */
+    /** back to the held call; the system holds the running one itself, in the right order. */
     fun switchCall() = runCatching { other?.unhold() }
+
     fun playDigit(digit: Char) = runCatching {
         current?.playDtmfTone(digit)
         current?.stopDtmfTone()
@@ -66,7 +62,6 @@ object InCallRepository {
     fun setSpeaker(on: Boolean) =
         setRoute(if (on) AudioRoute.SPEAKER else AudioRoute.EARPIECE)
 
-    /** Ton auf einen bestimmten Weg legen - Hoermuschel, Lautsprecher oder Bluetooth. */
     fun setRoute(route: AudioRoute) = runCatching {
         service?.setAudioRoute(AudioRoutes.toTelecom(route))
     }

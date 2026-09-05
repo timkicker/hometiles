@@ -13,10 +13,7 @@ import androidx.core.content.ContextCompat
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
-/**
- * Liest Kontakte mit Telefonnummer. Die Zusammenfuehrung liegt bewusst in [ContactMerge],
- * damit sie ohne Geraet pruefbar ist - hier bleibt nur das Cursor-Lesen.
- */
+/** reads contacts with a phone number; the folding lives in [ContactMerge] so it is testable. */
 class ContactRepository(context: Context) {
 
     private val appContext = context.applicationContext
@@ -25,14 +22,7 @@ class ContactRepository(context: Context) {
         ContextCompat.checkSelfPermission(appContext, Manifest.permission.READ_CONTACTS) ==
             PackageManager.PERMISSION_GRANTED
 
-    /**
-     * Der Name zu einer Nummer, oder null.
-     *
-     * Ein einzelner Treffer aus `PhoneLookup` statt der ganzen Kontaktliste: das hier läuft
-     * in einem Broadcast-Empfänger, wenn eine Nachricht ankommt, und dort ist kein Platz
-     * für eine Abfrage über alle Kontakte. Ohne Berechtigung oder ohne Treffer steht in der
-     * Meldung eben die Nummer.
-     */
+    /** one `PhoneLookup` hit: this runs in a broadcast receiver, where a full query has no room. */
     fun nameFor(number: String): String? {
         if (!hasPermission() || number.isBlank()) return null
         val uri = Uri.withAppendedPath(
@@ -53,10 +43,8 @@ class ContactRepository(context: Context) {
     }
 
     /**
-     * [resources] liefert die Bezeichnungen der Nummern („Mobile", „Home"). Sie kommen aus
-     * dem System und nicht aus unseren Texten - deshalb muss der Aufrufer sagen, in welcher
-     * Sprache: eine Activity gibt ihre eigenen Ressourcen, die schon in der Sprache der App
-     * stehen. Ohne Angabe die des Telefons.
+     * [resources] carries the number labels. they come from the system, not from our texts,
+     * so the caller says which language: an activity passes its own, already in the app's.
      */
     suspend fun load(resources: Resources = appContext.resources): List<PhoneContact> =
         withContext(Dispatchers.IO) {
@@ -108,15 +96,10 @@ class ContactRepository(context: Context) {
     }
 
     /**
-     * Die Bezeichnung einer Nummer - „Mobile", „Home", „Work" und die zwei Dutzend anderen.
+     * the label of a number.
      *
-     * Hier stand eine eigene Zuordnung mit **drei fest deutschen Woertern** („Mobil",
-     * „Privat", „Arbeit"). Auf dem englischen Telefon des Nutzers (03.09.2026) stand deshalb unter der
-     * Nummer seines Vaters „Mobil", waehrend daneben „Call straight away" stand. Alles
-     * andere - Fax, Pager, Hauptanschluss, eigene Bezeichnungen - hatte gar keine.
-     *
-     * `getTypeLabel` ist genau dafuer da: es uebersetzt in die Sprache der uebergebenen
-     * Ressourcen und nimmt bei einer eigenen Bezeichnung diese.
+     * `getTypeLabel` translates into the language of the passed resources and prefers a
+     * custom label; an own mapping covered three types in one hard-wired language.
      */
     private fun typeLabel(resources: Resources, type: Int, custom: String?): String? =
         runCatching {
@@ -130,10 +113,7 @@ class ContactRepository(context: Context) {
         ContextCompat.checkSelfPermission(appContext, Manifest.permission.WRITE_CONTACTS) ==
             PackageManager.PERMISSION_GRANTED
 
-    /**
-     * Favoritenkennzeichen setzen. Gibt zurueck, ob es geklappt hat - die Oberflaeche soll
-     * nicht so tun, als waere etwas passiert, wenn der Anbieter es abgelehnt hat.
-     */
+    /** returns whether it worked: the screen must not pretend when the provider refused. */
     suspend fun setStarred(contactId: Long, starred: Boolean): Boolean = withContext(Dispatchers.IO) {
         if (!canWrite()) return@withContext false
         runCatching {

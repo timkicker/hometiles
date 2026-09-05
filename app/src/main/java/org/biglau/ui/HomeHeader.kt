@@ -123,15 +123,15 @@ fun HomeHeader(
                 // `clockSizeSp` schaetzt mit einer mittleren Zeichenbreite, und genau diese
                 // Schaetzung hat auf der Uhr-Kachel bei 200 % das „AM" abgeschnitten. Hier
                 // stuende die Uhr sonst ueber dem Ladestand.
-                val uhrStil = tabellenZiffern().copy(fontWeight = FontWeight.Bold)
+                val uhrStil = tabularFigures().copy(fontWeight = FontWeight.Bold)
                 Text(
                     text = uhrzeit,
                     color = palette.onBackground,
                     fontSize = dpSp(
                         fittedSingleLineDp(
                             text = uhrzeit,
-                            stil = uhrStil,
-                            wunschDp = ClockFormat.clockSizeSp(
+                            style = uhrStil,
+                            desiredDp = ClockFormat.clockSizeSp(
                                 text = uhrzeit,
                                 availableDp = breiteLinks,
                                 textScale = scale,
@@ -164,15 +164,15 @@ fun HomeHeader(
                 // „100 %" ist der laengste Fall. Passt es nicht, wird die Zahl kleiner -
                 // abgeschnitten waere sie keine Zahl mehr.
                 val standText = if (percent == null) "?" else "$percent %"
-                val standStil = tabellenZiffern().copy(fontWeight = FontWeight.Bold)
+                val standStil = tabularFigures().copy(fontWeight = FontWeight.Bold)
                 Text(
                     text = standText,
                     color = if (low) palette.dangerText else palette.onBackground,
                     fontSize = dpSp(
                         fittedSingleLineDp(
                             text = standText,
-                            stil = standStil,
-                            wunschDp = 20f * scale,
+                            style = standStil,
+                            desiredDp = 20f * scale,
                             maxWidth = (ClockFormat.batteryWidthDp(scale) - 20f * scale - 8f).dp,
                         ),
                     ),

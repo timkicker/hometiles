@@ -16,10 +16,7 @@ data class LaunchableApp(
     val component: ComponentName get() = ComponentName(packageName, activityName)
 }
 
-/**
- * Liest die startbaren Apps ueber [LauncherApps]. Das ist der von Android
- * vorgesehene Weg fuer Launcher und kommt ohne QUERY_ALL_PACKAGES aus.
- */
+/** the launchable apps via [LauncherApps]; the launcher path, free of QUERY_ALL_PACKAGES. */
 class AppRepository(context: Context) {
 
     private val appContext = context.applicationContext
@@ -54,25 +51,20 @@ class AppRepository(context: Context) {
     }.getOrNull()
 
     /**
-     * Startet die App hinter einer Kachel.
+     * starts the app behind a tile.
      *
-     * **Erst nachsehen, ob es die Activity ueberhaupt noch gibt.** `startMainActivity` wirft
-     * bei einer unbekannten Komponente nicht immer - manchmal passiert einfach *nichts*, und
-     * dann tut die Kachel nichts, ohne dass jemand etwas erfaehrt. Am Emulator gesehen: eine
-     * Kachel mit dem Alias-Namen von Chrome blieb stumm, waehrend derselbe Name ueber einen
-     * gewoehnlichen Intent startete.
-     *
-     * Der Fall tritt im Alltag ein, wenn eine App sich aktualisiert und ihre Startklasse
-     * umbenennt. Die Kachel steht dann weiter da und fuehrt nirgendwohin.
+     * the activity is looked up first: `startMainActivity` does not always throw for an
+     * unknown component, it sometimes does nothing at all, and then so does the tile. this
+     * happens whenever an app update renames its launch class.
      */
     fun launch(packageName: String, activityName: String): Boolean {
-        val bekannt = runCatching {
+        val known = runCatching {
             launcherApps.getActivityList(packageName, user)
                 .any { it.componentName.className == activityName }
         }.getOrDefault(false)
 
-        if (bekannt) {
-            val gestartet = runCatching {
+        if (known) {
+            val started = runCatching {
                 launcherApps.startMainActivity(
                     ComponentName(packageName, activityName),
                     user,
@@ -81,11 +73,10 @@ class AppRepository(context: Context) {
                 )
                 true
             }.getOrDefault(false)
-            if (gestartet) return true
+            if (started) return true
         }
 
-        // Sonst der gewoehnliche Startweg des Systems - der findet auch eine umbenannte
-        // Startklasse.
+        // otherwise the system path, which finds a renamed launch class too.
         val intent = appContext.packageManager.getLaunchIntentForPackage(packageName)
             ?: return false
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)

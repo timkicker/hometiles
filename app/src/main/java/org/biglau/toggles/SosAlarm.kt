@@ -15,29 +15,26 @@ import org.biglau.actions.Flashlight
 import org.biglau.data.SosConfig
 
 /**
- * Lauter Alarmton und blinkendes Licht während des Notrufs. `PLAN.md` 4.8.
+ * loud alarm and blinking light during the emergency call. `PLAN.md` 4.8.
  *
- * Wofür: die Nachricht geht an Menschen, die weit weg sind. Wer gestürzt ist, braucht aber
- * zuerst den, der zwei Räume weiter steht - und der hört und sieht ein Telefon, das lärmt
- * und blinkt. Beides ist der einzige Teil des Notrufs, der ohne Netz wirkt.
+ * the message goes to people far away; someone who has fallen first needs the person two
+ * rooms away, and this is the only part of the emergency call that works without a network.
  *
- * **Erst nach dem Countdown**, nicht währenddessen: ein abgebrochener Fehlalarm soll still
- * bleiben. Wer im Supermarkt versehentlich auf den Knopf kommt und ihn wegdrückt, hat sonst
- * schon eine Sirene ausgelöst - und schaltet den Notruf danach ganz ab.
+ * only *after* the countdown: a cancelled false alarm must stay silent, or someone who hits
+ * the button in a supermarket has already set off a siren and turns the whole thing off.
  *
- * Der Ton läuft auf dem **Wecker-Kanal**: der ist auch dann laut, wenn das Telefon auf
- * lautlos steht. Genau darum geht es.
+ * the sound runs on the alarm channel, which is loud even on silent. that is the point.
  */
 object SosAlarm {
 
-    /** Wie schnell das Licht blinkt. Langsam genug, dass es als Blinken zu erkennen ist. */
+    /** slow enough to read as blinking. */
     const val BLINK_MS = 500L
 
     private var ringtone: Ringtone? = null
-    private var blinken: Job? = null
+    private var blinking: Job? = null
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
-    /** Läuft überhaupt etwas? Beides aus heisst: gar nicht erst anfangen. */
+    /** both off means do not start at all. */
     fun active(config: SosConfig): Boolean = config.alarmSound || config.alarmFlash
 
     fun start(context: Context, config: SosConfig) {
@@ -48,9 +45,9 @@ object SosAlarm {
     fun stop(context: Context) {
         runCatching { ringtone?.stop() }
         ringtone = null
-        blinken?.cancel()
-        blinken = null
-        // Das Licht bleibt sonst an, und der Nutzer sucht den Schalter dafür.
+        blinking?.cancel()
+        blinking = null
+        // the light would stay on and the user would go looking for its switch.
         if (Flashlight.on.value) Flashlight.toggle(context)
     }
 
@@ -73,8 +70,8 @@ object SosAlarm {
     }
 
     private fun startFlash(context: Context) {
-        if (blinken != null) return
-        blinken = scope.launch {
+        if (blinking != null) return
+        blinking = scope.launch {
             while (isActive) {
                 Flashlight.toggle(context)
                 delay(BLINK_MS)

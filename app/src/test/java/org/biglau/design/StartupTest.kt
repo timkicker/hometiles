@@ -23,7 +23,7 @@ class StartupTest {
     /** Ohne Kommentare: eine Erklaerung darf die Regel nennen, ohne sie zu brechen. */
     private val app = Quelltext.datei("org/biglau/BigLauApp.kt")
         .readLines()
-        .filterNot { it.trimStart().startsWith("//") || it.trimStart().startsWith("*") }
+        .filterNot { Quelltext.istKommentarzeile(it) }
         .joinToString("\n")
 
     @Test

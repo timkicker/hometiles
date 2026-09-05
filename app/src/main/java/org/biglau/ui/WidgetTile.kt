@@ -22,12 +22,11 @@ import androidx.compose.ui.viewinterop.AndroidView
 import org.biglau.widgets.WidgetHostController
 
 /**
- * Ein Widget in einer Zelle.
+ * a widget in a cell.
  *
- * Das Widget bekommt die ganze Flaeche und alle Beruehrungen - sonst waere es nicht bedienbar.
- * Zum Bearbeiten gibt es deshalb einen schmalen Griff am unteren Rand: sichtbar, aber klein
- * genug, dass er dem Widget nichts wegnimmt. Ohne ihn waere eine Widget-Kachel die einzige,
- * die man nicht mehr aendern kann.
+ * the widget gets the whole area and every touch, or it could not be used, so editing hangs
+ * on a narrow handle at the bottom edge. without it a widget tile would be the one tile
+ * that can never be changed again.
  */
 @Composable
 fun WidgetTile(
@@ -42,8 +41,8 @@ fun WidgetTile(
     val context = LocalContext.current
     val controller = remember { WidgetHostController.get(context) }
 
-    // Die Platte bleibt, das Widget sitzt darauf. Ohne sie schwebt es im Schwarz und
-    // bricht den Rasterrhythmus - die Zelle sieht dann halb leer aus.
+    // the plate stays and the widget sits on it: without it the widget floats in the black
+    // and breaks the grid rhythm.
     Box(
         modifier = modifier
             .clip(RoundedCornerShape(cornerRadius))
@@ -62,10 +61,8 @@ fun WidgetTile(
             },
         )
 
-        // Im Bearbeitungsmodus gehoert die ganze Kachel der App. Der Balken oben sagt
-        // "tippe eine Kachel an, um sie zu aendern" - fuer eine Widget-Kachel stimmte das
-        // nicht: das Widget nahm die Beruehrung und oeffnete seine eigene App. Eine
-        // Anleitung, die fuer eine Kachel nicht gilt, ist schlimmer als keine.
+        // in edit mode the whole tile belongs to the app: the banner says tap a tile to
+        // change it, and the widget was taking the touch and opening its own app instead.
         if (editMode) {
             Box(
                 modifier = Modifier
@@ -74,11 +71,9 @@ fun WidgetTile(
             )
         }
 
-        // Der Griff: nur Langdruck, damit gewoehnliche Beruehrungen beim Widget bleiben.
-        //
-        // Er bringt seine eigene dunkle Flaeche mit. Die erste Fassung war ein heller Balken
-        // mit halber Deckkraft - auf einem Widget mit weisser Karte war er schlicht
-        // unsichtbar, und damit war die Kachel praktisch nicht mehr zu bearbeiten.
+        // the handle: long press only, so ordinary touches stay with the widget. it brings
+        // its own dark surface, since a half-transparent light bar was invisible on a widget
+        // with a white card.
         Box(
             modifier = Modifier
                 .align(Alignment.BottomCenter)

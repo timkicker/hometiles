@@ -58,9 +58,7 @@ class HinausTest {
     private fun stellen(): Map<File, List<String>> = Quelltext.dateien()
         .associateWith { datei ->
             datei.readLines().filter { zeile ->
-                hinausMuster.containsMatchIn(zeile) &&
-                    !zeile.trim().startsWith("*") &&
-                    !zeile.trim().startsWith("//")
+                hinausMuster.containsMatchIn(zeile) && !Quelltext.istKommentarzeile(zeile)
             }
         }
         .filterValues { it.isNotEmpty() }
@@ -112,7 +110,9 @@ class HinausTest {
         val stellen = Quelltext.dateien()
             .filter { datei ->
                 datei.name != "Intents.kt" &&
-                    datei.readLines().any { muster.containsMatchIn(it) && !it.trim().startsWith("//") }
+                    datei.readLines().any {
+                        muster.containsMatchIn(it) && !Quelltext.istKommentarzeile(it)
+                    }
             }
         assertEquals(
             "Eine neue Stelle löst einen Anruf oder eine Nachricht aus. Mit Grund in die " +

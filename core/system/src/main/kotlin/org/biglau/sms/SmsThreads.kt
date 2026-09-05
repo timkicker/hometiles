@@ -1,17 +1,15 @@
 package org.biglau.sms
 
-import org.biglau.phone.PhoneNumbers
-
 /**
- * Aus einzelnen Nachrichten werden Gespraeche.
+ * single messages become conversations.
  *
- * Der heikle Teil ist die Zuordnung: dieselbe Person schreibt mal von "+43 660 123", mal von
- * "0660123", und der Anbieter vergibt dafuer nicht immer dieselbe Gespraechskennung. Wer nur
- * nach der Kennung gruppiert, zeigt zwei Gespraeche mit derselben Person - wer nur nach der
- * Nummer gruppiert, wirft Gespraeche zusammen, die der Anbieter getrennt fuehrt.
+ * the delicate part is the grouping: the same person writes once from "+43 660 123" and once
+ * from "0660123", and the provider does not always hand out the same thread id. grouping by
+ * id alone shows two conversations with one person; grouping by number alone merges
+ * conversations the provider keeps apart.
  *
- * Wir gruppieren nach der Kennung und benutzen die Nummer nur zum Anzeigen. Das folgt dem,
- * was der Nutzer in jeder anderen SMS-App sieht.
+ * we group by id and use the number only for display, which follows what one sees in every
+ * other sms app.
  */
 object SmsThreads {
 
@@ -33,14 +31,14 @@ object SmsThreads {
             }
             .sortedByDescending { it.lastMessage.timestamp }
 
-    /** Vorschautext fuer die Liste: eine Zeile, gekuerzt, ohne Umbrueche. */
+    /** one line, shortened, without breaks. */
     fun preview(message: SmsMessage): String {
         val single = message.body.replace(Regex("\\s+"), " ").trim()
         return if (single.length <= PREVIEW_LENGTH) single
         else single.take(PREVIEW_LENGTH - 1).trimEnd() + "…"
     }
 
-    /** Nachrichten eines Gespraechs, aelteste zuerst - so liest man eine Unterhaltung. */
+    /** oldest first, which is how one reads a conversation. */
     fun conversation(messages: List<SmsMessage>, threadId: Long): List<SmsMessage> =
         messages.filter { it.threadId == threadId }.sortedBy { it.timestamp }
 }

@@ -23,7 +23,7 @@ class GesprochenerNameTest {
     @Test
     fun `die ansage haengt nicht allein am zustand`() {
         val weiche = quelle.lines()
-            .dropWhile { !it.contains("val ansage = when") }
+            .dropWhile { !it.contains("val announcement = when") }
             .takeWhile { !it.trimStart().startsWith("Row(") }
             .joinToString("\n")
         assertTrue(
@@ -38,7 +38,7 @@ class GesprochenerNameTest {
         assertTrue(
             "Der Semantik-Block prueft weiter `zustand` statt der Ansage - dann bleibt " +
                 "labelSpeech ohne Zustand wirkungslos.",
-            "if (ansage != null) {" in quelle,
+            "if (announcement != null) {" in quelle,
         )
     }
 }

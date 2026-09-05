@@ -9,20 +9,15 @@ import org.biglau.data.ConfigStore
 import org.biglau.data.Language
 
 /**
- * Die Sprache der App, unabhaengig von der des Telefons. PLAN.md 4.9.
+ * the app's language, apart from the phone's. `PLAN.md` 4.9.
  *
- * Der Grund ist nicht Bequemlichkeit: viele Telefone stehen auf einer Sprache, die
- * jemand anderes eingestellt hat - der Sohn beim Einrichten, der Haendler, die
- * Werkseinstellung. Wer das System umstellen wollte, muesste sich erst durch die
- * Systemeinstellungen in einer Sprache arbeiten, die er nicht liest. Genau die Falle,
- * gegen die diese App antritt.
- *
- * Ab Android 13 gibt es dafuer eine Systemfunktion. Dieses Geraet laeuft auf Android 11,
- * also wird der Context beim Start umgehaengt - der Weg, der ueberall funktioniert.
+ * many phones stand in a language someone else set, and changing that means working
+ * through system settings one cannot read. android 13 has a system function for this; the
+ * device runs 11, so the context is wrapped at start instead.
  */
 object AppLocale {
 
-    /** null heisst: die Sprache des Telefons, was immer sie ist. */
+    /** null means the phone's language, whatever it is. */
     fun localeFor(language: Language): Locale? = when (language) {
         Language.SYSTEM -> null
         Language.GERMAN -> Locale.GERMAN
@@ -42,27 +37,18 @@ object AppLocale {
     fun needsRecreate(attached: Language, current: Language): Boolean = attached != current
 
     /**
-     * Der Context in der Sprache der **App** - fuer alles ausserhalb einer Activity.
+     * the context in the *app's* language, for everything outside an activity.
      *
-     * [wrap] hing bis hierher nur an `BigLauActivity`. Jede Meldung, jeder Wecker und der
-     * Vorgabetext des Notrufs holten ihre Texte dagegen aus dem rohen Anwendungs-Context -
-     * also in der Sprache des **Telefons**. Am Emulator gesehen: die Oberflaeche auf
-     * Deutsch, die Meldung darueber auf Englisch.
-     *
-     * Das trifft genau den Fall, fuer den es diese Einstellung ueberhaupt gibt: ein Telefon,
-     * dessen Systemsprache jemand anderes gesetzt hat.
+     * notices, alarms and the sos default text otherwise read the raw application context
+     * and come out in the phone's language, over a screen in the app's.
      */
     fun forApp(context: Context): Context =
         wrap(context, ConfigStore.get(context).current.appearance.language)
 }
 
 /**
- * Die Sprache, in der gerade gemalt wird - aus der Konfiguration des Contexts, nicht aus
- * [Locale.getDefault].
- *
- * Der Unterschied faellt beim Datum auf: nach dem Umstellen auf Deutsch stand ueber dem
- * Startbildschirm weiter "Tue, 1. Sep". Die Texte kamen aus den Ressourcen und waren
- * deutsch, der Wochentag kam aus der Standardsprache des Prozesses und blieb englisch.
+ * the language currently being drawn, from the context configuration and not from
+ * [Locale.getDefault], which keeps the process language: the date read "Tue, 1. Sep".
  */
 @Composable
 fun currentLocale(): Locale = LocalConfiguration.current.locales[0]

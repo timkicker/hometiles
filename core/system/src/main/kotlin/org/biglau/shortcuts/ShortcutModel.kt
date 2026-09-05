@@ -1,6 +1,6 @@
 package org.biglau.shortcuts
 
-/** Eine Verknuepfung, so weit sie uns interessiert - ohne Android-Typen, damit pruefbar. */
+/** a shortcut as far as it concerns us, free of android types so it can be tested. */
 data class ShortcutRow(
     val packageName: String,
     val id: String,
@@ -14,38 +14,27 @@ data class ShortcutRow(
 enum class ShortcutKind { STATIC, DYNAMIC, PINNED }
 
 /**
- * Was bei der Abfrage herauskam.
+ * what the query returned.
  *
- * Eine leere Liste und ein Fehlschlag sehen im Ergebnis gleich aus, sagen aber
- * Verschiedenes: das eine ist eine Antwort, das andere keine. Wer beides zu `emptyList()`
- * verschmilzt, laesst die Oberflaeche behaupten, die App biete keine Verknuepfungen an -
- * obwohl niemand sie gefragt hat.
+ * an empty list and a failure look alike but say different things; merged into
+ * `emptyList()` the screen claims the app offers no shortcuts although nobody asked it.
  */
 sealed interface ShortcutAnswer {
 
-    /** Android hat geantwortet. Die Liste darf leer sein, dann hat die App wirklich keine. */
+    /** android answered. the list may be empty, then the app really has none. */
     data class Rows(val rows: List<ShortcutRow>) : ShortcutAnswer
 
-    /** Die Abfrage ist fehlgeschlagen. Ob es Verknuepfungen gibt, wissen wir nicht. */
+    /** the query failed. whether there are shortcuts is unknown. */
     data object Failed : ShortcutAnswer
 }
 
-/**
- * Welche Verknuepfungen angeboten werden und in welcher Reihenfolge.
- *
- * Die Reihenfolge ist nicht beliebig: Apps vergeben einen Rang, und wer ihn ignoriert,
- * zeigt dem Nutzer die vierte Option zuerst.
- */
 object Shortcuts {
 
-    /** Anzeigename: das lange Label, wenn es eines gibt - es sagt mehr. */
+    /** the long label says more. */
     fun labelOf(row: ShortcutRow): String =
         row.longLabel?.takeIf { it.isNotBlank() } ?: row.shortLabel
 
-    /**
-     * Was tatsaechlich angeboten wird: nur aktive Verknuepfungen, angepinnte zuerst
-     * (die hat der Nutzer selbst gewaehlt), dann nach dem Rang der App, dann nach Namen.
-     */
+    /** pinned first, those the user picked; then the app's rank, then the name. */
     fun usable(rows: List<ShortcutRow>): List<ShortcutRow> = rows
         .filter { it.enabled && labelOf(it).isNotBlank() }
         .distinctBy { it.packageName to it.id }

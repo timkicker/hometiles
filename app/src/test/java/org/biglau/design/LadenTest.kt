@@ -59,7 +59,7 @@ class LadenTest {
                 val text = datei.readText()
                 zeilen.withIndex()
                     .filter { (_, z) ->
-                        leerSaetze.containsMatchIn(z) && !z.trim().startsWith("//")
+                        leerSaetze.containsMatchIn(z) && !Quelltext.istKommentarzeile(z)
                     }
                     .filterNot { (i, _) ->
                         zeilen.subList(maxOf(0, i - 12), i + 1)

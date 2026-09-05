@@ -5,30 +5,18 @@ import org.biglau.search.TextSearch
 enum class ContactOrder { FIRST_NAME, SURNAME }
 
 /**
- * Reihenfolge der Kontaktliste.
+ * order of the contact list.
  *
- * Das Original ueberlaesst die Sortierung nach Nachnamen dem Telefonbuch des Geraets und
- * warnt selbst, dass sie "nicht auf allen Telefonen funktioniert". Wir rechnen sie deshalb
- * selbst aus dem Anzeigenamen - das ist zwar eine Heuristik, aber eine, die man pruefen
- * und erklaeren kann.
+ * the surname is derived from the display name rather than left to the device phone book,
+ * which the original itself warns does not work on every phone.
  */
 object ContactSort {
 
     /**
-     * Sortierschluessel. Bei Nachnamen-Sortierung wandert der letzte Namensteil nach vorn,
-     * der Rest folgt - "Anna Berger" wird zu "berger anna".
+     * sort key: by surname the last part moves to the front, Anna Berger becomes berger anna.
      *
-     * Namenszusaetze wie "van" oder "von" zaehlen fuer die Reihenfolge nicht mit: "Anna van
-     * Dijk" steht unter D, "Bernd von Ackeren" unter A. So haelt es das deutsche
-     * Telefonbuch, und so sucht auch der Mensch, der sich an "Ackeren" erinnert und nicht
-     * an das "von". Angezeigt wird der Name unveraendert - der Zusatz verschwindet nur aus
-     * der Sortierung, und er haengt sich hinten an den Schluessel, damit "Dijk" und "van
-     * Dijk" eine feste Reihenfolge behalten statt sich abzuwechseln.
-     *
-     * Am Emulator aufgefallen: "Bernd von Ackeren" stand unter V, "Emil de Vries" unter D -
-     * jeder an der Stelle, an der man ihn nicht sucht. Der Test dazu behauptete in seinem
-     * eigenen Kommentar "gehoert unter D, nicht unter V" und pruefte danach auf V; er hielt
-     * den Fehler fest, statt ihn zu finden.
+     * name prefixes like van or von do not count towards the order and are appended to the
+     * key instead, so Dijk and van Dijk keep a fixed order rather than alternating.
      */
     fun sortKey(name: String, order: ContactOrder): String {
         val parts = name.trim().split(Regex("\\s+")).filter { it.isNotBlank() }
@@ -41,11 +29,11 @@ object ContactSort {
         while (surnameStart > 1 && parts[surnameStart - 1].lowercase() in PREFIXES) {
             surnameStart--
         }
-        // surnameStart zeigt auf den ersten Zusatz; der Nachname selbst faengt dahinter an.
-        val zusaetze = parts.subList(surnameStart, parts.size - 1)
+        // surnameStart points at the first prefix; the surname itself follows behind it.
+        val prefixes = parts.subList(surnameStart, parts.size - 1)
         val surname = parts.last()
         val rest = parts.subList(0, surnameStart)
-        return TextSearch.normalize((listOf(surname) + rest + zusaetze).joinToString(" "))
+        return TextSearch.normalize((listOf(surname) + rest + prefixes).joinToString(" "))
     }
 
     fun sorted(
@@ -59,32 +47,23 @@ object ContactSort {
         ),
     )
 
-    /**
-     * Nur die Favoriten, in derselben Reihenfolge wie sonst.
-     *
-     * Eine eigene Kachel dafuer, weil die volle Liste bei 338 Kontakten selbst mit Suche
-     * ein Umweg ist - und weil die drei bis fuenf Menschen, die man taeglich anruft,
-     * genau die sind, fuer die diese App gemacht ist.
-     */
+    /** a tile of its own, because the full list is a detour at 338 contacts. */
     fun favouritesOnly(
         contacts: List<PhoneContact>,
         order: ContactOrder,
     ): List<PhoneContact> = sorted(contacts.filter { it.starred }, order, favouritesFirst = false)
 
     /**
-     * Ob die Eingabe wie eine Telefonnummer aussieht.
+     * whether the input looks like a phone number.
      *
-     * Gebraucht fuer den Fall, dass jemand eine Nummer eintippt, waehrend die Nummernsuche
-     * abgeschaltet ist: dann steht "Kein Kontakt passt dazu" da, und das ist zwar wahr, aber
-     * es verschweigt den Grund. Drei Ziffern als Untergrenze, damit ein Kontakt namens "X3"
-     * nicht den Hinweis ausloest.
+     * says why nothing matched while number search is off. three digits at least, so a
+     * contact called X3 does not trigger the hint.
      */
     fun looksLikeNumber(query: String): Boolean {
-        val ziffern = query.count { it.isDigit() }
-        return ziffern >= 3 && query.none { it.isLetter() }
+        val digits = query.count { it.isDigit() }
+        return digits >= 3 && query.none { it.isLetter() }
     }
 
-    /** Ueber welche Felder gesucht wird. */
     fun searchText(contact: PhoneContact, includeNumbers: Boolean): String = buildString {
         append(contact.name)
         if (includeNumbers) {

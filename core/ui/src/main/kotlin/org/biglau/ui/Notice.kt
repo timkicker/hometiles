@@ -5,32 +5,25 @@ import android.content.Intent
 import android.widget.Toast
 import org.biglau.data.ConfigStore
 
-/** Wie eine Meldung erscheint. */
+/** how a notice appears. */
 enum class NoticeStyle { TOAST, DIALOG }
 
 /**
- * Die eine Stelle, an der die App etwas mitteilt.
+ * the one place where the app says something.
  *
- * Eine kurze Einblendung ist nach zwei Sekunden weg. Wer langsam liest, wer erst die
- * Brille sucht, wer das Telefon gerade zum Ohr genommen hat, liest sie nie - und weiss
- * dann nur, dass etwas aufgeblitzt ist. Deshalb kann man in den Einstellungen sagen:
- * Meldungen bleiben stehen, bis ich sie wegtippe. PLAN.md 4.4.
- *
- * Vorgabe bleibt die Einblendung. Eine Meldung, die jedes Mal einen Knopf verlangt, ist
- * fuer die meisten eine Zumutung; die Wahl gehoert dem, der sie braucht.
+ * a toast is gone after two seconds, which is never for someone still looking for their
+ * glasses; a setting keeps notices standing until tapped away. `PLAN.md` 4.4.
  */
 object Notice {
 
     /**
-     * Die Absicht auf den wartenden Hinweis. Wortgleich im Manifest von `NoticeActivity`.
+     * word for word in the manifest of `NoticeActivity`.
      *
-     * Ueber eine Absicht und nicht ueber die Klasse: `Notice` gehoert zum Design-System und
-     * wird von ueberall benutzt; der Bildschirm dazu ist eine Activity der Anwendung. Wer
-     * hier die Klasse naenne, zoege die halbe App ins Design-System.
+     * an intent and not the class: naming it would pull half the app into the design system.
      */
     const val ACTION = "org.biglau.action.NOTICE"
 
-    /** Der Text, der stehen bleiben soll. */
+    /** the text that should stand. */
     const val EXTRA_TEXT = "text"
 
     fun styleFor(confirm: Boolean): NoticeStyle =

@@ -57,7 +57,7 @@ internal fun MessagesSettingsList(
      *
      * Kommt von aussen, weil die Rolle das **System** vergibt: wer sie erteilt und
      * zurueckkommt, soll nicht denselben Satz noch einmal lesen. Die Activity weiss ueber
-     * `fortsetzungen`, dass sie wieder vorn ist - eine Seite fuer sich weiss das nicht.
+     * `resumes`, dass sie wieder vorn ist - eine Seite fuer sich weiss das nicht.
      */
     istStandardApp: Boolean,
 ) {

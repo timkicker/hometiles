@@ -14,11 +14,9 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 
 /**
- * Empfang und Netzart als Fluss - **rein lesend**.
+ * signal and network type as a flow, read only.
  *
- * Es wird nichts gewählt, nichts gesendet und nichts angemeldet; die Klasse hört dem
- * Telefoniedienst zu und schweigt selbst. Ohne `READ_PHONE_STATE` meldet sie einen
- * Zustand ohne Karte, statt zu werfen.
+ * without `READ_PHONE_STATE` it reports a state without a card instead of throwing.
  */
 object SignalRepository {
 
@@ -26,8 +24,7 @@ object SignalRepository {
         ContextCompat.checkSelfPermission(context, Manifest.permission.READ_PHONE_STATE) ==
             PackageManager.PERMISSION_GRANTED
 
-    // `PhoneStateListener` statt `TelephonyCallback` - der Grund steht bei der
-    // Anmeldung des Zuhörers weiter unten.
+    // `PhoneStateListener` and not `TelephonyCallback`; the reason is at the listener below.
     @Suppress("DEPRECATION")
     fun readings(context: Context): Flow<SignalReading> = callbackFlow {
         val telefonie = context.getSystemService(TelephonyManager::class.java)
@@ -54,8 +51,7 @@ object SignalRepository {
             )
         }
 
-        // PhoneStateListener und nicht TelephonyCallback: das Geraet laeuft auf Android 11,
-        // die Ablösung gibt es erst ab 12. Der Ersatz kommt, wenn minSdk dort ankommt.
+        // the device runs android 11; the replacement exists only from 12 on.
         val zuhoerer = object : PhoneStateListener() {
             override fun onSignalStrengthsChanged(strength: SignalStrength?) {
                 pegel = strength?.level ?: -1
@@ -90,8 +86,7 @@ object SignalRepository {
         networkType = "",
     )
 
-    // `networkType` ist seit Android 11 abgelöst; das ist der Zweig für alles vor
-    // Android 7, `dataNetworkType` steht im if darüber.
+    // `networkType` is the branch for anything before android 7; `dataNetworkType` is above.
     @Suppress("DEPRECATION")
     private fun netzart(telefonie: TelephonyManager): String = runCatching {
         val typ = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {

@@ -9,47 +9,40 @@ import android.os.Looper
 import androidx.core.content.ContextCompat
 
 /**
- * Fragt während des Countdowns nach einer frischen Position.
+ * asks for a fresh position during the countdown.
  *
- * **Der Grund:** die Notruf-SMS nahm die *zuletzt bekannte* Position — und die ist auf einem
- * Telefon, das in der Tasche liegt, oft Stunden alt oder gar nicht vorhanden. Am Emulator ist
- * sie es immer (`last location=null`), und auf einem echten Gerät hängt sie davon ab, ob
- * zufällig kurz vorher eine andere App nach dem Standort gefragt hat. Ein Notruf, der den
- * Standort von gestern mitschickt, führt die Hilfe an den falschen Ort.
+ * the emergency message took the *last known* position, which on a phone in a pocket is
+ * often hours old or absent, and yesterday's location sends help to the wrong place.
  *
- * Der Countdown ist genau das Fenster, das dafür da ist: er dauert ohnehin einige Sekunden,
- * und in dieser Zeit kann das Telefon suchen. Gesucht wird nur so lange, wie der Bildschirm
- * offen ist — danach wird die Anfrage wieder abgemeldet, sonst liefe der Empfänger weiter und
- * verbrauchte Strom.
- *
- * Verlangt wird nichts: kommt in der Zeit keine Position, bleibt es bei der zuletzt bekannten.
+ * the countdown is the window for it. nothing is demanded: with no position in that time it
+ * stays with the last known one.
  */
 class SosLocation(private val context: Context) {
 
-    private val listener = LocationListener { /* Es genuegt, dass das System sucht. */ }
-    private var läuft = false
+    private val listener = LocationListener { /* it is enough that the system searches. */ }
+    private var running = false
 
-    private fun darfOrten(): Boolean =
+    private fun mayLocate(): Boolean =
         ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) ==
             PackageManager.PERMISSION_GRANTED ||
             ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) ==
             PackageManager.PERMISSION_GRANTED
 
     fun start() {
-        if (läuft || !darfOrten()) return
+        if (running || !mayLocate()) return
         val manager = context.getSystemService(Context.LOCATION_SERVICE) as? LocationManager ?: return
         runCatching {
             manager.getProviders(true).forEach { provider ->
                 manager.requestLocationUpdates(provider, 0L, 0f, listener, Looper.getMainLooper())
             }
-            läuft = true
+            running = true
         }
     }
 
     fun stop() {
-        if (!läuft) return
+        if (!running) return
         val manager = context.getSystemService(Context.LOCATION_SERVICE) as? LocationManager ?: return
         runCatching { manager.removeUpdates(listener) }
-        läuft = false
+        running = false
     }
 }

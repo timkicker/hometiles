@@ -25,11 +25,10 @@ import org.biglau.ui.theme.BigLauTheme
 import org.biglau.ui.theme.LocalBigPalette
 
 /**
- * Eine Meldung, die stehen bleibt, bis sie weggetippt wird.
+ * a notice that stands until tapped away.
  *
- * Bewusst eine eigene Activity und kein Dialog: [Notice] wird auch aus Stellen gerufen,
- * die keinen Bildschirm haben - aus [org.biglau.actions.Intents] etwa, wenn eine App
- * fehlt. Ein Dialog braeuchte dort ein Fenster, das es nicht gibt.
+ * an activity and not a dialog: [Notice] is also called from places without a screen, such
+ * as [org.biglau.actions.Intents] when an app is missing, where a dialog has no window.
  */
 class NoticeActivity : BigLauActivity() {
 
@@ -60,19 +59,11 @@ class NoticeActivity : BigLauActivity() {
                         .safeDrawingPadding()
                         .padding(horizontal = 8.dp),
                 ) {
-                    // Text oben, Knopf unten. Dazwischen darf Luft sein: der Daumen liegt
-                    // am unteren Rand, und ein Knopf gleich unter dem Text laesst sich auf
-                    // diesem Geraet nur mit der zweiten Hand treffen.
+                    // text at the top, button at the bottom where the thumb rests.
                     Column(Modifier.fillMaxSize()) {
-                        // Die Meldung ist der Inhalt dieses Bildschirms - sie bekommt die
-                        // Ueberschriftengroesse. Vorher stand sie in gewoehnlicher
-                        // Textgroesse ueber einem grossen Knopf: der Knopf rief, die
-                        // Nachricht fluesterte. Am Geraet gesehen, mit „Keine App auf
-                        // diesem Telefon kann das".
-                        //
-                        // `BigHeading` misst dabei das laengste Wort und wird kleiner,
-                        // bevor es trennt - eine Meldung darf lang sein, und mitten im
-                        // Wort getrennt liest sie sich wie ein Fehler.
+                        // the notice is this screen's content and gets heading size: in
+                        // ordinary size over a large button, the button called and the
+                        // message whispered.
                         BigHeading(text)
                         Spacer(Modifier.weight(1f))
                         BigRow(

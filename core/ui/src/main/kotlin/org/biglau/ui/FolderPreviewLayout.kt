@@ -1,11 +1,10 @@
 package org.biglau.ui
 
 /**
- * Wie gross die Vorschau-Symbole im Ordner sind und wie viele Reihen hineinpassen.
+ * size and row count of the preview icons in a folder.
  *
- * Sie waren bisher nur aus der Zellbreite gerechnet. Quer ist eine Kachel 400 dp breit und
- * 60 hoch: die Symbole wurden so gross wie erlaubt, zwei Reihen ergaben 72 dp - und
- * schoben die Beschriftung aus der Kachel. Der Ordner hiess dann gar nichts mehr.
+ * computed from the cell width alone, a landscape tile of 400 by 60 dp grew two rows of
+ * 72 dp and pushed the label out of the tile.
  */
 object FolderPreviewLayout {
 
@@ -13,19 +12,15 @@ object FolderPreviewLayout {
     private const val MIN_EDGE = 14f
     private const val MAX_EDGE = 34f
 
-    /** Kantenlaenge eines Vorschau-Symbols. */
     fun edgeDp(cellWidthDp: Float, availableHeightDp: Float): Float {
-        val ausBreite = cellWidthDp * 0.20f
-        // Zwei Reihen mit Abstand muessen in die Hoehe passen, sonst wird das Symbol
-        // kleiner statt die Beschriftung wegzudruecken.
-        val ausHoehe = (availableHeightDp - GAP_DP) / 2f
-        return minOf(ausBreite, ausHoehe).coerceIn(MIN_EDGE, MAX_EDGE)
+        val fromWidth = cellWidthDp * 0.20f
+        // two rows with a gap must fit the height, else the icon shrinks instead of
+        // pushing the label away.
+        val fromHeight = (availableHeightDp - GAP_DP) / 2f
+        return minOf(fromWidth, fromHeight).coerceIn(MIN_EDGE, MAX_EDGE)
     }
 
-    /**
-     * Wie viele Reihen gezeigt werden. Passt nur eine, ist eine Reihe mit zwei Symbolen
-     * ehrlicher als zwei angeschnittene - und die Beschriftung bleibt stehen.
-     */
+    /** one row of two is honester than two cut-off ones, and the label stays. */
     fun rows(availableHeightDp: Float, edgeDp: Float): Int =
         if (availableHeightDp >= edgeDp * 2 + GAP_DP) 2 else 1
 }

@@ -27,7 +27,7 @@ class TabularDigitsTest {
 
     @Test
     fun `jede laufende Zahl bekommt Tabellenziffern`() {
-        val ohne = stellen.filterNot { "tabellenZiffern()" in Quelltext.datei(it).readText() }
+        val ohne = stellen.filterNot { "tabularFigures()" in Quelltext.datei(it).readText() }
         assertTrue("Ohne Tabellenziffern: $ohne", ohne.isEmpty())
     }
 
@@ -42,7 +42,7 @@ class TabularDigitsTest {
     @Test
     fun `die Tabellenziffern behalten die Schrift der Oberflaeche`() {
         val quelle = Quelltext.datei("org/biglau/ui/TextSizing.kt").readText()
-        assertTrue("tabellenZiffern baut einen eigenen Stil", "LocalTextStyle.current.copy(" in quelle)
+        assertTrue("tabularFigures baut einen eigenen Stil", "LocalTextStyle.current.copy(" in quelle)
         assertTrue("es gibt wieder einen Vorrat-Stil", "val TabellenZiffern" !in quelle)
     }
 

@@ -51,7 +51,7 @@ class FittedTextTest {
     fun `zaehltAlleStellen`() {
         val roh = Quelltext.dateien().sumOf { datei ->
             datei.readLines().count {
-                "softWrap" in it && !it.trim().startsWith("*") && !it.trim().startsWith("//")
+                "softWrap" in it && !Quelltext.istKommentarzeile(it)
             }
         }
         assertEquals("Das Muster trifft nicht jede Schreibweise von softWrap", roh, ohneUmbruch().size)

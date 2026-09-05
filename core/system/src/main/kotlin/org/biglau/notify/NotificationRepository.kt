@@ -7,18 +7,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
-/**
- * Wie viele Meldungen je App offen sind - damit Kacheln blinken koennen.
- *
- * Stand bis zum 03.09.2026 mitten in `BigNotificationListener.kt`, und war deshalb fuer
- * `AblagenTest` unsichtbar: die Regel sah nur Dateinamen. Jetzt hat sie eine eigene Datei
- * und ist auffindbar.
- *
- * Sie bleibt in `:app` und nicht in `core:system` wie die anderen sieben Ablagen, weil
- * `isEnabled` unseren **eigenen** Dienst beim Namen nennen muss: das System fuehrt in
- * `enabled_notification_listeners` genau diese Klasse, keine Oberklasse tut es. Das steht
- * so auch in der Ausnahmeliste von `AblagenTest`.
- */
+/** how many notices each app has open, so tiles can blink. */
 object NotificationRepository {
 
     private val _counts = MutableStateFlow<Map<String, Int>>(emptyMap())
@@ -38,19 +27,18 @@ object NotificationRepository {
     }
 
     /**
-     * Die Liste der erlaubten Dienste, wie sie in `enabled_notification_listeners` steht.
+     * the allowed services as they stand in `enabled_notification_listeners`.
      *
-     * Eigene Zerlegung, weil das System zwei Schreibweisen zulaesst: `paket/vollstaendige
-     * .Klasse` und die Kurzform `paket/.Klasse`. Bisher wurde nur das Paket verglichen -
-     * das ging gut, solange BigLau genau einen solchen Dienst hat, haette aber beim
-     * zweiten stillschweigend "ja" gesagt, obwohl der falsche erlaubt ist.
+     * parsed here because the system allows two spellings: `package/full.Class` and the
+     * short `package/.Class`. comparing the package alone would say yes for a second
+     * service of ours that is not the enabled one.
      */
     object ListenerList {
 
         fun contains(flat: String, packageName: String, className: String): Boolean =
-            flat.split(':').map { it.trim() }.any { eintrag ->
-                eintrag == "$packageName/$className" ||
-                    eintrag == "$packageName/" + className.removePrefix(packageName)
+            flat.split(':').map { it.trim() }.any { entry ->
+                entry == "$packageName/$className" ||
+                    entry == "$packageName/" + className.removePrefix(packageName)
             }
     }
 }

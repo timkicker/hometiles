@@ -18,8 +18,8 @@ import org.junit.Test
  * Wer den Zugriff erteilte und zurückkam, sah weiter „Benachrichtigungszugriff erteilen" und
  * hielt es für misslungen. Eine Zeile, die lügt, ist schlimmer als eine, die fehlt.
  *
- * `BigLauActivity.fortsetzungen` zählt jetzt die Rückkehr; wer solche Zustände liest, packt
- * sie in `remember(fortsetzungen.intValue) { … }`.
+ * `BigLauActivity.resumes` zählt jetzt die Rückkehr; wer solche Zustände liest, packt
+ * sie in `remember(resumes.intValue) { … }`.
  */
 class SystemzustandTest {
 
@@ -27,12 +27,12 @@ class SystemzustandTest {
 
     @Test
     fun `die gemeinsame Basis zaehlt die Rueckkehr`() {
-        assertTrue("BigLauActivity kennt `fortsetzungen` nicht mehr", "fortsetzungen" in basis)
+        assertTrue("BigLauActivity kennt `resumes` nicht mehr", "resumes" in basis)
         val resume = Quelltext.ausschnitt(basis, "override fun onResume()", "\n    }")
         assertTrue(
             "onResume zählt nicht mehr hoch - dann merkt niemand, dass der Bildschirm " +
                 "wieder vorn ist.",
-            "fortsetzungen.intValue += 1" in resume,
+            "resumes.intValue += 1" in resume,
         )
     }
 
@@ -44,7 +44,7 @@ class SystemzustandTest {
         assertTrue(
             "accessGranted wird wieder einmalig gelesen. Wer den Zugriff erteilt und " +
                 "zurückkommt, sieht dann weiter „erteilen\".",
-            "remember(fortsetzungen.intValue)" in stelle,
+            "remember(resumes.intValue)" in stelle,
         )
     }
 
@@ -65,7 +65,7 @@ class SystemzustandTest {
         assertTrue(
             "Der Assistent liest seinen Zustand wieder nur einmal - dann steht ein " +
                 "erledigter Schritt weiter da: $stelle",
-            "remember(fortsetzungen.intValue)" in stelle,
+            "remember(resumes.intValue)" in stelle,
         )
     }
 
@@ -76,7 +76,7 @@ class SystemzustandTest {
     @Test
     fun `es ist ein Zaehler und kein Schalter`() {
         assertEquals(
-            "fortsetzungen muss ein Int-Zustand sein - ein Boolean, zweimal auf true " +
+            "resumes muss ein Int-Zustand sein - ein Boolean, zweimal auf true " +
                 "gesetzt, zeichnet nicht neu.",
             true,
             "mutableIntStateOf(0)" in basis,
@@ -126,14 +126,14 @@ class SystemzustandTest {
                 val zeilen = datei.readLines()
                 zeilen.withIndex()
                     .filter { (_, zeile) ->
-                        muster.containsMatchIn(zeile) && !zeile.trim().startsWith("*") &&
-                            !zeile.trim().startsWith("//") && "fun " !in zeile
+                        muster.containsMatchIn(zeile) && !Quelltext.istKommentarzeile(zeile) &&
+                            "fun " !in zeile
                     }
                     .filterNot { (i, _) ->
-                        // Der Aufruf steht in `remember(fortsetzungen…)` - hier oder eine
+                        // Der Aufruf steht in `remember(resumes…)` - hier oder eine
                         // Zeile darueber, je nachdem wie es umbricht.
                         (i downTo maxOf(0, i - 2)).any {
-                            "remember(fortsetzungen.intValue)" in zeilen[it]
+                            "remember(resumes.intValue)" in zeilen[it]
                         }
                     }
                     .filterNot { (i, _) ->
@@ -145,7 +145,7 @@ class SystemzustandTest {
             }
         assertEquals(
             "Hier wird ein Zustand gelesen, den das System vergibt - einmal, beim Zeichnen. " +
-                "In `remember(fortsetzungen.intValue) { … }` packen, oder von der Activity " +
+                "In `remember(resumes.intValue) { … }` packen, oder von der Activity " +
                 "durchreichen lassen.",
             emptyList<String>(),
             stellen,
@@ -180,7 +180,7 @@ class SystemzustandTest {
             }
         assertEquals(
             "Dieser Bildschirm schickt in die App-Einstellungen, liest die Berechtigung " +
-                "danach aber nicht neu. `remember(fortsetzungen.intValue) { … }` benutzen.",
+                "danach aber nicht neu. `remember(resumes.intValue) { … }` benutzen.",
             emptyList<String>(),
             stellen,
         )

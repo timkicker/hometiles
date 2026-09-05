@@ -9,29 +9,20 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 
 /**
- * Statusleiste und Navigationsleiste verstecken. PLAN.md 4.2.
+ * hides the status and navigation bars. `PLAN.md` 4.2.
  *
- * Auf diesem Geraet sind das zusammen rund vierzig von 605 dp Hoehe - sieben Prozent, die
- * den Kacheln fehlen. Auf einem grossen Telefon waere das Zierrat; auf drei Zoll ist es
- * eine Zeile mehr.
+ * on this device that is about forty of 605 dp, seven percent, which is one more tile row.
  */
 object SystemBars {
 
-    /**
-     * Wie sich die Leisten verhalten sollen.
-     *
-     * Es gibt bewusst kein hartes Verstecken. Wer die Leisten wegnimmt und dabei auch das
-     * Herunterziehen sperrt, sperrt die Benachrichtigungen weg - und wer nicht weiss, dass
-     * man dafuer wischen kann, kommt nie wieder an sie heran. Ein paar dp sind das nicht
-     * wert.
-     */
+    /** no hard hiding: locking the pull-down would lock away the notifications for good. */
     enum class Behaviour { VISIBLE, HIDDEN_SWIPE_SHOWS }
 
     fun behaviourFor(fullScreen: Boolean): Behaviour =
         if (fullScreen) Behaviour.HIDDEN_SWIPE_SHOWS else Behaviour.VISIBLE
 }
 
-/** Setzt [SystemBars.behaviourFor] auf das Fenster um. */
+/** applies [SystemBars.behaviourFor] to the window. */
 @Composable
 fun SystemBarsEffect(fullScreen: Boolean) {
     val view = LocalView.current

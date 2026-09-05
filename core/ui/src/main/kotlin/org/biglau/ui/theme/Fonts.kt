@@ -10,57 +10,53 @@ import org.biglau.core.ui.R
 import org.biglau.data.FontChoice
 
 /**
- * Atkinson Hyperlegible, mitgeliefert. PLAN.md 4.2.
+ * Atkinson Hyperlegible, shipped with the app. `PLAN.md` 4.2.
  *
- * Vom Braille Institute genau dafuer gezeichnet: die Buchstaben, die sich sonst gleichen,
- * werden auseinandergezogen - grosses I, kleines l und Eins; O und Null; b, d, p und q.
- * Wer schlecht sieht, liest nicht kleiner, sondern raet haeufiger; diese Schrift nimmt das
- * Raten weg. Deshalb ist sie die Vorgabe und nicht eine Zierde in den Einstellungen.
+ * drawn by the braille institute to pull apart the letters that otherwise look alike: I, l
+ * and 1; O and 0; b, d, p and q. poor sight guesses more often, and this takes the guessing
+ * away, which is why it is the default and not an ornament in the settings.
  *
- * Lizenz: SIL Open Font License 1.1, siehe LICENSE-Atkinson-Hyperlegible.txt.
+ * licence: SIL Open Font License 1.1, see LICENSE-Atkinson-Hyperlegible.txt.
  */
 val Hyperlegible = FontFamily(
     Font(R.font.atkinson_regular, FontWeight.Normal),
     Font(R.font.atkinson_bold, FontWeight.Bold),
 )
 
-/** null heisst: die Schrift des Telefons, wie sie der Nutzer dort eingestellt hat. */
+/** null means the phone's own font. */
 fun familyFor(choice: FontChoice): FontFamily? = when (choice) {
     FontChoice.HYPERLEGIBLE -> Hyperlegible
     FontChoice.SYSTEM -> null
 }
 
 /**
- * Setzt die Schrift auf alle Textstile durch. Einzelne Stile auszulassen hiesse, dass ein
- * Teil der App in der einen und ein Teil in der anderen Schrift steht - und ein Wechsel
- * mitten auf der Seite liest sich wie ein Fehler.
+ * puts the font on every text style; a change of face mid-page reads like a fault.
  *
- * Und: **keine festen Zeilenhoehen**. Material gibt bodyLarge 24 sp mit, und diese Zahl
- * bleibt stehen, wenn eine Stelle nur `fontSize` setzt - was in dieser App an 94 Stellen
- * passiert, weil hier fast jede Groesse aus der Zellgroesse gerechnet wird. Bei
- * eingestellter 150-Prozent-Schrift legte sich die zweite Zeile einer Ueberschrift ueber
- * die erste. `Unspecified` heisst: die Zeilenhoehe der Schrift selbst, und die waechst mit.
+ * and no fixed line heights: material carries 24 sp on bodyLarge, and that number stays
+ * wherever a place sets only `fontSize`, which happens in 94 places here because almost
+ * every size is computed from the cell. at 150 percent font scale the second line of a
+ * heading lay on the first. `Unspecified` takes the font's own line height, which grows.
  */
 fun typographyFor(choice: FontChoice): Typography {
     val family = familyFor(choice)
     val base = Typography()
-    fun stil(vorlage: TextStyle) =
-        vorlage.copy(fontFamily = family ?: vorlage.fontFamily, lineHeight = TextUnit.Unspecified)
+    fun style(template: TextStyle) =
+        template.copy(fontFamily = family ?: template.fontFamily, lineHeight = TextUnit.Unspecified)
     return Typography(
-        displayLarge = stil(base.displayLarge),
-        displayMedium = stil(base.displayMedium),
-        displaySmall = stil(base.displaySmall),
-        headlineLarge = stil(base.headlineLarge),
-        headlineMedium = stil(base.headlineMedium),
-        headlineSmall = stil(base.headlineSmall),
-        titleLarge = stil(base.titleLarge),
-        titleMedium = stil(base.titleMedium),
-        titleSmall = stil(base.titleSmall),
-        bodyLarge = stil(base.bodyLarge),
-        bodyMedium = stil(base.bodyMedium),
-        bodySmall = stil(base.bodySmall),
-        labelLarge = stil(base.labelLarge),
-        labelMedium = stil(base.labelMedium),
-        labelSmall = stil(base.labelSmall),
+        displayLarge = style(base.displayLarge),
+        displayMedium = style(base.displayMedium),
+        displaySmall = style(base.displaySmall),
+        headlineLarge = style(base.headlineLarge),
+        headlineMedium = style(base.headlineMedium),
+        headlineSmall = style(base.headlineSmall),
+        titleLarge = style(base.titleLarge),
+        titleMedium = style(base.titleMedium),
+        titleSmall = style(base.titleSmall),
+        bodyLarge = style(base.bodyLarge),
+        bodyMedium = style(base.bodyMedium),
+        bodySmall = style(base.bodySmall),
+        labelLarge = style(base.labelLarge),
+        labelMedium = style(base.labelMedium),
+        labelSmall = style(base.labelSmall),
     )
 }

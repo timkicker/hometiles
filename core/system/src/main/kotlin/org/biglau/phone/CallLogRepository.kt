@@ -40,9 +40,8 @@ class CallLogRepository(context: Context) {
             projection,
             null,
             null,
-            // Kein "LIMIT" im Sortierparameter: der Anbieter lehnt das ab Android 11 ab
-            // und wirft "Invalid token LIMIT" - was die App abschiesst. Begrenzt wird
-            // beim Lesen.
+            // no LIMIT in the sort argument: from android 11 the provider throws
+            // "Invalid token LIMIT". the cap happens while reading.
             "${CallLog.Calls.DATE} DESC",
         )?.use { cursor ->
             while (cursor.moveToNext() && entries.size < limit) {
@@ -69,12 +68,11 @@ class CallLogRepository(context: Context) {
     }
 
     /**
-     * Wie viele verpasste Anrufe noch niemand gesehen hat.
+     * missed calls nobody has seen yet.
      *
-     * `NEW = 1` ist die Auskunft des Systems darueber - dieselbe, aus der die Meldung
-     * entsteht. Dazu [since]: nur Anrufe, die juenger sind als der letzte Blick in die
-     * Liste. Siehe [MissedCalls], dort steht warum. Ohne Leseerlaubnis null: eine Zahl zu
-     * raten waere schlimmer als keine.
+     * `NEW = 1` is the system's own answer, plus [since] so only calls younger than the
+     * last look count; see [MissedCalls]. zero without the read permission: a guessed
+     * number is worse than none.
      */
     suspend fun newMissedCount(since: Long = 0L): Int = withContext(Dispatchers.IO) {
         if (!hasPermission()) return@withContext 0
@@ -90,21 +88,11 @@ class CallLogRepository(context: Context) {
     }
 
     /**
-     * Verpasste Anrufe als gesehen kennzeichnen - genau das tut eine Telefon-App, wenn
-     * jemand die Liste oeffnet. Ohne diesen Schritt bliebe die Zahl auf der Kachel stehen,
-     * obwohl der Nutzer sie gerade gelesen hat.
+     * marks missed calls as seen, which is what a phone app does when the list is opened.
      *
-     * **Und genau das passierte auf dem Geraet des Nutzers.** `WRITE_CALL_LOG` stand dort
-     * am 03.09.2026 auf `granted=false`, also gab diese Funktion still 0 zurueck und die
-     * Kachel blinkte weiter. Seit dem 04.09.2026 haelt BigLau die Telefon-Rolle und
-     * bekommt das Recht mit; auf einem Geraet ohne diese Rolle gilt der Absatz weiter.
-     * Der Rueckgabewert wird beim Aufruf nicht
-     * ausgewertet - er koennte es auch nicht sinnvoll, denn eine Meldung "konnte nicht als
-     * gelesen markiert werden" hilft niemandem.
-     *
-     * Der Ausweg gehoert nicht hierher, sondern eine Ebene hoeher: BigLau kann sich selbst
-     * merken, wann die Liste zuletzt offen war, und nur Neueres zaehlen. Dann braucht es
-     * fuer ein Abzeichen gar kein Schreibrecht. Steht als offener Punkt in `PLAN.md` 4.6.
+     * without `WRITE_CALL_LOG` this silently returns 0 and the tile keeps blinking. the
+     * caller ignores the result on purpose: could not mark as read helps nobody. the way
+     * out sits a level up, in remembering the last look; `PLAN.md` 4.6.
      */
     suspend fun markMissedSeen(): Int = withContext(Dispatchers.IO) {
         if (!canWrite()) return@withContext 0
@@ -122,7 +110,7 @@ class CallLogRepository(context: Context) {
         ContextCompat.checkSelfPermission(appContext, Manifest.permission.WRITE_CALL_LOG) ==
             PackageManager.PERMISSION_GRANTED
 
-    /** Loescht die angegebenen Anrufe. Gibt zurueck, wie viele wirklich weg sind. */
+    /** deletes the given calls; returns how many really went. */
     suspend fun delete(ids: List<Long>): Int = withContext(Dispatchers.IO) {
         if (!canWrite() || ids.isEmpty()) return@withContext 0
         runCatching {

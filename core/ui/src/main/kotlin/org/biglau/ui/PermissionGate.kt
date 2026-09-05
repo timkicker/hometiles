@@ -15,12 +15,11 @@ import org.biglau.core.ui.R
 import org.biglau.ui.theme.LocalBigPalette
 
 /**
- * Was zu sehen ist, solange eine Berechtigung fehlt.
+ * what is shown while a permission is missing.
  *
- * Bewusst kein Dialog, der beim Öffnen von selbst aufspringt: wer ihn zweimal wegdrückt,
- * bekommt von Android keinen dritten - und stünde dann vor einem Satz ohne Knopf. Hier
- * steht immer ein Knopf. Fragt Android nicht mehr, führt er in die Systemeinstellungen,
- * denn nur dort lässt sich die Entscheidung noch ändern.
+ * not a dialog that springs open by itself: android grants no third one after two
+ * refusals. there is always a button here, and once android stops asking it leads into the
+ * system settings, the only place left to change the decision.
  */
 @Composable
 fun PermissionGate(
@@ -62,12 +61,7 @@ fun PermissionGate(
     }
 }
 
-/**
- * Ob Android die Frage noch stellt.
- *
- * Nach der zweiten Ablehnung sagt das System nichts mehr - der Knopf würde dann gedrückt
- * und nichts geschähe. Genau dieser stumme Knopf ist die Falle, die hier vermieden wird.
- */
+/** whether android still asks; after the second refusal the button would be silent. */
 object PermissionState {
     fun blocked(deniedOnce: Boolean, canAskAgain: Boolean): Boolean = deniedOnce && !canAskAgain
 }

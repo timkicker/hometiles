@@ -7,7 +7,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
-/** Taschenlampe ueber CameraManager.setTorchMode - braucht keine CAMERA-Berechtigung. */
+/** torch via CameraManager.setTorchMode; needs no CAMERA permission. */
 object Flashlight {
 
     private val _on = MutableStateFlow(false)

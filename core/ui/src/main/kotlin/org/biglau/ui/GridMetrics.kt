@@ -1,6 +1,6 @@
 package org.biglau.ui
 
-/** Masse eines Rasters, alle Werte in dp. */
+/** measurements of a grid, all values in dp. */
 data class GridMetrics(
     val border: Float,
     val cellWidth: Float,
@@ -9,17 +9,14 @@ data class GridMetrics(
     fun offsetX(column: Int, gutter: Float): Float = (cellWidth + gutter) * column
     fun offsetY(row: Int, gutter: Float): Float = (cellHeight + gutter) * row
 
-    /** Breite einer Zelle, die [span] Spalten ueberspannt. */
+    /** width of a cell spanning [span] columns. */
     fun spanWidth(span: Int, gutter: Float): Float = cellWidth * span + gutter * (span - 1)
 
-    /** Hoehe einer Zelle, die [span] Zeilen ueberspannt. */
+    /** height of a cell spanning [span] rows. */
     fun spanHeight(span: Int, gutter: Float): Float = cellHeight * span + gutter * (span - 1)
 }
 
-/**
- * Rechnet die Zellmasse fuer eine Flaeche aus. Getrennt vom Composable, weil das die
- * Stelle ist, an der ein Fehler jedes Layout kippt - und weil sie so pruefbar bleibt.
- */
+/** cell measurements for an area; apart from the composable so a mistake here is testable. */
 fun gridMetrics(
     availableWidth: Float,
     availableHeight: Float,
@@ -28,7 +25,7 @@ fun gridMetrics(
     gutter: Float,
     borderPercent: Int,
 ): GridMetrics {
-    require(cols > 0 && rows > 0) { "Raster braucht mindestens eine Spalte und eine Zeile" }
+    require(cols > 0 && rows > 0) { "a grid needs at least one column and one row" }
     val border = availableWidth * (borderPercent.coerceIn(0, 15) / 100f)
     val innerWidth = availableWidth - border * 2
     val innerHeight = availableHeight - border * 2
@@ -40,14 +37,10 @@ fun gridMetrics(
 }
 
 /**
- * Schriftgroesse der Beschriftung (PLAN.md 3.2).
+ * label font size (`PLAN.md` 3.2).
  *
- * Beide Kanten zaehlen. Nur aus der Hoehe gerechnet bekam eine hohe schmale Kachel 40 sp,
- * und "Contacts" brach mitten im Wort - sichtbar geworden, sobald die erste Zelle zwei
- * Zeilen ueberspannte.
- *
- * Bewusst nicht aus sp abgeleitet: die Systemschriftgroesse steht auf dem Zielgeraet schon
- * auf 1,35 und wuerde sich sonst ein zweites Mal multiplizieren.
+ * both edges count: from the height alone a tall narrow tile got 40 sp and "Contacts"
+ * broke mid-word. not derived from sp, or the 1.35 system scale would multiply twice.
  */
 fun labelSizeSp(
     cellWidthDp: Float,
@@ -58,69 +51,54 @@ fun labelSizeSp(
     userScale * labelScale.coerceIn(LABEL_SCALE_MIN, LABEL_SCALE_MAX)
 
 /**
- * Die Schriftgroessen, die eine Beschriftung der Reihe nach versucht.
+ * the sizes a label tries in turn before being cut off or hidden.
  *
- * **Anlass:** bei 200 % App-Schrift auf 1,35-facher Systemschrift stand auf den Kacheln
- * „Einstellun…" und „Verpasste …". Beides sind Woerter, die diese App braucht - und wer
- * 200 % einstellt, tut das nicht zum Spass, sondern weil er kleiner nichts liest. Ein
- * abgeschnittenes Wort hilft ihm nicht, ein etwas kleineres schon.
- *
- * Deshalb wird die Beschriftung in Stufen kleiner versucht, bevor sie abgeschnitten oder
- * (bei eingeschalteter Option) ausgeblendet wird. Die Untergrenze liegt bei 70 % des
- * Wunsches: darunter waere die Ersparnis gross und die Lesbarkeit dahin - dann ist
- * Abschneiden die ehrlichere Antwort.
+ * at 200 % app scale on 1.35 system scale the tiles read "Einstellun..." and
+ * "Verpasste ...". the floor is 70 % of the wish: below that cutting off is honester.
  */
 fun labelLadder(wishSp: Float): List<Float> =
     listOf(1f, 0.925f, 0.85f, 0.775f, 0.7f).map { wishSp * it }
 
 /**
- * Die Breite, die der Beschriftung in der Kachel bleibt - in dp.
+ * the width left to the label inside the tile, in dp.
  *
- * `PLAN.md` 3.2 sagt eine Option zu: „Label ausblenden, wenn es nicht in zwei Zeilen
- * passt". Ob es passt, wird **gemessen** und nicht geschaetzt. Der erste Versuch rechnete
- * mit einer mittleren Zeichenbreite und lag daneben: „Nachrichten" haette er auf dem
- * Standardraster ausgeblendet, obwohl es dort vollstaendig steht (am Bildschirm
- * nachgesehen). Hier bleibt nur die Rechnung, wie viel Platz da ist.
+ * `PLAN.md` 3.2 offers hiding a label that does not fit two lines, and whether it fits is
+ * *measured*, not estimated: an average character width would have hidden "Nachrichten" on
+ * the default grid where it stands in full. only the space is computed here.
  */
 fun labelWidthDp(cellWidthDp: Float, cellHeightDp: Float): Float {
-    val rand = (cellHeightDp * 0.06f).coerceIn(6f, 16f)
-    return (cellWidthDp - 2f * rand).coerceAtLeast(1f)
+    val margin = (cellHeightDp * 0.06f).coerceIn(6f, 16f)
+    return (cellWidthDp - 2f * margin).coerceAtLeast(1f)
 }
 
-/** PLAN.md 4.2: Label-Groesse relativ zur Kachel, 50-150 %. */
+/** `PLAN.md` 4.2: label size relative to the tile, 50 to 150 percent. */
 const val LABEL_SCALE_MIN = 0.5f
 const val LABEL_SCALE_MAX = 1.5f
 val LABEL_SCALES = listOf(0.5f, 0.75f, 1.0f, 1.25f, 1.5f)
 
-/** PLAN.md 4.2: Icongroesse 20-60 % der Zelle. */
+/** `PLAN.md` 4.2: icon size, 20 to 60 percent of the cell. */
 const val ICON_PERCENT_MIN = 20
 const val ICON_PERCENT_MAX = 60
 val ICON_PERCENTS = listOf(20, 30, 40, 50, 60)
 
 /**
- * Hoehe der Beschriftungszone. Fest je Zellgroesse, damit die Grundlinien einer Rasterzeile
- * zusammenfallen - aber nach oben durch die Schriftgroesse begrenzt, sonst klafft unter einer
- * hohen Kachel eine leere Flaeche.
+ * height of the label zone. fixed per cell size so the baselines of a grid row line up,
+ * bounded above by the font size so no gap opens under a tall tile.
  *
- * Und nach unten durch die Schriftgroesse begrenzt, seit die Querlage einstellbar ist: eine
- * Zelle von 60 dp Hoehe bekam ueber 28 Prozent nur 16,8 dp, und eine fette 14-sp-Zeile
- * braucht mit Unterlaengen knapp 19. Die Beschriftungen standen quer alle abgeschnitten da.
- * Ein Wort mit abgesaebeltem Unterrand liest sich schlechter als eines, fuer das das Symbol
- * ein Stueck kleiner wird - und kleiner wird es, weil [iconSizeDp] die Zone abzieht.
+ * and bounded below by it: a 60 dp cell got 16.8 dp from the 28 percent, while a bold 14 sp
+ * line needs close to 19 with descenders, and every landscape label stood cut off.
  */
 fun labelZoneDp(cellHeightDp: Float, labelSp: Float): Float =
     minOf(cellHeightDp * 0.28f, labelSp * 2.2f)
         .coerceAtLeast(labelSp * 1.35f)
-        // Aber nie mehr als die halbe Kachel: sonst bliebe fuer den Inhalt nichts uebrig.
+        // never more than half the tile, or nothing is left for the content.
         .coerceAtMost(cellHeightDp * 0.5f)
 
 /**
- * Icongroesse als Anteil der kuerzeren Zellenkante, Vorgabe 40 %.
+ * icon size as a share of the shorter cell edge, 40 percent by default.
  *
- * Der Anteil ist nicht das letzte Wort: das Icon darf nie in die Beschriftungszone
- * hineinwachsen. Sonst legte sich bei 60 % auf einer flachen Kachel das Symbol ueber das
- * Wort, und beides waere schlechter zu lesen als vorher. Wer die Icons gross will, soll
- * sie so gross bekommen, wie sie hinpassen - und nicht groesser.
+ * the share is not the last word: the icon must never grow into the label zone, where at
+ * 60 percent on a flat tile it would lie over the word.
  */
 fun iconSizeDp(
     cellWidthDp: Float,
@@ -128,22 +106,19 @@ fun iconSizeDp(
     percent: Int = 40,
     labelZoneDp: Float = 0f,
 ): Float {
-    val anteil = percent.coerceIn(ICON_PERCENT_MIN, ICON_PERCENT_MAX) / 100f
-    val gewuenscht = (minOf(cellWidthDp, cellHeightDp) * anteil).coerceIn(24f, 96f)
-    // Ohne Beschriftung gehoert die ganze Zelle dem Symbol. Der Deckel gilt nur gegen die
-    // Beschriftungszone - sonst schrumpfte er auch dort, wo gar nichts im Weg steht.
-    if (labelZoneDp <= 0f) return gewuenscht
-    val platz = cellHeightDp - labelZoneDp - 8f
-    return minOf(gewuenscht, platz).coerceAtLeast(16f)
+    val share = percent.coerceIn(ICON_PERCENT_MIN, ICON_PERCENT_MAX) / 100f
+    val wanted = (minOf(cellWidthDp, cellHeightDp) * share).coerceIn(24f, 96f)
+    // without a label the whole cell belongs to the icon; the cap only guards the zone.
+    if (labelZoneDp <= 0f) return wanted
+    val room = cellHeightDp - labelZoneDp - 8f
+    return minOf(wanted, room).coerceAtLeast(16f)
 }
 
 /**
- * Schriftgroesse fuer eine Zeile, die vollstaendig in die Zelle passen muss - Uhrzeit,
- * Ladestand, spaeter die gewaehlte Nummer.
+ * font size for a line that must fit the cell whole: clock, battery, dialled number.
  *
- * Nur aus der Zellhoehe gerechnet ergab "4:54 PM" eine Groesse, bei der sich der Text
- * selbst ueberlagerte. Es zaehlt deshalb auch, wie viele Zeichen unterzubringen sind:
- * ein fetter serifenloser Buchstabe ist grob 0,60 der Schriftgroesse breit.
+ * from the height alone "4:54 PM" came out overlapping itself, so the character count
+ * counts too; a bold sans letter is roughly 0.60 of the font size wide.
  */
 fun singleLineSizeSp(
     text: String,

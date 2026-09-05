@@ -5,43 +5,35 @@ import android.telecom.CallScreeningService
 import org.biglau.data.ConfigStore
 
 /**
- * Gesperrte Nummern abweisen, **bevor** das Telefon klingelt.
+ * rejects blocked numbers *before* the phone rings.
  *
- * Bis hierher geschah das Abweisen in [BigInCallService.onCallAdded] - also erst, nachdem
- * Android den Anruf angenommen, den Klingelton gestartet und die Gespraechsansicht gebunden
- * hatte. Am Emulator nachgesehen: der Anruf wurde zwar abgewiesen, aber das System hatte
- * vorher schon geklingelt, und in der Anrufliste stand er als **abgelehnt** - so, als haette
- * der Nutzer ihn weggedrueckt. Wer eine Nummer sperrt, will genau das nicht sehen muessen.
+ * rejecting in [BigInCallService.onCallAdded] happens after android has taken the call,
+ * started the ringtone and bound the call screen, and the log then showed it as rejected,
+ * as if the user had pushed it away.
  *
- * Dafuer gibt es diesen Dienst. Android fragt ihn, bevor irgendetwas geschieht; die Antwort
- * bestimmt, ob geklingelt wird, ob eine Meldung erscheint und wie der Anruf in der Liste
- * steht. Nur die Standard-Telefon-App wird gefragt - hat BigLau die Rolle nicht, bleibt es
- * beim Abweisen im Dienst, und deshalb steht das dort weiterhin.
+ * android asks this service before anything happens. only the default phone app is asked,
+ * so the rejection in the service stays for the case where BigLau has no role.
  */
 class CallScreening : CallScreeningService() {
 
     override fun onScreenCall(callDetails: Call.Details) {
-        val nummer = callDetails.handle?.schemeSpecificPart.orEmpty()
-        val gesperrt = CallBlocking.blocksIncoming(
-            number = nummer,
+        val number = callDetails.handle?.schemeSpecificPart.orEmpty()
+        val isBlocked = CallBlocking.blocksIncoming(
+            number = number,
             incoming = callDetails.callDirection == Call.Details.DIRECTION_INCOMING,
             blocked = ConfigStore.get(this).current.phone.blockedNumbers,
         )
-        respondToCall(callDetails, antwort(gesperrt))
+        respondToCall(callDetails, response(isBlocked))
     }
 
     /**
-     * Die Antwort an Android.
-     *
-     * `skipCallLog = false`: der Anruf **gehoert** in die Liste. Eine Sperre, die Anrufe
-     * spurlos verschwinden laesst, ist nicht zu ueberpruefen - und wer eine Nummer
-     * versehentlich sperrt, merkte es nie. Die Meldung dagegen faellt weg; das ist ja der
-     * Sinn der Sache.
+     * `skipCallLog = false`: the call belongs in the list. a block that makes calls vanish
+     * without trace cannot be checked, and an accidental block would never be noticed.
      */
-    private fun antwort(gesperrt: Boolean): CallResponse = CallResponse.Builder()
-        .setDisallowCall(gesperrt)
-        .setRejectCall(gesperrt)
+    private fun response(blocked: Boolean): CallResponse = CallResponse.Builder()
+        .setDisallowCall(blocked)
+        .setRejectCall(blocked)
         .setSkipCallLog(false)
-        .setSkipNotification(gesperrt)
+        .setSkipNotification(blocked)
         .build()
 }

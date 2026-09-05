@@ -12,7 +12,7 @@ import android.provider.Settings
 import org.biglau.core.ui.R
 import org.biglau.ui.Notice
 
-/** Zentrale Stelle fuer alle System-Intents, die eine Kachel ausloesen kann. */
+/** one place for every system intent a tile can trigger. */
 object Intents {
 
     fun openCamera(context: Context) = start(context) {
@@ -23,14 +23,7 @@ object Intents {
         Intent(android.provider.AlarmClock.ACTION_SHOW_ALARMS)
     }
 
-    /**
-     * Der Rechner - ueber die Kategorie, nicht ueber einen Namen.
-     *
-     * Eine feste Anwendungskennung waere herstellerabhaengig: der Rechner heisst auf jedem
-     * zweiten Telefon anders. `CATEGORY_APP_CALCULATOR` fragt das System, welche App diese
-     * Rolle ausfuellt - dieselbe Art, wie Kamera und Wecker schon geoeffnet werden. Gibt es
-     * keine, sagt [start] das, statt still nichts zu tun.
-     */
+    /** by category, not by package name: the calculator is called something else on every other phone. */
     fun openCalculator(context: Context) = start(context) {
         Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_APP_CALCULATOR)
     }
@@ -40,36 +33,28 @@ object Intents {
     }
 
     /**
-     * Eine Wähltastatur, die **nicht** BigLau ist - ohne Nummer.
+     * a keypad that is explicitly *not* BigLau, without a number. `ACTION_DIAL` never dials
+     * by itself, it only opens.
      *
-     * Fuer den Notfall-Auffang: wenn BigLau zweimal hintereinander nicht startet, ist die
-     * eigene Wähltastatur genau das, worauf man sich nicht verlassen sollte. `ACTION_DIAL`
-     * waehlt von sich aus nie - es oeffnet nur.
-     *
-     * **Bis zum 03.09.2026 stand hier ein nacktes `ACTION_DIAL`**, und darueber genau
-     * dieser Satz. Ein nacktes `ACTION_DIAL` geht an die Standard-Telefon-App - und sobald
-     * BigLau die ist, fuehrte der Notausgang zurueck in die App, die gerade zweimal
-     * abgestuerzt war. Am Geraet fiel es nur deshalb nicht auf, weil das System an dem Tag
-     * seinen eigenen Dialer nahm; verlassen kann man sich darauf nicht.
-     *
-     * Also wird ausdruecklich eine andere App gesucht. Gibt es keine, bleibt das nackte
-     * Intent - eine Waehltastatur, die vielleicht BigLau ist, ist immer noch besser als
-     * keine.
+     * this is the safety net for two failed starts in a row, and a bare `ACTION_DIAL` goes
+     * to the default phone app: once that is BigLau, the emergency exit led back into the
+     * app that had just crashed twice. without another one the bare intent stays, since a
+     * keypad that might be BigLau still beats none.
      */
     fun openDialer(context: Context) = start(context) {
-        val nackt = Intent(Intent.ACTION_DIAL)
-        val fremd = context.packageManager
-            .queryIntentActivities(nackt, 0)
+        val bare = Intent(Intent.ACTION_DIAL)
+        val other = context.packageManager
+            .queryIntentActivities(bare, 0)
             .firstOrNull { it.activityInfo?.packageName != context.packageName }
             ?.activityInfo
-        if (fremd != null) {
-            Intent(nackt).setClassName(fremd.packageName, fremd.name)
+        if (other != null) {
+            Intent(bare).setClassName(other.packageName, other.name)
         } else {
-            nackt
+            bare
         }
     }
 
-    /** Die Kontakte des Systems - aus demselben Grund wie [openDialer]. */
+    /** the system's contacts, for the same reason as [openDialer]. */
     fun openContacts(context: Context) = start(context) {
         Intent(Intent.ACTION_VIEW, android.provider.ContactsContract.Contacts.CONTENT_URI)
     }
@@ -82,18 +67,17 @@ object Intents {
         Intent(Intent.ACTION_SENDTO, Uri.fromParts("smsto", number, null))
     }
 
-    /** Eine Webseite oeffnen - was der Nutzer als Standardbrowser gesetzt hat. */
+    /** opens a page in whatever the user set as their browser. */
     fun openLink(context: Context, url: String) = start(context) {
         Intent(Intent.ACTION_VIEW, android.net.Uri.parse(url))
     }
 
-    /** Die Systemeinstellungen von Android - nicht unsere. */
+    /** android's own settings, not ours. */
     fun androidSettings(context: Context) = start(context) {
         Intent(android.provider.Settings.ACTION_SETTINGS)
     }
 
-    /** Die Seite dieser App in den Systemeinstellungen - der einzige Weg zurueck, wenn
-     *  Android eine Berechtigung nicht mehr abfragt. */
+    /** this app's page in the system settings: the only way back once android stops asking. */
     fun appSettings(context: Context) = start(context) {
         Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
             .setData(android.net.Uri.fromParts("package", context.packageName, null))
@@ -104,10 +88,8 @@ object Intents {
     }
 
     /**
-     * Der Absichtsaufruf fuer die Startbildschirm-Frage, damit der Aufrufer auf das
-     * Ergebnis warten kann. Wer den Balken antippt und zurueckkommt, muss den neuen
-     * Zustand sehen - und den beantwortet Android im laufenden Prozess aus dem
-     * Zwischenspeicher, also hilft nur ein Neuaufbau nach der Rueckkehr.
+     * the intent for the home role, so the caller can await the result: android answers the
+     * new state from a cache within the running process, so only a rebuild shows it.
      */
     fun homeRoleIntent(context: Context): Intent? {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) return null
@@ -119,14 +101,9 @@ object Intents {
     }
 
     /**
-     * Der Absichtsaufruf fuer die Telefon-Rolle - wie [homeRoleIntent], und aus demselben
-     * Grund als Absicht statt als fertiger Start.
-     *
-     * **Ein Rollendialog muss mit `startActivityForResult` geoeffnet werden.** Sonst steht
-     * dort kein Aufrufer, und der Dialog bricht ab, bevor er zu sehen ist: im Protokoll
-     * „RequestRoleActivity: Package name cannot be null or empty: null", auf dem Bildschirm
-     * gar nichts. Der Knopf sah aus, als haette man danebengetippt - und genau so war er
-     * seit dem ersten Tag. Am Emulator gefunden.
+     * like [homeRoleIntent]. a role dialog must be opened with `startActivityForResult`, or
+     * there is no caller and it aborts unseen: the log says "Package name cannot be null or
+     * empty: null" and the screen shows nothing, as if the button had been missed.
      */
     fun dialerRoleIntent(context: Context): Intent? {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) return null
@@ -137,12 +114,9 @@ object Intents {
     }
 
     /**
-     * Fragt die Nachrichten-Rolle an.
-     *
-     * Dieselbe Ueberlegung wie bei [dialerRoleIntent]: der Dialog braucht einen Aufrufer.
-     * Und dieselbe Zurueckhaltung - wer die Rolle annimmt, uebernimmt die Verantwortung,
-     * eingehende Nachrichten selbst zu speichern; schreibt BigLau sie nicht, hat sie
-     * niemand. Siehe `SmsDeliverReceiver`.
+     * the sms role. same as [dialerRoleIntent], and the same restraint: taking the role
+     * means storing incoming messages ourselves, and unwritten they are nobody's. see
+     * `SmsDeliverReceiver`.
      */
     fun smsRoleIntent(context: Context): Intent? {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) return null
@@ -152,62 +126,49 @@ object Intents {
         return roleManager.createRequestRoleIntent(android.app.role.RoleManager.ROLE_SMS)
     }
 
-    /** Oeffnet den Dialog zur Wahl des Standard-Launchers. */
+    /** the dialog for choosing the default launcher. */
     fun chooseHomeApp(context: Context) {
         start(context) { Intent(Settings.ACTION_HOME_SETTINGS) }
     }
 
-    /**
-     * Fragt die Telefon-Rolle an. Bewusst nur auf ausdrueckliche Handlung: wer sie annimmt,
-     * gibt BigLau die Gespraechsansicht - und ein Fehler darin macht Telefonieren unmoeglich.
-     */
+    /** only on an explicit move: the role hands BigLau the call screen, and a fault there ends calling. */
     fun chooseDialerApp(context: Context) {
         start(context) { Intent(Settings.ACTION_MANAGE_DEFAULT_APPS_SETTINGS) }
     }
 
-    /** Der Rueckfall, wenn es den Rollendialog nicht gibt: die Liste der Standard-Apps. */
+    /** the fallback when there is no role dialog: the list of default apps. */
     fun chooseSmsApp(context: Context) {
         start(context) { Intent(Settings.ACTION_MANAGE_DEFAULT_APPS_SETTINGS) }
     }
 
     /**
-     * Eine Absicht starten, die anderswo gebaut wurde.
-     *
-     * Fuer die Faelle, in denen das Bauen woanders hingehoert - der Kontakt-Editor kommt
-     * aus `ContactRepository`, weil dort auch gelesen und geschrieben wird. Gestartet wird
-     * er trotzdem hier, denn hier haengt der Auffang: bis zum 04.09.2026 rief die
-     * Kontaktliste `startActivity` selbst, und ohne Adressbuch-App waere BigLau beim Tippen
-     * auf "Im Adressbuch bearbeiten" abgestuerzt.
-     *
-     * Alles, was einen eigenen Namen hat, bekommt weiter eine eigene Funktion. Das hier ist
-     * die Ausnahme, nicht der Weg.
+     * starts an intent built elsewhere, for the cases where building belongs there: the
+     * contact editor comes from `ContactRepository`. it is started here because the safety
+     * net hangs here. the exception, not the way.
      */
     fun open(context: Context, intent: Intent) = start(context) { intent }
 
     /**
-     * Der Bildschirm hinter einem Kontext - oder `null`, wenn keiner dahintersteht.
+     * the activity behind a context, or `null`.
      *
-     * In einer Compose-Funktion ist `LocalContext.current` selten die Activity selbst,
-     * sondern eine Huelle darum. Ein `context is Activity` waere dort immer falsch, und der
-     * Rueckweg bliebe genau da kaputt, wo die meisten Aufrufe herkommen.
+     * in a composable `LocalContext.current` is rarely the activity itself but a wrapper
+     * around it, so `context is Activity` would always be false there.
      */
-    fun bildschirmHinter(context: Context): Activity? {
-        var da: Context? = context
-        while (da is ContextWrapper) {
-            if (da is Activity) return da
-            da = da.baseContext
+    fun activityBehind(context: Context): Activity? {
+        var here: Context? = context
+        while (here is ContextWrapper) {
+            if (here is Activity) return here
+            here = here.baseContext
         }
         return null
     }
 
     private inline fun start(context: Context, build: () -> Intent) {
-        // Eine neue Aufgabe nur, wenn es keine gibt. Von einem Bildschirm aus gestartet
-        // gehoert die fremde App **in** BigLaus Aufgabe, sonst fuehrt die Zurueck-Taste
-        // nicht zurueck: am 04.09.2026 gemessen - "Im Adressbuch bearbeiten", einmal
-        // zurueck, und man stand in der Kontaktliste des Systems statt wieder bei BigLau.
-        // Wer von dort weiterkommt, ist nicht mehr in der grossen Schrift.
+        // a new task only when there is none: started from a screen, the foreign app
+        // belongs *in* BigLau's task, or back does not lead back and one ends up in the
+        // system's contact list instead of in the large type.
         val intent = build().let {
-            if (bildschirmHinter(context) != null) it else it.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            if (activityBehind(context) != null) it else it.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         }
         try {
             context.startActivity(intent)

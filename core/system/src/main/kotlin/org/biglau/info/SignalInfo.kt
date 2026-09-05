@@ -1,29 +1,22 @@
 package org.biglau.info
 
-/** Rohwerte, wie sie das Telefonienetz liefert. */
 data class SignalReading(
-    /** 0 bis 4, wie `SignalStrength.getLevel()`; -1 heißt unbekannt. */
+    /** 0 to 4, like `SignalStrength.getLevel()`; -1 means unknown. */
     val level: Int,
-    /**
-     * Ob BigLau überhaupt nachsehen darf. Ohne `READ_PHONE_STATE` weiß es nichts - und
-     * „weiß nichts" ist etwas anderes als „keine Karte". Das zu verwechseln hieße, dem
-     * Nutzer eine fehlende SIM zu melden, während sie steckt.
-     */
+    /** without `READ_PHONE_STATE` we know nothing, which is not the same as no sim. */
     val mayRead: Boolean = true,
     val hasSim: Boolean,
     val inService: Boolean,
     val roaming: Boolean,
-    /** „4G", „LTE", „3G" … oder leer, wenn das Netz nichts meldet. */
+    /** 4G, LTE, 3G ... or empty when the network reports nothing. */
     val networkType: String,
 )
 
 /**
- * Was auf einer Signalkachel steht.
+ * what a signal tile says.
  *
- * Vier Zustände, die auseinandergehalten werden müssen, weil sie verschiedene Handlungen
- * nach sich ziehen: keine Karte (Karte einlegen), kein Netz (woandershin gehen), Netz mit
- * schwachem Empfang (näher ans Fenster), und Empfang in Ordnung. Ein einzelner Balken, der
- * bei allen dreien leer bleibt, sagt dem Nutzer nicht, was er tun soll.
+ * four states, because each asks for a different move: insert a card, go somewhere else,
+ * step to the window, or nothing.
  */
 object SignalInfo {
 
@@ -39,7 +32,7 @@ object SignalInfo {
         else -> State.OK
     }
 
-    /** Wie viele Balken zu füllen sind, 0 bis 4. Unbekannt zählt als leer. */
+    /** bars to fill, 0 to 4. unknown counts as empty. */
     fun bars(reading: SignalReading): Int =
         if (!reading.mayRead || !reading.hasSim || !reading.inService) {
             0
@@ -47,19 +40,14 @@ object SignalInfo {
             reading.level.coerceIn(0, MAX_LEVEL)
         }
 
-    /**
-     * Der Zusatz neben den Balken: die Netzart, bei Roaming mit einem vorangestellten „R".
-     *
-     * Roaming gehört auf die Kachel, weil es Geld kostet - und weil man es in der winzigen
-     * Systemleiste eines Drei-Zoll-Geräts leicht übersieht.
-     */
+    /** the network type, prefixed with R while roaming, because roaming costs money. */
     fun caption(reading: SignalReading): String {
-        val art = reading.networkType.trim()
+        val kind = reading.networkType.trim()
         return when {
             !reading.mayRead || !reading.hasSim || !reading.inService -> ""
-            reading.roaming && art.isNotEmpty() -> "R $art"
+            reading.roaming && kind.isNotEmpty() -> "R $kind"
             reading.roaming -> "R"
-            else -> art
+            else -> kind
         }
     }
 }

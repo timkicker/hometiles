@@ -53,8 +53,8 @@ import org.biglau.ui.theme.LocalTextScale
 import org.biglau.ui.theme.tileBorder
 
 /**
- * Eine Zeile in einer Auswahlliste. Gleiche Sprache wie die Kachel - flaechig, ohne Schatten,
- * linksbuendig - nur waagerecht statt hochkant. Listen duerfen scrollen, der Homescreen nicht.
+ * a row in a list. same language as the tile, flat and left-aligned, only lying down.
+ * lists may scroll, the home screen may not.
  */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -64,122 +64,85 @@ fun BigRow(
     secondary: String? = null,
     icon: ImageVector? = null,
     iconBitmap: ImageBitmap? = null,
-    /** Freier Platz vorn - genutzt fuer Kontaktfotos und Initialen. */
+    /** free space in front, for contact photos and initials. */
     leading: (@Composable () -> Unit)? = null,
     surface: org.biglau.ui.theme.BigSurface? = null,
-    /**
-     * Nur fuer die Schriftauswahl: dort steht jede Zeile in ihrer eigenen Schrift, damit
-     * man den Unterschied sieht statt ihn zu lesen. Sonst gilt die Schrift des Themas.
-     */
+    /** only for the font picker, where each row stands in its own face. */
     fontFamily: androidx.compose.ui.text.font.FontFamily? = null,
-    /** Nur fuer die Radius-Auswahl: dort zeigt jede Zeile ihre eigene Ecke. */
+    /** only for the radius picker, where each row shows its own corner. */
     cornerRadius: androidx.compose.ui.unit.Dp? = null,
     /**
-     * Was beim Antippen geschieht - oder `null` fuer eine Zeile, die **nur etwas sagt**.
-     *
-     * Der Unterschied ist nicht nur Zierde: eine Zeile mit leerer Handlung (`onClick = {}`)
-     * sieht aus wie ein Knopf, schluckt den Tipp still, und die Vorlesefunktion sagt sie
-     * als „Schaltflaeche" an. Wer sich darauf verlaesst, tippt und wartet auf etwas, das
-     * nie kommt. Ohne Handlung ist die Zeile weder anklickbar noch ein Knopf.
+     * `null` for a row that only says something. an empty action (`onClick = {}`) looks
+     * like a button, swallows the tap, and is announced as one.
      */
     onClick: (() -> Unit)? = null,
     onLongClick: (() -> Unit)? = null,
     /**
-     * Zwei Zeilen als Vorgabe: erklaerende Zweitzeilen sind fast immer laenger als eine
-     * Zeile bei 1,35-facher Systemschrift, und ein abgeschnittener Satz erklaert nichts.
-     * Listen, in denen die Zweitzeile Daten traegt - eine Rufnummer, eine Vorschau -,
-     * bleiben bei einer Zeile, damit die Zeilenhoehe gleich bleibt.
+     * two lines by default: an explaining second line rarely fits one at 1.35 system scale,
+     * and a cut sentence explains nothing. rows whose second line carries data stay at one,
+     * so the row height stays even.
      */
     secondaryMaxLines: Int = 2,
-    /** Eigener Rahmen statt des Themenrahmens - fuer Zeilen, deren Flaeche schon etwas sagt. */
+    /** own border instead of the theme's, for rows whose surface already says something. */
     borderColor: Color? = null,
     /**
-     * Diese Zeile ist die gewaehlte ihrer Liste.
+     * this row is the chosen one of its list. colours the surface and says so: the bare
+     * `selected` property does not reach the accessibility interface, the state has to go
+     * into the name as well.
      *
-     * Faerbt die Flaeche - und sagt es. Bis zum 04.09.2026 stand die Auswahl in
-     * sechsundfuenfzig Zeilen allein in der Farbe; die Vorlesefunktion las die gewaehlte
-     * Zeile wie jede andere, und wer Farben schlecht unterscheidet, sah sie auch nicht. Der
-     * Farbwaehler hatte das schon geloest und die Messung dazu aufgeschrieben: die reine
-     * `selected`-Eigenschaft kommt in der Bedienungshilfen-Schnittstelle nicht an, der
-     * Zustand muss zusaetzlich in den Namen.
-     *
-     * Nur fuer "eines aus mehreren" - genau eine Zeile der Liste gilt. Eine Liste, in der
-     * **mehrere** gleichzeitig gelten koennen (welche Anrufarten erscheinen, welche Apps
-     * ohne PIN starten), ist keine Auswahl: jede Zeile darin ist ein eigener Schalter und
-     * nimmt [checked]. Der Unterschied faellt erst auf, wenn eine Zeile **nicht** gilt -
-     * eine nicht gewaehlte sagt gar nichts, ein ausgeschalteter Schalter sagt "aus".
+     * only for one out of many. a list where several may hold at once is not a choice; each
+     * row there is a switch of its own and takes [checked]. the difference shows when a row
+     * does *not* hold: an unchosen one says nothing, an off switch says off.
      */
     selected: Boolean = false,
     /**
-     * Diese Zeile ist ein Schalter, und er steht so.
+     * this row is a switch, and this is how it stands. a switch is not chosen, it is *on*.
      *
-     * Ein Schalter ist nicht ausgewaehlt, er ist **an** - deshalb eine eigene Angabe und
-     * ein eigener Satz. Beim Vorlesen heisst das "an" und "aus", wie bei jedem Schalter des
-     * Systems.
-     *
-     * **Nur, wo die ausgeschaltete Beschriftung eine Einladung ist**, keine Aussage. In
-     * BigLau springt fast jede Schalterzeile mit um, und dann kommt es darauf an, wie:
-     *
-     * * „Vorlesen" / „Liest vor" - die ausgeschaltete Fassung fordert auf und sagt den
-     *   Zustand nicht. Hier hilft „aus", zumal sich die beiden Fassungen im Ohr nur um
-     *   einen Buchstaben unterscheiden.
-     * * „Kein PIN vor der App-Liste" / „PIN vor der App-Liste" - beide Fassungen sagen den
-     *   Zustand schon. „Kein PIN vor der App-Liste, aus" ist doppelt und liest sich wie
-     *   das Gegenteil. Dort bleibt die Zeile ohne Angabe; die Flaeche faerbt der Aufrufer.
-     *
-     * Am 04.09.2026 nachgesehen: von dreiundzwanzig Zeilen waren zwoelf der zweite Fall.
+     * only where the off label is an invitation rather than a statement. most switch labels
+     * here change with the state, and then adding on or off is doubled and reads as the
+     * opposite; those rows pass nothing and let the caller colour the surface.
      */
     checked: Boolean? = null,
     /**
-     * Was die Zeile ausserdem ueber sich sagt - "zwei sind ungelesen", "verpasst".
+     * what else the row says about itself: two are unread, missed.
      *
-     * Fuer Zustaende, die weder Auswahl noch Schalter sind. Sie steckten bis zum 04.09.2026
-     * in der Flaechenfarbe und in einem Symbol ohne Namen: die Anrufliste zeigte die
-     * Richtung als Pfeil - in der einen Liste, in der die Richtung alles ist -, und die
-     * Nachrichtenliste haengte ein blosses "(2)" an den Namen. Vorgelesen war beides nichts.
-     *
-     * Faerbt nichts: was diese Zustaende faerben, ist von Fall zu Fall verschieden
-     * (Warnfarbe fuer verpasst, Akzent fuer ungelesen). Die Farbe bleibt beim Aufrufer.
+     * for states that are neither a choice nor a switch. they used to sit in the surface
+     * colour and in an unnamed icon, which read aloud as nothing. colours nothing itself:
+     * what such a state colours differs case by case.
      */
     state: String? = null,
     /**
-     * Was statt der Beschriftung vorgelesen wird.
-     *
-     * Nur fuer Beschriftungen, die etwas Gemaltes enthalten: die Nachrichtenliste haengt
-     * eine Klammerzahl an den Namen, und [state] sagt dieselbe Zahl schon als Satz. Ohne
-     * das hiess die Zeile "Tim Kicker 1, eine ist ungelesen" - die Zahl zweimal. Die
-     * Anrufliste braucht es nicht: dort steht die Zahl **nur** in der Klammer.
+     * what is read out instead of the label, for labels that carry something drawn: the
+     * message list appends a count in brackets that [state] already says as a sentence.
      */
     labelSpeech: String? = null,
 ) {
     val palette = LocalBigPalette.current
     val scale = LocalTextScale.current
-    val haptik = LocalHapticFeedback.current
-    val haptikStaerke = LocalHaptics.current
+    val haptics = LocalHapticFeedback.current
+    val hapticStrength = LocalHaptics.current
     val interaction = remember { MutableInteractionSource() }
     val pressed by interaction.collectIsPressedAsState()
     val press by animateFloatAsState(if (pressed) 0.98f else 1f, label = "press")
     val paint = surface
         ?: if (selected || checked == true) palette.surfaceAccent else palette.surfaceDefault
     val border = borderColor ?: palette.tileBorder()
-    // Beschriftung und Zweitzeile stehen sonst als zwei Knoten da; wer den Namen ersetzt,
-    // ersetzt beide und darf die Zweitzeile nicht verlieren.
-    val gesprochen = labelSpeech ?: label
-    val zustand = when {
-        selected -> stringResource(R.string.a11y_chosen, gesprochen)
-        checked == true -> stringResource(R.string.a11y_on, gesprochen)
-        checked == false -> stringResource(R.string.a11y_off, gesprochen)
-        state != null -> stringResource(R.string.a11y_state, gesprochen, state)
+    // label and second line would otherwise stand as two nodes: replacing the name
+    // replaces both, and the second line must not be lost.
+    val spoken = labelSpeech ?: label
+    val stateText = when {
+        selected -> stringResource(R.string.a11y_chosen, spoken)
+        checked == true -> stringResource(R.string.a11y_on, spoken)
+        checked == false -> stringResource(R.string.a11y_off, spoken)
+        state != null -> stringResource(R.string.a11y_state, spoken, state)
         else -> null
     }
-    // Angesagt wird auch, wenn nur der **Name** ersetzt ist. Bis zum 04.09.2026 hing der
-    // ganze Semantik-Block an `zustand`: eine Zeile mit `labelSpeech`, aber ohne Zustand,
-    // bekam gar keine `contentDescription` - der gesprochene Name fiel lautlos weg. Am
-    // Emulator aufgefallen, in der Auswahl des Screen-Hintergrunds: fuenf Zeilen, fuenfmal
-    // "Diese Farbe", und der Name der Farbe war zwar uebergeben, aber nirgends zu hoeren.
-    val ansage = when {
-        zustand != null -> zustand + (secondary?.let { ". $it" } ?: "")
-        labelSpeech != null -> gesprochen + (secondary?.let { ". $it" } ?: "")
+    // also announced when only the *name* is replaced: hanging the whole semantics block on
+    // the state left a row with `labelSpeech` and no state without any description at all,
+    // and five colour rows all read as "this colour".
+    val announcement = when {
+        stateText != null -> stateText + (secondary?.let { ". $it" } ?: "")
+        labelSpeech != null -> spoken + (secondary?.let { ". $it" } ?: "")
         else -> null
     }
 
@@ -197,18 +160,18 @@ fun BigRow(
                     Modifier.combinedClickable(
                         interactionSource = interaction,
                         indication = null,
-                        onClick = { haptik.tap(haptikStaerke); onClick() },
-                        onLongClick = onLongClick?.let { echt ->
-                            { haptik.longPress(haptikStaerke); echt() }
+                        onClick = { haptics.tap(hapticStrength); onClick() },
+                        onLongClick = onLongClick?.let { handler ->
+                            { haptics.longPress(hapticStrength); handler() }
                         },
                     )
                 },
             )
             .then(
-                if (ansage != null) {
+                if (announcement != null) {
                     Modifier.semantics {
                         if (selected) this.selected = true
-                        contentDescription = ansage
+                        contentDescription = announcement
                     }
                 } else {
                     Modifier
@@ -226,94 +189,90 @@ fun BigRow(
                 icon != null -> Icon(icon, contentDescription = null, tint = paint.ink, modifier = Modifier.size(36.dp))
             }
         }
-        // Die Randbedingungen gelten fuer beide Zeilen: Beschriftung und Zweitzeile teilen
-        // sich die Hoehe, also muss beides an derselben Stelle gemessen werden.
+        // the constraints hold for both lines: label and second line share the height, so
+        // both have to be measured in the same place.
         BoxWithConstraints(Modifier.weight(1f)) {
-          val breite = constraints.maxWidth
-          val maxHoehe = constraints.maxHeight
+          val widthPx = constraints.maxWidth
+          val maxHeightPx = constraints.maxHeight
           Column {
-            // Erst kleiner werden, dann trennen oder abschneiden. Bei 200 % stand in der
-            // Liste "Nachrichte / n" und "Alles zurückset…" - beides an Zeilen, die man
-            // antippt, um irgendwohin zu kommen. Gemessen wird das laengste Wort; daran
-            // bricht die Zeile. Siehe BigHeading, dort dasselbe.
-            val messer = rememberTextMeasurer()
-            val grundstil = LocalTextStyle.current
-            val stufen = labelLadder(22f * scale).map { groesse ->
-                    // `fontFamily` ist meist null und heisst dann "die des Themas". Als
-                    // Feld einer Kopie gesetzt heisst dasselbe null aber "keine" - dann
-                    // waere in einer anderen Schrift gemessen worden als gezeichnet wird.
-                    val stufe = grundstil.copy(
-                        fontSize = groesse.sp,
+            // shrink first, then break or cut: at 200 % the list read "Nachrichte / n" and
+            // "Alles zurückset...". the longest word is measured, since the line breaks at
+            // it. see BigHeading, same there.
+            val measurer = rememberTextMeasurer()
+            val baseStyle = LocalTextStyle.current
+            val steps = labelLadder(22f * scale).map { size ->
+                    // `fontFamily` is usually null, meaning the theme's. set as a field of
+                    // a copy the same null means none, and then the measuring font would
+                    // not be the drawing one.
+                    val step = baseStyle.copy(
+                        fontSize = size.sp,
                         fontWeight = FontWeight.Bold,
                     )
-                    if (fontFamily != null) stufe.copy(fontFamily = fontFamily) else stufe
+                    if (fontFamily != null) step.copy(fontFamily = fontFamily) else step
                 }
-                val stil = remember(label, scale, breite, fontFamily) {
-                    val wort = AnnotatedString(longestWord(label))
-                    stufen.firstOrNull { messer.measure(wort, it).size.width <= breite }
-                        ?: stufen.last()
+                val style = remember(label, scale, widthPx, fontFamily) {
+                    val word = AnnotatedString(longestWord(label))
+                    steps.firstOrNull { measurer.measure(word, it).size.width <= widthPx }
+                        ?: steps.last()
                 }
-                // Drei Zeilen, wenn drei Zeilen Platz haben - gemessen, nicht geraten.
-                // In Listen ist die Hoehe offen; auf dem Notrufbildschirm ist sie begrenzt,
-                // aber reichlich (dort stand "Kontakte jetzt eintr…"); im Gespraech steht
-                // sie fest bei 72 dp, und eine dritte Zeile waere abgeschnitten statt
-                // gekuerzt - also schlechter als das Kuerzen.
-                val darfWachsen = remember(label, stil, breite, maxHoehe) {
-                    val hoch = messer.measure(
+                // three lines when three lines have room, measured and not guessed: in a
+                // list the height is open, on the call screen it is fixed at 72 dp, and a
+                // third line there would be cut off instead of shortened.
+                val mayGrow = remember(label, style, widthPx, maxHeightPx) {
+                    val height = measurer.measure(
                         text = AnnotatedString(label),
-                        style = stil,
+                        style = style,
                         maxLines = 3,
-                        constraints = Constraints(maxWidth = breite),
+                        constraints = Constraints(maxWidth = widthPx),
                     ).size.height
-                    hoch <= maxHoehe
+                    height <= maxHeightPx
                 }
-                // Dieselben Angaben wie vor der Stufenleiter, nur die Groesse kommt aus
-                // ihr: ein ganzer TextStyle ersetzt die geerbte Schrift und veraendert
-                // dabei Kleinigkeiten wie den Zeichenabstand - bei 100 % war die Zeile
-                // danach ein paar Bildpunkte schmaler als vorher.
+                // the same arguments as before the ladder, only the size comes from it: a
+                // whole TextStyle replaces the inherited font and changes small things like
+                // letter spacing along the way.
                 Text(
                     text = label,
                     color = paint.ink,
-                    fontSize = stil.fontSize,
+                    fontSize = style.fontSize,
                     fontFamily = fontFamily,
                     fontWeight = FontWeight.Bold,
-                    maxLines = if (darfWachsen) 3 else 2,
+                    maxLines = if (mayGrow) 3 else 2,
                     overflow = TextOverflow.Ellipsis,
                 )
             if (secondary != null) {
-                // Auch die Zweitzeile darf eine dritte bekommen, wenn Platz ist: die
-                // Warnung vor einem verwaisten Ordner endete sonst mit "Das laesst sich
-                // nicht rueck…", und ausgerechnet dieser Halbsatz ist der Grund, warum man
-                // vorher nachdenkt. Zeilen, die Daten tragen (secondaryMaxLines = 1),
-                // bleiben einzeilig - dort haelt die gleiche Zeilenhoehe die Liste ruhig.
-                // Vom gezeichneten Stil aus, nicht frisch gebaut: sonst misst die Zeile
-                // in der Standardschrift und zeichnet in der des Nutzers.
-                val zweitStil = grundstil.copy(fontSize = (15f * scale).sp)
-                val zweitZeilen = remember(secondary, scale, breite, maxHoehe) {
+                // the second line may get a third too where there is room: the warning
+                // about an orphaned folder otherwise ended on "cannot be undo...", the half
+                // sentence that is the whole reason to think first. data-carrying lines
+                // stay at one, where an even row height keeps the list calm.
+                //
+                // from the drawn style, not freshly built, or it measures in the default
+                // font and draws in the user's.
+                val secondaryStyle = baseStyle.copy(fontSize = (15f * scale).sp)
+                val secondaryLines = remember(secondary, scale, widthPx, maxHeightPx) {
                     if (secondaryMaxLines < 2) {
                         secondaryMaxLines
                     } else {
-                        val hoch = messer.measure(
+                        val height = measurer.measure(
                             text = AnnotatedString(secondary),
-                            style = zweitStil,
+                            style = secondaryStyle,
                             maxLines = 3,
-                            constraints = Constraints(maxWidth = breite),
+                            constraints = Constraints(maxWidth = widthPx),
                         ).size.height
-                        // Die Beschriftung darueber braucht ihren Platz auch noch.
-                        val labelHoch = messer.measure(
+                        // the label above needs its room too.
+                        val labelHeight = measurer.measure(
                             text = AnnotatedString(label),
-                            style = stil,
+                            style = style,
                             maxLines = 3,
-                            constraints = Constraints(maxWidth = breite),
+                            constraints = Constraints(maxWidth = widthPx),
                         ).size.height
-                        if (hoch + labelHoch <= maxHoehe) 3 else secondaryMaxLines
+                        if (height + labelHeight <= maxHeightPx) 3 else secondaryMaxLines
                     }
                 }
                 Text(
                     text = secondary,
                     color = paint.ink,
                     fontSize = (15f * scale).sp,
-                    maxLines = zweitZeilen,
+                    maxLines = secondaryLines,
                     overflow = TextOverflow.Ellipsis,
                 )
             }
@@ -323,12 +282,10 @@ fun BigRow(
 }
 
 /**
- * Quadratischer Knopf mit Symbol statt Wort.
+ * square button with an icon instead of a word.
  *
- * Nur für Nebensachen, die neben einer Überschrift Platz finden müssen. Auf drei Zoll und
- * bei 1,35-facher Systemschrift passen zwei beschriftete Knöpfe schlicht nicht nebeneinander;
- * dann ist ein ehrliches Symbol mit Vorlese-Beschreibung besser als ein Wort, das mitten im
- * Buchstaben abbricht.
+ * only for side matters that must fit beside a heading: two labelled buttons do not fit
+ * side by side on three inches at 1.35 system scale.
  */
 @Composable
 fun BigIconButton(
@@ -355,30 +312,28 @@ fun BigIconButton(
     }
 }
 
-/** Ueberschrift ueber einem Abschnitt einer Liste. */
+/** heading over a section of a list. */
 @Composable
 fun BigHeading(text: String, modifier: Modifier = Modifier) {
     val palette = LocalBigPalette.current
     val scale = LocalTextScale.current
-    val messer = rememberTextMeasurer()
-    // Erst kleiner werden, dann trennen: bei 200 % stand ueber der Ruecksetzen-Seite
-    // „Alles zuruecksetze / n". Compose trennt ein Wort mitten hindurch, sobald es allein
-    // nicht in die Zeile passt - und eine mitten im Wort getrennte Ueberschrift liest sich
-    // wie ein Fehler. Gemessen wird das **laengste Wort**; daran bricht die Zeile.
+    val measurer = rememberTextMeasurer()
+    // shrink first, then break: compose splits a word mid-way as soon as it does not fit a
+    // line on its own, and a heading broken mid-word reads like a fault. the longest word
+    // is measured, since the line breaks at it.
     BoxWithConstraints(modifier = modifier.padding(horizontal = 4.dp, vertical = 8.dp)) {
-        val breite = constraints.maxWidth
-        // Auf der Schrift des Themas aufgebaut, nicht auf der Vorgabe: mit der falschen
-        // Schrift gemessen fiel die Ueberschrift eine Stufe zu klein aus - und sie wurde
-        // auch in der falschen Schrift gezeichnet, weil `style` die geerbte ersetzt.
-        val grundstil = LocalTextStyle.current
-        val stufen = labelLadder(26f * scale).map { groesse ->
-            groesse to grundstil.copy(fontSize = groesse.sp, fontWeight = FontWeight.Bold)
+        val widthPx = constraints.maxWidth
+        // built on the theme's font, not on the default: measured in the wrong one the
+        // heading came out a step too small, and `style` replaces the inherited font.
+        val baseStyle = LocalTextStyle.current
+        val steps = labelLadder(26f * scale).map { size ->
+            size to baseStyle.copy(fontSize = size.sp, fontWeight = FontWeight.Bold)
         }
-        val stil = remember(text, scale, breite) {
-            val wort = AnnotatedString(longestWord(text))
-            stufen.firstOrNull { messer.measure(wort, it.second).size.width <= breite }?.second
-                ?: stufen.last().second
+        val style = remember(text, scale, widthPx) {
+            val word = AnnotatedString(longestWord(text))
+            steps.firstOrNull { measurer.measure(word, it.second).size.width <= widthPx }?.second
+                ?: steps.last().second
         }
-        Text(text = text, color = palette.onBackground, style = stil)
+        Text(text = text, color = palette.onBackground, style = style)
     }
 }

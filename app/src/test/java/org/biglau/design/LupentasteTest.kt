@@ -32,7 +32,7 @@ class LupentasteTest {
             .filter { (_, z) ->
                 val nackt = z.trim()
                 Regex("""(^|[^.\w])launch\(""").containsMatchIn(nackt) &&
-                    !nackt.startsWith("//") &&
+                    !Quelltext.istKommentarzeile(z) &&
                     !nackt.startsWith("fun launch(") &&
                     "repository.launch(" !in nackt
             }
