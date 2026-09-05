@@ -6,28 +6,27 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Der Hinweis gehört in die Unterhaltung, nicht davor.
+ * the notice belongs inside the conversation, not before it.
  *
- * Fest über der Liste gesetzt, nahm „BigLau ist nicht Ihre Nachrichten-App …" bei 200 %
- * Textgröße fünf Zeilen — und von der Unterhaltung blieb ein Streifen von **zwei
- * Bildpunkten**. Am Emulator gesehen. Ein Hinweis, der den Inhalt verdrängt, für den er
- * gilt, ist keiner mehr.
+ * set fixed above the list, the sentence about BigLau not being the messages app took five
+ * lines at 200 percent text size - and of the conversation a strip of **two pixels** was
+ * left. a notice that pushes out the content it is about is no notice any more.
  *
- * Im Blättern kostet er nichts: die Unterhaltung öffnet bei der neuesten Nachricht, und wer
- * nach oben schaut, findet ihn dort, wo die ältesten stehen.
+ * inside the list it costs nothing: the conversation opens at the newest message, and whoever
+ * looks up finds it where the oldest stand.
  */
 class ConversationLayoutTest {
 
     @Test
-    fun `der Hinweis steht innerhalb der Liste`() {
-        val quelle = Quelltext.file("org/biglau/sms/SmsActivity.kt").readText()
-        val liste = quelle.indexOf("LazyColumn(\n            state = listState")
-        val hinweis = quelle.indexOf("R.string.sms_not_default")
-        assertTrue("LazyColumn der Unterhaltung nicht gefunden", liste > 0)
-        assertTrue("Hinweis nicht gefunden", hinweis > 0)
+    fun `the notice stands inside the list`() {
+        val source = Quelltext.file("org/biglau/sms/SmsActivity.kt").readText()
+        val list = source.indexOf("LazyColumn(\n            state = listState")
+        val notice = source.indexOf("R.string.sms_not_default")
+        assertTrue("the conversation's LazyColumn was not found", list > 0)
+        assertTrue("the notice was not found", notice > 0)
         assertTrue(
-            "Der Hinweis steht vor der Liste - bei grosser Schrift verdraengt er sie",
-            hinweis > liste,
+            "the notice stands before the list - at large text it pushes the list out",
+            notice > list,
         )
     }
 }

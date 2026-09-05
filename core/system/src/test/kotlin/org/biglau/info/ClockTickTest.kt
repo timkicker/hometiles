@@ -7,39 +7,39 @@ import org.junit.Test
 class ClockTickTest {
 
     @Test
-    fun `mitten in der Minute bleibt der Rest`() {
-        // 20 Sekunden nach der vollen Minute sind noch 40 Sekunden offen.
+    fun `mid-minute the remainder stays`() {
+        // 20 seconds after the full minute leave 40 seconds open.
         assertEquals(40_000L, ClockTick.millisUntilNextMinute(20_000L))
     }
 
     @Test
-    fun `auf der vollen Minute wird eine ganze gewartet`() {
+    fun `on the full minute a whole one is waited`() {
         assertEquals(60_000L, ClockTick.millisUntilNextMinute(0L))
         assertEquals(60_000L, ClockTick.millisUntilNextMinute(120_000L))
     }
 
     @Test
-    fun `kurz vor der Minute wird nur der Rest gewartet`() {
+    fun `just before the minute only the remainder is waited`() {
         assertEquals(1L, ClockTick.millisUntilNextMinute(59_999L))
     }
 
     @Test
-    fun `die Wartezeit ist nie null oder negativ`() {
-        // Sonst drehte die Schleife frei und braete die Batterie.
+    fun `the wait is never zero or negative`() {
+        // otherwise the loop would spin free and roast the battery.
         (0L..120_000L step 997L).forEach { now ->
             val wait = ClockTick.millisUntilNextMinute(now)
-            assertTrue("bei $now war es $wait", wait in 1L..60_000L)
+            assertTrue("at $now it was $wait", wait in 1L..60_000L)
         }
     }
 
     @Test
-    fun `die Anzeige laeuft nicht aus dem Takt`() {
-        // Schlicht 60 Sekunden zu warten verschoebe den Wechsel mit jeder Runde weiter
-        // in die Minute hinein. Gerechnet wird deshalb bis zur naechsten vollen Minute.
+    fun `the display does not drift out of step`() {
+        // simply waiting 60 seconds would push the change further into the minute with every
+        // round. so it counts to the next full minute instead.
         var now = 20_000L
         repeat(5) {
             now += ClockTick.millisUntilNextMinute(now)
-            assertEquals("Wechsel liegt nicht auf der vollen Minute", 0L, now % 60_000L)
+            assertEquals("the change does not fall on the full minute", 0L, now % 60_000L)
         }
     }
 }

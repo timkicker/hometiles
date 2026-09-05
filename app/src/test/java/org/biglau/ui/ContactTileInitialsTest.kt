@@ -8,50 +8,48 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Auf einer Kontaktkachel ohne Foto stehen die Initialen.
+ * a contact tile without a photo carries the initials.
  *
- * `PLAN.md` 3.4 sagt das ausdrücklich zu: „ohne Foto die Initialen auf der Kachelfarbe."
- * Gezeichnet wurde stattdessen auf **jeder** Kontaktkachel dasselbe Personensymbol — drei
- * Kontakte nebeneinander sahen damit gleich aus, und das Symbol sagte nichts, was die
- * Beschriftung nicht schon sagte. Am Emulator gesehen und dort auch nachgeprüft: „AB" auf
- * Türkis, „FM" auf Magenta.
+ * PLAN.md 3.4 promises exactly that. drawn instead was the same person icon on **every**
+ * contact tile - three contacts side by side looked alike, and the icon said nothing the
+ * label did not say already.
  */
 class ContactTileInitialsTest {
 
-    private val zweig = Quelltext.file("org/biglau/ui/HomeScreenView.kt")
+    private val branch = Quelltext.file("org/biglau/ui/HomeScreenView.kt")
         .readText()
         .let { Quelltext.cut(it, "is ButtonAction.Contact -> BigTile(", "is ButtonAction.Shortcut") }
 
     @Test
-    fun `die Kontaktkachel reicht Initialen weiter`() {
-        assertTrue("initials fehlt an der Kontaktkachel", "initials =" in zweig)
-        assertTrue("tileInitials fehlt", "tileInitials(" in zweig)
+    fun `the contact tile passes initials on`() {
+        assertTrue("initials is missing on the contact tile", "initials =" in branch)
+        assertTrue("tileInitials is missing", "tileInitials(" in branch)
     }
 
     @Test
-    fun `kein allgemeines Personensymbol mehr`() {
+    fun `no general person icon any more`() {
         assertTrue(
-            "Ein Personensymbol auf jeder Kontaktkachel trägt nichts: $zweig",
-            "Builtin.CONTACTS.icon()" !in zweig,
+            "a person icon on every contact tile carries nothing: $branch",
+            "Builtin.CONTACTS.icon()" !in branch,
         )
     }
 
-    /** Zwei Buchstaben, und aus einem einteiligen Namen einer. Siehe [initialsOf]. */
+    /** two letters, and one from a single-part name. see [initialsOf]. */
     @Test
-    fun `die Initialen kommen aus dem Namen`() {
+    fun `the initials come from the name`() {
         assertEquals("AB", tileInitials("Anna Bauer"))
-        assertEquals("FM", tileInitials("Franz Müller"))
-        assertEquals("O", tileInitials("Oma"))
+        assertEquals("FM", tileInitials("Franz Moser"))
+        assertEquals("A", tileInitials("Alex"))
     }
 
     /**
-     * Am Emulator gesehen: die Kachel „055 501 00" trug die Initialen „00". Zwei Nullen
-     * sagen nichts und sehen nach Fehler aus; auf der Kachel ist leer besser als falsch.
+     * a tile named after a number carried the initials "00". two zeros say nothing and look
+     * like a fault; on the tile empty is better than wrong.
      */
     @Test
-    fun `eine Nummer bekommt keine Initialen`() {
-        assertNull(tileInitials("055 501 00"))
-        assertNull(tileInitials("+43 664 111 001"))
+    fun `a number gets no initials`() {
+        assertNull(tileInitials("081 234 56"))
+        assertNull(tileInitials("+43 664 000 111"))
         assertNull(tileInitials(""))
     }
 }

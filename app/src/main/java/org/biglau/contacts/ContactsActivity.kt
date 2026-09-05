@@ -209,7 +209,7 @@ var granted by remember(resumes.intValue) { mutableStateOf(repository.hasPermiss
                             contacts = shown,
                             // `all` and not `shown`: whether there are contacts at all
                             // decides the sentence for an empty list.
-                            hatKontakte = all.isNotEmpty(),
+                            hasContacts = all.isNotEmpty(),
                             loading = loading,
                             query = query,
                             sortBySurname = config.contacts.sortBySurname,
@@ -266,7 +266,7 @@ private fun ContactList(
      * apart from [contacts], which is already filtered. otherwise an empty list always says
      * no contact matches, even when nobody searched and the phone simply has none.
      */
-    hatKontakte: Boolean,
+    hasContacts: Boolean,
 ) {
     val palette = LocalBigPalette.current
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -336,7 +336,7 @@ private fun ContactList(
                 // no match only when there was something to match, as the app list does
                 // with `all.isNotEmpty() && shown.isEmpty()`.
                 text = stringResource(
-                    if (hatKontakte) R.string.contacts_no_match else R.string.contacts_none,
+                    if (hasContacts) R.string.contacts_no_match else R.string.contacts_none,
                 ),
                 color = palette.onBackground,
                 fontSize = bigSp(18f),

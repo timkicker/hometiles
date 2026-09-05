@@ -402,7 +402,7 @@ class SettingsActivity : BigLauActivity() {
                             isDialerApp = remember(resumes.intValue) {
                                 DialerRole.held(this@SettingsActivity)
                             },
-                            istNachrichtenApp = remember(resumes.intValue) {
+                            isSmsApp = remember(resumes.intValue) {
                                 SmsRepository.get(this@SettingsActivity).isDefaultSmsApp()
                             },
                             onHomeApp = {
@@ -875,7 +875,7 @@ private fun MainList(
     onSmsApp: () -> Unit,
     isHomeScreen: Boolean,
     isDialerApp: Boolean,
-    istNachrichtenApp: Boolean,
+    isSmsApp: Boolean,
     onDone: () -> Unit,
 ) {
     val palette = LocalBigPalette.current
@@ -921,15 +921,15 @@ private fun MainList(
         item {
             BigRow(
                 label = stringResource(
-                    if (istNachrichtenApp) R.string.is_sms else R.string.set_as_sms,
+                    if (isSmsApp) R.string.is_sms else R.string.set_as_sms,
                 ),
                 secondary = stringResource(
-                    if (istNachrichtenApp) R.string.role_change_hint else R.string.set_as_sms_hint,
+                    if (isSmsApp) R.string.role_change_hint else R.string.set_as_sms_hint,
                 ),
                 // not the same icon as the messages row below: two identical icons in a
                 // list are two rows that get confused.
                 icon = Icons.Filled.Sms,
-                surface = if (istNachrichtenApp) palette.surfaceAccent else palette.surfaceDefault,
+                surface = if (isSmsApp) palette.surfaceAccent else palette.surfaceDefault,
                 onClick = onSmsApp,
             )
         }

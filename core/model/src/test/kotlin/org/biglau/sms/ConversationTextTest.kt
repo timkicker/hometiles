@@ -7,23 +7,23 @@ import org.junit.Test
 class ConversationTextTest {
 
     @Test
-    fun `die Auswahl reicht von drei Vierteln bis doppelt`() {
+    fun `the choice runs from three quarters to double`() {
         assertEquals(0.75f, ConversationText.CHOICES.first())
         assertEquals(2.0f, ConversationText.CHOICES.last())
-        assertTrue("hundert Prozent ist dabei", 1.0f in ConversationText.CHOICES)
+        assertTrue("a hundred percent is among them", 1.0f in ConversationText.CHOICES)
     }
 
     @Test
-    fun `ein unsinniger Wert wird begrenzt`() {
-        // Eine Sicherung aus einer spaeteren Fassung kann eine Zahl mitbringen, die es hier
-        // nicht gibt - Faktor zwoelf liesse von der Nachricht einen Buchstaben uebrig.
+    fun `a nonsensical value is bounded`() {
+        // a backup from a later version can bring a number that does not exist here - a
+        // factor of twelve would leave one letter of the message.
         assertEquals(2.0f, ConversationText.scale(12f))
         assertEquals(0.75f, ConversationText.scale(0f))
         assertEquals(0.75f, ConversationText.scale(-3f))
     }
 
     @Test
-    fun `gueltige Werte bleiben unveraendert`() {
+    fun `valid values stay unchanged`() {
         ConversationText.CHOICES.forEach { assertEquals(it, ConversationText.scale(it)) }
     }
 }

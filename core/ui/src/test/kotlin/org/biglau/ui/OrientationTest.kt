@@ -7,17 +7,17 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 /**
- * PLAN.md 4.2: „Bildschirmausrichtung: automatisch / hoch / quer".
+ * PLAN.md 4.2: "Bildschirmausrichtung: automatisch / hoch / quer", quoted in the plan's german.
  *
- * Stand zwölfmal als `portrait` im Manifest — eine Entscheidung, die im Plan als
- * Einstellung zugesagt war und nirgends zu ändern.
+ * it stood twelve times as `portrait` in the manifest - a decision promised as a setting and
+ * changeable nowhere.
  */
 class OrientationTest {
 
-    // Die Vorgabe ist, was bisher fest verdrahtet war: niemandem soll sich das Telefon
-    // drehen, nur weil es die Einstellung jetzt gibt.
+    // the default is what used to be wired in: nobody's phone should start turning just
+    // because the setting now exists.
     @Test
-    fun `die vorgabe bleibt hochkant`() {
+    fun `the default stays upright`() {
         assertEquals(ScreenOrientation.PORTRAIT, Appearance().orientation)
         assertEquals(
             ActivityInfo.SCREEN_ORIENTATION_PORTRAIT,
@@ -26,7 +26,7 @@ class OrientationTest {
     }
 
     @Test
-    fun `quer ist quer`() {
+    fun `landscape is landscape`() {
         assertEquals(
             ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE,
             Orientation.requested(ScreenOrientation.LANDSCAPE),
@@ -34,12 +34,12 @@ class OrientationTest {
     }
 
     /**
-     * „Automatisch" heißt SENSOR, nicht UNSPECIFIED. UNSPECIFIED überlässt die Sache der
-     * Drehsperre des Systems — und wer die an hat, hätte hier eine Wahl getroffen, die
-     * folgenlos bleibt. Dann sucht man den Fehler bei uns.
+     * automatic means SENSOR, not UNSPECIFIED. UNSPECIFIED leaves the matter to the system's
+     * rotation lock - and whoever has that on would have made a choice here that stays
+     * without effect. then one looks for the fault in us.
      */
     @Test
-    fun `automatisch dreht sich auch bei gesperrter systemdrehung`() {
+    fun `automatic turns even with the system rotation locked`() {
         assertEquals(
             ActivityInfo.SCREEN_ORIENTATION_SENSOR,
             Orientation.requested(ScreenOrientation.AUTO),
@@ -47,7 +47,7 @@ class OrientationTest {
     }
 
     @Test
-    fun `es gibt genau drei moeglichkeiten`() {
+    fun `there are exactly three possibilities`() {
         assertEquals(3, ScreenOrientation.entries.size)
     }
 }

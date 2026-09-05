@@ -4,48 +4,47 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 /**
- * Das Feld `version` stand in jeder gesicherten Datei und wurde von niemandem gelesen.
+ * the field `version` stood in every saved file and was read by nobody.
  *
- * Sein Zweck ist genau ein Fall: eine Sicherung vom neuen Telefon auf ein altes
- * zurückspielen. Dann enthält die Datei Felder, die die alte Fassung nicht kennt, und
- * `ignoreUnknownKeys` wirft sie beim Einlesen wortlos weg — man verliert Einstellungen,
- * ohne dass irgendetwas es sagt.
+ * its purpose is exactly one case: playing a backup from the new phone back onto an old one.
+ * then the file holds fields the old version does not know, and `ignoreUnknownKeys` throws
+ * them away without a word - one loses settings and nothing says so.
  */
 class ConfigVersionTest {
 
-    private fun datei(version: Int): String =
+    private fun file(version: Int): String =
         """{"version":$version,"screens":[{"id":"a","name":"A","cols":2,"rows":3,"cells":[]}]}"""
 
     @Test
-    fun `eine datei aus dieser fassung ist nicht neuer`() {
-        assertEquals(false, ConfigTransfer.isFromNewerVersion(datei(CONFIG_VERSION)))
+    fun `a file from this version is not newer`() {
+        assertEquals(false, ConfigTransfer.isFromNewerVersion(file(CONFIG_VERSION)))
     }
 
     @Test
-    fun `eine datei aus einer neueren fassung wird erkannt`() {
-        assertEquals(true, ConfigTransfer.isFromNewerVersion(datei(CONFIG_VERSION + 1)))
+    fun `a file from a newer version is recognised`() {
+        assertEquals(true, ConfigTransfer.isFromNewerVersion(file(CONFIG_VERSION + 1)))
     }
 
     @Test
-    fun `eine aeltere datei ist kein grund zur warnung`() {
-        assertEquals(false, ConfigTransfer.isFromNewerVersion(datei(CONFIG_VERSION - 1)))
+    fun `an older file is no reason to warn`() {
+        assertEquals(false, ConfigTransfer.isFromNewerVersion(file(CONFIG_VERSION - 1)))
     }
 
-    // Ohne Angabe und bei Unfug keine Warnung: eine Warnung, die bei jeder krummen Datei
-    // erscheint, sagt nichts mehr.
+    // no warning without a version and none on nonsense: a warning that appears on every
+    // crooked file says nothing any more.
     @Test
-    fun `ohne versionsangabe wird nicht gewarnt`() {
+    fun `without a version there is no warning`() {
         assertEquals(
             false,
             ConfigTransfer.isFromNewerVersion("""{"screens":[{"id":"a","name":"A","cols":2,"rows":3,"cells":[]}]}"""),
         )
-        assertEquals(false, ConfigTransfer.isFromNewerVersion("kein json"))
+        assertEquals(false, ConfigTransfer.isFromNewerVersion("no json"))
     }
 
-    // Und die Datei muss trotzdem einlesbar bleiben - warnen heisst nicht ablehnen.
+    // and the file must stay readable all the same - warning is not refusing.
     @Test
-    fun `eine neuere datei wird trotzdem eingelesen`() {
-        val geladen = ConfigTransfer.import(datei(CONFIG_VERSION + 1))
-        assertEquals(1, geladen?.screens?.size)
+    fun `a newer file is read all the same`() {
+        val loaded = ConfigTransfer.import(file(CONFIG_VERSION + 1))
+        assertEquals(1, loaded?.screens?.size)
     }
 }

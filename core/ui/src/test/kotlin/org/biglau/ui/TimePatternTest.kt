@@ -5,25 +5,25 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Eine Uhrzeit, ein Muster.
+ * one time of day, one pattern.
  *
- * Am 3.9.2026 gefunden: `"HH:mm"` stand in drei Dateien. Kopfzeile und Infokachel fragten
- * vorher, ob das Telefon auf 12 oder 24 Stunden steht — die **Nachrichtenliste** nicht. Auf
- * diesem Gerät (12 Stunden) stand oben „2:30 PM" und in der Liste derselben Minute „14:30".
+ * found on 3.9.2026: `"HH:mm"` stood in three files. header and info tile asked first whether
+ * the phone is set to 12 or 24 hours, the **message list** did not. set to 12 hours, the
+ * header said 2:30 PM and the list said 14:30 for the same minute.
  *
- * Für jemanden, der schlecht liest, sind das zwei verschiedene Uhrzeiten.
+ * for someone who reads with difficulty those are two different times.
  */
 class TimePatternTest {
 
     @Test
-    fun `vierundzwanzig Stunden ohne AM und PM`() {
+    fun `twenty-four hours without AM and PM`() {
         assertEquals("HH:mm", ClockFormat.timePattern(twentyFourHour = true))
     }
 
     @Test
-    fun `zwoelf Stunden mit AM und PM`() {
-        val muster = ClockFormat.timePattern(twentyFourHour = false)
-        assertTrue("ohne 'a' fehlt AM/PM und 13 Uhr sähe aus wie 1 Uhr", muster.contains("a"))
-        assertTrue("die Stunde darf nicht zweistellig erzwungen sein", muster.startsWith("h:"))
+    fun `twelve hours with AM and PM`() {
+        val pattern = ClockFormat.timePattern(twentyFourHour = false)
+        assertTrue("without 'a' AM/PM is missing and 13:00 would look like 1:00", pattern.contains("a"))
+        assertTrue("the hour must not be forced to two digits", pattern.startsWith("h:"))
     }
 }

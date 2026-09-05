@@ -7,57 +7,57 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 /**
- * Die Haptik hat drei Stufen statt zwei. Die alte Angabe steht noch in jeder
- * Konfiguration, die vor dieser Fassung geschrieben wurde - sie darf nicht stumm
- * verlorengehen. Wer die Haptik ausgeschaltet hatte, will sie nicht plötzlich zurück.
+ * the haptics have three levels instead of two. the old field still stands in every
+ * configuration written before this version - it must not be lost silently. whoever had the
+ * haptics switched off does not want them suddenly back.
  */
 class HapticStrengthTest {
 
     private val json = Json { ignoreUnknownKeys = true }
 
     @Test
-    fun `alte konfiguration mit haptik an wird leicht`() {
-        val alt = json.decodeFromString<Behaviour>("""{"hapticFeedback":true}""")
-        assertEquals(HapticStrength.LIGHT, alt.haptics)
+    fun `an old configuration with haptics on becomes light`() {
+        val old = json.decodeFromString<Behaviour>("""{"hapticFeedback":true}""")
+        assertEquals(HapticStrength.LIGHT, old.haptics)
     }
 
     @Test
-    fun `alte konfiguration mit haptik aus bleibt aus`() {
-        val alt = json.decodeFromString<Behaviour>("""{"hapticFeedback":false}""")
-        assertEquals(HapticStrength.OFF, alt.haptics)
+    fun `an old configuration with haptics off stays off`() {
+        val old = json.decodeFromString<Behaviour>("""{"hapticFeedback":false}""")
+        assertEquals(HapticStrength.OFF, old.haptics)
     }
 
     @Test
-    fun `die neue angabe schlaegt die alte`() {
-        val gemischt = json.decodeFromString<Behaviour>(
+    fun `the new field beats the old one`() {
+        val mixed = json.decodeFromString<Behaviour>(
             """{"hapticFeedback":false,"hapticStrength":"STRONG"}"""
         )
-        assertEquals(HapticStrength.STRONG, gemischt.haptics)
+        assertEquals(HapticStrength.STRONG, mixed.haptics)
     }
 
-    // Sonst bedeutete ein Export von hier in einer aelteren Fassung das Gegenteil.
+    // otherwise an export from here would mean the opposite in an older version.
     @Test
-    fun `withHaptics haelt beide felder gleich`() {
-        val aus = Behaviour().withHaptics(HapticStrength.OFF)
-        assertEquals(false, aus.hapticFeedback)
-        assertEquals(HapticStrength.OFF, aus.haptics)
+    fun `withHaptics keeps both fields equal`() {
+        val off = Behaviour().withHaptics(HapticStrength.OFF)
+        assertEquals(false, off.hapticFeedback)
+        assertEquals(HapticStrength.OFF, off.haptics)
 
-        val kraeftig = aus.withHaptics(HapticStrength.STRONG)
-        assertEquals(true, kraeftig.hapticFeedback)
-        assertEquals(HapticStrength.STRONG, kraeftig.haptics)
+        val strong = off.withHaptics(HapticStrength.STRONG)
+        assertEquals(true, strong.hapticFeedback)
+        assertEquals(HapticStrength.STRONG, strong.haptics)
     }
 
     @Test
-    fun `die stufen laufen im kreis`() {
-        var stufe = HapticStrength.OFF
-        stufe = Haptics.next(stufe); assertEquals(HapticStrength.LIGHT, stufe)
-        stufe = Haptics.next(stufe); assertEquals(HapticStrength.STRONG, stufe)
-        stufe = Haptics.next(stufe); assertEquals(HapticStrength.OFF, stufe)
+    fun `the levels run in a circle`() {
+        var level = HapticStrength.OFF
+        level = Haptics.next(level); assertEquals(HapticStrength.LIGHT, level)
+        level = Haptics.next(level); assertEquals(HapticStrength.STRONG, level)
+        level = Haptics.next(level); assertEquals(HapticStrength.OFF, level)
     }
 
-    // Ohne Angabe gilt: leicht. Eine frische Installation soll sich melden.
+    // without a field: light. a fresh installation should make itself felt.
     @Test
-    fun `die vorgabe ist leicht`() {
+    fun `the default is light`() {
         assertEquals(HapticStrength.LIGHT, Behaviour().haptics)
     }
 }

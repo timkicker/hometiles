@@ -7,65 +7,65 @@ import org.junit.Test
 class ContactAvatarTest {
 
     @Test
-    fun `zwei Namensteile ergeben zwei Initialen`() {
+    fun `two name parts give two initials`() {
         assertEquals("AB", initialsOf("Anna Berger"))
     }
 
     @Test
-    fun `bei mehr als zwei Teilen zaehlen erster und letzter`() {
+    fun `with more than two parts the first and the last count`() {
         assertEquals("AZ", initialsOf("Anna Maria Zimmermann"))
     }
 
     @Test
-    fun `ein einzelner Name ergibt eine Initiale`() {
+    fun `a single name gives one initial`() {
         assertEquals("A", initialsOf("Anna"))
     }
 
     @Test
-    fun `leerer Name ergibt ein Fragezeichen statt eines leeren Kastens`() {
+    fun `an empty name gives a question mark instead of an empty box`() {
         assertEquals("?", initialsOf(""))
         assertEquals("?", initialsOf("   "))
     }
 
     @Test
-    fun `ueberfluessige Leerzeichen stoeren nicht`() {
+    fun `superfluous spaces do not disturb`() {
         assertEquals("AB", initialsOf("  Anna   Berger  "))
     }
 
     @Test
-    fun `Initialen sind immer gross`() {
+    fun `initials are always uppercase`() {
         assertEquals("AB", initialsOf("anna berger"))
     }
 
     @Test
-    fun `Satzzeichen zaehlen nicht als Initiale`() {
-        // Aus dem echten Telefonbuch des Geraets - ergab vorher "?(".
-        assertEquals("WS", initialsOf("? (Wien) (Sus)"))
+    fun `punctuation does not count as an initial`() {
+        // shapes from a real address book; this one gave "?(" before.
+        assertEquals("VS", initialsOf("? (Vienna) (Sun)"))
         assertEquals("A", initialsOf("(Anna)"))
-        assertEquals("MK", initialsOf("Müller - Klein"))
+        assertEquals("MK", initialsOf("Miller - Klein"))
     }
 
     @Test
-    fun `ein Name ganz ohne Buchstaben ergibt ein Fragezeichen`() {
+    fun `a name without any letter gives a question mark`() {
         assertEquals("?", initialsOf("??? ---"))
     }
 
     @Test
-    fun `Ziffern duerfen Initiale sein`() {
-        assertEquals("1F", initialsOf("1. Feuerwehr"))
+    fun `digits may be an initial`() {
+        assertEquals("1F", initialsOf("1. Firestation"))
     }
 
     @Test
-    fun `die Farbe haengt nur am Namen`() {
-        // Sonst springt sie bei jedem Neuzeichnen und der Kontakt ist nicht wiedererkennbar.
+    fun `the colour hangs on the name only`() {
+        // otherwise it jumps on every redraw and the contact is not recognisable again.
         assertEquals(colorIndexFor("Anna Berger"), colorIndexFor("Anna Berger"))
         assertEquals(colorIndexFor("Anna Berger"), colorIndexFor("  anna berger "))
     }
 
     @Test
-    fun `verschiedene Namen bekommen ueberwiegend verschiedene Farben`() {
+    fun `different names mostly get different colours`() {
         val names = listOf("Anna", "Bertha", "Carl", "Dora", "Emil", "Frieda")
         val buckets = names.map { colorIndexFor(it).mod(6) }.toSet()
-        assertTrue("Nur ${buckets.size} verschiedene Farben fuer 6 Namen", buckets.size >= 4)
+        assertTrue("only ${buckets.size} different colours for 6 names", buckets.size >= 4)
     }
 }

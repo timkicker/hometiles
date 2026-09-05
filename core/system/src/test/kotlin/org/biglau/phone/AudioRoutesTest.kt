@@ -8,35 +8,35 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Die Zuordnung zwischen Einstellung und Telecom stand zweimal im Quelltext - und beim
- * zweiten Mal nur zur Hälfte: „Lautsprecher an" gab es, „Lautsprecher aus" nicht.
+ * the mapping between setting and telecom stood twice in the source - and the second time
+ * only by half: speaker on was there, speaker off was not.
  */
 class AudioRoutesTest {
 
     @Test
-    fun `jeder Weg hat seine Entsprechung`() {
+    fun `every route has its counterpart`() {
         assertEquals(CallAudioState.ROUTE_EARPIECE, AudioRoutes.toTelecom(AudioRoute.EARPIECE))
         assertEquals(CallAudioState.ROUTE_SPEAKER, AudioRoutes.toTelecom(AudioRoute.SPEAKER))
         assertEquals(CallAudioState.ROUTE_BLUETOOTH, AudioRoutes.toTelecom(AudioRoute.BLUETOOTH))
     }
 
     @Test
-    fun `der Rueckweg stimmt mit dem Hinweg ueberein`() {
-        AudioRoute.entries.forEach { weg ->
-            assertEquals(weg, AudioRoutes.fromTelecom(AudioRoutes.toTelecom(weg)))
+    fun `the way back matches the way there`() {
+        AudioRoute.entries.forEach { route ->
+            assertEquals(route, AudioRoutes.fromTelecom(AudioRoutes.toTelecom(route)))
         }
     }
 
     @Test
-    fun `unbekanntes zaehlt als Hoermuschel`() {
-        // Ein Weg, den diese App nicht kennt (Kabelhoerer etwa), darf die Anzeige nicht
-        // auf "Lautsprecher" stellen - das waere eine Auskunft, die nicht stimmt.
+    fun `the unknown counts as the earpiece`() {
+        // a route this app does not know (wired headphones, say) must not set the display to
+        // speaker - that would be an answer that is not true.
         assertEquals(AudioRoute.EARPIECE, AudioRoutes.fromTelecom(null))
         assertEquals(AudioRoute.EARPIECE, AudioRoutes.fromTelecom(CallAudioState.ROUTE_WIRED_HEADSET))
     }
 
     @Test
-    fun `Bluetooth zaehlt nur, wenn das Geraet es anbietet`() {
+    fun `bluetooth counts only when the device offers it`() {
         assertFalse(AudioRoutes.bluetoothAvailable(null))
         assertFalse(
             AudioRoutes.bluetoothAvailable(

@@ -19,7 +19,7 @@ class CellLayoutTest {
         Screen(id = "s", name = "Test", cols = cols, rows = rows, cells = cells.toList())
 
     @Test
-    fun `eine Zelle waechst in freien Platz`() {
+    fun `a cell grows into free space`() {
         val target = cell(0, 0)
         val result = CellLayout.stretch(screen(target), target, Direction.RIGHT)
         assertEquals(1, result.cells.size)
@@ -27,7 +27,7 @@ class CellLayoutTest {
     }
 
     @Test
-    fun `nach dem Wachsen deckt die Zelle beide Plaetze ab`() {
+    fun `after growing the cell covers both spots`() {
         val target = cell(0, 0)
         val result = CellLayout.stretch(screen(target), target, Direction.RIGHT)
         val grown = result.cells.first()
@@ -37,15 +37,15 @@ class CellLayoutTest {
     }
 
     @Test
-    fun `eine Zelle waechst nicht ueber den Rand hinaus`() {
+    fun `a cell does not grow over the edge`() {
         val target = cell(1, 0)
         assertTrue(!CellLayout.canStretch(screen(target), target, Direction.RIGHT))
         assertTrue(!CellLayout.canStretch(screen(target), target, Direction.UP))
     }
 
     @Test
-    fun `eine Zelle ueberschreibt keine belegte Nachbarin`() {
-        // Genau das waere Datenverlust an der unerwartetsten Stelle.
+    fun `a cell does not overwrite a filled neighbour`() {
+        // that would be data loss at the least expected place.
         val target = cell(0, 0)
         val neighbour = cell(1, 0, name = Builtin.CAMERA)
         val board = screen(target, neighbour)
@@ -54,7 +54,7 @@ class CellLayoutTest {
     }
 
     @Test
-    fun `Wachsen nach oben verschiebt auch die Ecke`() {
+    fun `growing upwards moves the corner too`() {
         val target = cell(0, 1)
         val grown = CellLayout.stretch(screen(target), target, Direction.UP).cells.first()
         assertEquals(0, grown.y)
@@ -62,7 +62,7 @@ class CellLayoutTest {
     }
 
     @Test
-    fun `Wachsen nach links verschiebt auch die Ecke`() {
+    fun `growing leftwards moves the corner too`() {
         val target = cell(1, 0)
         val grown = CellLayout.stretch(screen(target), target, Direction.LEFT).cells.first()
         assertEquals(0, grown.x)
@@ -70,20 +70,20 @@ class CellLayoutTest {
     }
 
     @Test
-    fun `eine breite Zelle kann nicht in eine teilweise belegte Reihe wachsen`() {
+    fun `a wide cell cannot grow into a partly filled row`() {
         val target = cell(0, 0, w = 2)
         val blocker = cell(1, 1, name = Builtin.CAMERA)
         assertTrue(!CellLayout.canStretch(screen(target, blocker), target, Direction.DOWN))
     }
 
     @Test
-    fun `eine breite Zelle waechst in eine ganz freie Reihe`() {
+    fun `a wide cell grows into a wholly free row`() {
         val target = cell(0, 0, w = 2)
         assertTrue(CellLayout.canStretch(screen(target), target, Direction.DOWN))
     }
 
     @Test
-    fun `Verkleinern gibt Plaetze wieder frei`() {
+    fun `shrinking frees spots again`() {
         val target = cell(0, 0, w = 2)
         val result = CellLayout.shrink(screen(target), target, Direction.RIGHT)
         assertEquals(1, result.cells.first().w)
@@ -91,7 +91,7 @@ class CellLayoutTest {
     }
 
     @Test
-    fun `Verkleinern von links schiebt die Ecke nach rechts`() {
+    fun `shrinking from the left moves the corner right`() {
         val target = cell(0, 0, w = 2)
         val shrunk = CellLayout.shrink(screen(target), target, Direction.LEFT).cells.first()
         assertEquals(1, shrunk.x)
@@ -100,25 +100,25 @@ class CellLayoutTest {
     }
 
     @Test
-    fun `eine einfache Zelle laesst sich nicht weiter verkleinern`() {
+    fun `a single cell cannot be shrunk further`() {
         val target = cell(0, 0)
         Direction.entries.forEach { assertTrue(!CellLayout.canShrink(target, it)) }
         assertEquals(screen(target), CellLayout.shrink(screen(target), target, Direction.RIGHT))
     }
 
     @Test
-    fun `Wachsen und Verkleinern heben sich auf`() {
+    fun `growing and shrinking cancel out`() {
         val target = cell(0, 0)
         val board = screen(target)
         Direction.entries.filter { CellLayout.canStretch(board, target, it) }.forEach { direction ->
             val grown = CellLayout.stretch(board, target, direction)
             val back = CellLayout.shrink(grown, grown.cells.first(), direction)
-            assertEquals("PadDirection $direction", board, back)
+            assertEquals("direction $direction", board, back)
         }
     }
 
     @Test
-    fun `moegliche Richtungen decken sich mit der Einzelpruefung`() {
+    fun `the possible directions match the single check`() {
         val target = cell(0, 1)
         val board = screen(target, cell(1, 1, name = Builtin.CAMERA))
         assertEquals(listOf(Direction.UP, Direction.DOWN), CellLayout.stretchable(board, target))
@@ -126,9 +126,9 @@ class CellLayoutTest {
     }
 
     @Test
-    fun `nach dem Leeren kann die Nachbarin in den Platz wachsen`() {
-        // Genau der Fall, der am Geraet auffiel: eine geleerte Zelle blieb als Zelle
-        // ohne Aktion stehen und blockierte das Vergroessern, ohne dass man es sah.
+    fun `after emptying the neighbour can grow into the spot`() {
+        // an emptied cell stayed as a cell without an action and blocked the growing
+        // without anyone seeing it.
         val neighbour = cell(0, 0)
         val board = screen(neighbour, cell(0, 1, name = Builtin.CAMERA))
         assertTrue(!CellLayout.canStretch(board, neighbour, Direction.DOWN))
@@ -138,7 +138,7 @@ class CellLayoutTest {
     }
 
     @Test
-    fun `eine Zelle waechst auf die gewuenschte Groesse`() {
+    fun `a cell grows to the wanted size`() {
         val target = cell(0, 0)
         val grown = CellLayout.growTo(screen(target), target, targetWidth = 2, targetHeight = 2)
         assertTrue(grown != null)
@@ -147,26 +147,26 @@ class CellLayoutTest {
     }
 
     @Test
-    fun `Wachsen laesst die Nachbarn unangetastet`() {
+    fun `growing leaves the neighbours untouched`() {
         val target = cell(0, 0)
         val neighbour = cell(1, 0, name = Builtin.CAMERA)
         val board = screen(target, neighbour)
-        // Nach rechts geht nicht, nach unten schon.
+        // to the right does not work, downwards does.
         val grown = CellLayout.growTo(board, target, targetWidth = 1, targetHeight = 2)
         assertTrue(grown != null)
         assertTrue(grown!!.cells.any { it.button == neighbour.button && it.w == 1 && it.h == 1 })
     }
 
     @Test
-    fun `ohne genug Platz wird gar nicht gewachsen`() {
-        // Eine halb gewachsene Zelle waere schlimmer als eine Absage.
+    fun `without enough room nothing grows at all`() {
+        // a half grown cell would be worse than a refusal.
         val target = cell(0, 0)
         val board = screen(target, cell(1, 0, name = Builtin.CAMERA), cell(0, 1, name = Builtin.CLOCK))
         assertNull(CellLayout.growTo(board, target, targetWidth = 2, targetHeight = 2))
     }
 
     @Test
-    fun `eine bereits passende Zelle bleibt unveraendert`() {
+    fun `a cell that already fits stays unchanged`() {
         val target = cell(0, 0, w = 2, h = 2)
         val board = screen(target, cols = 2, rows = 3)
         assertEquals(board, CellLayout.growTo(board, target, 2, 2))
@@ -174,13 +174,13 @@ class CellLayoutTest {
     }
 
     @Test
-    fun `Wachsen ueber den Rand hinaus wird abgelehnt`() {
+    fun `growing over the edge is refused`() {
         val target = cell(0, 0)
         assertNull(CellLayout.growTo(screen(target, cols = 2, rows = 3), target, 3, 1))
     }
 
     @Test
-    fun `ein kleineres Raster wirft herausgefallene Zellen weg`() {
+    fun `a smaller grid throws away cells that fell out`() {
         val board = Screen(id = "s", name = "T", cols = 2, rows = 2, cells = listOf(cell(0, 0), cell(1, 2)))
         val fitted = CellLayout.fitToGrid(board)
         assertEquals(1, fitted.cells.size)
@@ -188,7 +188,7 @@ class CellLayoutTest {
     }
 
     @Test
-    fun `ein kleineres Raster stutzt ueberstehende Zellen`() {
+    fun `a smaller grid trims cells that stick out`() {
         val board = Screen(id = "s", name = "T", cols = 2, rows = 2, cells = listOf(cell(0, 0, w = 2, h = 3)))
         val fitted = CellLayout.fitToGrid(board)
         assertEquals(2, fitted.cells.first().h)
@@ -196,7 +196,7 @@ class CellLayoutTest {
     }
 
     @Test
-    fun `ein passendes Raster bleibt unveraendert`() {
+    fun `a fitting grid stays unchanged`() {
         val board = screen(cell(0, 0, w = 2), cell(0, 1))
         assertEquals(board, CellLayout.fitToGrid(board))
     }

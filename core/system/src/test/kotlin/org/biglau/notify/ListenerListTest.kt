@@ -5,66 +5,63 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Die Liste der erlaubten Benachrichtigungsdienste.
+ * the list of allowed notification services.
  *
- * Am Gerät sieht sie so aus:
- * `com.google.android.projection.gearhead/…$ListenerService:org.biglau.debug/org.biglau.notify.BigNotificationListener:com.android.launcher3/…NotificationListener`
- *
- * Das System schreibt den eigenen Dienst mal voll, mal verkürzt. Beides muss zählen -
- * und ein fremder Dienst im selben Paket darf nicht mitzählen.
+ * the system writes our own service sometimes in full, sometimes shortened. both must count -
+ * and a foreign service in the same package must not.
  */
 class ListenerListTest {
 
-    private val paket = "org.biglau.debug"
-    private val klasse = "org.biglau.notify.BigNotificationListener"
+    private val pkg = "org.biglau.debug"
+    private val className = "org.biglau.notify.BigNotificationListener"
 
-    private val echteListe =
+    private val realList =
         "com.google.android.projection.gearhead/com.google.android.gearhead.notifications." +
             "SharedNotificationListenerManager\$ListenerService:" +
             "org.biglau.debug/org.biglau.notify.BigNotificationListener:" +
             "com.android.launcher3/com.android.launcher3.notification.NotificationListener"
 
     @Test
-    fun `die Liste vom Geraet zaehlt`() {
-        assertTrue(NotificationRepository.ListenerList.contains(echteListe, paket, klasse))
+    fun `the list as the system writes it counts`() {
+        assertTrue(NotificationRepository.ListenerList.contains(realList, pkg, className))
     }
 
     @Test
-    fun `die Kurzform zaehlt genauso`() {
-        // Die Kurzform entsteht nur, wenn der Klassenname mit dem Paketnamen der App
-        // beginnt. Beim Debug-Bau tut er das nicht (org.biglau.debug gegen
-        // org.biglau.notify...), beim Release-Bau schon - dort heisst die App org.biglau.
-        val kurz = "org.biglau/.notify.BigNotificationListener"
-        assertTrue(NotificationRepository.ListenerList.contains(kurz, "org.biglau", klasse))
+    fun `the short form counts just the same`() {
+        // the short form only appears when the class name starts with the app's package name.
+        // in the debug build it does not (org.biglau.debug against org.biglau.notify...), in
+        // the release build it does - there the app is called org.biglau.
+        val short = "org.biglau/.notify.BigNotificationListener"
+        assertTrue(NotificationRepository.ListenerList.contains(short, "org.biglau", className))
     }
 
     @Test
-    fun `im Release-Bau zaehlt auch die lange Schreibweise`() {
-        val lang = "org.biglau/org.biglau.notify.BigNotificationListener"
-        assertTrue(NotificationRepository.ListenerList.contains(lang, "org.biglau", klasse))
+    fun `in the release build the long spelling counts too`() {
+        val long = "org.biglau/org.biglau.notify.BigNotificationListener"
+        assertTrue(NotificationRepository.ListenerList.contains(long, "org.biglau", className))
     }
 
     @Test
-    fun `ein anderer Dienst im selben Paket zaehlt nicht`() {
-        // Der Grund für diese Änderung: vorher wurde nur das Paket verglichen.
-        val anderer = "org.biglau.debug/org.biglau.notify.EinAndererDienst"
-        assertFalse(NotificationRepository.ListenerList.contains(anderer, paket, klasse))
+    fun `another service in the same package does not count`() {
+        // the reason for this change: before, only the package was compared.
+        val other = "org.biglau.debug/org.biglau.notify.AnotherService"
+        assertFalse(NotificationRepository.ListenerList.contains(other, pkg, className))
     }
 
     @Test
-    fun `eine leere Liste zaehlt nicht`() {
-        assertFalse(NotificationRepository.ListenerList.contains("", paket, klasse))
+    fun `an empty list does not count`() {
+        assertFalse(NotificationRepository.ListenerList.contains("", pkg, className))
     }
 
     @Test
-    fun `ein fremdes Paket zaehlt nicht`() {
-        val fremd = "com.android.launcher3/com.android.launcher3.notification.NotificationListener"
-        assertFalse(NotificationRepository.ListenerList.contains(fremd, paket, klasse))
+    fun `a foreign package does not count`() {
+        val foreign = "com.android.launcher3/com.android.launcher3.notification.NotificationListener"
+        assertFalse(NotificationRepository.ListenerList.contains(foreign, pkg, className))
     }
 
     @Test
-    fun `Leerzeichen um die Eintraege stoeren nicht`() {
-        val mitLuft = "com.fremd/A : org.biglau.debug/org.biglau.notify.BigNotificationListener"
-        assertTrue(NotificationRepository.ListenerList.contains(mitLuft, paket, klasse))
+    fun `spaces around the entries do not disturb`() {
+        val withSpaces = "com.other/A : org.biglau.debug/org.biglau.notify.BigNotificationListener"
+        assertTrue(NotificationRepository.ListenerList.contains(withSpaces, pkg, className))
     }
 }

@@ -6,47 +6,41 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Eine Verzweigung, deren beide Wege dasselbe tun, ist eine vergessene Absicht.
+ * a branch whose two ways do the same thing is a forgotten intention.
  *
- * Anlass: im Anrufbildschirm stand `if (view.speakerOn) CallAction.SPEAKER else
- * CallAction.SPEAKER`. Der Autor - ich - hatte die Unterscheidung gemeint und nur die eine
- * Hälfte hingeschrieben. Das Ergebnis war ein Knopf, der den Lautsprecher einschaltete und
- * ihn nie wieder ausschaltete: wer ihn versehentlich traf, hörte das Gespräch bis zum
- * Auflegen laut im Raum.
- *
- * Der Compiler sagt dazu nichts, und kein Test fiel darauf herein - beide Zweige lieferten
- * ja das erwartete Ergebnis. Auffallen kann es nur so.
+ * the call screen had `if (view.speakerOn) CallAction.SPEAKER else CallAction.SPEAKER`: a
+ * button that switched the speaker on and never off again. the compiler says nothing, and no
+ * test fell for it - both branches did deliver the expected result.
  */
 class DeadBranchTest {
 
+    private val pattern = Regex("""\bif\s*\(.+?\)\s+(.+?)\s+else\s+(.+)""")
 
-    private val muster = Regex("""\bif\s*\(.+?\)\s+(.+?)\s+else\s+(.+)""")
-
-    private fun dateien(): List<File> =
+    private fun sources(): List<File> =
         Quelltext.files()
 
-    /** Endekommas und schliessende Klammern gehoeren nicht zum Zweig. */
-    private fun sauber(zweig: String): String = zweig.trim().trimEnd(',', ')')
+    /** trailing commas and closing brackets are not part of the branch. */
+    private fun clean(branch: String): String = branch.trim().trimEnd(',', ')')
 
     @Test
-    fun `keine Verzweigung mit zwei gleichen Zweigen`() {
-        val gleich = mutableListOf<String>()
-        dateien().forEach { datei ->
-            datei.readLines().forEachIndexed { index, zeile ->
-                val treffer = muster.find(zeile) ?: return@forEachIndexed
-                val links = sauber(treffer.groupValues[1])
-                val rechts = sauber(treffer.groupValues[2])
-                // Ein "if" im rechten Zweig ist eine Kette, kein doppelter Weg.
-                if (rechts.startsWith("if")) return@forEachIndexed
-                if (links.isNotEmpty() && links == rechts) {
-                    gleich += "${datei.name}:${index + 1}: ${zeile.trim()}"
+    fun `no branch with two equal ways`() {
+        val equal = mutableListOf<String>()
+        sources().forEach { file ->
+            file.readLines().forEachIndexed { index, line ->
+                val hit = pattern.find(line) ?: return@forEachIndexed
+                val left = clean(hit.groupValues[1])
+                val right = clean(hit.groupValues[2])
+                // an "if" on the right is a chain, not a doubled way.
+                if (right.startsWith("if")) return@forEachIndexed
+                if (left.isNotEmpty() && left == right) {
+                    equal += "${file.name}:${index + 1}: ${line.trim()}"
                 }
             }
         }
         assertTrue(
-            "Beide Zweige tun dasselbe - da fehlt die Hälfte einer Absicht:\n" +
-                gleich.joinToString("\n"),
-            gleich.isEmpty(),
+            "both branches do the same - half an intention is missing:\n" +
+                equal.joinToString("\n"),
+            equal.isEmpty(),
         )
     }
 }

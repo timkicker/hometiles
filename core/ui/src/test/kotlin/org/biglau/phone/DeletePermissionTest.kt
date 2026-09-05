@@ -6,7 +6,7 @@ import org.junit.Test
 class DeletePermissionTest {
 
     @Test
-    fun `mit Recht wird geloescht`() {
+    fun `with the right it deletes`() {
         assertEquals(
             DeleteStep.DELETE,
             DeletePermission.next(canWrite = true, deniedOnce = false, canAskAgain = true),
@@ -14,7 +14,7 @@ class DeletePermissionTest {
     }
 
     @Test
-    fun `ohne Recht wird zuerst gefragt`() {
+    fun `without the right it asks first`() {
         assertEquals(
             DeleteStep.ASK,
             DeletePermission.next(canWrite = false, deniedOnce = false, canAskAgain = true),
@@ -22,8 +22,8 @@ class DeletePermissionTest {
     }
 
     @Test
-    fun `nach einer Ablehnung wird noch einmal gefragt`() {
-        // Die erste Ablehnung ist keine Sackgasse - Android stellt die Frage erneut.
+    fun `after one refusal it asks once more`() {
+        // the first refusal is no dead end - android puts the question again.
         assertEquals(
             DeleteStep.ASK,
             DeletePermission.next(canWrite = false, deniedOnce = true, canAskAgain = true),
@@ -31,7 +31,7 @@ class DeletePermissionTest {
     }
 
     @Test
-    fun `fragt Android nicht mehr, fuehrt der Weg in die Einstellungen`() {
+    fun `when android stops asking the way leads to the settings`() {
         assertEquals(
             DeleteStep.GATE,
             DeletePermission.next(canWrite = false, deniedOnce = true, canAskAgain = false),
@@ -39,9 +39,9 @@ class DeletePermissionTest {
     }
 
     @Test
-    fun `das Recht schlaegt jede Ablehnung`() {
-        // Wer das Recht in den Systemeinstellungen nachtraegt, darf nicht weiter auf der
-        // Sperrseite haengen, nur weil er vorher zweimal abgelehnt hat.
+    fun `the right beats every refusal`() {
+        // whoever grants the right in the system settings must not stay stuck on the gate
+        // page just because they refused twice before.
         assertEquals(
             DeleteStep.DELETE,
             DeletePermission.next(canWrite = true, deniedOnce = true, canAskAgain = false),

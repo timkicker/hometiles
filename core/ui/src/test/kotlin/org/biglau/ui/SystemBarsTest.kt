@@ -5,29 +5,28 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 /**
- * PLAN.md 4.2 „Statusleiste: sichtbar / Vollbild".
+ * PLAN.md 4.2 "Statusleiste: sichtbar / Vollbild", quoted in the plan's german.
  *
- * Auf diesem Gerät sind die beiden Leisten zusammen rund vierzig von 605 dp - sieben
- * Prozent, die den Kacheln fehlen. Auf einem großen Telefon wäre das Zierrat.
+ * here the two bars together come to about forty of 605 dp - seven percent the tiles do not
+ * get. on a large phone that would be ornament.
  */
 class SystemBarsTest {
 
     @Test
-    fun `die vorgabe zeigt die leisten`() {
+    fun `the default shows the bars`() {
         assertEquals(false, Appearance().fullScreen)
         assertEquals(SystemBars.Behaviour.VISIBLE, SystemBars.behaviourFor(false))
     }
 
     /**
-     * Der Fall, auf den es ankommt: verstecken ja, wegsperren nein.
+     * the case that matters: hiding yes, locking away no.
      *
-     * Wer die Leisten wegnimmt und dabei das Herunterziehen sperrt, sperrt die
-     * Benachrichtigungen weg - und wer nicht weiß, dass man dafür wischen kann, kommt nie
-     * wieder an sie heran. Ein paar dp sind das nicht wert, deshalb gibt es gar keinen
-     * Zustand, der hart versteckt.
+     * whoever takes the bars away and locks the pull-down with them locks the notifications
+     * away - and whoever does not know one can swipe for them never gets at them again. a few
+     * dp are not worth that, so there is no state at all that hides them hard.
      */
     @Test
-    fun `versteckt heisst immer wisch-zum-holen`() {
+    fun `hidden always means swipe-to-show`() {
         assertEquals(SystemBars.Behaviour.HIDDEN_SWIPE_SHOWS, SystemBars.behaviourFor(true))
         assertEquals(2, SystemBars.Behaviour.entries.size)
     }

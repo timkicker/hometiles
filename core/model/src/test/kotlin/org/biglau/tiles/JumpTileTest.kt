@@ -11,53 +11,53 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Die Sprungkachel, die aus der Warnung eine Handlung macht.
+ * the jump tile that turns the warning into an action.
  *
- * „Auf ‚Screen 2' führt keine Kachel" sagte bisher nur, was zu tun wäre. Seit dem 3.9.2026
- * bietet die Seite es an — und dahinter steht diese Funktion.
+ * the warning that no tile leads to a screen only said what one would have to do. since
+ * 3.9.2026 the page offers it, and this function stands behind that.
  */
 class JumpTileTest {
 
-    private fun heim(vararg belegt: Pair<Int, Int>) = Screen(
+    private fun home(vararg filled: Pair<Int, Int>) = Screen(
         id = "home",
         name = "Start",
         cols = 2,
         rows = 2,
-        cells = belegt.map { (x, y) ->
+        cells = filled.map { (x, y) ->
             Cell(x = x, y = y, button = Button(action = ButtonAction.Action(org.biglau.data.Builtin.CAMERA)))
         },
     )
 
-    private fun config(vararg belegt: Pair<Int, Int>) = LauncherConfig(
-        screens = listOf(heim(*belegt), Screen(id = "zwei", name = "Screen 2")),
+    private fun config(vararg filled: Pair<Int, Int>) = LauncherConfig(
+        screens = listOf(home(*filled), Screen(id = "two", name = "Screen 2")),
         homeScreenId = "home",
     )
 
     @Test
-    fun `die Kachel landet auf dem ersten freien Platz des Startbildschirms`() {
-        val neu = ScreenEdits.withJumpTile(config(0 to 0), "zwei")
-        assertTrue(neu != null)
-        val kachel = neu!!.screens.first { it.id == "home" }.cells
+    fun `the tile lands on the first free spot of the home screen`() {
+        val withTile = ScreenEdits.withJumpTile(config(0 to 0), "two")
+        assertTrue(withTile != null)
+        val tile = withTile!!.screens.first { it.id == "home" }.cells
             .first { it.button.action is ButtonAction.GoToScreen }
-        assertEquals(ButtonAction.GoToScreen("zwei"), kachel.button.action)
+        assertEquals(ButtonAction.GoToScreen("two"), tile.button.action)
     }
 
     @Test
-    fun `danach ist der Bildschirm erreichbar`() {
-        val vorher = config(0 to 0)
-        assertEquals(listOf("zwei"), ScreenEdits.unreachable(vorher).map { it.id })
-        val neu = ScreenEdits.withJumpTile(vorher, "zwei")!!
-        assertTrue("nach der Kachel darf nichts mehr unerreichbar sein", ScreenEdits.unreachable(neu).isEmpty())
+    fun `afterwards the screen is reachable`() {
+        val before = config(0 to 0)
+        assertEquals(listOf("two"), ScreenEdits.unreachable(before).map { it.id })
+        val withTile = ScreenEdits.withJumpTile(before, "two")!!
+        assertTrue("after the tile nothing may be unreachable", ScreenEdits.unreachable(withTile).isEmpty())
     }
 
     @Test
-    fun `auf einem vollen Startbildschirm geht es nicht`() {
-        val voll = config(0 to 0, 1 to 0, 0 to 1, 1 to 1)
-        assertNull("kein freier Platz - dann sagt die Oberfläche das", ScreenEdits.withJumpTile(voll, "zwei"))
+    fun `on a full home screen it does not work`() {
+        val full = config(0 to 0, 1 to 0, 0 to 1, 1 to 1)
+        assertNull("no free spot - then the interface says so", ScreenEdits.withJumpTile(full, "two"))
     }
 
     @Test
-    fun `ein Ziel, das es nicht gibt, legt keine Kachel an`() {
-        assertNull(ScreenEdits.withJumpTile(config(0 to 0), "gibtsnicht"))
+    fun `a target that does not exist creates no tile`() {
+        assertNull(ScreenEdits.withJumpTile(config(0 to 0), "doesnotexist"))
     }
 }

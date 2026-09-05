@@ -6,33 +6,33 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Auf dem Schloss steht der Ausweg, nicht die Begründung.
+ * the lock carries the way out, not the reasoning.
  *
- * Am Bildschirm gesehen: der lange Erklärtext passte auf der PIN-Eingabe in drei Zeilen und
- * wurde **genau an der Stelle abgeschnitten**, an der der Ausweg steht — „… Wenn Sie sie …".
- * Wer die PIN vergessen hat, findet dort also gerade den Satz nicht, den er braucht.
+ * the long explaining text took three lines on the pin entry and was cut off **exactly where
+ * the way out stood**. whoever has forgotten the pin therefore misses precisely the sentence
+ * they need.
  *
- * Auf der Einstellungsseite bleibt der lange Text; dort ist Platz, und dort liest man ihn,
- * bevor man eine PIN setzt.
+ * on the settings page the long text stays; there is room there, and that is where one reads
+ * it before setting a pin.
  */
 class PinGateHintTest {
 
-    private val einstellungen =
+    private val settings =
         Quelltext.file("org/biglau/settings/SettingsActivity.kt").readText()
 
     @Test
-    fun `das Schloss zeigt den kurzen Satz`() {
-        val stelle = Quelltext.cut(einstellungen, "Page.GATE -> PinGate(", "wrongText")
-        assertTrue("Der kurze Satz fehlt: $stelle", "security_forgot" in stelle)
-        assertTrue("Der lange Text steht wieder auf dem Schloss: $stelle", "security_explainer" !in stelle)
+    fun `the lock shows the short sentence`() {
+        val place = Quelltext.cut(settings, "Page.GATE -> PinGate(", "wrongText")
+        assertTrue("the short sentence is missing: $place", "security_forgot" in place)
+        assertTrue("the long text stands on the lock again: $place", "security_explainer" !in place)
     }
 
     @Test
-    fun `der kurze Satz nennt die dreissig Sekunden`() {
-        listOf("values", "values-de").forEach { sprache ->
-            val text = Quelltext.textValue("security_forgot", sprache)
-            assertTrue("$sprache: ohne die Dauer nützt der Satz nichts", "30" in text)
-            assertTrue("$sprache: zu lang für das Schloss (${text.length})", text.length <= 60)
+    fun `the short sentence names the thirty seconds`() {
+        listOf("values", "values-de").forEach { language ->
+            val text = Quelltext.textValue("security_forgot", language)
+            assertTrue("$language: without the duration the sentence is no use", "30" in text)
+            assertTrue("$language: too long for the lock (${text.length})", text.length <= 60)
         }
     }
 }

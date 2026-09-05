@@ -8,55 +8,54 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Die Meldung über eine neue Nachricht.
+ * the notice about a new message.
  *
- * Sie hängt an der SMS-Rolle. Ohne sie lag die Nachricht in der Datenbank und niemand
- * wusste davon, bis er von sich aus die Liste öffnete — für ein Telefon in der Tasche
- * dasselbe wie verloren.
+ * it hangs on the sms role. without it the message lay in the database and nobody knew of it
+ * until they opened the list themselves - for a phone in a pocket the same as lost.
  */
 class SmsNotificationsTest {
 
-    private fun nachricht(address: String, body: String, incoming: Boolean = true) =
+    private fun message(address: String, body: String, incoming: Boolean = true) =
         SmsMessage(1, 1, address, body, 0L, incoming, false)
 
-    /** Ein Kanal lässt sich nicht ändern; eine andere Dauer muss deshalb ein anderer sein. */
+    /** a channel cannot be changed; another duration must therefore be another channel. */
     @Test
-    fun `jede Vibrationsdauer hat ihren eigenen Kanal`() {
-        val kanaele = SmsNotifications.VIBRATION_CHOICES.map { SmsNotifications.channelId(it) }
-        assertEquals(kanaele.size, kanaele.toSet().size)
-        assertTrue(kanaele.all { it.startsWith("sms-") })
+    fun `every vibration length has a channel of its own`() {
+        val channels = SmsNotifications.VIBRATION_CHOICES.map { SmsNotifications.channelId(it) }
+        assertEquals(channels.size, channels.toSet().size)
+        assertTrue(channels.all { it.startsWith("sms-") })
     }
 
     @Test
-    fun `aus und an stehen beide zur Wahl`() {
+    fun `off and on are both on offer`() {
         assertTrue(0 in SmsNotifications.VIBRATION_CHOICES)
         assertTrue(SmsNotifications.VIBRATION_CHOICES.any { it > 0 })
     }
 
     @Test
-    fun `eine eingehende Nachricht meldet sich`() {
-        assertTrue(SmsNotifications.shouldNotify(nachricht("+43664111001", "Hallo"), SmsConfig()))
+    fun `an incoming message reports itself`() {
+        assertTrue(SmsNotifications.shouldNotify(message("+43664111001", "Hello"), SmsConfig()))
     }
 
-    /** Sonst hätte das Ausblenden nur die halbe Wirkung: die Werbung klingelte weiter. */
+    /** otherwise hiding would have half the effect: the advertisement would keep ringing. */
     @Test
-    fun `was ausgeblendet ist, meldet sich nicht`() {
-        val config = SmsConfig(hiddenNumbers = listOf("+43664111001"), hiddenWords = listOf("gewonnen"))
-        assertFalse(SmsNotifications.shouldNotify(nachricht("+43664111001", "Hallo"), config))
-        assertFalse(SmsNotifications.shouldNotify(nachricht("+43676222222", "Sie haben GEWONNEN"), config))
-        assertTrue(SmsNotifications.shouldNotify(nachricht("+43676222222", "Bin um sechs da"), config))
+    fun `what is hidden does not report itself`() {
+        val config = SmsConfig(hiddenNumbers = listOf("+43664111001"), hiddenWords = listOf("won"))
+        assertFalse(SmsNotifications.shouldNotify(message("+43664111001", "Hello"), config))
+        assertFalse(SmsNotifications.shouldNotify(message("+43676222222", "you have WON"), config))
+        assertTrue(SmsNotifications.shouldNotify(message("+43676222222", "there at six"), config))
     }
 
     @Test
-    fun `eigene Nachrichten melden sich nicht`() {
+    fun `one's own messages do not report themselves`() {
         assertFalse(
-            SmsNotifications.shouldNotify(nachricht("+43664111001", "Bis gleich", incoming = false), SmsConfig()),
+            SmsNotifications.shouldNotify(message("+43664111001", "see you soon", incoming = false), SmsConfig()),
         )
     }
 
-    /** Zwei Nachrichten desselben Absenders sind eine Meldung, zwei Absender sind zwei. */
+    /** two messages from the same sender are one notice, two senders are two. */
     @Test
-    fun `je Absender eine Meldung`() {
+    fun `one notice per sender`() {
         assertEquals(
             SmsNotifications.notificationId("+43 664 111 001"),
             SmsNotifications.notificationId("+43664111001"),

@@ -5,31 +5,30 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 /**
- * Wo „keine Notfallkontakte" steht, steht auch der Weg dorthin.
+ * where it says there are no emergency contacts, the way there stands too.
  *
- * Der Notruf-Bildschirm sagt an zwei Stellen, dass keine Kontakte hinterlegt sind: bevor er
- * losläuft, und nach der **Probe**. Die erste bot seit Langem einen Knopf in die
- * Notruf-Einstellungen an — „der Weg dorthin statt der Wegbeschreibung", wie der Kommentar
- * daneben sagt. Die zweite bot ihn nicht, und das ist die Stelle, an der jemand den Notruf
- * gerade einrichtet und ausprobiert.
+ * the sos screen says at two places that no contacts are stored: before it starts, and after
+ * the **rehearsal**. the first had long offered a button into the sos settings - the way
+ * there instead of directions, as the comment beside it says. the second did not, and that is
+ * the place where somebody is setting the sos up and trying it out.
  *
- * Geprüft wird deshalb: **beide** Zweige, die den Satz zeigen, bieten den Sprung an.
+ * so the check is: **both** branches that show the sentence offer the jump.
  */
 class SosSetupReachableTest {
 
-    private val quelle = Quelltext.withoutComments("org/biglau/toggles/SosActivity.kt")
+    private val source = Quelltext.withoutComments("org/biglau/toggles/SosActivity.kt")
 
     @Test
-    fun `zu jedem Hinweis auf fehlende Kontakte gehoert der Sprung in die Einstellungen`() {
-        val hinweise = Regex("""R\.string\.sos_not_configured""").findAll(quelle).count()
-        // Die Zeile steht einmal als Funktion da und wird zweimal gerufen; gezählt werden
-        // die Aufrufe, nicht die Erklärung.
-        val wege = Regex("""(?<!fun )NotrufEinrichtenZeile\(\)""").findAll(quelle).count()
+    fun `every notice about missing contacts carries the jump into the settings`() {
+        val notices = Regex("""R\.string\.sos_not_configured""").findAll(source).count()
+        // the row stands once as a function and is called twice; the calls are counted, not
+        // the definition.
+        val ways = Regex("""(?<!fun )SosSetupRow\(\)""").findAll(source).count()
         assertEquals(
-            "Es gibt $hinweise Hinweise auf fehlende Notfallkontakte, aber $wege Wege in " +
-                "die Einstellungen. Wer den Satz liest, soll ihn nicht nur lesen.",
-            hinweise,
-            wege,
+            "there are $notices notices about missing emergency contacts but $ways ways into " +
+                "the settings. whoever reads the sentence should not only read it.",
+            notices,
+            ways,
         )
     }
 }

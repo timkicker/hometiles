@@ -17,54 +17,54 @@ class ShortcutsTest {
     ) = ShortcutRow(pkg, id, short, long, enabled, rank, kind)
 
     @Test
-    fun `das lange Label gewinnt weil es mehr sagt`() {
-        assertEquals("Nachricht an Anna", Shortcuts.labelOf(row("a", short = "Anna", long = "Nachricht an Anna")))
+    fun `the long label wins because it says more`() {
+        assertEquals("Message to Anna", Shortcuts.labelOf(row("a", short = "Anna", long = "Message to Anna")))
     }
 
     @Test
-    fun `ohne langes Label bleibt das kurze`() {
+    fun `without a long label the short one stays`() {
         assertEquals("Anna", Shortcuts.labelOf(row("a", short = "Anna", long = null)))
         assertEquals("Anna", Shortcuts.labelOf(row("a", short = "Anna", long = "   ")))
     }
 
     @Test
-    fun `abgeschaltete Verknuepfungen werden nicht angeboten`() {
+    fun `disabled shortcuts are not offered`() {
         val rows = listOf(row("a"), row("b", enabled = false))
         assertEquals(listOf("a"), Shortcuts.usable(rows).map { it.id })
     }
 
     @Test
-    fun `Verknuepfungen ohne Namen fliegen raus`() {
-        // Eine namenlose Kachel waere fuer den Nutzer nicht zuzuordnen.
+    fun `shortcuts without a name fly out`() {
+        // a nameless tile could not be placed by anyone looking at it.
         val rows = listOf(row("a"), row("b", short = "  "))
         assertEquals(listOf("a"), Shortcuts.usable(rows).map { it.id })
     }
 
     @Test
-    fun `angepinnte stehen vorn weil der Nutzer sie selbst gewaehlt hat`() {
+    fun `pinned ones stand in front because they were chosen by hand`() {
         val rows = listOf(
-            row("statisch", rank = 0),
-            row("angepinnt", rank = 9, kind = ShortcutKind.PINNED),
+            row("static", rank = 0),
+            row("pinned", rank = 9, kind = ShortcutKind.PINNED),
         )
-        assertEquals(listOf("angepinnt", "statisch"), Shortcuts.usable(rows).map { it.id })
+        assertEquals(listOf("pinned", "static"), Shortcuts.usable(rows).map { it.id })
     }
 
     @Test
-    fun `der Rang der App wird beachtet`() {
-        // Wer den Rang ignoriert, zeigt dem Nutzer die vierte Option zuerst.
+    fun `the app's rank is respected`() {
+        // ignoring the rank shows the fourth option first.
         val rows = listOf(row("c", rank = 2), row("a", rank = 0), row("b", rank = 1))
         assertEquals(listOf("a", "b", "c"), Shortcuts.usable(rows).map { it.id })
     }
 
     @Test
-    fun `bei gleichem Rang entscheidet der Name`() {
+    fun `at equal rank the name decides`() {
         val rows = listOf(row("z", short = "Zebra"), row("a", short = "Anna"))
         assertEquals(listOf("Anna", "Zebra"), Shortcuts.usable(rows).map { Shortcuts.labelOf(it) })
     }
 
     @Test
-    fun `dieselbe Verknuepfung erscheint nur einmal`() {
-        // Eine Verknuepfung kann gleichzeitig dynamisch und angepinnt gemeldet werden.
+    fun `the same shortcut appears only once`() {
+        // a shortcut can be reported as dynamic and pinned at the same time.
         val rows = listOf(
             row("a", kind = ShortcutKind.DYNAMIC),
             row("a", kind = ShortcutKind.PINNED),
@@ -73,13 +73,13 @@ class ShortcutsTest {
     }
 
     @Test
-    fun `gleiche Kennung in verschiedenen Apps bleibt getrennt`() {
-        val rows = listOf(row("neu", pkg = "com.chat"), row("neu", pkg = "com.mail"))
+    fun `the same id in different apps stays apart`() {
+        val rows = listOf(row("new", pkg = "com.chat"), row("new", pkg = "com.mail"))
         assertEquals(2, Shortcuts.usable(rows).size)
     }
 
     @Test
-    fun `eine App ohne brauchbare Verknuepfung bietet nichts an`() {
+    fun `an app without a usable shortcut offers nothing`() {
         assertTrue(Shortcuts.usable(emptyList()).isEmpty())
         assertTrue(Shortcuts.usable(listOf(row("a", enabled = false))).isEmpty())
         assertTrue(Shortcuts.usable(listOf(row("a"))).isNotEmpty())

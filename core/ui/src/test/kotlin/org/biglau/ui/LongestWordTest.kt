@@ -4,34 +4,36 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 /**
- * An welchem Wort eine Überschrift bricht.
+ * at which word a heading breaks.
  *
- * Bei 200 % stand über der Rücksetzen-Seite **„Alles zurücksetze / n"** — Compose trennt ein
- * Wort mitten hindurch, sobald es allein nicht mehr in die Zeile passt. Ob eine Überschrift
- * passt, entscheidet also nicht ihre Länge, sondern ihr längstes Wort. `BigHeading` misst
- * genau das und geht eine Stufe kleiner, bevor es dazu kommt.
+ * at 200 percent a heading stood as "Alles zurücksetze / n" - compose splits a word right
+ * through as soon as it no longer fits the line on its own. so whether a heading fits is
+ * decided not by its length but by its longest word. `BigHeading` measures exactly that and
+ * goes one step smaller before it comes to that.
+ *
+ * the test data stays german: german compounds are the long words this exists for.
  */
 class LongestWordTest {
 
     @Test
-    fun `das laengste Wort entscheidet`() {
+    fun `the longest word decides`() {
         assertEquals("zurücksetzen", longestWord("Alles zurücksetzen"))
         assertEquals("Benachrichtigungen", longestWord("Zugriff auf die Benachrichtigungen"))
     }
 
     @Test
-    fun `ein einzelnes Wort ist sein eigenes laengstes`() {
+    fun `a single word is its own longest`() {
         assertEquals("Einstellungen", longestWord("Einstellungen"))
     }
 
     @Test
-    fun `Zeilenumbrueche zaehlen als Trennung`() {
+    fun `line breaks count as a separation`() {
         assertEquals("Startbildschirm", longestWord("Ihr\nStartbildschirm"))
     }
 
     @Test
-    fun `leerer Text bleibt leer`() {
-        // Nicht abstuerzen und nicht raten: ein leerer Text hat kein laengstes Wort.
+    fun `empty text stays empty`() {
+        // do not crash and do not guess: an empty text has no longest word.
         assertEquals("", longestWord(""))
     }
 }

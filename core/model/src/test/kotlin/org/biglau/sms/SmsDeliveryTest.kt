@@ -6,48 +6,48 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Eingehende SMS gehen nicht verloren.
+ * incoming messages do not get lost.
  *
- * Am Emulator nachgestellt (02.09.2026): BigLau die SMS-Rolle gegeben, eine Nachricht
- * geschickt — und sie war nirgends. Android stellt `SMS_DELIVER` nur der Standard-App zu,
- * und wer die Rolle hält, muss selbst speichern.
+ * re-enacted on the emulator (02.09.2026): BigLau given the sms role, a message sent, and it
+ * was nowhere. android delivers `SMS_DELIVER` only to the default app, and whoever holds the
+ * role has to store it themselves.
  */
 class SmsDeliveryTest {
 
-    private fun teil(a: String, b: String, t: Long = 1L) = SmsDelivery.Part(a, b, t)
+    private fun part(a: String, b: String, t: Long = 1L) = SmsDelivery.Part(a, b, t)
 
     @Test
-    fun `eine einzelne Nachricht bleibt eine`() {
-        val ganz = SmsDelivery.merge(listOf(teil("+43664", "Hallo")))
-        assertEquals(1, ganz.size)
-        assertEquals("Hallo", ganz.first().body)
+    fun `a single message stays one`() {
+        val whole = SmsDelivery.merge(listOf(part("+43664", "Hello")))
+        assertEquals(1, whole.size)
+        assertEquals("Hello", whole.first().body)
     }
 
-    /** Sonst stünden drei halbe Nachrichten untereinander statt einer ganzen. */
+    /** otherwise three half messages would stand under one another instead of one whole. */
     @Test
-    fun `Teile einer langen Nachricht kommen wieder zusammen`() {
-        val ganz = SmsDelivery.merge(
-            listOf(teil("+43664", "Erster Teil ", 100), teil("+43664", "und zweiter.", 200)),
+    fun `parts of a long message come back together`() {
+        val whole = SmsDelivery.merge(
+            listOf(part("+43664", "first part ", 100), part("+43664", "and second.", 200)),
         )
-        assertEquals(1, ganz.size)
-        assertEquals("Erster Teil und zweiter.", ganz.first().body)
-        assertEquals(100L, ganz.first().timestamp)
+        assertEquals(1, whole.size)
+        assertEquals("first part and second.", whole.first().body)
+        assertEquals(100L, whole.first().timestamp)
     }
 
     @Test
-    fun `verschiedene Absender bleiben getrennt`() {
-        val ganz = SmsDelivery.merge(listOf(teil("+43664", "A"), teil("+43676", "B")))
-        assertEquals(listOf("A", "B"), ganz.map { it.body })
+    fun `different senders stay apart`() {
+        val whole = SmsDelivery.merge(listOf(part("+43664", "A"), part("+43676", "B")))
+        assertEquals(listOf("A", "B"), whole.map { it.body })
     }
 
     @Test
-    fun `nichts drin heisst nichts zu speichern`() {
+    fun `nothing in means nothing to store`() {
         assertEquals(emptyList<SmsDelivery.Incoming>(), SmsDelivery.merge(emptyList()))
     }
 
-    /** Doppelt gespeichert wäre so falsch wie gar nicht. */
+    /** stored twice would be as wrong as not at all. */
     @Test
-    fun `geschrieben wird nur als Standard-App`() {
+    fun `writing happens only as the default app`() {
         assertTrue(SmsDelivery.mayWrite("org.biglau", "org.biglau"))
         assertFalse(SmsDelivery.mayWrite("com.google.android.apps.messaging", "org.biglau"))
         assertFalse(SmsDelivery.mayWrite(null, "org.biglau"))

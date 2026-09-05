@@ -9,71 +9,71 @@ import org.junit.Assert.assertNull
 import org.junit.Test
 
 /**
- * Eine Kachel belegen und wieder leeren.
+ * filling a tile and emptying it again.
  *
- * Diese zwei Rechnungen standen bis zum 3.9.2026 in `ConfigStore` - dem einzigen Modul ohne
- * einen einzigen Test. Es sind die Rechnungen, die eine Kachel des Nutzers **überschreiben**
- * oder **löschen**; sie ohne Prüfung zu lassen war die schlechteste Stelle dafür.
+ * these two calculations stood in `ConfigStore` until 3.9.2026 - the only module without a
+ * single test. they are the ones that **overwrite** or **delete** a tile of the user's;
+ * leaving them unchecked was the worst place for it.
  */
 class CellButtonTest {
 
-    private fun knopf(name: String) =
+    private fun button(name: String) =
         Button(action = ButtonAction.GoToScreen(name), label = name)
 
-    private fun bildschirm(vararg zellen: Cell) =
-        Screen(id = "home", name = "Start", cols = 2, rows = 4, cells = zellen.toList())
+    private fun screen(vararg cells: Cell) =
+        Screen(id = "home", name = "Start", cols = 2, rows = 4, cells = cells.toList())
 
     @Test
-    fun `auf leerem Platz entsteht eine neue Zelle`() {
-        val vorher = bildschirm()
-        val nachher = CellLayout.withButton(vorher, 1, 2, knopf("a"))
-        assertEquals(1, nachher.cells.size)
-        assertEquals(1, nachher.cells[0].x)
-        assertEquals(2, nachher.cells[0].y)
-        assertEquals(1, nachher.cells[0].w)
-        assertEquals(1, nachher.cells[0].h)
-        assertEquals("a", nachher.cells[0].button.label)
+    fun `on a free spot a new cell comes about`() {
+        val before = screen()
+        val after = CellLayout.withButton(before, 1, 2, button("a"))
+        assertEquals(1, after.cells.size)
+        assertEquals(1, after.cells[0].x)
+        assertEquals(2, after.cells[0].y)
+        assertEquals(1, after.cells[0].w)
+        assertEquals(1, after.cells[0].h)
+        assertEquals("a", after.cells[0].button.label)
     }
 
     @Test
-    fun `eine belegte Zelle wird ueberschrieben, nicht verdoppelt`() {
-        val vorher = bildschirm(Cell(x = 0, y = 0, button = knopf("alt")))
-        val nachher = CellLayout.withButton(vorher, 0, 0, knopf("neu"))
-        assertEquals(1, nachher.cells.size)
-        assertEquals("neu", nachher.cells[0].button.label)
+    fun `a filled cell is overwritten, not doubled`() {
+        val before = screen(Cell(x = 0, y = 0, button = button("old")))
+        val after = CellLayout.withButton(before, 0, 0, button("new"))
+        assertEquals(1, after.cells.size)
+        assertEquals("new", after.cells[0].button.label)
     }
 
     /**
-     * Der Fall, der ohne Test durchgerutscht wäre: eine breite Zelle wird an **jeder**
-     * Stelle getroffen, die sie überdeckt - nicht nur an ihrer Ecke. Sonst legte ein Tipp
-     * auf die rechte Hälfte einer Doppelkachel eine zweite Zelle darüber.
+     * the case that would have slipped through untested: a wide cell is hit at **every** spot
+     * it covers, not only at its corner. otherwise a tap on the right half of a double tile
+     * laid a second cell over it.
      */
     @Test
-    fun `eine breite Zelle wird auch an ihrem rechten Rand getroffen`() {
-        val breit = Cell(x = 0, y = 0, w = 2, h = 1, button = knopf("breit"))
-        val nachher = CellLayout.withButton(bildschirm(breit), 1, 0, knopf("neu"))
-        assertEquals(1, nachher.cells.size)
-        assertEquals(2, nachher.cells[0].w)
-        assertEquals("neu", nachher.cells[0].button.label)
+    fun `a wide cell is hit at its right edge too`() {
+        val wide = Cell(x = 0, y = 0, w = 2, h = 1, button = button("wide"))
+        val after = CellLayout.withButton(screen(wide), 1, 0, button("new"))
+        assertEquals(1, after.cells.size)
+        assertEquals(2, after.cells[0].w)
+        assertEquals("new", after.cells[0].button.label)
     }
 
     @Test
-    fun `leeren laesst keine Zelle ohne Aktion zurueck`() {
-        val vorher = bildschirm(Cell(x = 0, y = 0, button = knopf("a")))
-        val nachher = CellLayout.withoutButton(vorher, 0, 0)
-        assertEquals(emptyList<Cell>(), nachher.cells)
-        assertNull(nachher.cellAt(0, 0))
+    fun `emptying leaves no cell without an action behind`() {
+        val before = screen(Cell(x = 0, y = 0, button = button("a")))
+        val after = CellLayout.withoutButton(before, 0, 0)
+        assertEquals(emptyList<Cell>(), after.cells)
+        assertNull(after.cellAt(0, 0))
     }
 
     @Test
-    fun `leeren auf einem leeren Platz aendert nichts`() {
-        val vorher = bildschirm(Cell(x = 0, y = 0, button = knopf("a")))
-        assertEquals(vorher, CellLayout.withoutButton(vorher, 1, 3))
+    fun `emptying a free spot changes nothing`() {
+        val before = screen(Cell(x = 0, y = 0, button = button("a")))
+        assertEquals(before, CellLayout.withoutButton(before, 1, 3))
     }
 
     @Test
-    fun `leeren trifft die breite Zelle auch an ihrem rechten Rand`() {
-        val breit = Cell(x = 0, y = 0, w = 2, h = 1, button = knopf("breit"))
-        assertEquals(emptyList<Cell>(), CellLayout.withoutButton(bildschirm(breit), 1, 0).cells)
+    fun `emptying hits the wide cell at its right edge too`() {
+        val wide = Cell(x = 0, y = 0, w = 2, h = 1, button = button("wide"))
+        assertEquals(emptyList<Cell>(), CellLayout.withoutButton(screen(wide), 1, 0).cells)
     }
 }

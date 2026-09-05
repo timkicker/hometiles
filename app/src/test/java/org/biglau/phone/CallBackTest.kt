@@ -1,46 +1,43 @@
 package org.biglau.phone
 
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Eine unterdrückte Nummer lässt sich nicht zurückrufen.
+ * a withheld number cannot be called back.
  *
- * Am Emulator gefunden: ein Eintrag ohne Nummer stand in der Anrufliste als „?" da, und
- * beim Antippen fragte BigLau **„„" jetzt anrufen?"** — mit leeren Anführungszeichen. Ein
- * „Ja, anrufen" hätte nichts gewählt; die einzige Rückmeldung wäre gewesen, dass nichts
- * geschieht.
- *
- * `PhoneNumbers.isDialable` gab es längst und wurde an drei anderen Stellen benutzt — nur
- * an der einen, an der aus einem Tipp ein Anruf wird, nicht.
+ * found at the emulator: an entry without a number asked whether to call an empty pair of
+ * quotes. `PhoneNumbers.isDialable` existed and was used in three other places - only not at
+ * the one where a tap becomes a call.
  */
 class CallBackTest {
 
     @Test
-    fun `eine unterdrueckte Nummer ist nicht waehlbar`() {
+    fun `a withheld number is not dialable`() {
         assertFalse(PhoneNumbers.isDialable(""))
         assertFalse(PhoneNumbers.isDialable("   "))
-        // So kommen unterdrueckte Nummern bei manchen Netzen an.
+        // this is how withheld numbers arrive on some networks.
         assertFalse(PhoneNumbers.isDialable("unknown"))
         assertFalse(PhoneNumbers.isDialable("-"))
     }
 
     @Test
-    fun `eine gewoehnliche Nummer bleibt waehlbar`() {
-        assertTrue(PhoneNumbers.isDialable("+43664111001"))
-        assertTrue(PhoneNumbers.isDialable("0664 111 001"))
+    fun `an ordinary number stays dialable`() {
+        assertTrue(PhoneNumbers.isDialable("+43660111001"))
+        assertTrue(PhoneNumbers.isDialable("0660 111 001"))
     }
 
-    /** Ohne Nummer bleibt nur der Ersatztext - die Zeile darf nicht leer sein. */
+    /** without a number only the replacement text is left - the row must not be empty. */
     @Test
-    fun `ohne Nummer und ohne Namen steht der Ersatztext da`() {
-        val ohne = CallView(
+    fun `without number and name the replacement text stands there`() {
+        val without = CallView(
             status = CallStatus.RINGING,
             number = "",
             name = null,
             startedAtMillis = null,
         )
-        org.junit.Assert.assertEquals("Unbekannt", CallActions.headline(ohne, "Unbekannt"))
+        assertEquals("Unknown", CallActions.headline(without, "Unknown"))
     }
 }

@@ -4,37 +4,37 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 /**
- * Die Ansage einer Kachel, `PLAN.md` 3.6.
+ * what a tile announces, PLAN.md 3.6.
  *
- * Der Anlass steht in [TileSpeech]: der Benachrichtigungszähler und die Empfangsbalken
- * waren gezeichnet und stumm.
+ * the occasion stands in [TileSpeech]: the notification count and the signal bars were drawn
+ * and silent.
  */
 class TileSpeechTest {
 
     @Test
-    fun `Label allein bleibt Label`() {
-        assertEquals("Telefon", TileSpeech.describe("Telefon"))
+    fun `a label alone stays the label`() {
+        assertEquals("Phone", TileSpeech.describe("Phone"))
     }
 
     @Test
-    fun `Zustand und Zaehler kommen hinter das Label`() {
+    fun `state and count come after the label`() {
         assertEquals(
-            "Empfang. 3 von 4 Balken. 2 neue Meldungen",
-            TileSpeech.describe("Empfang", "3 von 4 Balken", "2 neue Meldungen"),
+            "Signal. 3 of 4 bars. 2 new notices",
+            TileSpeech.describe("Signal", "3 of 4 bars", "2 new notices"),
         )
     }
 
-    /** Ohne das stünde „Telefon. . 2 neue Meldungen" da - der Screenreader liest die Lücke. */
+    /** without this it would say "Phone. . 2 new notices" - the screen reader reads the gap. */
     @Test
-    fun `leere Teile fallen weg`() {
-        assertEquals("Telefon. 2 neue Meldungen", TileSpeech.describe("Telefon", "  ", "2 neue Meldungen"))
-        assertEquals("Telefon", TileSpeech.describe("Telefon", null, null))
-        assertEquals("Telefon", TileSpeech.describe("Telefon", "", ""))
+    fun `empty parts fall away`() {
+        assertEquals("Phone. 2 new notices", TileSpeech.describe("Phone", "  ", "2 new notices"))
+        assertEquals("Phone", TileSpeech.describe("Phone", null, null))
+        assertEquals("Phone", TileSpeech.describe("Phone", "", ""))
     }
 
-    /** Ein Text, der schon auf einen Punkt endet, bekommt keinen zweiten. */
+    /** a text already ending in a full stop gets no second one. */
     @Test
-    fun `kein doppelter Punkt`() {
-        assertEquals("Batterie. 84 %", TileSpeech.describe("Batterie", "84 %."))
+    fun `no double full stop`() {
+        assertEquals("Battery. 84 %", TileSpeech.describe("Battery", "84 %."))
     }
 }

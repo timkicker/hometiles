@@ -4,30 +4,29 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 /**
- * Auf der PIN-Eingabe zählen die Tasten mehr als die Worte.
+ * on the pin entry the keys count for more than the words.
  *
- * Bei 200 % Textgröße wuchsen Überschrift und Bestätigungsknopf so weit, dass für die
- * Tastatur nur ein Streifen blieb: die Zifferntasten waren am Emulator noch **21 dp** hoch.
- * Auf einem Bildschirm, auf dem man genau treffen muss — und für jemanden, der 200 % nicht
- * zum Spaß eingestellt hat. Mit dem Deckel sind es 58 dp.
+ * at 200 percent text size heading and confirm button grew so far that only a strip was left
+ * for the keypad: the digit keys measured **21 dp** high. on a screen where one has to hit
+ * exactly, and for someone who did not set 200 percent for fun. with the cap they are 58 dp.
  */
 class PinGateScaleTest {
 
     @Test
-    fun `grosse Einstellungen werden gedeckelt`() {
+    fun `large settings are capped`() {
         assertEquals(PIN_MAX_TEXT_SCALE, pinTextScale(2.0f), 0.001f)
         assertEquals(PIN_MAX_TEXT_SCALE, pinTextScale(1.5f), 0.001f)
     }
 
     @Test
-    fun `bis zum Deckel gilt die Einstellung`() {
+    fun `up to the cap the setting holds`() {
         assertEquals(1.0f, pinTextScale(1.0f), 0.001f)
         assertEquals(1.25f, pinTextScale(1.25f), 0.001f)
     }
 
     @Test
-    fun `kleiner als eingestellt wird nie`() {
-        // Wer 75 % gewaehlt hat, bekommt 75 % - der Deckel ist eine Obergrenze, keine Vorgabe.
+    fun `it never gets smaller than set`() {
+        // whoever chose 75 percent gets 75 percent - the cap is an upper bound, not a default.
         assertEquals(0.75f, pinTextScale(0.75f), 0.001f)
     }
 }

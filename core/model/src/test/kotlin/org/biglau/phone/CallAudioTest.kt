@@ -7,46 +7,45 @@ import org.junit.Assert.assertNull
 import org.junit.Test
 
 /**
- * Wohin der Ton beim Verbinden geht (`PLAN.md` 4.6).
+ * where the sound goes when a call connects (PLAN.md 4.6).
  *
- * Zwei Zusagen treffen sich hier, und die Reihenfolge zwischen ihnen ist die eigentliche
- * Entscheidung: „Lautsprecher bei abgehenden Anrufen" ist der speziellere Fall und schlägt
- * die allgemeine Standard-Ausgabe.
+ * two promises meet here, and the order between them is the actual decision: speaker on
+ * outgoing calls is the more specific case and beats the general default output.
  */
 class CallAudioTest {
 
     @Test
-    fun `ohne Einstellung wird nichts umgestellt`() {
-        // Hoermuschel ist ohnehin die Vorgabe des Systems - dann ist der ehrlichste Eingriff
-        // gar keiner.
+    fun `without a setting nothing is changed`() {
+        // the earpiece is the system's default anyway - then the most honest intervention is
+        // none at all.
         assertNull(CallAudio.routeOnConnect(PhoneConfig(), outgoing = false))
         assertNull(CallAudio.routeOnConnect(PhoneConfig(), outgoing = true))
     }
 
     @Test
-    fun `die Standard-Ausgabe gilt fuer beide Richtungen`() {
+    fun `the default output holds for both directions`() {
         val config = PhoneConfig(audioRoute = AudioRoute.BLUETOOTH)
         assertEquals(AudioRoute.BLUETOOTH, CallAudio.routeOnConnect(config, outgoing = false))
         assertEquals(AudioRoute.BLUETOOTH, CallAudio.routeOnConnect(config, outgoing = true))
     }
 
     @Test
-    fun `Lautsprecher beim Waehlen gilt nur fuer eigene Anrufe`() {
+    fun `speaker on dialling holds only for one's own calls`() {
         val config = PhoneConfig(speakerOnOutgoing = true)
         assertEquals(AudioRoute.SPEAKER, CallAudio.routeOnConnect(config, outgoing = true))
         assertNull(CallAudio.routeOnConnect(config, outgoing = false))
     }
 
     @Test
-    fun `beim Waehlen schlaegt der Lautsprecher die Standard-Ausgabe`() {
-        // Wer selbst waehlt, haelt das Telefon oft noch in der Hand und schaut darauf.
+    fun `on dialling the speaker beats the default output`() {
+        // whoever dials themselves often still holds the phone in their hand and looks at it.
         val config = PhoneConfig(audioRoute = AudioRoute.BLUETOOTH, speakerOnOutgoing = true)
         assertEquals(AudioRoute.SPEAKER, CallAudio.routeOnConnect(config, outgoing = true))
         assertEquals(AudioRoute.BLUETOOTH, CallAudio.routeOnConnect(config, outgoing = false))
     }
 
     @Test
-    fun `Hoermuschel ausdruecklich gewaehlt bleibt ein Nicht-Eingriff`() {
+    fun `the earpiece chosen expressly stays a non-intervention`() {
         val config = PhoneConfig(audioRoute = AudioRoute.EARPIECE, speakerOnOutgoing = false)
         assertNull(CallAudio.routeOnConnect(config, outgoing = true))
     }

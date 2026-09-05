@@ -6,69 +6,69 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Der Nachrichtenfilter (`PLAN.md` 4.7).
+ * the message filter (PLAN.md 4.7).
  *
- * Er **verbirgt**, er sperrt nicht — BigLau hält die SMS-Rolle nicht. Das steht so im
- * KDoc, in den Einstellungen und hier, damit niemand die Grenze für dichter hält, als sie
- * ist.
+ * it **hides**, it does not block - BigLau does not hold the sms role. that stands in the
+ * KDoc, in the settings and here, so nobody takes the boundary for tighter than it is.
  */
 class SmsFilterTest {
 
     private var id = 0L
     private fun msg(
-        body: String = "Hallo",
+        body: String = "Hello",
         address: String = "+436641234567",
         incoming: Boolean = true,
     ) = SmsMessage(id++, 1L, address, body, 1000L, incoming, true)
 
     @Test
-    fun `ohne Filter bleibt alles stehen`() {
-        val liste = listOf(msg(), msg("Zweite"))
-        assertEquals(liste, SmsFilter.apply(liste, emptyList(), emptyList()))
+    fun `without a filter everything stays`() {
+        val list = listOf(msg(), msg("second"))
+        assertEquals(list, SmsFilter.apply(list, emptyList(), emptyList()))
     }
 
     @Test
-    fun `eine gefilterte Nummer verschwindet aus der Liste`() {
-        val liste = listOf(msg(address = "+436641234567"), msg(address = "+436809999999"))
-        val uebrig = SmsFilter.apply(liste, listOf("0664 1234567"), emptyList())
-        assertEquals(1, uebrig.size)
-        assertEquals("+436809999999", uebrig.first().address)
+    fun `a filtered number vanishes from the list`() {
+        val list = listOf(msg(address = "+436641234567"), msg(address = "+436809999999"))
+        val left = SmsFilter.apply(list, listOf("0664 1234567"), emptyList())
+        assertEquals(1, left.size)
+        assertEquals("+436809999999", left.first().address)
     }
 
     @Test
-    fun `ein Wort wirkt mitten im Text und unabhaengig von der Schreibweise`() {
-        // Werbung haengt ihre Woerter gern an: "GEWINNSPIEL!!!"
+    fun `a word works mid-text and regardless of case`() {
+        // the german words stay: the umlaut pair is the check object for the case folding.
         assertTrue(SmsFilter.hidden(msg("Sie haben GEWONNEN!!!"), emptyList(), listOf("gewonnen")))
         assertTrue(SmsFilter.hidden(msg("herzlichen glückwunsch"), emptyList(), listOf("Glückwunsch")))
-        assertFalse(SmsFilter.hidden(msg("Bis gleich"), emptyList(), listOf("gewonnen")))
+        assertFalse(SmsFilter.hidden(msg("see you soon"), emptyList(), listOf("gewonnen")))
     }
 
     @Test
-    fun `eigene Nachrichten werden nie verborgen`() {
-        // Was man selbst geschrieben hat, verbirgt man nicht vor sich - auch nicht, wenn
-        // das gefilterte Wort darin vorkommt.
+    fun `one's own messages are never hidden`() {
+        // what one wrote oneself is not hidden from oneself - not even when the filtered word
+        // stands in it.
         assertFalse(
-            SmsFilter.hidden(msg("Ich habe gewonnen", incoming = false), emptyList(), listOf("gewonnen")),
+            SmsFilter.hidden(msg("ich habe gewonnen", incoming = false), emptyList(), listOf("gewonnen")),
         )
     }
 
     @Test
-    fun `eine zu kurze Nummer filtert nicht alles weg`() {
-        // Derselbe Fehler wie bei der Anrufsperre: "123" duerfte nicht jede Nachricht
-        // treffen, die zufaellig so endet.
-        val liste = listOf(msg(address = "+436641234567"))
-        assertEquals(liste, SmsFilter.apply(liste, listOf("123"), emptyList()))
+    fun `a number too short does not filter everything away`() {
+        // the same fault as with call blocking: "123" must not hit every message that happens
+        // to end that way.
+        val list = listOf(msg(address = "+436641234567"))
+        assertEquals(list, SmsFilter.apply(list, listOf("123"), emptyList()))
     }
 
     @Test
-    fun `die Wortliste wird zerlegt und entdoppelt`() {
+    fun `the word list is split and de-duplicated`() {
         assertEquals(listOf("Gewinn", "Werbung"), SmsFilter.parseWords("Gewinn, gewinn; Werbung"))
         assertEquals("Gewinn, Werbung", SmsFilter.formatWords(listOf("Gewinn", "Werbung")))
     }
 
     @Test
-    fun `ein leeres Wort filtert nichts`() {
-        // Sonst verschwaende die ganze Liste, weil jeder Text die leere Zeichenkette enthaelt.
-        assertFalse(SmsFilter.hidden(msg("Hallo"), emptyList(), listOf("", "   ")))
+    fun `an empty word filters nothing`() {
+        // otherwise the whole list would disappear, because every text contains the empty
+        // string.
+        assertFalse(SmsFilter.hidden(msg("Hello"), emptyList(), listOf("", "   ")))
     }
 }

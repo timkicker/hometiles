@@ -171,7 +171,7 @@ class SosActivity : BigLauActivity() {
                                     fontSize = dpSp(17f),
                                     modifier = Modifier.padding(horizontal = 4.dp),
                                 )
-                                NotrufEinrichtenZeile()
+                                SosSetupRow()
                                 BigRow(stringResource(R.string.dialog_close), onClick = { finish() })
                             }
 
@@ -208,7 +208,7 @@ class SosActivity : BigLauActivity() {
                                 }
                                 // the preview without contacts reads the same sentence, at
                                 // exactly the moment someone is setting the sos up.
-                                if (!configured) NotrufEinrichtenZeile()
+                                if (!configured) SosSetupRow()
                                 // `PLAN.md` 4.8: a call button afterwards, never an
                                 // automatic call. nothing could be sent used to be the end of
                                 // the screen. `Intents.dial` opens the keypad with the number
@@ -283,7 +283,7 @@ class SosActivity : BigLauActivity() {
      * and the preview without contacts.
      */
     @Composable
-    private fun NotrufEinrichtenZeile() {
+    private fun SosSetupRow() {
         BigRow(
             label = stringResource(R.string.sos_open_settings),
             icon = Icons.Filled.Settings,

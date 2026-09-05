@@ -6,39 +6,38 @@ import org.junit.Assert.assertNull
 import org.junit.Test
 
 /**
- * Die Kachel „neue Nachricht an feste Nummer" aus `PLAN.md` 4.3.
+ * the tile "new message to a fixed number" from PLAN.md 4.3.
  *
- * Sie war der letzte offene Punkt der Aktionsliste und stand lange zurückgestellt, weil
- * jede Prüfung eine Nachricht erzeugt hätte. Das tut sie nicht: die Kachel öffnet den
- * Schreiben-Bildschirm mit eingetragenem Empfänger, abgeschickt wird erst durch einen
- * Tipp auf Senden.
+ * it stood back a long time because every check would have produced a message. it does not:
+ * the tile opens the writing screen with the recipient filled in, and nothing goes out until
+ * someone taps send.
  */
 class MessageTileTest {
 
     @Test
-    fun `aus einer Nummer wird eine Nachrichten-Kachel`() {
+    fun `a number becomes a message tile`() {
         val action = MessageTile.actionFor("+43 664 111 001")
         assertEquals("+43664111001", action?.number)
         assertEquals(ContactMode.SMS, action?.mode)
     }
 
-    /** Auf der Kachel steht die Nummer in Blöcken - dasselbe Bild wie in der Anrufliste. */
+    /** on the tile the number stands in blocks - the same picture as in the call log. */
     @Test
-    fun `die Nummer steht lesbar auf der Kachel`() {
+    fun `the number stands readably on the tile`() {
         assertEquals("+436 641 110 01", MessageTile.actionFor("+43664111001")?.name)
     }
 
     @Test
-    fun `Schreibweisen fallen weg, die Ziffern bleiben`() {
+    fun `spellings fall away, the digits stay`() {
         assertEquals("0664111001", MessageTile.actionFor("0664/111-001")?.number)
     }
 
-    /** Eine Kachel, die einen leeren Schreiben-Bildschirm öffnet, tut nie etwas. */
+    /** a tile that opens an empty writing screen never does anything. */
     @Test
-    fun `ohne Ziffer entsteht keine Kachel`() {
+    fun `without a digit no tile comes about`() {
         assertNull(MessageTile.actionFor(""))
         assertNull(MessageTile.actionFor("   "))
-        assertNull(MessageTile.actionFor("Oma"))
+        assertNull(MessageTile.actionFor("Alex"))
         assertNull(MessageTile.actionFor("+"))
     }
 }

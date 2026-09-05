@@ -8,7 +8,7 @@ import org.junit.Test
 /**
  * no em dashes in our own prose, not only in the app's texts.
  *
- * [org.biglau.res.StricheTest] keeps the screen texts free. the instruction of 04.09.2026 was
+ * [org.biglau.res.TextDashesTest] keeps the screen texts free. the instruction of 04.09.2026 was
  * for everything written, and `PLAN.md` still carried 141 long dashes, 15 short ones and 29
  * middle dots that day. whoever sets a rule for the app and does not keep it themselves has
  * no rule but an opinion about others.

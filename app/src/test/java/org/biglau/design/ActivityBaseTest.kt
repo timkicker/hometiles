@@ -7,55 +7,54 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Jeder Bildschirm erbt von `BigLauActivity`.
+ * every screen inherits from `BigLauActivity`.
  *
- * An dieser einen Stelle hängen drei Dinge, die man einzeln nie vollständig hinbekommt:
- * die **Bildschirmausrichtung** (`PLAN.md` 4.2 — vorher stand `portrait` zwölfmal im
- * Manifest), die **Sprache** (`attachBaseContext`, sonst zeigt der Bildschirm die des
- * Systems statt der eingestellten) und der **Neuaufbau**, wenn die Sprache sich ändert.
+ * three things hang on that one place that one never gets complete separately: the screen
+ * **orientation** (PLAN.md 4.2 - `portrait` stood twelve times in the manifest before), the
+ * **language** (`attachBaseContext`, or the screen shows the system's instead of the chosen
+ * one) and the **rebuild** when the language changes.
  *
- * Eine neue Activity, die `ComponentActivity` erweitert, verliert alle drei lautlos — sie
- * sieht auf dem Gerät des Entwicklers völlig richtig aus, solange dort Systemsprache und
- * Hochformat gelten. Genau diese Sorte Fehler hat in diesem Projekt schon die Palette
- * erwischt (siehe [PaletteScopeTest]).
+ * a new activity extending `ComponentActivity` loses all three silently - it looks perfectly
+ * right on the developer's machine as long as system language and portrait hold there. that
+ * kind of fault has caught the palette in this project before (see [PaletteScopeTest]).
  */
 class ActivityBaseTest {
 
-    private val quellen: List<File> =
+    private val sources: List<File> =
         Quelltext.files()
 
-    private fun activityZeilen(): List<Pair<String, String>> =
-        quellen.flatMap { datei ->
+    private fun activityLines(): List<Pair<String, String>> =
+        sources.flatMap { file ->
             Regex("""^\s*(?:internal\s+)?class\s+(\w*Activity)\s*:\s*([\w.]+)""", RegexOption.MULTILINE)
-                .findAll(datei.readText())
-                .map { datei.name to it.groupValues[1] + " : " + it.groupValues[2] }
+                .findAll(file.readText())
+                .map { file.name to it.groupValues[1] + " : " + it.groupValues[2] }
                 .toList()
         }
 
     @Test
-    fun `jede Activity erbt von BigLauActivity`() {
-        val fremd = activityZeilen()
-            .filterNot { (datei, _) -> datei == "BigLauActivity.kt" }
-            .filterNot { (_, zeile) -> zeile.endsWith(": BigLauActivity") }
+    fun `every activity inherits from BigLauActivity`() {
+        val foreign = activityLines()
+            .filterNot { (file, _) -> file == "BigLauActivity.kt" }
+            .filterNot { (_, line) -> line.endsWith(": BigLauActivity") }
             .map { "${it.first}: ${it.second}" }
         assertEquals(
-            "Diese Bildschirme erben nicht von BigLauActivity und verlieren damit " +
-                "Ausrichtung, Sprache und den Neuaufbau bei Sprachwechsel: $fremd",
+            "these screens do not inherit from BigLauActivity and so lose orientation, " +
+                "language and the rebuild on a language change: $foreign",
             emptyList<String>(),
-            fremd,
+            foreign,
         )
     }
 
     @Test
-    fun `es gibt ueberhaupt Activities zu pruefen`() {
-        // Sonst ginge die Regel gruen durch, weil der Suchausdruck nichts mehr findet.
-        assertTrue("mindestens zehn Bildschirme", activityZeilen().size >= 10)
+    fun `there are activities to check at all`() {
+        // otherwise the rule would pass green because the pattern finds nothing any more.
+        assertTrue("at least ten screens", activityLines().size >= 10)
     }
 
     @Test
-    fun `BigLauActivity setzt die Ausrichtung selbst`() {
-        val text = quellen.first { it.name == "BigLauActivity.kt" }.readText()
-        assertTrue("setzt requestedOrientation", text.contains("requestedOrientation"))
-        assertTrue("setzt die Sprache", text.contains("attachBaseContext"))
+    fun `BigLauActivity sets the orientation itself`() {
+        val text = sources.first { it.name == "BigLauActivity.kt" }.readText()
+        assertTrue("it sets requestedOrientation", text.contains("requestedOrientation"))
+        assertTrue("it sets the language", text.contains("attachBaseContext"))
     }
 }

@@ -4,12 +4,11 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 /**
- * Wer da anruft — der Name statt der Nummer.
+ * who is calling - the name instead of the number.
  *
- * Am Emulator gesehen: bei einem Anruf von einer Nummer, die im Adressbuch steht, stand
- * trotzdem die Ziffernfolge da. Der Grund war, dass nur genommen wurde, was das Netz
- * mitschickt (CNAP), und das kommt praktisch nie. Wer eine Nummer nicht auswendig kennt,
- * musste beim Klingeln raten, ob er drangehen will.
+ * seen at the emulator: a call from a number that stands in the address book still showed the
+ * digits, because only what the network sends along (CNAP) was taken, and that comes
+ * practically never.
  */
 class CallHeadlineTest {
 
@@ -21,27 +20,27 @@ class CallHeadlineTest {
     )
 
     @Test
-    fun `der name geht der nummer vor`() {
-        assertEquals("Oma", CallActions.headline(view("+4366412345", "Oma"), "Unbekannt"))
+    fun `the name comes before the number`() {
+        assertEquals("Alex", CallActions.headline(view("+4366012345", "Alex"), "Unknown"))
     }
 
-    // Ohne Namen bleibt die Nummer - in Bloecken, wie ueberall sonst.
+    // without a name the number stays - in blocks, as everywhere else.
     @Test
-    fun `ohne namen steht die nummer in bloecken`() {
-        assertEquals("+436 641 234 5", CallActions.headline(view("+4366412345", null), "Unbekannt"))
+    fun `without a name the number stands in blocks`() {
+        assertEquals("+436 601 234 5", CallActions.headline(view("+4366012345", null), "Unknown"))
     }
 
-    // Ein leerer Name ist kein Name. Sonst stuende auf dem Bildschirm gar nichts, und man
-    // wuesste nicht einmal, dass ueberhaupt jemand anruft.
+    // an empty name is no name. otherwise nothing at all would stand on the screen, and one
+    // would not even know that somebody is calling.
     @Test
-    fun `ein leerer name faellt auf die nummer zurueck`() {
-        assertEquals("+436 641 234 5", CallActions.headline(view("+4366412345", "  "), "Unbekannt"))
+    fun `an empty name falls back on the number`() {
+        assertEquals("+436 601 234 5", CallActions.headline(view("+4366012345", "  "), "Unknown"))
     }
 
-    // Unterdrueckte Nummer: weder Name noch Ziffern. Ein Fragezeichen ist ehrlicher als
-    // eine leere Zeile - es sagt "unbekannt", nicht "kaputt".
+    // withheld number: neither name nor digits. the replacement word is more honest than an
+    // empty line - it says unknown, not broken.
     @Test
-    fun `ohne beides bleibt ein fragezeichen`() {
-        assertEquals("Unbekannt", CallActions.headline(view("", null), "Unbekannt"))
+    fun `without both the replacement word stays`() {
+        assertEquals("Unknown", CallActions.headline(view("", null), "Unknown"))
     }
 }

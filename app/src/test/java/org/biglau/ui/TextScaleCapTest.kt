@@ -6,33 +6,29 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Bildschirme, die nicht scrollen, deckeln die Textgröße.
+ * screens that do not scroll cap the text size.
  *
- * Zweimal am Emulator gesehen, beide Male bei 200 %: die PIN-Tasten waren noch **21 dp**
- * hoch, und im Gespräch stand auf dem Knopf **„Lautsprec…"**. Auf solchen Seiten frisst
- * jede weitere Vergrößerung die Fläche, auf die man tippen muss, oder schneidet das Wort ab
- * — beides trifft genau den, der 200 % eingestellt hat.
- *
- * Der Deckel gilt nur nach oben. Und er ersetzt kein kurzes Wort: „Nicht mehr stumm" war
- * auch bei 125 % zu lang und heißt jetzt „Stumm aus" — parallel zu „Lautsprecher aus".
+ * seen twice at the emulator, both times at 200 %: the pin keys were still 21 dp high, and the
+ * speaker button was cut off mid-word. the cap works upward only, and it is no substitute for
+ * a label that is too long anyway.
  */
 class TextScaleCapTest {
 
     @Test
-    fun `nach oben wird gedeckelt`() {
+    fun `upward it is capped`() {
         assertEquals(1.25f, cappedTextScale(2.0f, 1.25f), 0.001f)
         assertEquals(1.5f, cappedTextScale(2.0f, 1.5f), 0.001f)
     }
 
     @Test
-    fun `nach unten nie`() {
+    fun `downward never`() {
         assertEquals(0.75f, cappedTextScale(0.75f, 1.25f), 0.001f)
         assertEquals(1.0f, cappedTextScale(1.0f, 1.25f), 0.001f)
     }
 
     @Test
-    fun `die Deckel der festen Bildschirme bleiben unter der groessten Stufe`() {
-        // 2.0 ist die groesste waehlbare Stufe; ein Deckel darueber waere keiner.
+    fun `the caps of the fixed screens stay below the largest step`() {
+        // 2.0 is the largest selectable step; a cap above it would be none.
         assertTrue(PIN_MAX_TEXT_SCALE < 2.0f)
         assertTrue(INCALL_MAX_TEXT_SCALE < 2.0f)
     }

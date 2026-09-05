@@ -6,40 +6,41 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Wer eine Vollbild-Meldung baut, muss sie auch anmelden.
+ * whoever builds a full-screen notice must declare it too.
  *
- * `setFullScreenIntent` ohne `USE_FULL_SCREEN_INTENT` im Manifest wirft keinen Fehler — die
- * Meldung erscheint einfach als gewöhnliche, und niemand erfährt, warum die Einstellung
- * nichts tut. Genau die Sorte stiller Zusage, die diese App nicht haben soll.
+ * `setFullScreenIntent` without `USE_FULL_SCREEN_INTENT` in the manifest throws no error -
+ * the notice simply appears as an ordinary one, and nobody learns why the setting does
+ * nothing.
  */
 class FullScreenIntentTest {
 
-    private val quellen = Quelltext.files()
+    private val sources = Quelltext.files()
     private val manifest = File("src/main/AndroidManifest.xml").readText()
 
     @Test
-    fun `Vollbild-Meldung und Anmeldung gehoeren zusammen`() {
-        val baut = quellen.any { "setFullScreenIntent" in it.readText() }
-        val angemeldet = "android.permission.USE_FULL_SCREEN_INTENT" in manifest
+    fun `full-screen notice and declaration belong together`() {
+        val builds = sources.any { "setFullScreenIntent" in it.readText() }
+        val declared = "android.permission.USE_FULL_SCREEN_INTENT" in manifest
         assertTrue(
-            "setFullScreenIntent steht im Quelltext, USE_FULL_SCREEN_INTENT fehlt im Manifest",
-            !baut || angemeldet,
+            "setFullScreenIntent stands in the source, USE_FULL_SCREEN_INTENT is missing " +
+                "from the manifest",
+            !builds || declared,
         )
         assertTrue(
-            "USE_FULL_SCREEN_INTENT steht im Manifest, aber niemand baut eine Vollbild-Meldung",
-            !angemeldet || baut,
+            "USE_FULL_SCREEN_INTENT stands in the manifest, but nobody builds a full-screen " +
+                "notice",
+            !declared || builds,
         )
     }
 
     /**
-     * Über den Sperrbildschirm darf nur, was die Meldung selbst geöffnet hat.
-     *
-     * Stünde `showWhenLocked` im Manifest, läge auch die von Hand geöffnete und liegen
-     * gelassene Unterhaltung über dem Sperrbildschirm — eine ganz andere Zusage.
+     * only what the notice itself opened may go over the lock screen. with `showWhenLocked` in
+     * the manifest a conversation opened by hand and left lying would sit over the lock screen
+     * too - a wholly different promise.
      */
     @Test
-    fun `die Nachrichtenansicht steht nicht dauerhaft ueber dem Schloss`() {
+    fun `the message view does not stand over the lock permanently`() {
         val block = Quelltext.cut(manifest, ".sms.SmsActivity", "</activity>")
-        assertTrue("showWhenLocked gehört nicht ins Manifest: $block", "showWhenLocked" !in block)
+        assertTrue("showWhenLocked does not belong in the manifest: $block", "showWhenLocked" !in block)
     }
 }

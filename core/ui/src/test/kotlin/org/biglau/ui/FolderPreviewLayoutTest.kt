@@ -5,39 +5,39 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Die Vorschau im Ordner war nur aus der Zellbreite gerechnet.
+ * the preview in a folder was computed from the cell width alone.
  *
- * Quer ist eine Kachel auf diesem Gerät 400 dp breit und 60 hoch: die Symbole wurden so
- * groß wie erlaubt, zwei Reihen ergaben 72 dp — und schoben die Beschriftung aus der
- * Kachel. Der Ordner hieß dann gar nichts mehr, und man sah ihm nicht an, was drin ist.
+ * in landscape a tile here is 400 dp wide and 60 tall: the icons grew as large as allowed,
+ * two rows came to 72 dp and pushed the label out of the tile. the folder then had no name at
+ * all, and one could not see what was in it.
  */
 class FolderPreviewLayoutTest {
 
     @Test
-    fun `hochkant bleibt alles wie bisher`() {
-        // 2x3 auf diesem Geraet: 165,6 breit, nach der Beschriftung rund 134 hoch.
-        val kante = FolderPreviewLayout.edgeDp(cellWidthDp = 165.6f, availableHeightDp = 134f)
-        assertEquals(33.1f, kante, 0.2f)
-        assertEquals(2, FolderPreviewLayout.rows(134f, kante))
+    fun `upright everything stays as before`() {
+        // 2x3 here: 165.6 wide, about 134 tall after the label.
+        val edge = FolderPreviewLayout.edgeDp(cellWidthDp = 165.6f, availableHeightDp = 134f)
+        assertEquals(33.1f, edge, 0.2f)
+        assertEquals(2, FolderPreviewLayout.rows(134f, edge))
     }
 
     @Test
-    fun `quer schrumpfen die symbole statt die beschriftung zu verdraengen`() {
-        val hoehe = 41f
-        val kante = FolderPreviewLayout.edgeDp(cellWidthDp = 400f, availableHeightDp = hoehe)
-        assertTrue("Kante $kante passt nicht in $hoehe", kante * 2 + FolderPreviewLayout.GAP_DP <= hoehe)
+    fun `in landscape the icons shrink instead of pushing the label out`() {
+        val height = 41f
+        val edge = FolderPreviewLayout.edgeDp(cellWidthDp = 400f, availableHeightDp = height)
+        assertTrue("edge $edge does not fit into $height", edge * 2 + FolderPreviewLayout.GAP_DP <= height)
     }
 
-    // Passt nur eine Reihe, ist eine ganze Reihe ehrlicher als zwei angeschnittene.
+    // if only one row fits, one whole row is more honest than two cut ones.
     @Test
-    fun `bei sehr wenig hoehe bleibt eine reihe`() {
-        val kante = FolderPreviewLayout.edgeDp(cellWidthDp = 400f, availableHeightDp = 20f)
-        assertEquals(1, FolderPreviewLayout.rows(20f, kante))
+    fun `with very little height one row stays`() {
+        val edge = FolderPreviewLayout.edgeDp(cellWidthDp = 400f, availableHeightDp = 20f)
+        assertEquals(1, FolderPreviewLayout.rows(20f, edge))
     }
 
-    // Nach unten begrenzt: unter 14 dp ist ein Vorschausymbol kein Hinweis mehr.
+    // bounded below: under 14 dp a preview icon is no longer a hint.
     @Test
-    fun `die symbole werden nicht beliebig klein`() {
+    fun `the icons do not get arbitrarily small`() {
         assertEquals(14f, FolderPreviewLayout.edgeDp(cellWidthDp = 400f, availableHeightDp = 4f), 0.01f)
     }
 }

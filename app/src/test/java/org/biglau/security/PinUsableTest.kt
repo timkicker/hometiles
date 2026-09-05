@@ -9,48 +9,47 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Eine PIN, die sich nicht pruefen laesst, ist kein Schloss.
+ * a pin that cannot be checked is no lock.
  *
- * Anlass: eine von Hand geschriebene Konfiguration mit `"pin": "1231"` - also der PIN im
- * Klartext statt als „Runden:Salz:Hash". Danach wies die App-Sperre am Emulator jede
- * Eingabe ab, auch die richtige, und liess sich nicht mehr oeffnen: [Pin.verify] steigt bei
- * einem Wert aus, der nicht drei Teile hat. Auf dem Startbildschirm gibt es dagegen keinen
- * Notausstieg.
+ * the occasion: a hand-written configuration with the pin in clear text instead of as
+ * rounds:salt:hash. after that the app lock refused every entry, the right one included, and
+ * could not be opened again: [Pin.verify] bails out on a value that has not three parts. on
+ * the home screen there is no emergency exit for that.
  */
 class PinUsableTest {
 
-    private val echt = Pin.hash("1231")!!
+    private val real = Pin.hash("4712")!!
 
     @Test
-    fun `ein gehashter Wert ist pruefbar`() {
-        assertTrue(Pin.usable(echt))
-        assertTrue(Pin.verify("1231", echt))
+    fun `a hashed value can be checked`() {
+        assertTrue(Pin.usable(real))
+        assertTrue(Pin.verify("4712", real))
     }
 
     @Test
-    fun `Klartext und Unsinn sind nicht pruefbar`() {
+    fun `clear text and nonsense cannot be checked`() {
         assertFalse(Pin.usable(null))
-        assertFalse(Pin.usable("1231"))
+        assertFalse(Pin.usable("4712"))
         assertFalse(Pin.usable(""))
         assertFalse(Pin.usable("a:b"))
-        assertFalse(Pin.usable("keine Zahl:AAAA:AAAA"))
-        assertFalse(Pin.usable("20000:kein Base64 !:AAAA"))
+        assertFalse(Pin.usable("no number:AAAA:AAAA"))
+        assertFalse(Pin.usable("20000:no base64 !:AAAA"))
     }
 
     @Test
-    fun `ein unpruefbarer Wert schuetzt nichts`() {
-        assertTrue(Pin.protects(echt, enabled = true))
-        assertFalse(Pin.protects("1231", enabled = true))
-        assertFalse(Pin.protects(echt, enabled = false))
+    fun `a value that cannot be checked protects nothing`() {
+        assertTrue(Pin.protects(real, enabled = true))
+        assertFalse(Pin.protects("4712", enabled = true))
+        assertFalse(Pin.protects(real, enabled = false))
     }
 
     @Test
-    fun `die App-Sperre haelt mit einem unpruefbaren Wert niemanden fest`() {
+    fun `the app lock holds nobody with a value that cannot be checked`() {
         fun config(pin: String?) = LauncherConfig(
             security = Security(pin = pin),
             apps = AppsConfig(lockOthers = true, allowed = emptySet()),
         )
-        assertTrue(AppLock.needsPin(config(echt), "a/b", "a"))
-        assertFalse(AppLock.needsPin(config("1231"), "a/b", "a"))
+        assertTrue(AppLock.needsPin(config(real), "a/b", "a"))
+        assertFalse(AppLock.needsPin(config("4712"), "a/b", "a"))
     }
 }

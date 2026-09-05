@@ -4,59 +4,58 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 /**
- * Wischen zwischen Screens.
+ * swiping between screens.
  *
- * Der Grund für die Kantenregel: auf diesem Gerät läuft Gestennavigation, und das Wischen
- * von den Rändern gehört der Zurück-Geste. Ein Wisch, der dort beginnt, kommt bei uns nie
- * an - also hört BigLau dort gar nicht erst mit, statt sich mit Android um denselben Finger
- * zu streiten.
+ * the reason for the edge rule: the phone runs gesture navigation, and swiping from the edges
+ * belongs to the back gesture. a swipe starting there never reaches us - so BigLau does not
+ * even listen there instead of fighting android over the same finger.
  */
 class SwipeGestureTest {
 
-    private val breite = 349f
+    private val width = 349f
 
-    private fun wisch(start: Float, strecke: Float) =
-        SwipeGesture.decide(start, strecke, breite)
+    private fun swipe(start: Float, distance: Float) =
+        SwipeGesture.decide(start, distance, width)
 
     @Test
-    fun `nach links geht weiter`() {
-        assertEquals(SwipeGesture.Direction.NEXT, wisch(200f, -100f))
+    fun `to the left goes forward`() {
+        assertEquals(SwipeGesture.Direction.NEXT, swipe(200f, -100f))
     }
 
     @Test
-    fun `nach rechts geht zurueck`() {
-        assertEquals(SwipeGesture.Direction.PREVIOUS, wisch(150f, 100f))
+    fun `to the right goes back`() {
+        assertEquals(SwipeGesture.Direction.PREVIOUS, swipe(150f, 100f))
     }
 
     @Test
-    fun `ein verrutschter Tipp ist kein Wisch`() {
-        assertEquals(SwipeGesture.Direction.NONE, wisch(180f, -20f))
-        assertEquals(SwipeGesture.Direction.NONE, wisch(180f, 20f))
+    fun `a slipped tap is no swipe`() {
+        assertEquals(SwipeGesture.Direction.NONE, swipe(180f, -20f))
+        assertEquals(SwipeGesture.Direction.NONE, swipe(180f, 20f))
     }
 
     @Test
-    fun `genau auf der Schwelle zaehlt`() {
-        assertEquals(SwipeGesture.Direction.NEXT, wisch(180f, -SwipeGesture.THRESHOLD_DP))
-        assertEquals(SwipeGesture.Direction.PREVIOUS, wisch(180f, SwipeGesture.THRESHOLD_DP))
+    fun `exactly on the threshold counts`() {
+        assertEquals(SwipeGesture.Direction.NEXT, swipe(180f, -SwipeGesture.THRESHOLD_DP))
+        assertEquals(SwipeGesture.Direction.PREVIOUS, swipe(180f, SwipeGesture.THRESHOLD_DP))
     }
 
     @Test
-    fun `am linken Rand gehoert die Geste dem System`() {
-        assertEquals(SwipeGesture.Direction.NONE, wisch(5f, 200f))
+    fun `at the left edge the gesture belongs to the system`() {
+        assertEquals(SwipeGesture.Direction.NONE, swipe(5f, 200f))
     }
 
     @Test
-    fun `am rechten Rand ebenso`() {
-        assertEquals(SwipeGesture.Direction.NONE, wisch(breite - 5f, -200f))
+    fun `at the right edge likewise`() {
+        assertEquals(SwipeGesture.Direction.NONE, swipe(width - 5f, -200f))
     }
 
     @Test
-    fun `knapp innerhalb der Kante zaehlt wieder`() {
-        assertEquals(SwipeGesture.Direction.NEXT, wisch(SwipeGesture.EDGE_DP + 1f, -100f))
+    fun `just inside the edge it counts again`() {
+        assertEquals(SwipeGesture.Direction.NEXT, swipe(SwipeGesture.EDGE_DP + 1f, -100f))
     }
 
     @Test
-    fun `ohne Bewegung passiert nichts`() {
-        assertEquals(SwipeGesture.Direction.NONE, wisch(180f, 0f))
+    fun `without movement nothing happens`() {
+        assertEquals(SwipeGesture.Direction.NONE, swipe(180f, 0f))
     }
 }

@@ -15,7 +15,7 @@ import org.junit.Test
  * no longer existed, one file having moved and one area having been renamed. nobody had
  * noticed, because a table does not fall over.
  *
- * now it does. the same exercise as with the icon count in [org.biglau.ui.IconZahlTest]: a
+ * now it does. the same exercise as with the icon count in [org.biglau.ui.IconCountTest]: a
  * number that carries an argument has to be right.
  */
 class EdgeCountTest {

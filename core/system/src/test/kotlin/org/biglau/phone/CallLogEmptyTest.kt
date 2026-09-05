@@ -6,44 +6,44 @@ import org.junit.Test
 
 class CallLogEmptyTest {
 
-    private var naechsteId = 0L
+    private var nextId = 0L
 
-    private fun anruf(art: CallDirection, nummer: String = "+4366411111") = CallEntry(
-        id = ++naechsteId,
-        number = nummer,
+    private fun call(kind: CallDirection, number: String = "+4366411111") = CallEntry(
+        id = ++nextId,
+        number = number,
         name = null,
-        direction = art,
-        timestamp = 1_000_000L - naechsteId,
+        direction = kind,
+        timestamp = 1_000_000L - nextId,
         durationSeconds = 0,
     )
 
-    private fun gruppen(vararg anrufe: CallEntry) = CallLogGrouping.group(anrufe.toList())
+    private fun groups(vararg calls: CallEntry) = CallLogGrouping.group(calls.toList())
 
-    private val alleArten = CallDirection.entries.toSet()
+    private val allKinds = CallDirection.entries.toSet()
 
     @Test
-    fun `mit sichtbaren Anrufen gibt es keinen Grund`() {
+    fun `with visible calls there is no reason`() {
         assertNull(
-            CallLogEmpty.reason(gruppen(anruf(CallDirection.INCOMING)), false, alleArten),
+            CallLogEmpty.reason(groups(call(CallDirection.INCOMING)), false, allKinds),
         )
     }
 
     @Test
-    fun `ohne jeden Anruf ist die Liste wirklich leer`() {
+    fun `without a single call the list is really empty`() {
         assertEquals(
             EmptyCallLog.NO_CALLS,
-            CallLogEmpty.reason(emptyList(), false, alleArten),
+            CallLogEmpty.reason(emptyList(), false, allKinds),
         )
     }
 
     @Test
-    fun `sind alle Arten ausgeblendet, sagt die Liste das`() {
-        // Genau der Fall vom Emulator: sieben Anrufe im Protokoll, jede Art abgewaehlt,
-        // und auf dem Bildschirm stand "Noch keine Anrufe".
+    fun `with all kinds hidden the list says so`() {
+        // seven calls in the log, every kind unticked, and the screen said there were no
+        // calls yet.
         assertEquals(
             EmptyCallLog.HIDDEN_BY_TYPE,
             CallLogEmpty.reason(
-                gruppen(anruf(CallDirection.INCOMING), anruf(CallDirection.MISSED, "+4366422222")),
+                groups(call(CallDirection.INCOMING), call(CallDirection.MISSED, "+4366422222")),
                 false,
                 emptySet(),
             ),
@@ -51,42 +51,41 @@ class CallLogEmptyTest {
     }
 
     @Test
-    fun `auch eine einzelne ausgeblendete Art kann die Liste leeren`() {
-        // Es muessen nicht alle Arten abgewaehlt sein - es reicht, dass die vorhandenen
-        // Anrufe alle von einer abgewaehlten sind.
+    fun `even a single hidden kind can empty the list`() {
+        // not all kinds have to be unticked - it is enough that the calls there all belong
+        // to one that is.
         assertEquals(
             EmptyCallLog.HIDDEN_BY_TYPE,
             CallLogEmpty.reason(
-                gruppen(anruf(CallDirection.BLOCKED)),
+                groups(call(CallDirection.BLOCKED)),
                 false,
-                alleArten - CallDirection.BLOCKED,
+                allKinds - CallDirection.BLOCKED,
             ),
         )
     }
 
     @Test
-    fun `ohne verpasste Anrufe liegt es am Filter darueber`() {
+    fun `without missed calls it is the filter above`() {
         assertEquals(
             EmptyCallLog.NO_MISSED,
-            CallLogEmpty.reason(gruppen(anruf(CallDirection.OUTGOING)), true, alleArten),
+            CallLogEmpty.reason(groups(call(CallDirection.OUTGOING)), true, allKinds),
         )
     }
 
     @Test
-    fun `die ausgeblendete Art wiegt schwerer als der Filter`() {
-        // Beides trifft zu. Genannt wird der Grund, den man nicht sehen kann: der Filter
-        // "nur verpasste" steht als Knopf ueber der Liste, die Artenwahl in den
-        // Einstellungen.
+    fun `the hidden kind weighs more than the filter`() {
+        // both apply. named is the reason one cannot see: the missed-only filter stands as a
+        // button above the list, the choice of kinds sits in the settings.
         assertEquals(
             EmptyCallLog.HIDDEN_BY_TYPE,
-            CallLogEmpty.reason(gruppen(anruf(CallDirection.OUTGOING)), true, emptySet()),
+            CallLogEmpty.reason(groups(call(CallDirection.OUTGOING)), true, emptySet()),
         )
     }
 
     @Test
-    fun `ein verpasster Anruf bleibt bei eingeschaltetem Filter sichtbar`() {
+    fun `a missed call stays visible with the filter on`() {
         assertNull(
-            CallLogEmpty.reason(gruppen(anruf(CallDirection.MISSED)), true, alleArten),
+            CallLogEmpty.reason(groups(call(CallDirection.MISSED)), true, allKinds),
         )
     }
 }

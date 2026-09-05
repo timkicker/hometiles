@@ -17,26 +17,26 @@ class ScreenEditsTest {
     private val base = LauncherConfig(screens = listOf(home), homeScreenId = Defaults.MAIN_ID)
 
     @Test
-    fun `ein neuer Screen hat immer einen Rueckweg`() {
-        // Ein Launcher darf die Zurueck-Geste nicht abfangen. Ohne Heim-Kachel waere
-        // der neue Screen eine Sackgasse.
-        val screen = ScreenEdits.newScreen("s2", "Zweiter", home)
+    fun `a new screen always has a way back`() {
+        // a launcher must not swallow the back gesture. without a home tile the new screen
+        // would be a dead end.
+        val screen = ScreenEdits.newScreen("s2", "Second", home)
         val actions = screen.cells.map { it.button.action }
         assertTrue(actions.contains(ButtonAction.Action(Builtin.HOME_SCREEN)))
     }
 
     @Test
-    fun `die Heim-Kachel sitzt auf dem letzten Platz`() {
-        val screen = ScreenEdits.newScreen("s2", "Zweiter", home)
+    fun `the home tile sits on the last spot`() {
+        val screen = ScreenEdits.newScreen("s2", "Second", home)
         val cell = screen.cells.first()
         assertEquals(home.cols - 1, cell.x)
         assertEquals(home.rows - 1, cell.y)
     }
 
     @Test
-    fun `ein neuer Screen uebernimmt das Raster des alten`() {
+    fun `a new screen takes the grid of the old one`() {
         val wide = Screen(id = "a", name = "A", cols = 3, rows = 4)
-        val screen = ScreenEdits.newScreen("s2", "Zweiter", wide)
+        val screen = ScreenEdits.newScreen("s2", "Second", wide)
         assertEquals(3, screen.cols)
         assertEquals(4, screen.rows)
         assertEquals(2, screen.cells.first().x)
@@ -44,45 +44,45 @@ class ScreenEditsTest {
     }
 
     @Test
-    fun `eine neue Kennung faellt nie auf einen bestehenden Screen`() {
+    fun `a new id never lands on an existing screen`() {
         val config = base.copy(screens = base.screens + Screen(id = "screen2", name = "X"))
         val id = ScreenEdits.freeId(config)
         assertTrue(config.screens.none { it.id == id })
     }
 
     @Test
-    fun `dieselbe Kennung wird nicht zweimal hinzugefuegt`() {
-        val once = ScreenEdits.add(base, Screen(id = "s2", name = "Zweiter"))
-        val twice = ScreenEdits.add(once, Screen(id = "s2", name = "Anderer Name"))
+    fun `the same id is not added twice`() {
+        val once = ScreenEdits.add(base, Screen(id = "s2", name = "Second"))
+        val twice = ScreenEdits.add(once, Screen(id = "s2", name = "Another name"))
         assertEquals(2, twice.screens.size)
-        assertEquals("Zweiter", twice.screens.last().name)
+        assertEquals("Second", twice.screens.last().name)
     }
 
     @Test
-    fun `Umbenennen trimmt und lehnt Leeres ab`() {
-        val renamed = ScreenEdits.rename(base, Defaults.MAIN_ID, "  Zuhause  ")
-        assertEquals("Zuhause", renamed.homeScreen.name)
+    fun `renaming trims and refuses the empty`() {
+        val renamed = ScreenEdits.rename(base, Defaults.MAIN_ID, "  At home  ")
+        assertEquals("At home", renamed.homeScreen.name)
         assertEquals(renamed, ScreenEdits.rename(renamed, Defaults.MAIN_ID, "   "))
     }
 
     @Test
-    fun `der Startscreen laesst sich nicht loeschen`() {
+    fun `the home screen cannot be deleted`() {
         assertEquals(base, ScreenEdits.delete(base, Defaults.MAIN_ID))
     }
 
     @Test
-    fun `der letzte Screen laesst sich nicht loeschen`() {
-        val single = LauncherConfig(screens = listOf(Screen(id = "nur", name = "Nur")), homeScreenId = "anderer")
-        assertEquals(single, ScreenEdits.delete(single, "nur"))
+    fun `the last screen cannot be deleted`() {
+        val single = LauncherConfig(screens = listOf(Screen(id = "only", name = "Only")), homeScreenId = "other")
+        assertEquals(single, ScreenEdits.delete(single, "only"))
     }
 
     @Test
-    fun `Loeschen entfernt Kacheln die dorthin sprangen`() {
-        // Sonst bliebe eine Kachel stehen, die beim Antippen nichts tut.
+    fun `deleting removes the tiles that jumped there`() {
+        // otherwise a tile would stay that does nothing when tapped.
         val withLink = base.copy(
             screens = listOf(
                 home.copy(cells = home.cells + Cell(0, 0, button = Button(ButtonAction.GoToScreen("s2")))),
-                Screen(id = "s2", name = "Zweiter"),
+                Screen(id = "s2", name = "Second"),
             ),
         )
         val after = ScreenEdits.delete(withLink, "s2")
@@ -91,12 +91,12 @@ class ScreenEditsTest {
     }
 
     @Test
-    fun `Loeschen laesst Kacheln zu anderen Screens in Ruhe`() {
+    fun `deleting leaves tiles to other screens alone`() {
         val config = base.copy(
             screens = listOf(
                 home.copy(cells = listOf(Cell(0, 0, button = Button(ButtonAction.GoToScreen("s3"))))),
-                Screen(id = "s2", name = "Zweiter"),
-                Screen(id = "s3", name = "Dritter"),
+                Screen(id = "s2", name = "Second"),
+                Screen(id = "s3", name = "Third"),
             ),
         )
         val after = ScreenEdits.delete(config, "s2")
@@ -104,7 +104,7 @@ class ScreenEditsTest {
     }
 
     @Test
-    fun `Loeschen raeumt auch die Wischreihenfolge auf`() {
+    fun `deleting tidies the swipe order too`() {
         val config = base.copy(
             screens = listOf(home, Screen(id = "s2", name = "Zweiter")),
             swipeOrder = listOf(Defaults.MAIN_ID, "s2"),
@@ -113,17 +113,16 @@ class ScreenEditsTest {
     }
 
     @Test
-    fun `nach dem Loeschen zeigt keine Kachel mehr ins Leere`() {
+    fun `after deleting no tile points into the void`() {
         val config = base.copy(
             screens = listOf(
                 home.copy(cells = listOf(Cell(0, 0, button = Button(ButtonAction.GoToScreen("s2"))))),
-                Screen(id = "s2", name = "Zweiter"),
+                Screen(id = "s2", name = "Second"),
             ),
         )
-        // Nach dem Loeschen darf keine Kachel mehr auf "s2" zeigen.
-        val nachher = ScreenEdits.delete(config, "s2")
+        val after = ScreenEdits.delete(config, "s2")
         assertTrue(
-            nachher.screens.flatMap { it.cells }
+            after.screens.flatMap { it.cells }
                 .none { (it.button.action as? ButtonAction.GoToScreen)?.screenId == "s2" },
         )
     }

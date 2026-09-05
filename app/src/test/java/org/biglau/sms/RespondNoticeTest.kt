@@ -5,39 +5,38 @@ import org.junit.Assert.assertNotEquals
 import org.junit.Test
 
 /**
- * „Anruf mit Nachricht ablehnen" war ein stummer Leerlauf: der Dienst nahm die Bitte an,
- * tat nichts und hielt sich für fertig. Wer im System-Dialer „Kann jetzt nicht sprechen"
- * antippte, bekam keine Fehlermeldung — und der Anrufer bekam keine Nachricht.
+ * rejecting a call with a message was a silent idle run: the service took the request, did
+ * nothing and considered itself finished. no error appeared, and the caller got no message.
  */
 class RespondNoticeTest {
 
     @Test
-    fun `der mitgegebene Text steht in der Meldung`() {
+    fun `the text passed in stands in the notice`() {
         assertEquals(
-            "Bin im Zug, melde mich",
-            RespondNotice.body("Bin im Zug, melde mich", "Hinweis"),
+            "on the train, will call back",
+            RespondNotice.body("on the train, will call back", "Notice"),
         )
     }
 
     @Test
-    fun `ohne Text steht der Hinweis da`() {
-        // Eine Meldung ohne Inhalt ist schlimmer als keine.
-        assertEquals("Hinweis", RespondNotice.body("", "Hinweis"))
-        assertEquals("Hinweis", RespondNotice.body("   ", "Hinweis"))
+    fun `without a text the notice stands there`() {
+        // a notice without content is worse than none.
+        assertEquals("Notice", RespondNotice.body("", "Notice"))
+        assertEquals("Notice", RespondNotice.body("   ", "Notice"))
     }
 
     @Test
-    fun `Leerraum am Rand faellt weg`() {
-        assertEquals("Bin im Zug", RespondNotice.body("  Bin im Zug  ", "Hinweis"))
+    fun `space at the edges falls away`() {
+        assertEquals("on the train", RespondNotice.body("  on the train  ", "Notice"))
     }
 
     @Test
-    fun `je Nummer eine Kennung`() {
-        // Dieselbe Nummer in zwei Schreibweisen ist dieselbe Meldung - sonst stapeln sich
-        // zwei Meldungen fuer denselben Anrufer.
+    fun `one id per number`() {
+        // the same number in two spellings is the same notice - otherwise two notices stack
+        // up for the same caller. the spacing is what the id has to survive.
         assertEquals(
             RespondNotice.notificationId("+436601234567"),
-            RespondNotice.notificationId("0664 123 4567".replace("0664 123 4567", "+436601234567")),
+            RespondNotice.notificationId("+43 660 123 4567"),
         )
         assertNotEquals(
             RespondNotice.notificationId("+436601234567"),
@@ -46,8 +45,8 @@ class RespondNoticeTest {
     }
 
     @Test
-    fun `die Kennung kollidiert nicht mit der einer Nachricht`() {
-        // Sonst raeumte die eine Meldung die andere weg.
+    fun `the id does not collide with a message's`() {
+        // otherwise one notice would clear the other away.
         assertNotEquals(
             SmsNotifications.notificationId("+436601234567"),
             RespondNotice.notificationId("+436601234567"),

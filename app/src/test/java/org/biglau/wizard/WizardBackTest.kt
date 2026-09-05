@@ -7,28 +7,27 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Aus dem Assistenten führt die Zurück-Taste heraus.
+ * the back key leads out of the wizard.
  *
- * Vorher verschluckte er sie ganz: `BackHandler(enabled = true)` ohne Ausweg. Wer ihn aus
- * den Einstellungen noch einmal aufrief und wieder heraus wollte, kam nur über die
- * Heim-Taste oder durch alle vier Schritte. Am Emulator nachgestellt — zweimal Zurück, und
- * er stand weiter auf Schritt 1.
+ * before it swallowed the key entirely: `BackHandler(enabled = true)` with no way out.
+ * whoever called the wizard again from the settings and wanted out again got there only
+ * through the home key or through all four steps.
  *
- * Überall sonst in der App führt Zurück zurück; eine Ausnahme davon merkt sich niemand.
+ * everywhere else in the app back goes back; nobody remembers an exception to that.
  */
 class WizardBackTest {
 
-    private val quelle = Quelltext.file("org/biglau/wizard/WizardActivity.kt").readText()
+    private val source = Quelltext.file("org/biglau/wizard/WizardActivity.kt").readText()
 
-    /** Im ersten Schritt gibt es keinen Schritt davor - dort muss das Schliessen greifen. */
+    /** in the first step there is no step before - closing has to take hold there. */
     @Test
-    fun `vor dem ersten Schritt liegt nichts`() {
+    fun `before the first step lies nothing`() {
         assertNull(WizardSteps.previous(WizardStep.WELCOME, WizardState(isHomeApp = false, hasContacts = false, hasCallPhone = false)))
     }
 
     @Test
-    fun `der Assistent schliesst sich, wenn es nicht weiter zurueckgeht`() {
-        val block = Quelltext.cut(quelle, "BackHandler(enabled = true)", "}")
-        assertTrue("Kein finish() im Zurueck-Weg: $block", "finish()" in block)
+    fun `the wizard closes when back goes no further`() {
+        val block = Quelltext.cut(source, "BackHandler(enabled = true)", "}")
+        assertTrue("no finish() on the way back: $block", "finish()" in block)
     }
 }

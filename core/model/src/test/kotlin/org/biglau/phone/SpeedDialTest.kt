@@ -9,85 +9,85 @@ import org.junit.Test
 
 class SpeedDialTest {
 
-    private val oma = SpeedDialTarget("Oma", "+436601234567")
-    private val opa = SpeedDialTarget("Opa", "+436609876543")
+    private val alex = SpeedDialTarget("Alex", "+436601234567")
+    private val robin = SpeedDialTarget("Robin", "+436609876543")
 
     @Test
-    fun `belegbar sind die Tasten zwei bis neun`() {
-        ('2'..'9').forEach { assertTrue("$it sollte belegbar sein", SpeedDial.isAssignable(it)) }
+    fun `keys two to nine can be assigned`() {
+        ('2'..'9').forEach { assertTrue("$it should be assignable", SpeedDial.isAssignable(it)) }
     }
 
     @Test
-    fun `null und eins bleiben frei`() {
-        // Die 1 ist auf vielen Netzen die Mailbox, die 0 die Auslandsvorwahl - beide zu
-        // belegen wuerde Gewohnheiten brechen, die aelter sind als dieses Telefon.
+    fun `zero and one stay free`() {
+        // on many networks 1 is the mailbox and 0 the international prefix - assigning
+        // either would break habits older than this phone.
         assertTrue(!SpeedDial.isAssignable('0'))
         assertTrue(!SpeedDial.isAssignable('1'))
         assertTrue(!SpeedDial.isAssignable('#'))
     }
 
     @Test
-    fun `eine belegte Taste liefert ihr Ziel`() {
-        val config = SpeedDial.assign(PhoneConfig(), '2', oma)
-        assertEquals(oma, SpeedDial.targetFor(config, '2'))
+    fun `an assigned key gives its target`() {
+        val config = SpeedDial.assign(PhoneConfig(), '2', alex)
+        assertEquals(alex, SpeedDial.targetFor(config, '2'))
     }
 
     @Test
-    fun `eine unbelegte Taste liefert nichts`() {
+    fun `an unassigned key gives nothing`() {
         assertNull(SpeedDial.targetFor(PhoneConfig(), '5'))
     }
 
     @Test
-    fun `unbelegbare Tasten lassen sich nicht belegen`() {
-        assertEquals(PhoneConfig(), SpeedDial.assign(PhoneConfig(), '1', oma))
-        assertEquals(PhoneConfig(), SpeedDial.assign(PhoneConfig(), '0', oma))
+    fun `keys that cannot be assigned are not assigned`() {
+        assertEquals(PhoneConfig(), SpeedDial.assign(PhoneConfig(), '1', alex))
+        assertEquals(PhoneConfig(), SpeedDial.assign(PhoneConfig(), '0', alex))
     }
 
     @Test
-    fun `ein Ziel ohne waehlbare Nummer wird abgelehnt`() {
-        // Sonst haette der Nutzer eine Taste, die beim Druecken nichts tut.
+    fun `a target without a dialable number is refused`() {
+        // otherwise there would be a key that does nothing when pressed.
         assertEquals(PhoneConfig(), SpeedDial.assign(PhoneConfig(), '3', SpeedDialTarget("X", "")))
-        assertEquals(PhoneConfig(), SpeedDial.assign(PhoneConfig(), '3', SpeedDialTarget("X", "keine")))
+        assertEquals(PhoneConfig(), SpeedDial.assign(PhoneConfig(), '3', SpeedDialTarget("X", "none")))
     }
 
     @Test
-    fun `Neubelegung ersetzt die alte`() {
-        var config = SpeedDial.assign(PhoneConfig(), '4', oma)
-        config = SpeedDial.assign(config, '4', opa)
-        assertEquals(opa, SpeedDial.targetFor(config, '4'))
+    fun `a new assignment replaces the old one`() {
+        var config = SpeedDial.assign(PhoneConfig(), '4', alex)
+        config = SpeedDial.assign(config, '4', robin)
+        assertEquals(robin, SpeedDial.targetFor(config, '4'))
         assertEquals(1, config.speedDial.size)
     }
 
     @Test
-    fun `dieselbe Person darf auf zwei Tasten liegen`() {
-        var config = SpeedDial.assign(PhoneConfig(), '2', oma)
-        config = SpeedDial.assign(config, '3', oma)
-        assertEquals(oma, SpeedDial.targetFor(config, '2'))
-        assertEquals(oma, SpeedDial.targetFor(config, '3'))
+    fun `the same person may sit on two keys`() {
+        var config = SpeedDial.assign(PhoneConfig(), '2', alex)
+        config = SpeedDial.assign(config, '3', alex)
+        assertEquals(alex, SpeedDial.targetFor(config, '2'))
+        assertEquals(alex, SpeedDial.targetFor(config, '3'))
     }
 
     @Test
-    fun `Loeschen entfernt nur diese Taste`() {
-        var config = SpeedDial.assign(PhoneConfig(), '2', oma)
-        config = SpeedDial.assign(config, '3', opa)
+    fun `clearing removes only that key`() {
+        var config = SpeedDial.assign(PhoneConfig(), '2', alex)
+        config = SpeedDial.assign(config, '3', robin)
         config = SpeedDial.clear(config, '2')
         assertNull(SpeedDial.targetFor(config, '2'))
-        assertEquals(opa, SpeedDial.targetFor(config, '3'))
+        assertEquals(robin, SpeedDial.targetFor(config, '3'))
     }
 
     @Test
-    fun `Loeschen einer freien Taste aendert nichts`() {
-        val config = SpeedDial.assign(PhoneConfig(), '2', oma)
+    fun `clearing a free key changes nothing`() {
+        val config = SpeedDial.assign(PhoneConfig(), '2', alex)
         assertEquals(config, SpeedDial.clear(config, '7'))
     }
 
     @Test
-    fun `belegte Tasten stehen unter ihrer eigenen Ziffer`() {
-        // Die Wähltastatur fragt je Taste nach - eine Gesamtliste braucht sie nicht.
-        var config = SpeedDial.assign(PhoneConfig(), '7', opa)
-        config = SpeedDial.assign(config, '3', oma)
-        assertEquals(oma.name, SpeedDial.targetFor(config, '3')?.name)
-        assertEquals(opa.name, SpeedDial.targetFor(config, '7')?.name)
+    fun `assigned keys stand under their own digit`() {
+        // the keypad asks per key - it needs no list of them all.
+        var config = SpeedDial.assign(PhoneConfig(), '7', robin)
+        config = SpeedDial.assign(config, '3', alex)
+        assertEquals(alex.name, SpeedDial.targetFor(config, '3')?.name)
+        assertEquals(robin.name, SpeedDial.targetFor(config, '7')?.name)
         assertEquals(null, SpeedDial.targetFor(config, '5'))
     }
 }

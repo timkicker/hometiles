@@ -7,24 +7,24 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Die wiederholte Erinnerung, `PLAN.md` 4.7.
+ * the repeated reminder, PLAN.md 4.7.
  *
- * Der Fall, der hier verhindert wird: eine Erinnerung, die nicht aufhört. Sie hängt an
- * „ungelesen" — und dass Lesen das auch wirklich setzt, war bis heute nicht der Fall.
+ * the case prevented here: a reminder that does not stop. it hangs on "unread", and that
+ * reading really sets that was not the case until today.
  */
 class SmsReminderTest {
 
-    private fun nachricht(
+    private fun message(
         id: Long,
         address: String,
-        body: String = "Hallo",
+        body: String = "Hello",
         read: Boolean = false,
         incoming: Boolean = true,
         timestamp: Long = id,
     ) = SmsMessage(id, id, address, body, timestamp, incoming, read)
 
     @Test
-    fun `aus ist aus`() {
+    fun `off is off`() {
         assertFalse(SmsReminder.active(SmsConfig(repeatMinutes = 0)))
         assertEquals(0L, SmsReminder.delayMs(0))
         assertTrue(SmsReminder.active(SmsConfig(repeatMinutes = 5)))
@@ -32,61 +32,60 @@ class SmsReminderTest {
     }
 
     @Test
-    fun `gelesene Nachrichten erinnern nicht mehr`() {
-        val offen = SmsReminder.due(
-            listOf(nachricht(1, "+43664111001", read = true), nachricht(2, "+43676222222")),
+    fun `read messages no longer remind`() {
+        val open = SmsReminder.due(
+            listOf(message(1, "+43664111001", read = true), message(2, "+43676222222")),
             SmsConfig(),
         )
-        assertEquals(listOf("+43676222222"), offen.map { it.address })
+        assertEquals(listOf("+43676222222"), open.map { it.address })
     }
 
     @Test
-    fun `eigene Nachrichten erinnern nicht`() {
-        assertTrue(SmsReminder.due(listOf(nachricht(1, "+43664111001", incoming = false)), SmsConfig()).isEmpty())
+    fun `one's own messages do not remind`() {
+        assertTrue(SmsReminder.due(listOf(message(1, "+43664111001", incoming = false)), SmsConfig()).isEmpty())
     }
 
-    /** Drei ungelesene von derselben Nummer sind eine Erinnerung, nicht drei. */
+    /** three unread from the same number are one reminder, not three. */
     @Test
-    fun `je Absender die neueste`() {
-        val offen = SmsReminder.due(
+    fun `the newest per sender`() {
+        val open = SmsReminder.due(
             listOf(
-                nachricht(1, "+43664111001", "erste"),
-                nachricht(2, "+43664111001", "zweite"),
-                nachricht(3, "+43676222222", "andere"),
+                message(1, "+43664111001", "first"),
+                message(2, "+43664111001", "second"),
+                message(3, "+43676222222", "other"),
             ),
             SmsConfig(),
         )
-        assertEquals(2, offen.size)
-        assertEquals("andere", offen.first().body)
-        assertEquals("zweite", offen.last().body)
+        assertEquals(2, open.size)
+        assertEquals("other", open.first().body)
+        assertEquals("second", open.last().body)
     }
 
-    /** Sonst käme die Werbung, die man nicht sehen wollte, alle fünf Minuten wieder. */
+    /** otherwise the advertisement one did not want to see would come back every five minutes. */
     @Test
-    fun `was ausgeblendet ist, erinnert nicht`() {
-        val offen = SmsReminder.due(
-            listOf(nachricht(1, "+43664111001"), nachricht(2, "+43676222222", "Sie haben gewonnen")),
-            SmsConfig(hiddenWords = listOf("gewonnen")),
+    fun `what is hidden does not remind`() {
+        val open = SmsReminder.due(
+            listOf(message(1, "+43664111001"), message(2, "+43676222222", "you have won")),
+            SmsConfig(hiddenWords = listOf("won")),
         )
-        assertEquals(listOf("+43664111001"), offen.map { it.address })
+        assertEquals(listOf("+43664111001"), open.map { it.address })
     }
 
     /**
-     * Am Emulator hineingelaufen: die erste Erinnerung brachte zwölf Meldungen auf einmal.
-     * Am echten Gerät passiert das, sobald jemand BigLau mit einem Rückstand ungelesener
-     * Nachrichten zur Standard-App macht.
+     * the first reminder brought twelve notices at once. on a real phone that happens as soon
+     * as someone makes BigLau the default app with a backlog of unread messages.
      */
     @Test
-    fun `hoechstens drei Meldungen auf einmal`() {
-        val viele = (1..10).map { nachricht(it.toLong(), "+4366411100$it") }
-        val offen = SmsReminder.due(viele, SmsConfig())
-        assertEquals(SmsReminder.MAX_AT_ONCE, offen.size)
-        // Und zwar die neuesten.
-        assertEquals(listOf(10L, 9L, 8L), offen.map { it.timestamp })
+    fun `at most three notices at once`() {
+        val many = (1..10).map { message(it.toLong(), "+4366411100$it") }
+        val open = SmsReminder.due(many, SmsConfig())
+        assertEquals(SmsReminder.MAX_AT_ONCE, open.size)
+        // and the newest ones at that.
+        assertEquals(listOf(10L, 9L, 8L), open.map { it.timestamp })
     }
 
     @Test
-    fun `ohne ungelesene gibt es nichts zu erinnern`() {
+    fun `without unread ones there is nothing to remind about`() {
         assertTrue(SmsReminder.due(emptyList(), SmsConfig()).isEmpty())
     }
 }

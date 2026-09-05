@@ -4,26 +4,26 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 /**
- * Die eigene gesendete Nachricht.
+ * one's own sent message.
  *
- * Android legt sie nur dann von selbst ab, wenn die sendende App **nicht** die Standard-App
- * ist. Mit der Rolle verschwände sie sonst in dem Moment, in dem sie hinausgeht.
+ * android stores it by itself only when the sending app is **not** the default app. with the
+ * role it would otherwise vanish in the moment it goes out.
  */
 class SmsOutboxTest {
 
-    private val werte = SmsOutbox.values("+43664111001", "Bin um sechs da", 1_700_000_000_000L)
+    private val values = SmsOutbox.values("+43664111001", "there at six", 1_700_000_000_000L)
 
     @Test
-    fun `Empfaenger, Text und Zeit stehen drin`() {
-        assertEquals("+43664111001", werte["address"])
-        assertEquals("Bin um sechs da", werte["body"])
-        assertEquals(1_700_000_000_000L, werte["date"])
+    fun `recipient, text and time stand in it`() {
+        assertEquals("+43664111001", values["address"])
+        assertEquals("there at six", values["body"])
+        assertEquals(1_700_000_000_000L, values["date"])
     }
 
-    /** Sonst zählte die eigene Nachricht als neu und die Erinnerung erinnerte an sie. */
+    /** otherwise one's own message would count as new and the reminder would remind of it. */
     @Test
-    fun `die eigene Nachricht gilt als gelesen`() {
-        assertEquals(1, werte["read"])
-        assertEquals(1, werte["seen"])
+    fun `one's own message counts as read`() {
+        assertEquals(1, values["read"])
+        assertEquals(1, values["seen"])
     }
 }

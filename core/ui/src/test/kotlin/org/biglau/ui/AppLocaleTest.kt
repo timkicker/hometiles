@@ -8,31 +8,30 @@ import org.junit.Assert.assertNull
 import org.junit.Test
 
 /**
- * PLAN.md 4.9: Sprache System / Deutsch / Englisch.
+ * PLAN.md 4.9: "Sprache System / Deutsch / Englisch", quoted in the plan's german.
  *
- * Der Grund ist nicht Bequemlichkeit. Viele Telefone stehen auf einer Sprache, die jemand
- * anderes eingestellt hat; wer sie umstellen wollte, müsste sich erst durch
- * Systemeinstellungen arbeiten, die er nicht lesen kann.
+ * the reason is not convenience. many phones stand in a language somebody else set; whoever
+ * wanted to change it would first have to work through system settings they cannot read.
  */
 class AppLocaleTest {
 
     @Test
-    fun `die vorgabe folgt dem telefon`() {
+    fun `the default follows the phone`() {
         assertEquals(Language.SYSTEM, Appearance().language)
         assertNull(AppLocale.localeFor(Language.SYSTEM))
     }
 
     @Test
-    fun `deutsch und englisch werden aufgeloest`() {
+    fun `german and english resolve`() {
         assertEquals(Locale.GERMAN, AppLocale.localeFor(Language.GERMAN))
         assertEquals(Locale.ENGLISH, AppLocale.localeFor(Language.ENGLISH))
     }
 
-    // Ein Bildschirm, der schon lief, haelt die alten Texte. Der Startbildschirm steht die
-    // ganze Zeit im Hintergrund - ohne Neuaufbau bliebe ausgerechnet die Seite
-    // fremdsprachig, auf der man nach dem Umstellen landet.
+    // a screen already running keeps the old texts. the home screen stands in the background
+    // the whole time - without a rebuild the very page one lands on after switching would
+    // stay in the foreign language.
     @Test
-    fun `nur eine geaenderte sprache baut neu auf`() {
+    fun `only a changed language rebuilds`() {
         assertEquals(false, AppLocale.needsRecreate(Language.GERMAN, Language.GERMAN))
         assertEquals(true, AppLocale.needsRecreate(Language.GERMAN, Language.ENGLISH))
         assertEquals(true, AppLocale.needsRecreate(Language.SYSTEM, Language.GERMAN))

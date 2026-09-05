@@ -5,30 +5,30 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Wann ein Knopf, der um eine Berechtigung bittet, nichts mehr ausrichtet.
+ * when a button asking for a permission can no longer do anything.
  *
- * Android stellt die Frage nach der zweiten Ablehnung nicht mehr. Ein Knopf, der dann noch
- * "Zugriff erlauben" verspricht, wird gedrueckt und es geschieht nichts - dieselbe Sorte
- * Sackgasse wie die ausgeblendete App ohne Weg zurueck. Ab hier fuehrt der Weg nur noch
- * ueber die Systemeinstellungen, und genau das muss dort stehen.
+ * android stops putting the question after the second refusal. a button still promising
+ * access is pressed and nothing happens - the same kind of dead end as a hidden app with no
+ * way back. from there the way leads only through the system settings, and that is what must
+ * stand there.
  */
 class PermissionStateTest {
 
     @Test
-    fun `vor der ersten Frage ist nichts blockiert`() {
+    fun `before the first question nothing is blocked`() {
         assertFalse(PermissionState.blocked(deniedOnce = false, canAskAgain = true))
-        // Auch wenn das System schon "nicht mehr fragen" meldet, aber noch nie gefragt wurde:
-        // dann hat der Nutzer in dieser Sitzung nichts abgelehnt, der Knopf darf es versuchen.
+        // even when the system already reports "do not ask again" but nothing was ever asked:
+        // then nothing was refused in this session and the button may try.
         assertFalse(PermissionState.blocked(deniedOnce = false, canAskAgain = false))
     }
 
     @Test
-    fun `eine einzelne Ablehnung blockiert noch nicht`() {
+    fun `a single refusal does not block yet`() {
         assertFalse(PermissionState.blocked(deniedOnce = true, canAskAgain = true))
     }
 
     @Test
-    fun `abgelehnt und keine Frage mehr heisst blockiert`() {
+    fun `refused and no more questions means blocked`() {
         assertTrue(PermissionState.blocked(deniedOnce = true, canAskAgain = false))
     }
 }

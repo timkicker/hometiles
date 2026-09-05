@@ -9,15 +9,14 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * „Druck = Farbe + Haptik" — `PLAN.md` 3.1, Leitsatz 3.
+ * "Druck = Farbe + Haptik" - PLAN.md 3.1, third principle, quoted in the plan's german.
  *
- * Da war nur ein Schrumpfen um drei Prozent, und genau die Stelle verdeckt im Moment des
- * Drückens der Finger. Farbe stand im Leitsatz und fehlte im Code; gefunden beim Abgleich
- * Plan gegen Quelltext.
+ * there was only a shrink by three percent, and the finger covers exactly that spot at the
+ * moment of the press.
  *
- * Die gedrückte Fläche wird **dunkler**, nie heller: heller hieße weniger Abstand zur
- * Beschriftung, und die Schwelle aus 3.3 gilt auch während eines Drucks. Genau das rechnet
- * der zweite Test nach — für jeden Kachelton beider Themen.
+ * the pressed surface goes **darker**, never lighter: lighter would mean less distance to the
+ * label, and the threshold from 3.3 holds during a press too. the second test does that
+ * arithmetic for every tile hue of both themes.
  */
 class PressFeedbackTest {
 
@@ -33,41 +32,41 @@ class PressFeedbackTest {
     )
 
     @Test
-    fun `die gedrueckte Kachel wird sichtbar dunkler`() {
-        (Tokens.DARK_TILES + Tokens.LIGHT_TILES).forEach { ton ->
-            val hell = colorOf(ton)
-            val dunkel = darken(hell)
-            val unterschied = contrastRatio(ton, asLong(dunkel))
+    fun `the pressed tile goes visibly darker`() {
+        (Tokens.DARK_TILES + Tokens.LIGHT_TILES).forEach { hue ->
+            val light = colorOf(hue)
+            val dark = darken(light)
+            val difference = contrastRatio(hue, asLong(dark))
             assertTrue(
-                "Auf ${ton.toString(16)} ist der Druck kaum zu sehen: $unterschied zu 1",
-                unterschied > 1.45,
+                "on ${hue.toString(16)} the press is hardly visible: $difference to 1",
+                difference > 1.45,
             )
         }
     }
 
-    /** Der Abstand zur Beschriftung darf durch den Druck nicht kleiner werden. */
+    /** the distance to the label must not shrink because of the press. */
     @Test
-    fun `die Beschriftung bleibt lesbar waehrend des Drucks`() {
+    fun `the label stays readable during the press`() {
         listOf(
             Tokens.DARK_TILES to 0xFFFFFFFFL,
             Tokens.LIGHT_TILES to 0xFFFFFFFFL,
         ).forEach { (tiles, ink) ->
-            tiles.forEach { ton ->
-                val vorher = contrastRatio(ink, ton)
-                val nachher = contrastRatio(ink, asLong(darken(colorOf(ton))))
+            tiles.forEach { hue ->
+                val before = contrastRatio(ink, hue)
+                val after = contrastRatio(ink, asLong(darken(colorOf(hue))))
                 assertTrue(
-                    "Auf ${ton.toString(16)} sinkt der Kontrast beim Druck von $vorher auf $nachher",
-                    nachher >= vorher,
+                    "on ${hue.toString(16)} the contrast drops on press from $before to $after",
+                    after >= before,
                 )
-                assertTrue("$nachher liegt unter der Schwelle", nachher >= Tokens.MIN_LABEL_ON_TILE)
+                assertTrue("$after lies under the threshold", after >= Tokens.MIN_LABEL_ON_TILE)
             }
         }
     }
 
-    /** Und der Rand wächst - im Hochkontrast-Thema ist die Fläche schon schwarz. */
+    /** and the border grows - in the high contrast theme the surface is black already. */
     @Test
-    fun `im Hochkontrast traegt der Rand den Druck`() {
-        val quelle = Quelltext.file("org/biglau/ui/BigTile.kt").readText()
-        assertTrue("Der Rand waechst beim Druck nicht", "if (pressed) 2.dp else 0.dp" in quelle)
+    fun `in high contrast the border carries the press`() {
+        val source = Quelltext.file("org/biglau/ui/BigTile.kt").readText()
+        assertTrue("the border does not grow on press", "if (pressed) 2.dp else 0.dp" in source)
     }
 }

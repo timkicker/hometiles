@@ -5,47 +5,47 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Der Startbildschirm muss undurchsichtig sein — sonst führt die Heim-Taste nirgendwohin.
+ * the home screen must be opaque - otherwise the home key leads nowhere.
  *
- * Am Jelly 2 blieb die vorherige App **auf dem Bildschirm stehen**, wenn man heim ging. Im
- * Task-Auszug stand `type=home … translucent=true`: eine durchsichtige Heim-Aufgabe verdeckt
- * die App dahinter nicht, also blieb sichtbar, was vorher da war. Am Emulator, mit derselben
- * Fassung, stand dort `translucent=false` — der Unterschied kam aus dem Thema des Herstellers.
+ * on the Jelly 2 the previous app stayed on the screen when going home. the task dump said
+ * `type=home ... translucent=true`: a translucent home task does not cover the app behind it.
+ * on the emulator, same build, it said `translucent=false` - the difference came from the
+ * manufacturer's theme.
  *
- * Deshalb steht die Undurchsichtigkeit jetzt im eigenen Thema statt geerbt zu werden. Für
- * einen Startbildschirm ist das kein Detail: die Heim-Taste ist der Weg zurück, auf den sich
- * jemand verlässt, der sich sonst nirgends zurechtfindet.
+ * so the opacity now stands in the app's own theme instead of being inherited. for a home
+ * screen that is no detail: the home key is the way back that someone relies on who finds
+ * their way nowhere else.
  */
 class HomeOpaqueTest {
 
-    private val thema = File("src/main/res/values/themes.xml").readText()
+    private val theme = File("src/main/res/values/themes.xml").readText()
 
     @Test
-    fun `das Thema sagt ausdruecklich, dass es nicht durchsichtig ist`() {
+    fun `the theme says expressly that it is not translucent`() {
         assertTrue(
-            "windowIsTranslucent fehlt",
-            """<item name="android:windowIsTranslucent">false</item>""" in thema,
+            "windowIsTranslucent is missing",
+            """<item name="android:windowIsTranslucent">false</item>""" in theme,
         )
         assertTrue(
-            "windowIsFloating fehlt",
-            """<item name="android:windowIsFloating">false</item>""" in thema,
-        )
-    }
-
-    @Test
-    fun `es zeigt auch kein Hintergrundbild durch`() {
-        // windowShowWallpaper macht die Aufgabe ebenfalls durchsichtig - und BigLau malt
-        // seinen Hintergrund selbst.
-        assertTrue(
-            "windowShowWallpaper fehlt",
-            """<item name="android:windowShowWallpaper">false</item>""" in thema,
+            "windowIsFloating is missing",
+            """<item name="android:windowIsFloating">false</item>""" in theme,
         )
     }
 
     @Test
-    fun `der Fensterhintergrund ist eine deckende Farbe`() {
-        val zeile = thema.lines().first { "android:windowBackground" in it }
-        assertTrue("kein Farbwert: $zeile", Regex("""#[0-9a-fA-F]{6}""").containsMatchIn(zeile))
-        assertTrue("mit Alpha statt deckend: $zeile", !Regex("""#[0-9a-fA-F]{8}""").containsMatchIn(zeile))
+    fun `it shows no wallpaper through either`() {
+        // windowShowWallpaper makes the task translucent as well - and BigLau paints its own
+        // background.
+        assertTrue(
+            "windowShowWallpaper is missing",
+            """<item name="android:windowShowWallpaper">false</item>""" in theme,
+        )
+    }
+
+    @Test
+    fun `the window background is an opaque colour`() {
+        val line = theme.lines().first { "android:windowBackground" in it }
+        assertTrue("no colour value: $line", Regex("""#[0-9a-fA-F]{6}""").containsMatchIn(line))
+        assertTrue("with alpha instead of opaque: $line", !Regex("""#[0-9a-fA-F]{8}""").containsMatchIn(line))
     }
 }

@@ -18,7 +18,7 @@ class ContactMergeTest {
     ) = ContactRow(id, name, number, label, photo, starred)
 
     @Test
-    fun `Schreibweisen derselben Nummer werden als gleich erkannt`() {
+    fun `spellings of the same number are recognised as equal`() {
         assertEquals(
             ContactMerge.normalizeNumber("+43 660 123 45 67"),
             ContactMerge.normalizeNumber("+436601234567"),
@@ -30,9 +30,9 @@ class ContactMergeTest {
     }
 
     @Test
-    fun `ein fuehrendes Plus bleibt unterscheidend`() {
-        // Ohne Landesvorwahl laesst sich nicht sicher sagen, ob 0660... dieselbe
-        // Nummer ist wie +43660... - also wird hier nicht geraten.
+    fun `a leading plus keeps two numbers apart`() {
+        // without a country code one cannot say for sure whether 0660... is the same number
+        // as +43660... - so nothing is guessed here.
         assertTrue(
             ContactMerge.normalizeNumber("+436601234567") !=
                 ContactMerge.normalizeNumber("06601234567"),
@@ -40,7 +40,7 @@ class ContactMergeTest {
     }
 
     @Test
-    fun `dieselbe Nummer aus zwei Konten erscheint nur einmal`() {
+    fun `the same number from two accounts appears once`() {
         val merged = ContactMerge.merge(
             listOf(
                 row(1, "Anna Berger", "+43 660 1234567"),
@@ -52,7 +52,7 @@ class ContactMergeTest {
     }
 
     @Test
-    fun `die erste Schreibweise bleibt stehen`() {
+    fun `the first spelling stays`() {
         val merged = ContactMerge.merge(
             listOf(
                 row(1, "Anna", "+43 660 1234567"),
@@ -62,8 +62,9 @@ class ContactMergeTest {
         assertEquals("+43 660 1234567", merged.first().numbers.first().number)
     }
 
+    // the labels stay german: they are what the phone's contacts deliver.
     @Test
-    fun `eine Bezeichnung ersetzt eine zuvor gesehene ohne`() {
+    fun `a label replaces one seen before without`() {
         val merged = ContactMerge.merge(
             listOf(
                 row(1, "Anna", "+436601234567", label = null),
@@ -74,7 +75,7 @@ class ContactMergeTest {
     }
 
     @Test
-    fun `verschiedene Nummern bleiben alle erhalten`() {
+    fun `different numbers are all kept`() {
         val merged = ContactMerge.merge(
             listOf(
                 row(1, "Anna", "+436601234567", label = "Mobil"),
@@ -86,19 +87,19 @@ class ContactMergeTest {
     }
 
     @Test
-    fun `ein Kontakt mit einer Nummer stellt keine Frage`() {
+    fun `a contact with one number asks nothing`() {
         val merged = ContactMerge.merge(listOf(row(1, "Anna", "+436601234567")))
         assertTrue(!merged.first().hasChoice)
         assertEquals("+436601234567", merged.first().primaryNumber)
     }
 
     @Test
-    fun `namenlose Eintraege und Nummern ohne Ziffern fliegen raus`() {
+    fun `nameless entries and numbers without digits fly out`() {
         val merged = ContactMerge.merge(
             listOf(
                 row(1, "", "+436601234567"),
                 row(2, "   ", "+436601234567"),
-                row(3, "Ohne Nummer", "---"),
+                row(3, "No number", "---"),
                 row(4, "Anna", "+436601234567"),
             ),
         )
@@ -106,7 +107,7 @@ class ContactMergeTest {
     }
 
     @Test
-    fun `Favoriten stehen oben`() {
+    fun `favourites stand on top`() {
         val merged = ContactMerge.merge(
             listOf(
                 row(1, "Anna", "+431"),
@@ -118,7 +119,7 @@ class ContactMergeTest {
     }
 
     @Test
-    fun `ein Favoritenkennzeichen an einer Zeile gilt fuer den Kontakt`() {
+    fun `a favourite mark on one row holds for the contact`() {
         val merged = ContactMerge.merge(
             listOf(
                 row(1, "Anna", "+431", starred = false),
@@ -129,78 +130,77 @@ class ContactMergeTest {
     }
 
     @Test
-    fun `das erste vorhandene Foto gewinnt`() {
+    fun `the first photo there is wins`() {
         val merged = ContactMerge.merge(
             listOf(
                 row(1, "Anna", "+431", photo = null),
-                row(1, "Anna", "+432", photo = "content://foto"),
+                row(1, "Anna", "+432", photo = "content://photo"),
             ),
         )
-        assertEquals("content://foto", merged.first().photoUri)
+        assertEquals("content://photo", merged.first().photoUri)
     }
 
     @Test
-    fun `ohne Foto bleibt es null`() {
+    fun `without a photo it stays null`() {
         val merged = ContactMerge.merge(listOf(row(1, "Anna", "+431")))
         assertNull(merged.first().photoUri)
     }
 
     @Test
-    fun `Namen werden getrimmt`() {
+    fun `names are trimmed`() {
         assertEquals("Anna Berger", ContactMerge.merge(listOf(row(1, "  Anna Berger  ", "+431"))).first().name)
     }
 
     @Test
-    fun `eine leere Liste ergibt eine leere Liste`() {
+    fun `an empty list gives an empty list`() {
         assertTrue(ContactMerge.merge(emptyList()).isEmpty())
     }
 }
 
 /**
- * Ein Kontakt ohne Rufnummer.
+ * a contact without a phone number.
  *
- * Heute liefert die Abfrage über Phone.CONTENT_URI keine Zeile für so jemanden, die Liste
- * enthält ihn also gar nicht. Aber `primaryNumber` war ein `first()` auf einer Liste, die
- * leer sein kann - ein Absturz, eine Umbaurunde entfernt. Und ein abgestürzter Launcher ist
- * ein schwarzes Telefon: genau so hat Android schon einmal die Startbildschirm-Rolle wieder
- * entzogen.
+ * today the query over Phone.CONTENT_URI returns no row for such a person, so the list does
+ * not hold them at all. but `primaryNumber` was a `first()` on a list that can be empty - a
+ * crash one rebuild away. and a crashed launcher is a black phone: that is how android took
+ * the home screen role away once before.
  */
 class ContactWithoutNumberTest {
 
-    private val ohneNummer = PhoneContact(
+    private val withoutNumber = PhoneContact(
         id = 1L,
-        name = "Nur E-Mail",
+        name = "Email only",
         photoUri = null,
         numbers = emptyList(),
     )
 
-    private val mitNummer = PhoneContact(
+    private val withNumber = PhoneContact(
         id = 2L,
-        name = "Mit Nummer",
+        name = "With number",
         photoUri = null,
         numbers = listOf(PhoneNumber("+436601234567", null)),
     )
 
     @Test
-    fun `ohne Nummer stuerzt nichts ab`() {
-        assertNull(ohneNummer.primaryNumber)
-        assertFalse(ohneNummer.isCallable)
-        assertFalse(ohneNummer.hasChoice)
+    fun `without a number nothing crashes`() {
+        assertNull(withoutNumber.primaryNumber)
+        assertFalse(withoutNumber.isCallable)
+        assertFalse(withoutNumber.hasChoice)
     }
 
     @Test
-    fun `mit einer Nummer gibt es nichts zu waehlen`() {
-        assertEquals("+436601234567", mitNummer.primaryNumber)
-        assertTrue(mitNummer.isCallable)
-        assertFalse(mitNummer.hasChoice)
+    fun `with one number there is nothing to choose`() {
+        assertEquals("+436601234567", withNumber.primaryNumber)
+        assertTrue(withNumber.isCallable)
+        assertFalse(withNumber.hasChoice)
     }
 
     @Test
-    fun `mit zwei Nummern wird gefragt`() {
-        val zwei = mitNummer.copy(
-            numbers = mitNummer.numbers + PhoneNumber("+436809876543", null),
+    fun `with two numbers it asks`() {
+        val two = withNumber.copy(
+            numbers = withNumber.numbers + PhoneNumber("+436809876543", null),
         )
-        assertTrue(zwei.hasChoice)
-        assertTrue(zwei.isCallable)
+        assertTrue(two.hasChoice)
+        assertTrue(two.isCallable)
     }
 }
