@@ -56,9 +56,9 @@ class KachelWegTest {
 
     @Test
     fun `starten bekommt den screen gesagt`() {
-        val zeichen = Quelltext.cut(haupt, from = "private fun starten(", to = "{")
+        val zeichen = Quelltext.cut(haupt, from = "private fun startAction(", to = "{")
         assertTrue(
-            "starten() nimmt keinen screenId — dann muss es sich den Screen selbst " +
+            "startAction() nimmt keinen screenId — dann muss es sich den Screen selbst " +
                 "ausdenken, und das ging schon einmal schief: $zeichen",
             "screenId: String" in zeichen,
         )

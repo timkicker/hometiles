@@ -6,89 +6,82 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Ein Feld, das nur gefüllt und nie gelesen wird, ist eine vergessene Zusage.
+ * a field only ever filled and never read is a forgotten promise.
  *
- * Anlass: `CallView.otherCallWaiting`. Der Dienst setzte es bei jedem zweiten Anruf
- * gewissenhaft — und **keine Zeile der Oberfläche las es je**. Sichtbar wurde das erst am
- * Emulator: während eines Gesprächs klingelte es, der Bildschirm zeigte nur den neuen
- * Anrufer, und der erste Anruf war danach weder zu sehen noch zu erreichen.
+ * `CallView.otherCallWaiting` was set dutifully by the service on every second call, and
+ * **not one line of the surface ever read it**. it showed only on the emulator: a call came
+ * in during a conversation, the screen showed the new caller alone, and the first call was
+ * afterwards neither to be seen nor to be reached.
  *
- * Das ist die Schwester von [DeadLogicTest]: dort Funktionen, die niemand ruft, hier Werte,
- * die niemand liest. Beides sieht im Quelltext nach fertiger Arbeit aus.
+ * this is the sister of [DeadLogicTest]: functions nobody calls there, values nobody reads
+ * here. both look like finished work in the source.
  *
- * Geprüft werden nur Felder im Kopf einer `data class` — das sind die Werte, die von einer
- * Stelle zur anderen gereicht werden. Ein Zuweisen (`feld = wert` als benannter Parameter)
- * zählt nicht als Lesen.
+ * only fields in the head of a `data class` are checked - the values passed from one place to
+ * another. filling one (`field = value` as a named parameter) does not count as reading.
  */
 class DeadFieldTest {
 
-
-    /**
-     * Was gefüllt werden darf, ohne gelesen zu werden.
-     *
-     * Nur mit Grund — eine Ausnahme ohne Grund ist bloss ein leiser gestellter Fehler.
-     */
-    private val begruendeteAusnahmen = mapOf(
-        // Steht in jeder gesicherten Datei und wird beim Einlesen aus dem rohen JSON
-        // geprueft (ConfigTransfer), nicht ueber dieses Feld.
-        "LauncherConfig.version" to "wird beim Einlesen aus dem JSON selbst gelesen",
+    /** what may be filled without being read. only with a reason. */
+    private val reasonedExceptions = mapOf(
+        // stands in every saved file and is checked while reading the raw json
+        // (ConfigTransfer), not through this field.
+        "LauncherConfig.version" to "is read from the json itself while loading",
     )
 
-    private fun dateien(): List<File> =
+    private fun files(): List<File> =
         Quelltext.files()
 
-    /** Alle Felder im Kopf einer `data class`, als "Klasse.Feld" mit ihrer Fundstelle. */
-    private fun felder(): List<Triple<String, String, File>> {
-        val gefunden = mutableListOf<Triple<String, String, File>>()
-        dateien().forEach { datei ->
-            var klasse: String? = null
-            datei.readLines().forEach { zeile ->
-                Regex("""^(?:@\w+\s+)?data class (\w+)""").find(zeile.trim())?.let {
-                    // Eine einzeilige `data class X(val a: Int)` hat keinen mehrzeiligen
-                    // Kopf - sonst gehoerte ihr alles, was danach im Rumpf steht.
-                    klasse = if (zeile.trimEnd().endsWith(")")) null else it.groupValues[1]
+    /** every field in the head of a `data class`, as "class.field" with its place. */
+    private fun fields(): List<Triple<String, String, File>> {
+        val found = mutableListOf<Triple<String, String, File>>()
+        files().forEach { file ->
+            var cls: String? = null
+            file.readLines().forEach { line ->
+                Regex("""^(?:@\w+\s+)?data class (\w+)""").find(line.trim())?.let {
+                    // a one-line `data class X(val a: Int)` has no multi-line head - it would
+                    // otherwise own everything standing after it in the body.
+                    cls = if (line.trimEnd().endsWith(")")) null else it.groupValues[1]
                 }
-                // Der Kopf endet mit der schliessenden Klammer am Zeilenanfang; danach
-                // beginnt der Rumpf oder die naechste Deklaration, und ein `val` dort
-                // gehoert nicht mehr dazu.
-                if (Regex("""^\)""").containsMatchIn(zeile) ||
+                // the head ends with the closing bracket at the start of a line; after that
+                // the body or the next declaration begins, and a `val` there is not part of it.
+                if (Regex("""^\)""").containsMatchIn(line) ||
                     Regex("""^(object|class|enum|sealed|fun|interface)\b""")
-                        .containsMatchIn(zeile)
+                        .containsMatchIn(line)
                 ) {
-                    klasse = null
+                    cls = null
                 }
-                val feld = Regex("""^ {4}val (\w+):""").find(zeile) ?: return@forEach
-                klasse?.let { gefunden += Triple(it, feld.groupValues[1], datei) }
+                val field = Regex("""^ {4}val (\w+):""").find(line) ?: return@forEach
+                cls?.let { found += Triple(it, field.groupValues[1], file) }
             }
         }
-        return gefunden
+        return found
     }
 
-    /** Eine Zeile, die das Feld nur füllt: `feld = wert` als benannter Parameter. */
-    private fun nurGefuellt(zeile: String, feld: String): Boolean =
-        Regex("""^\s*$feld = """).containsMatchIn(zeile)
+    /** a line that only fills the field: `field = value` as a named parameter. */
+    private fun onlyFilled(line: String, field: String): Boolean =
+        Regex("""^\s*$field = """).containsMatchIn(line)
 
-    private fun deklaration(zeile: String, feld: String): Boolean =
-        Regex("""^\s*(?:val|var) $feld:""").containsMatchIn(zeile)
+    private fun declaration(line: String, field: String): Boolean =
+        Regex("""^\s*(?:val|var) $field:""").containsMatchIn(line)
 
     @Test
-    fun `jedes Feld einer data class wird auch gelesen`() {
-        val zeilen = dateien().flatMap { it.readLines() }
-        val tot = mutableListOf<String>()
-        felder().forEach { (klasse, feld, _) ->
-            val name = "$klasse.$feld"
-            if (name in begruendeteAusnahmen) return@forEach
-            val gelesen = zeilen.any { zeile ->
-                Regex("""(^|[^\w.])$feld\b""").containsMatchIn(zeile) &&
-                    !deklaration(zeile, feld) &&
-                    !nurGefuellt(zeile, feld) ||
-                    Regex("""\.$feld\b""").containsMatchIn(zeile)
+    fun `every field of a data class is read too`() {
+        val lines = files().flatMap { it.readLines() }
+        val dead = mutableListOf<String>()
+        fields().forEach { (cls, field, _) ->
+            val name = "$cls.$field"
+            if (name in reasonedExceptions) return@forEach
+            val read = lines.any { line ->
+                Regex("""(^|[^\w.])$field\b""").containsMatchIn(line) &&
+                    !declaration(line, field) &&
+                    !onlyFilled(line, field) ||
+                    Regex("""\.$field\b""").containsMatchIn(line)
             }
-            if (!gelesen) tot += name
+            if (!read) dead += name
         }
         assertTrue(
-            "Diese Felder werden gefuellt und nie gelesen:\n" + tot.joinToString("\n"),
-            tot.isEmpty(),
+            "these fields are filled and never read:\n" + dead.joinToString("\n"),
+            dead.isEmpty(),
         )
     }
 }

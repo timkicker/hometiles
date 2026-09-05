@@ -10,9 +10,9 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Laeuft ueber jedes Flaechenpaar jedes Themas. Dreimal ist hier dieselbe Sorte Fehler
- * entstanden - weisser Text auf einer hellen Flaeche - immer an einer neuen Stelle.
- * Dieser Test kennt keine Stellen, nur Paare, und faengt deshalb auch die naechste.
+ * runs over every surface pair of every theme. the same kind of fault arose here three times -
+ * white text on a light surface - each time in a new place. this test knows no places, only
+ * pairs, and so catches the next one too.
  */
 class SurfaceContrastTest {
 
@@ -24,12 +24,12 @@ class SurfaceContrastTest {
     private fun BigSurface.ratio(): Double = contrastRatio(ink.argb(), fill.argb())
 
     @Test
-    fun `jede Flaeche traegt ihre eigene Schrift lesbar`() {
+    fun `every surface carries its own type readably`() {
         themesAndSystem().forEach { (theme, systemIsDark) ->
             paletteFor(theme, systemIsDark).allSurfaces().forEach { surface ->
                 val ratio = surface.ratio()
                 assertTrue(
-                    "%s: %s auf %s erreicht nur %.2f:1".format(
+                    "%s: %s on %s reaches only %.2f:1".format(
                         theme, surface.ink.hex(), surface.fill.hex(), ratio,
                     ),
                     ratio >= Tokens.MIN_LABEL_ON_TILE,
@@ -39,10 +39,10 @@ class SurfaceContrastTest {
     }
 
     @Test
-    fun `jede bedeutungstragende Flaeche hebt sich vom Hintergrund ab`() {
-        // Gilt fuer Fuellungen, die selbst die Aussage tragen: Kacheln, Akzent, Warnung.
-        // Die stille Flaeche unter einer Listenzeile ist davon ausgenommen - dort
-        // identifiziert der Text die Zeile, nicht die Fuellung.
+    fun `every meaning-carrying surface stands out from the background`() {
+        // holds for fills that carry the statement themselves: tiles, accent, danger. the
+        // quiet surface under a list row is exempt - there the text identifies the row, not
+        // the fill.
         themesAndSystem().filter { it.first != ThemeName.HIGH_CONTRAST }.forEach { (theme, systemIsDark) ->
             val palette = paletteFor(theme, systemIsDark)
             val background = palette.background.argb()
@@ -51,7 +51,7 @@ class SurfaceContrastTest {
             meaningful.forEach { surface ->
                 val ratio = contrastRatio(surface.fill.argb(), background)
                 assertTrue(
-                    "%s: Flaeche %s erreicht nur %.2f:1 gegen den Hintergrund".format(
+                    "%s: the surface %s reaches only %.2f:1 against the background".format(
                         theme, surface.fill.hex(), ratio,
                     ),
                     ratio >= Tokens.MIN_TILE_ON_BACKGROUND,
@@ -61,28 +61,28 @@ class SurfaceContrastTest {
     }
 
     /**
-     * Ein Rahmen hat **zwei** Gruende: aussen den Hintergrund, innen die Fuellung der
-     * Kachel, um die er liegt. Bis zum 04.09.2026 stand hier nur der aeussere - und innen
-     * kam der helle Rahmen auf 2,86:1, unter der Schwelle. Am Emulator nachgesehen, Bildpunkt
-     * fuer Bildpunkt: bei x=243..245 der Rahmen, ab x=246 die Fuellung, ohne Zwischenraum.
+     * a border has **two** grounds: the background outside, the tile's fill inside. only the
+     * outer one stood here - and inside the light border reached 2.86:1, under the threshold.
+     * checked on the emulator pixel by pixel: at x=243..245 the border, from x=246 the fill,
+     * with no gap.
      *
-     * Der Fehler ist derselbe wie beim Warnrot zwei Stunden vorher: die Regel gab es, sie
-     * war nur an einem von zwei Gruenden gemessen.
+     * the same fault as with the danger red two hours before: the rule existed, it was only
+     * measured against one of two grounds.
      */
     @Test
-    fun `die leere Kachel ist ueber ihren Rahmen auffindbar`() {
-        // Die Fuellung ist absichtlich still (1,09:1 im dunklen Thema). Damit ein leerer
-        // Platz trotzdem sichtbar ist, muss der Rahmen die Flaechenschwelle erreichen.
+    fun `the empty tile can be found by its border`() {
+        // the fill is deliberately quiet (1.09:1 in the dark theme). for an empty slot to be
+        // visible anyway, the border has to reach the surface threshold.
         themesAndSystem().forEach { (theme, systemIsDark) ->
             val palette = paletteFor(theme, systemIsDark)
             listOf(
-                "aussen, gegen den Hintergrund" to palette.background,
-                "innen, gegen die Fuellung" to palette.emptyTile,
-            ).forEach { (wo, grund) ->
-                val ratio = contrastRatio(palette.emptyTileBorder.argb(), grund.argb())
+                "outside, against the background" to palette.background,
+                "inside, against the fill" to palette.emptyTile,
+            ).forEach { (where, ground) ->
+                val ratio = contrastRatio(palette.emptyTileBorder.argb(), ground.argb())
                 assertTrue(
-                    "%s: Rahmen %s erreicht %s nur %.2f:1".format(
-                        theme, palette.emptyTileBorder.hex(), wo, ratio,
+                    "%s: the border %s reaches %s only %.2f:1".format(
+                        theme, palette.emptyTileBorder.hex(), where, ratio,
                     ),
                     ratio >= Tokens.MIN_TILE_ON_BACKGROUND,
                 )
@@ -91,23 +91,23 @@ class SurfaceContrastTest {
     }
 
     /**
-     * Die Warnschrift steht nicht in [org.biglau.ui.theme.BigPalette.allSurfaces] - sie ist
-     * keine Flaeche, sondern ein Ton fuer sich. `ContrastTest` prueft die Tokens; hier wird
-     * die **Palette** geprueft, also auch, dass jedes Thema den richtigen Token verdrahtet
-     * hat. Ein Thema, das versehentlich `danger` einsetzt, faellt sonst nirgends auf.
+     * the danger type does not stand in [org.biglau.ui.theme.BigPalette.allSurfaces] - it is
+     * no surface but a tone of its own. `ContrastTest` checks the tokens; here the **palette**
+     * is checked, so also that every theme wired the right token. a theme accidentally using
+     * `danger` would stand out nowhere else.
      */
     @Test
-    fun `die Warnschrift jedes Themas liegt ueber der strengen Schwelle`() {
+    fun `every theme's danger type lies above the strict threshold`() {
         themesAndSystem().forEach { (theme, systemIsDark) ->
             val palette = paletteFor(theme, systemIsDark)
             listOf(
-                "auf dem Hintergrund" to palette.background,
-                "auf der leeren Kachel" to palette.emptyTile,
-            ).forEach { (wo, grund) ->
-                val ratio = contrastRatio(palette.dangerText.argb(), grund.argb())
+                "on the background" to palette.background,
+                "on the empty tile" to palette.emptyTile,
+            ).forEach { (where, ground) ->
+                val ratio = contrastRatio(palette.dangerText.argb(), ground.argb())
                 assertTrue(
-                    "%s: Warnschrift %s erreicht %s nur %.2f:1".format(
-                        theme, palette.dangerText.hex(), wo, ratio,
+                    "%s: the danger type %s reaches %s only %.2f:1".format(
+                        theme, palette.dangerText.hex(), where, ratio,
                     ),
                     ratio >= Tokens.MIN_TEXT_ON_BACKGROUND,
                 )
@@ -116,9 +116,9 @@ class SurfaceContrastTest {
     }
 
     @Test
-    fun `jedes Thema bietet alle Flaechen an`() {
+    fun `every theme offers all surfaces`() {
         themesAndSystem().forEach { (theme, systemIsDark) ->
-            // drei benannte Flaechen plus sechs Kachelfarben
+            // three named surfaces plus six tile colours
             assertTrue(paletteFor(theme, systemIsDark).allSurfaces().size == 9)
         }
     }

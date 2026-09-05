@@ -9,115 +9,110 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Die Farbtabelle in `PLAN.md` 3.3 stimmt mit den Konstanten überein.
+ * the colour table in `PLAN.md` 3.3 agrees with the constants.
  *
- * Der Abschnitt trägt den Satz „Kontrast ist eine Funktion, kein Geschmack" — und stand
- * bis zum 3.9.2026 an drei von sechs Zeilen falsch da: Blau mit 5,65:1 statt 5,63:1, Grün
- * mit 3,51 statt 3,53, Magenta mit 3,50 statt 3,51. Alles Kleinigkeiten, und genau deshalb
- * gefährlich: eine Tabelle mit vier Stellen sieht nachgerechnet aus.
+ * the section carries the sentence that contrast is a function and not a matter of taste, and
+ * three of its six rows stood there wrong by a hundredth. all trifles, and dangerous for
+ * exactly that reason: a table with four digits looks calculated.
  *
- * `ContrastTest` prüft die **Schwellen** (hebt sich ab, ist lesbar). Diese Regel prüft die
- * **Zahlen im Plan** — also das, was jemand liest, der die Palette ändern will und wissen
- * muss, wo der Spielraum endet.
+ * `ContrastTest` checks the **thresholds** (stands out, is readable). this rule checks the
+ * **numbers in the plan** - what someone reads who wants to change the palette and needs to
+ * know where the room ends.
  */
 class PaletteTableTest {
 
     private val plan = File("../PLAN.md").readText()
 
-    /** Name, Hex, Verhältnis gegen den Grund, Verhältnis für weissen Text. */
-    private data class Zeile(val name: String, val farbe: Long, val grund: Double, val text: Double)
+    /** name, hex, ratio against the ground, ratio for white text. */
+    private data class Row(val name: String, val colour: Long, val ground: Double, val text: Double)
 
-    private fun tabelle(): List<Zeile> = Regex(
-        // `\w` ist in Kotlin ASCII - „Grün" und „Türkis" fielen damit aus der Tabelle,
-        // und die Regel meldete „nur vier Zeilen" statt der eigentlichen Sache.
+    private fun table(): List<Row> = Regex(
+        // `\w` is ascii in kotlin - two colour names with umlauts fell out of the table that
+        // way, and the rule reported "only four rows" instead of the actual thing.
         """^\| ([^|]+?) \| #([0-9A-F]{6}) \| (\d,\d\d):1 \| (\d,\d\d):1 \|$""",
         RegexOption.MULTILINE,
     ).findAll(plan).map {
-        Zeile(
+        Row(
             name = it.groupValues[1],
-            farbe = 0xFF000000L or it.groupValues[2].toLong(16),
-            grund = it.groupValues[3].replace(',', '.').toDouble(),
+            colour = 0xFF000000L or it.groupValues[2].toLong(16),
+            ground = it.groupValues[3].replace(',', '.').toDouble(),
             text = it.groupValues[4].replace(',', '.').toDouble(),
         )
     }.toList()
 
     @Test
-    fun `die Tabelle hat sechs Zeilen und nennt genau die Palettenfarben`() {
-        val zeilen = tabelle()
-        assertEquals("Die Farbtabelle in PLAN.md 3.3 ist nicht mehr zu finden", 6, zeilen.size)
+    fun `the table has six rows and names exactly the palette colours`() {
+        val rows = table()
+        assertEquals("the colour table in PLAN.md 3.3 is no longer to be found", 6, rows.size)
         assertEquals(
-            "Die Farben im Plan sind nicht mehr die der dunklen Palette",
+            "the colours in the plan are no longer those of the dark palette",
             Tokens.DARK_TILES,
-            zeilen.map { it.farbe },
+            rows.map { it.colour },
         )
     }
 
     @Test
-    fun `jede angegebene Zahl stimmt auf zwei Stellen`() {
-        tabelle().forEach { zeile ->
-            val grund = contrastRatio(zeile.farbe, Tokens.DARK_BACKGROUND)
-            val text = contrastRatio(0xFFFFFFFFL, zeile.farbe)
+    fun `every given number is right to two places`() {
+        table().forEach { row ->
+            val ground = contrastRatio(row.colour, Tokens.DARK_BACKGROUND)
+            val text = contrastRatio(0xFFFFFFFFL, row.colour)
             assertTrue(
-                "${zeile.name} gegen den Grund: Plan sagt ${zeile.grund}, gerechnet " +
-                    "${"%.4f".format(grund)}",
-                abs(grund - zeile.grund) < 0.006,
+                "${row.name} against the ground: the plan says ${row.ground}, computed " +
+                    "${"%.4f".format(ground)}",
+                abs(ground - row.ground) < 0.006,
             )
             assertTrue(
-                "${zeile.name}, weisser Text: Plan sagt ${zeile.text}, gerechnet " +
+                "${row.name}, white text: the plan says ${row.text}, computed " +
                     "${"%.4f".format(text)}",
-                // 0,006 und nicht 0,005: Blau liegt mit 5,6250 genau auf der Grenze
-                // zwischen 5,62 und 5,63. Eine Regel, die auf einer Rundungsgrenze steht,
-                // faellt irgendwann wegen der Rundung und nicht wegen der Sache.
-                abs(text - zeile.text) < 0.006,
+                // 0.006 and not 0.005: blue sits at 5.6250, exactly on the rounding boundary.
+                // a rule standing on one falls over the rounding rather than the thing.
+                abs(text - row.text) < 0.006,
             )
         }
     }
 
-    /** Auch die beiden Zahlen im Fliesstext darunter. */
+    /** the two numbers in the prose below as well. */
     @Test
-    fun `weiss auf den beiden Untergruenden stimmt`() {
-        assertTrue("19,8:1 steht nicht mehr im Plan", "19,8:1" in plan)
-        assertTrue("18,1:1 steht nicht mehr im Plan", "18,1:1" in plan)
+    fun `white on both grounds is right`() {
+        assertTrue("19,8:1 no longer stands in the plan", "19,8:1" in plan)
+        assertTrue("18,1:1 no longer stands in the plan", "18,1:1" in plan)
         assertEquals(19.8, contrastRatio(0xFFFFFFFFL, Tokens.DARK_BACKGROUND), 0.05)
         assertEquals(18.1, contrastRatio(0xFFFFFFFFL, Tokens.DARK_EMPTY_TILE), 0.05)
     }
 
     /**
-     * Und die Themen-Tabelle darüber - jede Farbe, die dort steht, ist eine Konstante.
+     * and the theme table above it - every colour standing there is a constant.
      *
-     * Sie war am 3.9.2026 an der hellen Zeile gleich dreifach falsch: die leere Kachel stand
-     * als `#FFFFFF` da (wirklich `#E8EAEC`), ihr Rand als `#BDBDBD` (wirklich `#8A8A8A`), und
-     * die Breite als 1 dp (wirklich 2 dp). Der dunklen Zeile fehlte ihr Rand ganz. Solche
-     * Werte liest jemand ab, der eine Farbe nachbauen oder anpassen will - und bekommt dann
-     * ein Ergebnis, das *fast* stimmt, was schlimmer ist als eines, das offensichtlich
-     * falsch ist.
+     * the light row was wrong three times over and the dark row was missing its border
+     * entirely. someone reads such values off to rebuild or adjust a colour and gets a result
+     * that is *almost* right, which is worse than one that is obviously wrong.
      */
     @Test
-    fun `die Themen-Tabelle nennt die tatsaechlichen Farben`() {
-        fun zeile(anfang: String): String =
-            plan.lineSequence().firstOrNull { it.startsWith(anfang) }
-                ?: throw AssertionError("Zeile fehlt in PLAN.md 3.3: $anfang")
+    fun `the theme table names the actual colours`() {
+        fun row(start: String): String =
+            plan.lineSequence().firstOrNull { it.startsWith(start) }
+                ?: throw AssertionError("row is gone from PLAN.md 3.3: $start")
 
-        fun hex(wert: Long) = "#%06X".format(wert and 0xFFFFFFL)
+        fun hex(value: Long) = "#%06X".format(value and 0xFFFFFFL)
 
-        val dunkel = zeile("| **Dunkel**")
+        val dark = row("| **Dunkel**")
         listOf(
             Tokens.DARK_BACKGROUND, Tokens.DARK_EMPTY_TILE, Tokens.DARK_EMPTY_TILE_BORDER,
             Tokens.DARK_ON_BACKGROUND, Tokens.DARK_ACCENT, Tokens.DARK_DANGER,
             Tokens.DARK_DANGER_TEXT,
-        ).forEach { assertTrue("dunkel: ${hex(it)} fehlt in der Zeile", hex(it) in dunkel) }
+        ).forEach { assertTrue("dark: ${hex(it)} is missing from the row", hex(it) in dark) }
 
-        val hell = zeile("| **Hell**")
+        val light = row("| **Hell**")
         listOf(
             Tokens.LIGHT_BACKGROUND, Tokens.LIGHT_EMPTY_TILE, Tokens.LIGHT_EMPTY_TILE_BORDER,
             Tokens.LIGHT_ON_BACKGROUND, Tokens.LIGHT_ACCENT, Tokens.LIGHT_DANGER,
             Tokens.LIGHT_DANGER_TEXT,
-        ).forEach { assertTrue("hell: ${hex(it)} fehlt in der Zeile", hex(it) in hell) }
+        ).forEach { assertTrue("light: ${hex(it)} is missing from the row", hex(it) in light) }
 
-        val kontrast = zeile("| **Kontrast**")
+        val contrast = row("| **Kontrast**")
         listOf(
             Tokens.CONTRAST_BACKGROUND, Tokens.CONTRAST_INK, Tokens.CONTRAST_DANGER,
             Tokens.CONTRAST_DANGER_TEXT,
-        ).forEach { assertTrue("kontrast: ${hex(it)} fehlt in der Zeile", hex(it) in kontrast) }
+        ).forEach { assertTrue("contrast: ${hex(it)} is missing from the row", hex(it) in contrast) }
     }
 }

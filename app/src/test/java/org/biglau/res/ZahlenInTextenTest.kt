@@ -18,7 +18,7 @@ import org.junit.Test
  * laesst den Satz stehen.
  *
  * Dieselbe Uebung wie bei den 56 Icons in [org.biglau.ui.IconZahlTest] und den Kanten in
- * [org.biglau.KantenZahlTest]: eine Zahl, die ein Argument oder eine Anleitung traegt, muss
+ * [org.biglau.EdgeCountTest]: eine Zahl, die ein Argument oder eine Anleitung traegt, muss
  * nachgezaehlt sein. Am 04.09.2026 aufgeschrieben, waehrend die Farbwahl durchgesehen wurde.
  *
  * Die Regel prueft **beide Sprachen** - eine Zahl, die nur im Deutschen mitwandert, ist

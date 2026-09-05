@@ -130,7 +130,7 @@ fun BigTile(
     // the corner count is drawn and carries no text: without this a screen reader hears
     // messages and not that five of them wait. see TileSpeech and `PLAN.md` 3.6. here and
     // not at the callers, so no tile is forgotten.
-    val gesprochen = TileSpeech.describe(
+    val spoken = TileSpeech.describe(
         label = contentDescription,
         badge = if (badgeCount > 0) {
             pluralStringResource(badgeSpeech, badgeCount, badgeCount)
@@ -185,9 +185,9 @@ fun BigTile(
             hit != null,
         )
     }
-    val zeigeLabel = labelPosition != LabelPosition.HIDDEN &&
+    val showLabel = labelPosition != LabelPosition.HIDDEN &&
         (!LocalHideCutLabels.current || fits)
-    val labelZone = if (zeigeLabel) zoneDp.dp else 0.dp
+    val labelZone = if (showLabel) zoneDp.dp else 0.dp
     val iconWish = iconSizeDp(cellWidth.value, cellHeight.value, LocalIconPercent.current)
     val iconDp = iconSizeDp(
         cellWidth.value,
@@ -197,7 +197,7 @@ fun BigTile(
     )
     val iconSize = iconDp.dp
     // if the icon had to be squeezed for the label, the word gets the whole room.
-    val zeigeIcon = IconRoom.show(LocalIconVisibility.current, iconWish, iconDp)
+    val showIcon = IconRoom.show(LocalIconVisibility.current, iconWish, iconDp)
     val pad = (cellHeight.value * 0.06f).coerceIn(6f, 16f).dp
     val staticBorder = borderOverride ?: palette.tileBorder()
 
@@ -235,7 +235,7 @@ fun BigTile(
                 onClick = { haptics.tap(hapticStrength); onClick() },
                 onLongClick = onLongClick?.let { handler -> { haptics.longPress(hapticStrength); handler() } },
             )
-            .semantics { this.contentDescription = gesprochen },
+            .semantics { this.contentDescription = spoken },
     ) {
         if (photoUri != null) {
             AsyncImage(
@@ -288,7 +288,7 @@ fun BigTile(
             Box(Modifier.fillMaxWidth()) {
                 when {
                     iconContent != null -> iconContent()
-                    !zeigeIcon -> Unit
+                    !showIcon -> Unit
                     photoUri != null -> Unit
                     initials != null -> Text(
                         text = initials,
@@ -312,7 +312,7 @@ fun BigTile(
                 }
             }
 
-            if (zeigeLabel) {
+            if (showLabel) {
                 Box(
                     modifier = Modifier.fillMaxWidth().height(labelZone),
                     contentAlignment = if (labelPosition == LabelPosition.BOTTOM_CENTER) {

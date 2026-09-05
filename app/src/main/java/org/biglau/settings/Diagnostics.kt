@@ -15,7 +15,7 @@ import org.biglau.notify.SystemPackagesReader
 import org.biglau.safety.CrashRecorder
 
 /**
- * what the app knows about its own situation. there is no adb on the user's device, and
+ * what the app knows about its own situation. there is no adb on that phone, and
  * "it does not work" without numbers cannot be answered.
  */
 object Diagnostics {

@@ -52,7 +52,7 @@ class DeviceClaimsTest {
         val place = text
             .let { Quelltext.cut(it, "R.string.blocked_numbers)", "OutlinedTextField") }
         assertTrue("the role is read nowhere", "DialerRole.held(" in text)
-        assertTrue("does not look at the role: $place", "hatTelefonRolle" in place)
+        assertTrue("does not look at the role: $place", "hasPhoneRole" in place)
         assertTrue("the second wording is gone: $place", "blocked_numbers_hint_outgoing" in place)
     }
 

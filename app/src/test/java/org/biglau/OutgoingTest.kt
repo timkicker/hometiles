@@ -13,7 +13,7 @@ import org.junit.Test
  * it, and whatever dials from there dials at four in the morning too.
  *
  * the ban in `STATUS.md` is an agreement with the user, not a lock: `CALL_PHONE` and
- * `SEND_SMS` are **granted** on this phone. two assurances:
+ * `SEND_SMS` were **granted** on this phone on 03.09.2026. two assurances:
  *
  * 1. only the listed files may dial or send. a new one stands out here before it stands out
  *    to whoever gets called unintentionally.

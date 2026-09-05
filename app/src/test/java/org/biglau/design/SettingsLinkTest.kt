@@ -8,82 +8,82 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Der Sprung in die Einstellungen läuft über eine Absicht, nicht über die Klasse.
+ * the jump into the settings runs through an intent, not through the class.
  *
- * Vier Bildschirme aus vier Ecken springen auf eine Unterseite: Wähltastatur → Anrufarten,
- * Kontakte → Sortierung, App-Liste → ausgeblendete Apps, Notruf → Notfallkontakte. Jeder
- * nannte `SettingsActivity` beim Namen. `PLAN.md` 2.1 sagt aber, dass ein `feature:*` nie
- * ein anderes importiert — mit vier solchen Verweisen wäre der Schnitt gar nicht möglich.
+ * four screens from four corners jump to a subpage: keypad to call types, contacts to
+ * sorting, app list to hidden apps, emergency call to emergency contacts. each named
+ * `SettingsActivity` by name, while `PLAN.md` 2.1 says a `feature:*` never imports another -
+ * with four such references the split would not be possible at all.
  *
- * Der Preis einer Absicht ist, dass der Compiler sie nicht mehr prüft: Manifest und
- * Quelltext können auseinanderlaufen, und der Sprung führt dann **stumm** ins Leere. Genau
- * dagegen steht diese Regel.
+ * the price of an intent is that the compiler no longer checks it: manifest and source can
+ * drift apart, and the jump then leads **silently** nowhere. that is what this rule stands
+ * against.
  */
 class SettingsLinkTest {
 
     private val manifest = Quelltext.file("src/main/AndroidManifest.xml").readText()
 
     @Test
-    fun `die Einstellungen beantworten die Absicht`() {
+    fun `the settings answer the intent`() {
         val block = Quelltext.cut(manifest, ".settings.SettingsActivity", "</activity>")
         assertTrue(
-            "SettingsActivity hat keinen Filter fuer ${SettingsLink.ACTION}: $block",
+            "SettingsActivity has no filter for ${SettingsLink.ACTION}: $block",
             SettingsLink.ACTION in block,
         )
-        assertTrue("ohne DEFAULT-Kategorie startet keine implizite Absicht", "category.DEFAULT" in block)
+        assertTrue("without the DEFAULT category no implicit intent starts", "category.DEFAULT" in block)
     }
 
     /**
-     * Nur die Hülle darf die Einstellungen beim Namen kennen. `MainActivity` ist diese
-     * Hülle: sie hält die HOME-Rolle und den Notmodus und kennt ohnehin jeden Bildschirm.
+     * only the shell may know the settings by name. `MainActivity` is that shell: it holds the
+     * home role and the emergency mode and knows every screen anyway.
      */
     @Test
-    fun `ausser der Huelle nennt niemand SettingsActivity`() {
-        val nenner = Quelltext.files()
+    fun `apart from the shell nobody names SettingsActivity`() {
+        val namers = Quelltext.files()
             .filter { "org.biglau.settings.SettingsActivity" in it.readText() }
             .map { it.name }
             .filterNot { it == "MainActivity.kt" || it == "SettingsActivity.kt" }
-        assertEquals("springt an SettingsLink vorbei: $nenner", emptyList<String>(), nenner)
+        assertEquals("jumps past SettingsLink: $namers", emptyList<String>(), namers)
     }
 
-    /** Und der Weg dorthin wird auch benutzt - sonst prüfte die Regel eine tote Klasse. */
+    /** and the way there is used - otherwise the rule would check a dead class. */
     @Test
-    fun `die vier Springer benutzen den Weg`() {
-        val springer = listOf(
+    fun `the four jumpers use the way`() {
+        val jumpers = listOf(
             "org/biglau/toggles/SosActivity.kt",
             "org/biglau/phone/DialerActivity.kt",
             "org/biglau/contacts/ContactsActivity.kt",
             "org/biglau/apps/AppDrawerActivity.kt",
         )
-        val ohne = springer.filterNot { "SettingsLink.toPage(" in Quelltext.file(it).readText() }
-        assertEquals("springt nicht ueber SettingsLink: $ohne", emptyList<String>(), ohne)
+        val without = jumpers.filterNot { "SettingsLink.toPage(" in Quelltext.file(it).readText() }
+        assertEquals("does not jump through SettingsLink: $without", emptyList<String>(), without)
     }
 
-    /** Die Absicht bleibt im eigenen Programm - sonst könnte ein fremdes sie beantworten. */
+    /** the intent stays inside our own program - or a foreign one could answer it. */
     @Test
-    fun `die Absicht bleibt im eigenen Programm`() {
-        val quelle = Quelltext.file("org/biglau/ui/SettingsLink.kt").readText()
-        assertTrue("ohne setPackage waere die Absicht offen", "setPackage(" in quelle)
+    fun `the intent stays inside our own program`() {
+        val source = Quelltext.file("org/biglau/ui/SettingsLink.kt").readText()
+        assertTrue("without setPackage the intent would be open", "setPackage(" in source)
     }
 
     /**
-     * Dasselbe für den wartenden Hinweis: `Notice` gehört zum Design-System und wird von
-     * überall benutzt, der Bildschirm dazu ist eine Activity der Anwendung. Nennte `Notice`
-     * die Klasse, zöge es die halbe App ins Design-System.
+     * the same for the waiting notice: `Notice` belongs to the design system and is used
+     * everywhere, while its screen is an activity of the application. naming the class would
+     * pull half the app into the design system.
      */
     @Test
-    fun `der wartende Hinweis wird ueber eine Absicht geoeffnet`() {
+    fun `the waiting notice is opened through an intent`() {
         val block = Quelltext.cut(manifest, ".ui.NoticeActivity", "</activity>")
-        assertTrue("NoticeActivity hat keinen Filter fuer ${Notice.ACTION}: $block", Notice.ACTION in block)
-        assertTrue("ohne DEFAULT-Kategorie startet keine implizite Absicht", "category.DEFAULT" in block)
-        val quelle = Quelltext.file("org/biglau/ui/Notice.kt").readLines()
-        // Nur Code: im Kommentar darf die Activity vorkommen - dort steht ja gerade, wo
-        // die Gegenstelle wohnt. Ein Test, der Kommentare mitliest, erzieht zum Schweigen.
-        val code = quelle.filterNot { it.trimStart().let { z -> z.startsWith("*") || z.startsWith("//") || z.startsWith("/*") } }
+        assertTrue("NoticeActivity has no filter for ${Notice.ACTION}: $block", Notice.ACTION in block)
+        assertTrue("without the DEFAULT category no implicit intent starts", "category.DEFAULT" in block)
+        val source = Quelltext.file("org/biglau/ui/Notice.kt").readLines()
+        // code only: the comment may name the activity - that is where it says who answers.
+        // a test that reads comments along teaches silence.
+        val code = source.filterNot { Quelltext.isCommentLine(it) }
         assertTrue(
-            "Notice nennt die Activity im Code: ${code.filter { "NoticeActivity" in it }}",
+            "Notice names the activity in code: ${code.filter { "NoticeActivity" in it }}",
             code.none { "NoticeActivity" in it },
         )
-        assertTrue("ohne setPackage waere die Absicht offen", code.any { "setPackage(" in it })
+        assertTrue("without setPackage the intent would be open", code.any { "setPackage(" in it })
     }
 }

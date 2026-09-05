@@ -178,7 +178,7 @@ class MainActivity : BigLauActivity() {
     private val popupLabelState = mutableStateOf<String?>(null)
 
     /** the menu-key list: screen and slot of the tile it is open for. see [closeOverlays]. */
-    private val kachelMenue = mutableStateOf<Triple<String, Int, Int>?>(null)
+    private val tileMenu = mutableStateOf<Triple<String, Int, Int>?>(null)
 
     /**
      * the locked app *and the tile it came from*.
@@ -250,7 +250,7 @@ class MainActivity : BigLauActivity() {
     private fun closeOverlays() {
         openFolder.value = null
         popupLabelState.value = null
-        kachelMenue.value = null
+        tileMenu.value = null
         contactChoice.value = null
         lockedApp.value = null
         phoneStateAsked.value = false
@@ -328,14 +328,14 @@ class MainActivity : BigLauActivity() {
             val counts by NotificationRepository.counts.collectAsStateWithLifecycle()
             // unseen missed calls, counted again on every return: having just read the list
             // should not leave the number on the tile.
-            var verpasst by remember { mutableStateOf(0) }
+            var missed by remember { mutableStateOf(0) }
             // unread messages from the provider; null means may not read, and then the
             // notices stay the answer.
-            var ungelesen by remember { mutableStateOf<Int?>(null) }
+            var unread by remember { mutableStateOf<Int?>(null) }
             LaunchedEffect(resumeTick.value, counts) {
-                verpasst = CallLogRepository.get(context).newMissedCount(config.phone.lastSeenMissedAt)
+                missed = CallLogRepository.get(context).newMissedCount(config.phone.lastSeenMissedAt)
                 val sms = SmsRepository.get(context)
-                ungelesen = if (sms.hasReadPermission()) sms.unreadCount() else null
+                unread = if (sms.hasReadPermission()) sms.unreadCount() else null
             }
             // read again on every return: the default app can have changed meanwhile.
             val systemPackages = remember(counts) { SystemPackagesReader.read(context) }
@@ -368,40 +368,40 @@ class MainActivity : BigLauActivity() {
             // the long press and the menu-key list carry out the same actions and only
             // decide differently which: the long press through LongPress.decide, the list
             // through TileMenu, which shows all three. so the doing stands here once.
-            val fuehreAus: (org.biglau.data.Screen, Int, Int, List<LongPressAction>) -> Unit =
-                { gezeigt, x, y, aktionen ->
-                    val zelle = gezeigt.cellAt(x, y)
-                    aktionen.forEach { action ->
+            val perform: (org.biglau.data.Screen, Int, Int, List<LongPressAction>) -> Unit =
+                { shown, x, y, actions ->
+                    val cell = shown.cellAt(x, y)
+                    actions.forEach { action ->
                         when (action) {
                             // the long press starts the tile, for hands that would
                             // otherwise trigger something by brushing.
-                            LongPressAction.ACTIVATE -> zelle?.let { treffer ->
-                                activate(treffer, gezeigt.id, apps) { ziel ->
-                                    currentScreen.value = ziel
+                            LongPressAction.ACTIVATE -> cell?.let { treffer ->
+                                activate(treffer, shown.id, apps) { target ->
+                                    currentScreen.value = target
                                 }
                             }
                             // the second assignment: the same doing as a short press, with
                             // the other action.
-                            LongPressAction.SECOND_ACTION -> zelle?.button?.longPress?.let { zweite ->
+                            LongPressAction.SECOND_ACTION -> cell?.button?.longPress?.let { second ->
                                 activate(
-                                    zelle.copy(button = zelle.button.copy(action = zweite)),
-                                    gezeigt.id,
+                                    cell.copy(button = cell.button.copy(action = second)),
+                                    shown.id,
                                     apps,
-                                ) { ziel -> currentScreen.value = ziel }
+                                ) { target -> currentScreen.value = target }
                             }
                             LongPressAction.EDIT -> context.startActivity(
-                                TileEditorActivity.intent(context, gezeigt.id, x, y),
+                                TileEditorActivity.intent(context, shown.id, x, y),
                             )
                             LongPressAction.SPEAK -> Speaker.say(
                                 context,
-                                labelAt(config, gezeigt.id, x, y, apps),
+                                labelAt(config, shown.id, x, y, apps),
                                 // the language comes from here; the speaker should not have
                                 // to look for it. see Speaker.
                                 AppLocale.localeFor(config.appearance.language)
                                     ?: Locale.getDefault(),
                             )
                             LongPressAction.POPUP -> popupLabel =
-                                labelAt(config, gezeigt.id, x, y, apps)
+                                labelAt(config, shown.id, x, y, apps)
                             LongPressAction.NOTHING -> Unit
                         }
                     }
@@ -409,12 +409,12 @@ class MainActivity : BigLauActivity() {
 
             // written once, used twice: for the screen and for the folder over it. a second
             // copied call is where the two would drift apart on the next change.
-            val zeigeKachel: @Composable (
+            val showTile: @Composable (
                 org.biglau.data.Screen, Modifier, Boolean, FocusRequester?, FocusRequester?,
             ) -> Unit =
-                { gezeigt, gestalt, onTop, strip, back ->
+                { shown, gestalt, onTop, strip, back ->
                     HomeScreenView(
-                        screen = gezeigt,
+                        screen = shown,
                         active = onTop,
                         below = strip,
                         gridAnchor = back,
@@ -432,9 +432,9 @@ class MainActivity : BigLauActivity() {
                         folderOf = { id -> config.screens.firstOrNull { it.id == id && it.isFolder } },
                         notificationCounts =
                             if (config.behaviour.blinkOnNotification) counts else emptyMap(),
-                        missedCalls = if (config.behaviour.blinkOnNotification) verpasst else 0,
+                        missedCalls = if (config.behaviour.blinkOnNotification) missed else 0,
                         unreadMessages =
-                            if (config.behaviour.blinkOnNotification) ungelesen else null,
+                            if (config.behaviour.blinkOnNotification) unread else null,
                         systemPackages = systemPackages,
                         battery = battery,
                         signal = signal,
@@ -444,30 +444,30 @@ class MainActivity : BigLauActivity() {
                         onActivate = { cell ->
                             when {
                                 editMode -> context.startActivity(
-                                    TileEditorActivity.intent(context, gezeigt.id, cell.x, cell.y),
+                                    TileEditorActivity.intent(context, shown.id, cell.x, cell.y),
                                 )
                                 // having chosen the long press means wanting nothing from a
                                 // short one, or the setting would have no effect.
                                 config.behaviour.pressMode == PressMode.LONG -> Unit
-                                else -> activate(cell, gezeigt.id, apps) { currentScreen.value = it }
+                                else -> activate(cell, shown.id, apps) { currentScreen.value = it }
                             }
                         },
                         editMode = editMode,
                         onEdit = { x, y ->
-                            fuehreAus(
-                                gezeigt, x, y,
+                            perform(
+                                shown, x, y,
                                 LongPress.decide(
                                     config.behaviour.accessibility,
                                     editMode,
                                     config.behaviour.pressMode,
-                                    hasSecondAction = gezeigt.cellAt(x, y)?.button?.longPress != null,
+                                    hasSecondAction = shown.cellAt(x, y)?.button?.longPress != null,
                                 ),
                             )
                         },
                         // `PLAN.md` 10.3.4: the menu key opens the list instead of doing
                         // something at once. the long press can do only one of three, and the
                         // settings decide which; by key the other two would be out of reach.
-                        onMenu = { x, y -> kachelMenue.value = Triple(gezeigt.id, x, y) },
+                        onMenu = { x, y -> tileMenu.value = Triple(shown.id, x, y) },
                     )
                 }
 
@@ -482,7 +482,7 @@ class MainActivity : BigLauActivity() {
                 hideCutLabels = config.appearance.hideCutLabels,
                 cornerRadiusDp = config.appearance.cornerRadiusDp,
             ) {
-                val ordner = openFolder.value?.let { id ->
+                val folder = openFolder.value?.let { id ->
                     config.screens.firstOrNull { it.id == id && it.isFolder }
                 }
                 // what is covered does not exist for the screen reader either.
@@ -492,32 +492,32 @@ class MainActivity : BigLauActivity() {
                 // still in the node dump. someone listening would walk through tiles they
                 // cannot see and open an app that is not there.
                 val label = popupLabel
-                val wartend = lockedApp.value
+                val pending = lockedApp.value
                 val asking = contactChoice.value
                 // the list of overlays, in one place. it answers two questions at once:
                 // what the screen reader may no longer see, and who gets the keys. those
                 // turned out to be the same list.
-                val verdeckt = ordner != null ||
+                val covered = folder != null ||
                     label != null ||
                     phoneStateAsked.value ||
-                    wartend != null ||
-                    kachelMenue.value != null ||
+                    pending != null ||
+                    tileMenu.value != null ||
                     asking != null
                 Column(
                     Modifier
                         .fillMaxSize()
                         .background(LocalBigPalette.current.background)
                         .safeDrawingPadding()
-                        .then(if (verdeckt) Modifier.clearAndSetSemantics {} else Modifier),
+                        .then(if (covered) Modifier.clearAndSetSemantics {} else Modifier),
                 ) {
                     // ask again on every return: tapping the banner picks BigLau in the
                     // system dialog and comes back, and a banner still standing there reads
                     // as a failure.
                     if (!remember(resumeTick.value) { isDefaultHome() }) {
                         HomeRolePrompt {
-                            val absicht = Intents.homeRoleIntent(this@MainActivity)
-                            if (absicht != null) {
-                                homeRoleAsk.launch(absicht)
+                            val intentToHome = Intents.homeRoleIntent(this@MainActivity)
+                            if (intentToHome != null) {
+                                homeRoleAsk.launch(intentToHome)
                             } else {
                                 Intents.chooseHomeApp(this@MainActivity)
                             }
@@ -541,21 +541,21 @@ class MainActivity : BigLauActivity() {
                     }
                     // swiping is a setting and off by default (`PLAN.md` 3.2). the edge
                     // strips stay with the back gesture.
-                    val dichte = LocalDensity.current
-                    val wischen = if (!config.behaviour.swipeBetweenScreens) {
+                    val density = LocalDensity.current
+                    val swipe = if (!config.behaviour.swipeBetweenScreens) {
                         Modifier
                     } else {
                         Modifier.pointerInput(screenId, config.screens.size) {
                             var startX = 0f
-                            var strecke = 0f
+                            var travelled = 0f
                             detectHorizontalDragGestures(
-                                onDragStart = { punkt ->
-                                    startX = with(dichte) { punkt.x.toDp().value }
-                                    strecke = 0f
+                                onDragStart = { point ->
+                                    startX = with(density) { point.x.toDp().value }
+                                    travelled = 0f
                                 },
                                 onDragEnd = {
-                                    val breite = with(dichte) { size.width.toDp().value }
-                                    when (SwipeGesture.decide(startX, strecke, breite)) {
+                                    val width = with(density) { size.width.toDp().value }
+                                    when (SwipeGesture.decide(startX, travelled, width)) {
                                         SwipeGesture.Direction.NEXT ->
                                             ScreenOrder.next(config, screenId)?.let { currentScreen.value = it }
                                         SwipeGesture.Direction.PREVIOUS ->
@@ -563,16 +563,16 @@ class MainActivity : BigLauActivity() {
                                         SwipeGesture.Direction.NONE -> Unit
                                     }
                                 },
-                            ) { _, betrag ->
-                                strecke += with(dichte) { betrag.toDp().value }
+                            ) { _, amount ->
+                                travelled += with(density) { amount.toDp().value }
                             }
                         }
                     }
                     // the home screen gets the keys only while nothing lies over it, the
                     // same list as for the screen reader. no strip under the home screen:
                     // there the bottom really is the end.
-                    zeigeKachel(
-                        screen, Modifier.fillMaxSize().then(wischen), !verdeckt, null, null,
+                    showTile(
+                        screen, Modifier.fillMaxSize().then(swipe), !covered, null, null,
                     )
                 }
 
@@ -580,9 +580,9 @@ class MainActivity : BigLauActivity() {
                     LabelPopup(label) { popupLabel = null }
                 }
 
-                if (ordner != null) {
+                if (folder != null) {
                     FolderOverlay(
-                        name = ordner.name,
+                        name = folder.name,
                         onClose = { openFolder.value = null },
                         // otherwise the strip lies in the covered column below: from an
                         // open folder into the settings, tap change tiles, back into the
@@ -594,28 +594,28 @@ class MainActivity : BigLauActivity() {
                             null
                         },
                     ) { strip, back ->
-                        zeigeKachel(ordner, Modifier.fillMaxSize(), true, strip, back)
+                        showTile(folder, Modifier.fillMaxSize(), true, strip, back)
                     }
                 }
 
-                kachelMenue.value?.let { (screenId, x, y) ->
-                    val schirm = config.screens.firstOrNull { it.id == screenId }
-                    val zelle = schirm?.cellAt(x, y)
-                    if (schirm == null) {
-                        kachelMenue.value = null
+                tileMenu.value?.let { (screenId, x, y) ->
+                    val menuScreen = config.screens.firstOrNull { it.id == screenId }
+                    val cell = menuScreen?.cellAt(x, y)
+                    if (menuScreen == null) {
+                        tileMenu.value = null
                     } else {
                         FolderOverlay(
                             name = labelAt(config, screenId, x, y, apps),
-                            onClose = { kachelMenue.value = null },
+                            onClose = { tileMenu.value = null },
                             closeLabel = R.string.dialog_close,
                         ) { strip, back ->
                             // `PLAN.md` 10.3.5: while the list is open the focus lies in
                             // it. without this the d-pad walked it into the home screen
                             // underneath, invisible below the list.
-                            val punkte = TileMenu.items(
-                                hasSecondAction = zelle?.button?.longPress != null,
+                            val menuItems = TileMenu.items(
+                                hasSecondAction = cell?.button?.longPress != null,
                             )
-                            val anchors = remember(punkte) { punkte.map { FocusRequester() } }
+                            val anchors = remember(menuItems) { menuItems.map { FocusRequester() } }
                             var at by remember(screenId, x, y) { mutableStateOf(0) }
                             LaunchedEffect(screenId, x, y) {
                                 runCatching { anchors.first().requestFocus() }
@@ -632,7 +632,7 @@ class MainActivity : BigLauActivity() {
                                         } else {
                                             when (taste.key) {
                                                 Key.DirectionDown -> {
-                                                    if (at < punkte.lastIndex) {
+                                                    if (at < menuItems.lastIndex) {
                                                         at += 1
                                                         anchors[at].requestFocus()
                                                     } else {
@@ -655,10 +655,10 @@ class MainActivity : BigLauActivity() {
                                         }
                                     },
                             ) {
-                                for ((nr, punkt) in punkte.withIndex()) {
+                                for ((index, menuItem) in menuItems.withIndex()) {
                                     BigRow(
                                         label = stringResource(
-                                            when (punkt) {
+                                            when (menuItem) {
                                                 MenuItem.SECOND_ACTION -> R.string.key_menu_second
                                                 MenuItem.EDIT -> R.string.editor_title
                                                 MenuItem.SPEAK -> R.string.a11y_speak_off
@@ -666,21 +666,21 @@ class MainActivity : BigLauActivity() {
                                             },
                                         ),
                                         modifier = Modifier
-                                            .focusRequester(anchors[nr])
+                                            .focusRequester(anchors[index])
                                             .then(
-                                                if (at == nr) {
+                                                if (at == index) {
                                                     Modifier.focusRequester(back)
                                                 } else {
                                                     Modifier
                                                 },
                                             )
-                                            .onFocusChanged { if (it.isFocused) at = nr },
+                                            .onFocusChanged { if (it.isFocused) at = index },
                                         onClick = {
-                                            kachelMenue.value = null
-                                            fuehreAus(
-                                                schirm, x, y,
+                                            tileMenu.value = null
+                                            perform(
+                                                menuScreen, x, y,
                                                 listOf(
-                                                    when (punkt) {
+                                                    when (menuItem) {
                                                         MenuItem.SECOND_ACTION ->
                                                             LongPressAction.SECOND_ACTION
                                                         MenuItem.EDIT -> LongPressAction.EDIT
@@ -716,7 +716,7 @@ class MainActivity : BigLauActivity() {
                     )
                 }
 
-                if (wartend != null) {
+                if (pending != null) {
                     PinGate(
                         title = stringResource(R.string.applock_locked),
                         explainer = stringResource(R.string.applock_locked_hint),
@@ -725,7 +725,7 @@ class MainActivity : BigLauActivity() {
                         onCheck = { eingabe -> Pin.verify(eingabe, config.security.pin) },
                         onAccept = {
                             lockedApp.value = null
-                            starten(wartend.action, wartend.screenId, wartend.x, wartend.y, apps)
+                            startAction(pending.action, pending.screenId, pending.x, pending.y, apps)
                         },
                         acceptOnComplete = true,
                     )
@@ -787,7 +787,7 @@ class MainActivity : BigLauActivity() {
      * an app and a shortcut ask the same lock, since a shortcut leads into the same app.
      * only the key differs in precision: the app names its activity, the shortcut has none.
      */
-    private fun gesperrt(action: ButtonAction): Boolean {
+    private fun isLocked(action: ButtonAction): Boolean {
         val (paket, schluessel) = when (action) {
             is ButtonAction.App -> action.packageName to "${action.packageName}/${action.activityName}"
             is ButtonAction.Shortcut -> action.packageName to action.packageName
@@ -808,20 +808,20 @@ class MainActivity : BigLauActivity() {
      * editor on (1,2) of the home screen, which is the tile that opens the folder. anyone
      * following the invitation overwrote their folder instead of the broken tile.
      */
-    private fun starten(
+    private fun startAction(
         action: ButtonAction,
         screenId: String,
         x: Int,
         y: Int,
         apps: AppRepository,
     ) {
-        val geklappt = when (action) {
+        val worked = when (action) {
             is ButtonAction.App -> apps.launch(action.packageName, action.activityName)
             is ButtonAction.Shortcut ->
                 ShortcutRepository.get(this).launch(action.packageName, action.shortcutId)
             else -> true
         }
-        if (geklappt) return
+        if (worked) return
         Notice.show(
             this,
             if (action is ButtonAction.Shortcut) R.string.shortcut_gone else R.string.app_gone,
@@ -838,16 +838,16 @@ class MainActivity : BigLauActivity() {
         // every screen change closes the folder first, or the screen changes *behind* the
         // overlay and nothing is seen: a go-to-screen tile inside a folder left the folder
         // open and looked inert. holds for home, next and previous too.
-        val wechseln: (String) -> Unit = { ziel ->
+        val switchScreen: (String) -> Unit = { target ->
             openFolder.value = null
-            goToScreen(ziel)
+            goToScreen(target)
         }
         when (val action = cell.button.action) {
             is ButtonAction.App, is ButtonAction.Shortcut ->
-                if (gesperrt(action)) {
+                if (isLocked(action)) {
                     lockedApp.value = GesperrterTipp(action, screenId, cell.x, cell.y)
                 } else {
-                    starten(action, screenId, cell.x, cell.y, apps)
+                    startAction(action, screenId, cell.x, cell.y, apps)
                 }
 
             is ButtonAction.Contact -> when (action.mode) {
@@ -858,7 +858,7 @@ class MainActivity : BigLauActivity() {
                 ContactMode.ASK -> contactChoice.value = action
             }
 
-            is ButtonAction.GoToScreen -> wechseln(action.screenId)
+            is ButtonAction.GoToScreen -> switchScreen(action.screenId)
             // a folder does not change the screen, it lies over it, so a state of its own.
             is ButtonAction.Folder -> openFolder.value = action.screenId
             is ButtonAction.Link -> Intents.openLink(this, action.url)
@@ -889,7 +889,7 @@ class MainActivity : BigLauActivity() {
                 Builtin.AIRPLANE -> ToggleActions.run(this, ToggleKind.AIRPLANE)
                 Builtin.RINGER -> ToggleActions.run(this, ToggleKind.RINGER)
                 Builtin.SOS -> startActivity(Intent(this, SosActivity::class.java))
-                Builtin.HOME_SCREEN -> wechseln(ConfigStore.get(this).current.homeScreenId)
+                Builtin.HOME_SCREEN -> switchScreen(ConfigStore.get(this).current.homeScreenId)
                 Builtin.SETTINGS -> startActivity(Intent(this, SettingsActivity::class.java))
                 Builtin.APP_LIST -> startActivity(Intent(this, AppDrawerActivity::class.java))
                 Builtin.MOBILE_DATA -> ToggleActions.run(this, ToggleKind.MOBILE_DATA)
@@ -911,9 +911,9 @@ class MainActivity : BigLauActivity() {
                 // no else: a new entry must force a decision. next and previous screen sat
                 // silently in the else branch and reported coming soon.
                 Builtin.NEXT_SCREEN -> ScreenOrder.next(ConfigStore.get(this).current, currentScreenId())
-                    ?.let { wechseln(it) }
+                    ?.let { switchScreen(it) }
                 Builtin.PREV_SCREEN -> ScreenOrder.previous(ConfigStore.get(this).current, currentScreenId())
-                    ?.let { wechseln(it) }
+                    ?.let { switchScreen(it) }
             }
 
             // a widget serves itself; tapping the cell does nothing here.

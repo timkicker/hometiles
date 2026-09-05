@@ -11,7 +11,8 @@ import androidx.core.view.WindowInsetsControllerCompat
 /**
  * hides the status and navigation bars. `PLAN.md` 4.2.
  *
- * on this device that is about forty of 605 dp, seven percent, which is one more tile row.
+ * on this device that is about forty of 605 dp, seven percent, which is one more tile row
+ * (measured 02.09.2026).
  */
 object SystemBars {
 

@@ -12,12 +12,11 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 /**
- * PLAN.md 4.5: „App-Sperre: welche Apps ohne PIN startbar sind (Whitelist)".
+ * PLAN.md 4.5: the app lock, which apps start without the pin.
  *
- * Gedacht für den Fall, in dem jemand ein Telefon für eine andere Person einrichtet und
- * will, dass nur ein paar Apps offenstehen. Eine Erlaubnisliste und keine Sperrliste: eine
- * Sperrliste müsste jede App des Telefons nennen und wäre nach der nächsten Installation
- * schon unvollständig.
+ * meant for setting a phone up for someone else with only a few apps open. an allow list and
+ * not a block list: a block list would have to name every app on the phone and would be
+ * incomplete after the next installation.
  */
 class AppLockTest {
 
@@ -36,45 +35,45 @@ class AppLockTest {
     )
 
     @Test
-    fun `eine erlaubte app startet ohne pin`() {
+    fun `an allowed app starts without the pin`() {
         assertEquals(false, AppLock.needsPin(config, "com.wa/Main", "com.wa"))
     }
 
     @Test
-    fun `eine andere app fragt nach der pin`() {
+    fun `another app asks for the pin`() {
         assertEquals(true, AppLock.needsPin(config, "com.spiel/Main", "com.spiel"))
     }
 
     /**
-     * Ohne gesetzte PIN sperrt nichts. Sonst stünde man vor einem Telefon, auf dem nichts
-     * aufgeht und nichts nach etwas fragt, das man eingeben könnte.
+     * without a pin set nothing locks, or one would stand in front of a phone where nothing
+     * opens and nothing asks for something one could type.
      */
     @Test
-    fun `ohne pin sperrt nichts`() {
-        val ohne = config.copy(security = Security(pin = null))
-        assertEquals(false, AppLock.needsPin(ohne, "com.spiel/Main", "com.spiel"))
+    fun `without a pin nothing locks`() {
+        val without = config.copy(security = Security(pin = null))
+        assertEquals(false, AppLock.needsPin(without, "com.spiel/Main", "com.spiel"))
     }
 
     @Test
-    fun `ausgeschaltet sperrt nichts`() {
-        val aus = config.copy(apps = config.apps.copy(lockOthers = false))
-        assertEquals(false, AppLock.needsPin(aus, "com.spiel/Main", "com.spiel"))
+    fun `switched off nothing locks`() {
+        val off = config.copy(apps = config.apps.copy(lockOthers = false))
+        assertEquals(false, AppLock.needsPin(off, "com.spiel/Main", "com.spiel"))
     }
 
-    // Ein Paketname erlaubt alle seine Einstiege - dieselbe Regel wie beim Ausblenden.
+    // a package name allows all its entry points - the same rule as for hiding.
     @Test
-    fun `ein paketname erlaubt die ganze app`() {
-        val perPaket = config.copy(apps = config.apps.copy(allowed = setOf("com.spiel")))
-        assertEquals(false, AppLock.needsPin(perPaket, "com.spiel/Zweiter", "com.spiel"))
+    fun `a package name allows the whole app`() {
+        val perPackage = config.copy(apps = config.apps.copy(allowed = setOf("com.spiel")))
+        assertEquals(false, AppLock.needsPin(perPackage, "com.spiel/Zweiter", "com.spiel"))
     }
 
     /**
-     * Der wichtigste Teil: beim Einschalten sind die Apps auf den Kacheln von selbst
-     * erlaubt. Wer die Sperre einschaltet und danach vor einem Telefon steht, auf dem
-     * nichts mehr aufgeht, hat sich ausgesperrt statt etwas gesichert.
+     * the most important part: switching the lock on allows the apps on the tiles by itself.
+     * whoever switches it on and then stands in front of a phone where nothing opens has
+     * locked themselves out rather than secured anything.
      */
     @Test
-    fun `die kachel-apps sind von anfang an erlaubt`() {
+    fun `the tile apps are allowed from the start`() {
         assertEquals(
             setOf("com.wa/Main", "com.maps/Main"),
             AppLock.initialAllowance(config),
@@ -82,16 +81,14 @@ class AppLockTest {
     }
 
     /**
-     * Eine Verknuepfung fuehrt in eine App - und liegt genauso bewusst auf einer Kachel.
-     *
-     * Bis zum 03.09.2026 zaehlte `initialAllowance` nur `App`. Das fiel nicht auf, solange
-     * die Sperre Verknuepfungen ohnehin durchliess. Seit sie das nicht mehr tut, waere
-     * eine hingelegte Verknuepfung beim Einschalten der Sperre sofort zu - der
-     * Einrichtende haette sie gerade erst dorthin gelegt.
+     * a shortcut leads into an app and lies on a tile just as deliberately. `initialAllowance`
+     * counted only `App`, which did not show while the lock let shortcuts through anyway;
+     * since it does not, a shortcut just placed would be shut the moment the lock is switched
+     * on.
      */
     @Test
-    fun `eine verknuepfung auf einer kachel ist von anfang an erlaubt`() {
-        val mitKurz = config.copy(
+    fun `a shortcut on a tile is allowed from the start`() {
+        val withShortcut = config.copy(
             screens = listOf(
                 config.screens.first().let { screen ->
                     screen.copy(
@@ -107,55 +104,54 @@ class AppLockTest {
         )
         assertEquals(
             setOf("com.wa/Main", "com.maps/Main", "com.brave"),
-            AppLock.initialAllowance(mitKurz),
+            AppLock.initialAllowance(withShortcut),
         )
     }
 
-    /** Und andersherum: was nicht erlaubt ist, fragt auch als Verknuepfung nach der PIN. */
+    /** and the other way round: what is not allowed asks for the pin as a shortcut too. */
     @Test
-    fun `eine verknuepfung in eine gesperrte app fragt nach der pin`() {
+    fun `a shortcut into a locked app asks for the pin`() {
         assertEquals(true, AppLock.needsPin(config, "com.spiel", "com.spiel"))
     }
 
     @Test
-    fun `erlauben und sperren ist derselbe tipp`() {
-        val ohne = AppLock.toggleAllowed(config.apps, "com.wa/Main")
-        assertEquals(false, ohne.allowed.contains("com.wa/Main"))
-        val wieder = AppLock.toggleAllowed(ohne, "com.wa/Main")
-        assertEquals(true, wieder.allowed.contains("com.wa/Main"))
+    fun `allowing and locking is the same tap`() {
+        val without = AppLock.toggleAllowed(config.apps, "com.wa/Main")
+        assertEquals(false, without.allowed.contains("com.wa/Main"))
+        val again = AppLock.toggleAllowed(without, "com.wa/Main")
+        assertEquals(true, again.allowed.contains("com.wa/Main"))
     }
 
     @Test
-    fun `die vorgabe sperrt nichts`() {
+    fun `the default locks nothing`() {
         assertEquals(false, AppsConfig().lockOthers)
         assertEquals(emptySet<String>(), AppsConfig().allowed)
     }
 }
 
 /**
- * Wird die PIN entfernt, geht die App-Sperre mit.
+ * removing the pin removes the app lock with it.
  *
- * Beim ersten Mal blieb sie stehen: die Schutzschalter liegen in `security`, die App-Sperre
- * in `apps`, und das Zurücksetzen traf nur den einen Ort. Ohne PIN sperrt sie zwar nichts —
- * aber ihre Zeile steht nur da, solange eine PIN gesetzt ist, man käme also nicht mehr an
- * sie heran, und die nächste gesetzte PIN sperrte ungefragt jede App zu, die auf keiner
- * Kachel liegt.
+ * the first time it stayed: the protection switches live in `security`, the app lock in
+ * `apps`, and the reset touched only the one place. without a pin it locks nothing, but its
+ * row only stands there while a pin is set - so it could not be reached any more, and the
+ * next pin set would silently shut every app that lies on no tile.
  */
 class AppLockRemovalTest {
 
     @Test
-    fun `ohne pin steht die sperre wieder auf vorgabe`() {
-        val frisch = AppsConfig()
-        assertEquals(false, frisch.lockOthers)
-        assertEquals(emptySet<String>(), frisch.allowed)
+    fun `without a pin the lock stands at its default again`() {
+        val fresh = AppsConfig()
+        assertEquals(false, fresh.lockOthers)
+        assertEquals(emptySet<String>(), fresh.allowed)
     }
 
     @Test
-    fun `eine stehengebliebene sperre wuerde ohne pin nichts tun`() {
-        val stehengeblieben = LauncherConfig(
+    fun `a lock left standing would do nothing without a pin`() {
+        val leftStanding = LauncherConfig(
             security = Security(pin = null),
             apps = AppsConfig(lockOthers = true, allowed = emptySet()),
         )
-        assertEquals(false, AppLock.needsPin(stehengeblieben, "com.x/Main", "com.x"))
+        assertEquals(false, AppLock.needsPin(leftStanding, "com.x/Main", "com.x"))
     }
 }

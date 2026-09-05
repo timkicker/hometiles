@@ -6,84 +6,79 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Die Probe darf unter keinen Umständen senden.
+ * the preview must under no circumstances send.
  *
- * Anlass ist ein Fehler von mir: um den Countdown-Bildschirm ansehen zu können, hatte ich am
- * Emulator eine Testnummer eingetragen und die SMS-Erlaubnis entzogen — und **die
- * Installation der neuen Fassung hat die Erlaubnis wieder erteilt** (`GRANTED_BY_ROLE`). Der
- * nächste Countdown lief durch und schickte die Nachricht an die Testnummer. Es hat nichts den
- * Emulator verlassen, aber verlassen konnte ich mich darauf nicht.
+ * to be able to look at the countdown screen a test number had been entered on the emulator
+ * and the sms permission revoked - and **installing the new build granted it again**
+ * (`GRANTED_BY_ROLE`). the next countdown ran through and sent the message to the test number.
+ * nothing left the emulator, but that was not something to rely on.
  *
- * Seither gibt es die Probe: derselbe Ablauf, am Ende **kein** `Sos.send`. Wer den Notruf
- * einrichtet, kann ihn damit zeigen, statt ihn zu beschreiben — und prüfen lässt sich der
- * Bildschirm damit auch, ohne dass irgendwo etwas ankommt.
+ * since then there is the preview: the same run, and **no** `Sos.send` at the end.
  */
 class SosPreviewTest {
 
-    private val quelle = // Ohne Kommentarzeilen: hier hängt daran, ob ein Alarm losgeht, der niemandem gilt.
-        Quelltext.withoutComments("org/biglau/toggles/SosActivity.kt")
+    // without comment lines: whether an alarm goes off that is meant for nobody hangs on this.
+    private val source = Quelltext.withoutComments("org/biglau/toggles/SosActivity.kt")
 
     @Test
-    fun `in der Probe wird nicht gesendet`() {
-        val vorProbe = Quelltext.cut(quelle, "", "Sos.send(")
+    fun `the preview does not send`() {
+        val beforePreview = Quelltext.cut(source, "", "Sos.send(")
         assertTrue(
-            "Vor dem Senden steht keine Abfrage auf die Probe",
-            "if (preview)" in vorProbe,
+            "there is no check for the preview before sending",
+            "if (preview)" in beforePreview,
         )
-        assertTrue("Die Probe kehrt nicht zurueck, bevor gesendet wird", "return@LaunchedEffect" in vorProbe)
+        assertTrue("the preview does not return before sending", "return@LaunchedEffect" in beforePreview)
     }
 
     @Test
-    fun `die Probe heisst auch so`() {
-        // Sonst weiss niemand, der den Bildschirm zufaellig sieht, ob es gerade ernst ist.
-        assertTrue("sos_preview_title" in quelle)
-        assertTrue("sos_preview_done" in quelle)
+    fun `the preview says so as well`() {
+        // or whoever happens to see the screen does not know whether this is real.
+        assertTrue("sos_preview_title" in source)
+        assertTrue("sos_preview_done" in source)
     }
 
     @Test
-    fun `die Probe laeuft auch ohne eingetragene Kontakte`() {
-        // Sonst muesste man erst eine Nummer eintragen, um den Ablauf zu sehen - genau die
-        // Reihenfolge, die den Fehler oben moeglich gemacht hat.
-        assertTrue("if (!configured && !preview) return@LaunchedEffect" in quelle)
+    fun `the preview also runs without contacts entered`() {
+        // otherwise a number would have to be entered first to see the run - exactly the
+        // order that made the fault above possible.
+        assertTrue("if (!configured && !preview) return@LaunchedEffect" in source)
     }
 
     /**
-     * Die Probe zeigt auch **was** hinausginge. Vorher liess sich der Text nur
-     * herausfinden, indem man ihn abschickte — auf einem Weg, den man nicht ausprobieren
-     * will. Wer den Notruf fuer jemanden einrichtet, soll ihn lesen koennen, bevor er im
-     * Ernstfall bei jemand anderem ankommt.
+     * the preview also shows **what** would go out. before, the text could only be found out
+     * by sending it, on a way one does not want to try. whoever sets the emergency call up for
+     * someone should be able to read it before it reaches somebody else in earnest.
      */
     @Test
-    fun `die Probe zeigt den Text, der hinausginge`() {
-        assertTrue("der Text wird nicht zusammengesetzt", "Sos.compose(" in quelle)
-        assertTrue("der Text wird nicht angezeigt", "previewText" in quelle)
+    fun `the preview shows the text that would go out`() {
+        assertTrue("the text is not composed", "Sos.compose(" in source)
+        assertTrue("the text is not shown", "previewText" in source)
         assertTrue(
-            "es steht nicht dabei, ob ein Standort drin ist",
-            "sos_preview_text_location" in quelle,
+            "it does not say whether a location is in it",
+            "sos_preview_text_location" in source,
         )
     }
 
     /**
-     * Und die Probe schlägt auch keinen Alarm.
+     * and the preview raises no alarm either.
      *
-     * Sie sagt von sich „derselbe Ablauf wie im Ernstfall. Es geht nichts hinaus" — und
-     * startete dabei die Sirene: `SosAlarm.start` stand **vor** der Abfrage auf die Probe.
-     * Der Ton läuft mit `USAGE_ALARM`, also an „Bitte nicht stören" vorbei und in voller
-     * Lautstärke. „Es geht nichts hinaus" stimmt dann für die Nachricht und für nichts sonst.
+     * it says of itself that the same run happens and nothing goes out - and started the siren
+     * while doing so: `SosAlarm.start` stood **before** the check for the preview. the sound
+     * runs with `USAGE_ALARM`, so past do-not-disturb and at full volume.
      *
-     * Wer den Alarm hören will, hat dafür in den Einstellungen „Jetzt ausprobieren" mit
-     * einem Stopp-Knopf daneben — deliberat und beschriftet, statt als Nebenwirkung.
+     * whoever wants to hear the alarm has "try it now" in the settings with a stop button
+     * beside it - deliberate and labelled, instead of a side effect.
      */
     @Test
-    fun `in der Probe faengt kein Alarm an`() {
-        val probeStelle = quelle.indexOf("if (preview)")
-        val alarmStelle = quelle.indexOf("SosAlarm.start(")
-        assertTrue("SosAlarm.start fehlt ganz", alarmStelle > 0)
+    fun `no alarm starts in the preview`() {
+        val previewAt = source.indexOf("if (preview)")
+        val alarmAt = source.indexOf("SosAlarm.start(")
+        assertTrue("SosAlarm.start is gone entirely", alarmAt > 0)
         assertTrue(
-            "Der Alarm startet vor der Abfrage auf die Probe",
-            probeStelle in 1 until alarmStelle,
+            "the alarm starts before the check for the preview",
+            previewAt in 1 until alarmAt,
         )
-        val vorAlarm = quelle.substring(0, alarmStelle)
-        assertTrue("Die Probe kehrt nicht vor dem Alarm zurueck", "return@LaunchedEffect" in vorAlarm)
+        val beforeAlarm = source.substring(0, alarmAt)
+        assertTrue("the preview does not return before the alarm", "return@LaunchedEffect" in beforeAlarm)
     }
 }

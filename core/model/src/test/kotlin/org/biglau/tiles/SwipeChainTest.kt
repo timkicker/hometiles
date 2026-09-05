@@ -10,11 +10,11 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 /**
- * PLAN.md 4.1: „Swipe-Kette: … in welcher Reihenfolge".
+ * PLAN.md 4.1: the swipe chain and in which order it runs.
  *
- * `swipeOrder` stand von Anfang an im Modell und wurde von [ScreenOrder] gelesen — aber
- * von keiner Oberfläche je geschrieben. Es blieb immer leer, die Reihenfolge war immer die
- * Anlegereihenfolge. Eine Zusage, die nichts tat.
+ * `swipeOrder` stood in the model from the start and was read by [ScreenOrder] - but written
+ * by no screen ever. it stayed empty, the order was always the order of creation. a promise
+ * that did nothing.
  */
 class SwipeChainTest {
 
@@ -32,146 +32,145 @@ class SwipeChainTest {
     )
 
     @Test
-    fun `ohne eigene ordnung gilt die anlegereihenfolge`() {
+    fun `without an order of its own the creation order holds`() {
         assertEquals(listOf("a", "b", "c"), SwipeChain.explicit(config))
     }
 
-    // Ordner gehoeren ihrer Kachel, nicht der Reihe. Wer "weiter" tippt, erwartet den
-    // naechsten Bildschirm, nicht den Inhalt eines Ordners.
+    // folders belong to their tile, not to the chain: whoever swipes on expects the next
+    // screen, not the contents of a folder.
     @Test
-    fun `ordner kommen nie in die reihe`() {
-        val bewegt = SwipeChain.moveDown(config, "a")
-        assertEquals(listOf("b", "a", "c"), bewegt.swipeOrder)
+    fun `folders never enter the chain`() {
+        val moved = SwipeChain.moveDown(config, "a")
+        assertEquals(listOf("b", "a", "c"), moved.swipeOrder)
     }
 
     @Test
-    fun `nach oben und nach unten sind umkehrbar`() {
-        val runter = SwipeChain.moveDown(config, "a")
-        val wiederHoch = SwipeChain.moveUp(runter, "a")
-        assertEquals(listOf("a", "b", "c"), SwipeChain.explicit(wiederHoch))
+    fun `up and down are reversible`() {
+        val down = SwipeChain.moveDown(config, "a")
+        val upAgain = SwipeChain.moveUp(down, "a")
+        assertEquals(listOf("a", "b", "c"), SwipeChain.explicit(upAgain))
     }
 
     /**
-     * Am Rand passiert nichts, und zwar ohne Umlauf: wer den obersten Bildschirm „nach
-     * oben" tippt, erwartet nicht, dass er unten herauskommt. Die Ringform gilt fürs
-     * Wischen, nicht fürs Sortieren.
+     * nothing happens at the edge, and without wrapping: whoever moves the topmost screen up
+     * does not expect it to come out at the bottom. the ring holds for swiping, not sorting.
      */
     @Test
-    fun `am rand bewegt sich nichts`() {
+    fun `nothing moves at the edge`() {
         assertEquals(config, SwipeChain.moveUp(config, "a"))
         assertEquals(config, SwipeChain.moveDown(config, "c"))
     }
 
     @Test
-    fun `ein unbekannter screen aendert nichts`() {
+    fun `an unknown screen changes nothing`() {
         assertEquals(config, SwipeChain.moveUp(config, "gibtsnicht"))
     }
 
-    // Die Reihenfolge muss auch wirken, nicht nur gespeichert werden.
+    // the order has to take effect, not only be stored.
     @Test
-    fun `die neue reihenfolge gilt fuer naechster und voriger`() {
-        val bewegt = SwipeChain.moveDown(config, "a")
-        assertEquals(listOf("b", "a", "c"), ScreenOrder.ordered(bewegt).map { it.id })
-        assertEquals("a", ScreenOrder.next(bewegt, "b"))
-        assertEquals("b", ScreenOrder.previous(bewegt, "a"))
+    fun `the new order holds for next and previous`() {
+        val moved = SwipeChain.moveDown(config, "a")
+        assertEquals(listOf("b", "a", "c"), ScreenOrder.ordered(moved).map { it.id })
+        assertEquals("a", ScreenOrder.next(moved, "b"))
+        assertEquals("b", ScreenOrder.previous(moved, "a"))
     }
 
     @Test
-    fun `die position wird richtig gemeldet`() {
+    fun `the position is reported correctly`() {
         assertEquals(0, SwipeChain.position(config, "a"))
         assertEquals(2, SwipeChain.position(config, "c"))
         assertEquals(-1, SwipeChain.position(config, "mehr"))
     }
 
-    // Beim Loeschen wird die Ordnung mitgepflegt - sonst zeigte sie auf einen Screen, den
-    // es nicht mehr gibt, und der naechste Wisch fiele ins Leere.
+    // deleting keeps the order tidy, or it would point at a screen that is gone and the next
+    // swipe would fall into nothing.
     @Test
-    fun `ein geloeschter screen faellt aus der ordnung`() {
-        val geordnet = SwipeChain.moveDown(config, "a")
-        val ohneB = ScreenEdits.delete(geordnet, "b")
-        assertEquals(false, ohneB.swipeOrder.contains("b"))
-        assertEquals(listOf("a", "c"), ScreenOrder.ordered(ohneB).map { it.id })
+    fun `a deleted screen drops out of the order`() {
+        val ordered = SwipeChain.moveDown(config, "a")
+        val withoutB = ScreenEdits.delete(ordered, "b")
+        assertEquals(false, withoutB.swipeOrder.contains("b"))
+        assertEquals(listOf("a", "c"), ScreenOrder.ordered(withoutB).map { it.id })
     }
 }
 
 /**
- * PLAN.md 4.1: „welche Screens per Wischen erreichbar sind".
+ * PLAN.md 4.1: which screens are reachable by swiping.
  *
- * Ein Screen darf die Kette nur verlassen, wenn er danach noch anders zu erreichen ist.
- * Sonst wäre das Herausnehmen der schnellste Weg, einen eingerichteten Screen unauffindbar
- * zu machen — er stünde weiter in der Konfiguration, und kein Weg führte mehr hin.
+ * a screen may leave the chain only if it can still be reached another way. otherwise taking
+ * it out would be the quickest way to make a screen unfindable - it would stand in the
+ * configuration and no way would lead there.
  */
 class SwipeMembershipTest {
 
     private fun screen(id: String, cells: List<Cell> = emptyList()) =
         Screen(id = id, name = id.uppercase(), cols = 2, rows = 3, cells = cells)
 
-    private val sprung = Cell(0, 0, button = Button(action = ButtonAction.GoToScreen("b")))
+    private val jump = Cell(0, 0, button = Button(action = ButtonAction.GoToScreen("b")))
 
     private val config = LauncherConfig(
-        screens = listOf(screen("a", listOf(sprung)), screen("b"), screen("c")),
+        screens = listOf(screen("a", listOf(jump)), screen("b"), screen("c")),
         homeScreenId = "a",
     )
 
     @Test
-    fun `mit sprungkachel darf er raus`() {
+    fun `with a jump tile it may leave`() {
         assertEquals(true, SwipeChain.mayLeave(config, "b"))
-        val ohne = SwipeChain.exclude(config, "b")
-        assertEquals(setOf("b"), ohne.swipeExcluded)
-        assertEquals(listOf("a", "c"), ScreenOrder.ordered(ohne).map { it.id })
+        val without = SwipeChain.exclude(config, "b")
+        assertEquals(setOf("b"), without.swipeExcluded)
+        assertEquals(listOf("a", "c"), ScreenOrder.ordered(without).map { it.id })
     }
 
     @Test
-    fun `ohne weg zurueck bleibt er drin`() {
+    fun `without a way back it stays in`() {
         assertEquals(false, SwipeChain.mayLeave(config, "c"))
         assertEquals(config, SwipeChain.exclude(config, "c"))
     }
 
-    // Der Startbildschirm ist immer erreichbar - zu ihm fuehrt die Zurueck-Geste.
+    // the home screen is always reachable - the back gesture leads to it.
     @Test
-    fun `der startbildschirm darf immer raus`() {
+    fun `the home screen may always leave`() {
         assertEquals(true, SwipeChain.mayLeave(config, "a"))
     }
 
     @Test
-    fun `zurueckholen geht immer`() {
-        val ohne = SwipeChain.exclude(config, "b")
-        assertEquals(config.swipeExcluded, SwipeChain.include(ohne, "b").swipeExcluded)
-        assertEquals(listOf("a", "b", "c"), ScreenOrder.ordered(SwipeChain.include(ohne, "b")).map { it.id })
+    fun `bringing it back always works`() {
+        val without = SwipeChain.exclude(config, "b")
+        assertEquals(config.swipeExcluded, SwipeChain.include(without, "b").swipeExcluded)
+        assertEquals(listOf("a", "b", "c"), ScreenOrder.ordered(SwipeChain.include(without, "b")).map { it.id })
     }
 
-    // Ausnahmeliste statt Mitgliederliste: ein spaeter angelegter Screen ist von selbst
-    // dabei, statt still zu fehlen.
+    // an exception list instead of a membership list: a screen created later is in by itself
+    // rather than quietly missing.
     @Test
-    fun `ein neuer screen ist von selbst in der kette`() {
-        val ohne = SwipeChain.exclude(config, "b")
-        val mitNeu = ohne.copy(screens = ohne.screens + screen("d"))
-        assertEquals(listOf("a", "c", "d"), ScreenOrder.ordered(mitNeu).map { it.id })
+    fun `a new screen is in the chain by itself`() {
+        val without = SwipeChain.exclude(config, "b")
+        val withNew = without.copy(screens = without.screens + screen("d"))
+        assertEquals(listOf("a", "c", "d"), ScreenOrder.ordered(withNew).map { it.id })
     }
 
     /**
-     * Und die Warnung „kein Weg führt hierher" muss das Wischen mitzählen, sonst warnt sie
-     * vor Screens, die man mit einer Handbewegung erreicht — und eine Warnung, die nicht
-     * stimmt, nimmt man auch dort nicht mehr ernst, wo sie stimmt.
+     * and the warning that no way leads here has to count swiping, or it warns about screens
+     * one reaches with a hand movement - and a warning that is wrong is no longer taken
+     * seriously where it is right either.
      */
     @Test
-    fun `mit eingeschaltetem wischen zaehlt die kette als weg`() {
-        val ohneWischen = config
-        assertEquals(listOf("c"), ScreenEdits.unreachable(ohneWischen).map { it.id })
+    fun `with swiping switched on the chain counts as a way`() {
+        val withoutSwiping = config
+        assertEquals(listOf("c"), ScreenEdits.unreachable(withoutSwiping).map { it.id })
 
-        val mitWischen = config.copy(
+        val withSwiping = config.copy(
             behaviour = config.behaviour.copy(swipeBetweenScreens = true),
         )
-        assertEquals(emptyList<String>(), ScreenEdits.unreachable(mitWischen).map { it.id })
+        assertEquals(emptyList<String>(), ScreenEdits.unreachable(withSwiping).map { it.id })
     }
 
     @Test
-    fun `aus der kette genommen zaehlt das wischen nicht mehr`() {
-        val mitWischen = config.copy(
+    fun `taken out of the chain the swiping no longer counts`() {
+        val withSwiping = config.copy(
             behaviour = config.behaviour.copy(swipeBetweenScreens = true),
         )
-        // "b" hat eine Sprungkachel, darf also raus - und bleibt erreichbar.
-        val ohneB = SwipeChain.exclude(mitWischen, "b")
-        assertEquals(emptyList<String>(), ScreenEdits.unreachable(ohneB).map { it.id })
+        // "b" has a jump tile, so it may leave - and stays reachable.
+        val withoutB = SwipeChain.exclude(withSwiping, "b")
+        assertEquals(emptyList<String>(), ScreenEdits.unreachable(withoutB).map { it.id })
     }
 }

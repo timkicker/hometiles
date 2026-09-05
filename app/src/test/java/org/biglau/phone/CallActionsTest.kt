@@ -15,8 +15,8 @@ class CallActionsTest {
         muted: Boolean = false,
         speaker: Boolean = false,
         bluetooth: Boolean = false,
-        anderer: String? = null,
-        andererGehalten: Boolean = false,
+        other: String? = null,
+        otherOnHold: Boolean = false,
         name: String? = null,
         number: String = "+436601234567",
     ) = CallView(
@@ -27,69 +27,69 @@ class CallActionsTest {
         muted = muted,
         audioRoute = if (speaker) AudioRoute.SPEAKER else AudioRoute.EARPIECE,
         bluetoothAvailable = bluetooth,
-        otherName = anderer,
-        otherHeld = andererGehalten,
+        otherName = other,
+        otherHeld = otherOnHold,
     )
 
     @Test
-    fun `ein klingelnder Anruf bietet Annehmen und Ablehnen`() {
+    fun `a ringing call offers answer and reject`() {
         val actions = CallActions.availableFor(view(CallStatus.RINGING))
         assertEquals(listOf(CallAction.ANSWER, CallAction.REJECT), actions)
     }
 
     @Test
-    fun `ein klingelnder Anruf zeigt nie Auflegen`() {
-        // "Auflegen" auf einem klingelnden Anruf liest sich wie "Ablehnen" - und wer das
-        // verwechselt, hat den Anruf verloren.
+    fun `a ringing call never shows hang up`() {
+        // "hang up" on a ringing call reads like "reject" - and whoever mixes those up has
+        // lost the call.
         assertTrue(CallAction.HANG_UP !in CallActions.availableFor(view(CallStatus.RINGING)))
     }
 
     @Test
-    fun `ein laufendes Gespraech bietet Auflegen aber kein Annehmen`() {
+    fun `a running call offers hang up but no answer`() {
         val actions = CallActions.availableFor(view(CallStatus.ACTIVE))
         assertTrue(CallAction.HANG_UP in actions)
         assertTrue(CallAction.ANSWER !in actions)
     }
 
     @Test
-    fun `stumm und laut wechseln sich ab`() {
+    fun `mute and unmute alternate`() {
         assertTrue(CallAction.MUTE in CallActions.availableFor(view(CallStatus.ACTIVE, muted = false)))
         assertTrue(CallAction.UNMUTE in CallActions.availableFor(view(CallStatus.ACTIVE, muted = true)))
     }
 
     @Test
-    fun `ein gehaltener Anruf bietet Fortsetzen`() {
+    fun `a held call offers resume`() {
         val actions = CallActions.availableFor(view(CallStatus.HOLDING))
         assertTrue(CallAction.UNHOLD in actions)
         assertTrue(CallAction.HOLD !in actions)
     }
 
     @Test
-    fun `ein beendeter Anruf bietet nichts mehr`() {
+    fun `an ended call offers nothing any more`() {
         listOf(CallStatus.DISCONNECTED, CallStatus.DISCONNECTING, CallStatus.OTHER).forEach {
             assertTrue(CallActions.availableFor(view(it)).isEmpty())
         }
     }
 
     @Test
-    fun `die Dauer laeuft erst ab dem Verbinden`() {
+    fun `the duration runs only from connecting on`() {
         assertNull(CallActions.durationSeconds(view(CallStatus.RINGING, started = 1000L), 5000L))
         assertNull(CallActions.durationSeconds(view(CallStatus.DIALING, started = 1000L), 5000L))
         assertEquals(4L, CallActions.durationSeconds(view(CallStatus.ACTIVE, started = 1000L), 5000L))
     }
 
     @Test
-    fun `ohne Startzeit gibt es keine Dauer`() {
+    fun `without a start time there is no duration`() {
         assertNull(CallActions.durationSeconds(view(CallStatus.ACTIVE, started = null), 5000L))
     }
 
     @Test
-    fun `eine zurueckspringende Uhr ergibt keine negative Dauer`() {
+    fun `a clock jumping back gives no negative duration`() {
         assertEquals(0L, CallActions.durationSeconds(view(CallStatus.ACTIVE, started = 9000L), 1000L))
     }
 
     @Test
-    fun `die Dauer wird als Minuten und Sekunden geschrieben`() {
+    fun `the duration is written as minutes and seconds`() {
         assertEquals("0:00", CallActions.formatDuration(0))
         assertEquals("0:07", CallActions.formatDuration(7))
         assertEquals("1:05", CallActions.formatDuration(65))
@@ -97,91 +97,90 @@ class CallActionsTest {
     }
 
     @Test
-    fun `ab einer Stunde kommen Stunden dazu`() {
+    fun `from an hour on hours are added`() {
         assertEquals("1:00:00", CallActions.formatDuration(3600))
         assertEquals("2:03:04", CallActions.formatDuration(7384))
     }
 
     @Test
-    fun `die Ueberschrift nimmt den Namen wenn es einen gibt`() {
-        assertEquals("Oma", CallActions.headline(view(CallStatus.RINGING, name = "Oma"), "Unbekannt"))
+    fun `the headline takes the name when there is one`() {
+        assertEquals("Oma", CallActions.headline(view(CallStatus.RINGING, name = "Oma"), "Unknown"))
     }
 
     @Test
-    fun `ohne Namen steht die lesbar gruppierte Nummer da`() {
-        assertEquals("+436 601 234 567", CallActions.headline(view(CallStatus.RINGING, name = null), "Unbekannt"))
+    fun `without a name the readably grouped number stands there`() {
+        assertEquals("+436 601 234 567", CallActions.headline(view(CallStatus.RINGING, name = null), "Unknown"))
     }
 
     @Test
-    fun `eine unterdrueckte Nummer ergibt ein Fragezeichen statt einer leeren Zeile`() {
-        assertEquals("Unbekannt", CallActions.headline(view(CallStatus.RINGING, name = null, number = ""), "Unbekannt"))
-        assertEquals("Unbekannt", CallActions.headline(view(CallStatus.RINGING, name = "  ", number = ""), "Unbekannt"))
+    fun `a withheld number gives a fallback instead of an empty line`() {
+        assertEquals("Unknown", CallActions.headline(view(CallStatus.RINGING, name = null, number = ""), "Unknown"))
+        assertEquals("Unknown", CallActions.headline(view(CallStatus.RINGING, name = "  ", number = ""), "Unknown"))
     }
 
-    // --- Die geoeffnete Tastatur (PLAN.md 4.6) ---
+    // --- the opened keypad (PLAN.md 4.6) ---
 
     /**
-     * Der Fund vom 02.09.2026: mit allen fuenf Zeilen blieb fuer die Tastatur ein Streifen
-     * von zwoelf Bildpunkten - die Ziffern wurden nicht einmal mehr gezeichnet.
+     * with all five rows the keypad was left a strip twelve pixels tall - the digits were not
+     * even drawn any more.
      */
     @Test
-    fun `neben der Tastatur bleiben nur zwei Zeilen`() {
+    fun `beside the keypad only two rows are left`() {
         val actions = CallActions.whileKeypad(view(CallStatus.ACTIVE))
         assertEquals(listOf(CallAction.HANG_UP, CallAction.KEYPAD), actions)
     }
 
     @Test
-    fun `neben der Tastatur bleibt der Weg zurueck sichtbar`() {
-        // Vorher schloss sie nur die Ruecktaste - das ahnt niemand.
+    fun `beside the keypad the way back stays visible`() {
+        // before, only the back key closed it - nobody guesses that.
         assertTrue(CallAction.KEYPAD in CallActions.whileKeypad(view(CallStatus.ACTIVE)))
     }
 
     @Test
-    fun `neben der Tastatur bleibt Auflegen`() {
+    fun `beside the keypad hang up stays`() {
         assertTrue(CallAction.HANG_UP in CallActions.whileKeypad(view(CallStatus.ACTIVE)))
     }
 
     @Test
-    fun `die Auswahl ist immer eine Teilmenge der moeglichen Zeilen`() {
+    fun `the selection is always a subset of the possible rows`() {
         CallStatus.entries.forEach { status ->
-            val alle = CallActions.availableFor(view(status))
-            assertTrue(status.name, CallActions.whileKeypad(view(status)).all { it in alle })
+            val all = CallActions.availableFor(view(status))
+            assertTrue(status.name, CallActions.whileKeypad(view(status)).all { it in all })
         }
     }
 
-    // --- Der Lautsprecher (PLAN.md 4.6) ---
+    // --- the loudspeaker (PLAN.md 4.6) ---
 
     /**
-     * Der Fund vom 02.09.2026: es gab nur „Lautsprecher", und der schaltete ihn *ein*. Ein
-     * zweiter Druck tat dasselbe noch einmal. Wer ihn versehentlich anschaltete, bekam ihn
-     * bis zum Auflegen nicht mehr weg - das Gespräch lief derweil laut durch den Raum. Im
-     * Quelltext stand die Absicht sogar schon da, aber als tote Zeile:
-     * `if (view.speakerOn) SPEAKER else SPEAKER`.
+     * there was only "speaker", and it switched it *on*; a second press did the same again.
+     * whoever turned it on by accident could not get rid of it until hanging up, with the
+     * conversation running loudly through the room meanwhile. the intention even stood in the
+     * source, as a dead line: `if (view.speakerOn) SPEAKER else SPEAKER`.
      */
     @Test
-    fun `bei laufendem Lautsprecher steht dort das Ausschalten`() {
-        val an = CallActions.availableFor(view(CallStatus.ACTIVE, speaker = true))
-        assertTrue(CallAction.SPEAKER_OFF in an)
-        assertTrue(CallAction.SPEAKER !in an)
+    fun `with the speaker running it says switch off`() {
+        val on = CallActions.availableFor(view(CallStatus.ACTIVE, speaker = true))
+        assertTrue(CallAction.SPEAKER_OFF in on)
+        assertTrue(CallAction.SPEAKER !in on)
     }
 
     @Test
-    fun `ohne Lautsprecher steht dort das Einschalten`() {
-        val aus = CallActions.availableFor(view(CallStatus.ACTIVE, speaker = false))
-        assertTrue(CallAction.SPEAKER in aus)
-        assertTrue(CallAction.SPEAKER_OFF !in aus)
+    fun `without the speaker it says switch on`() {
+        val off = CallActions.availableFor(view(CallStatus.ACTIVE, speaker = false))
+        assertTrue(CallAction.SPEAKER in off)
+        assertTrue(CallAction.SPEAKER_OFF !in off)
     }
 
     @Test
-    fun `auch beim Waehlen laesst sich der Lautsprecher wieder ausschalten`() {
-        val an = CallActions.availableFor(view(CallStatus.DIALING, speaker = true))
-        assertTrue(CallAction.SPEAKER_OFF in an)
+    fun `while dialling the speaker can be switched off again too`() {
+        val on = CallActions.availableFor(view(CallStatus.DIALING, speaker = true))
+        assertTrue(CallAction.SPEAKER_OFF in on)
     }
 
     @Test
-    fun `die Zahl der Zeilen aendert sich durch den Lautsprecher nicht`() {
-        // Sonst huepfte die ganze Knopfreihe beim Umschalten, und der Finger traefe
-        // beim zweiten Druck etwas anderes.
+    fun `the number of rows does not change with the speaker`() {
+        // otherwise the whole row of buttons would jump when switching, and the finger would
+        // hit something else on the second press.
         CallStatus.entries.forEach { status ->
             assertEquals(
                 status.name,
@@ -191,73 +190,72 @@ class CallActionsTest {
         }
     }
 
-    // --- Der zweite Anruf (PLAN.md 4.6) ---
+    // --- the second call (PLAN.md 4.6) ---
 
     /**
-     * Der Fund vom 02.09.2026: `otherCallWaiting` wurde gesetzt und **nirgends gelesen**.
-     * Am Emulator nachgestellt - waehrend eines Gespraechs mit „Anna" rief „Bernd" an: der
-     * Bildschirm zeigte nur noch Bernd, und nach dem Annehmen war Anna weder zu sehen noch
-     * zu erreichen. Kein Knopf fuehrte zu ihr zurueck.
+     * `otherCallWaiting` was set and **read nowhere**. reproduced on the emulator: during a
+     * call with "Anna", "Bernd" called - the screen showed only Bernd, and after answering
+     * Anna was neither to be seen nor to be reached. no button led back to her.
      */
     @Test
-    fun `mit gehaltenem zweiten Anruf steht dort Wechseln statt Halten`() {
+    fun `with a held second call it says switch instead of hold`() {
         val actions = CallActions.availableFor(
-            view(CallStatus.ACTIVE, anderer = "Anna Bauer", andererGehalten = true),
+            view(CallStatus.ACTIVE, other = "Anna Bauer", otherOnHold = true),
         )
         assertTrue(CallAction.SWITCH in actions)
         assertTrue(CallAction.HOLD !in actions)
     }
 
     @Test
-    fun `ohne zweiten Anruf bleibt es beim Halten`() {
+    fun `without a second call it stays with hold`() {
         val actions = CallActions.availableFor(view(CallStatus.ACTIVE))
         assertTrue(CallAction.HOLD in actions)
         assertTrue(CallAction.SWITCH !in actions)
     }
 
     @Test
-    fun `ein klingelnder zweiter Anruf ersetzt das Halten noch nicht`() {
-        // Solange er klingelt, ist er nicht gehalten - da gibt es nichts zu wechseln,
-        // sondern anzunehmen oder abzulehnen.
+    fun `a ringing second call does not replace hold yet`() {
+        // while it rings it is not held - there is nothing to switch to, only to answer or
+        // reject.
         val actions = CallActions.availableFor(
-            view(CallStatus.ACTIVE, anderer = "Bernd", andererGehalten = false),
+            view(CallStatus.ACTIVE, other = "Bernd", otherOnHold = false),
         )
         assertTrue(CallAction.HOLD in actions)
     }
 
-    // --- Wer im Vordergrund steht ---
+    // --- who stands in front ---
 
     @Test
-    fun `es klingelt - dann steht der klingelnde vorn`() {
+    fun `something rings - then the ringing one stands in front`() {
         val index = CallForeground.pick(listOf(CallStatus.ACTIVE, CallStatus.RINGING))
         assertEquals(1, index)
     }
 
     @Test
-    fun `sonst der laufende vor dem gehaltenen`() {
+    fun `otherwise the running one before the held one`() {
         assertEquals(1, CallForeground.pick(listOf(CallStatus.HOLDING, CallStatus.ACTIVE)))
     }
 
     @Test
-    fun `bleibt nur ein gehaltener, steht der vorn`() {
+    fun `if only a held one is left, that one stands in front`() {
         assertEquals(0, CallForeground.pick(listOf(CallStatus.HOLDING)))
     }
 
     @Test
-    fun `ohne Anruf gibt es keinen Vordergrund`() {
+    fun `without a call there is no foreground`() {
         assertNull(CallForeground.pick(emptyList()))
     }
 
-    // --- Bluetooth (PLAN.md P5) ---
+    // --- bluetooth (PLAN.md P5) ---
 
     /**
-     * `PLAN.md` P5 nennt die „Bluetooth-Umschaltung"; gebaut war sie nicht, und eine
-     * sechste Knopfzeile passt auf drei Zoll auch nicht mehr - fuenf fuellen den Bildschirm
-     * bereits. Deshalb wird aus dem Umschalter eine Auswahl, **sobald** ein Geraet da ist:
-     * die Zeile sagt, wohin der Ton geht, und fuehrt zu den drei Wegen.
+     * `PLAN.md` P5 names the bluetooth switch; it was not built, and a sixth row of buttons
+     * does not fit on three inches - five already fill the screen. so the switch becomes a
+     * choice **as soon as** a device is there: the row says where the sound goes and leads to
+     * the three ways.
      */
     @Test
-    fun `mit Bluetooth wird aus dem Umschalter eine Auswahl`() {
+    fun `with bluetooth the switch becomes a choice`() {
         val actions = CallActions.availableFor(view(CallStatus.ACTIVE, bluetooth = true))
         assertTrue(CallAction.AUDIO in actions)
         assertTrue(CallAction.SPEAKER !in actions)
@@ -265,14 +263,14 @@ class CallActionsTest {
     }
 
     @Test
-    fun `ohne Bluetooth bleibt der Umschalter`() {
+    fun `without bluetooth the switch stays`() {
         val actions = CallActions.availableFor(view(CallStatus.ACTIVE))
         assertTrue(CallAction.SPEAKER in actions)
         assertTrue(CallAction.AUDIO !in actions)
     }
 
     @Test
-    fun `die Zahl der Zeilen aendert sich durch Bluetooth nicht`() {
+    fun `the number of rows does not change with bluetooth`() {
         CallStatus.entries.forEach { status ->
             assertEquals(
                 status.name,

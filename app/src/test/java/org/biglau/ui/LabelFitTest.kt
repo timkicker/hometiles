@@ -7,73 +7,71 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * „Label ausblenden, wenn es nicht in zwei Zeilen passt" — `PLAN.md` 3.2.
+ * hide the label when it does not fit in two lines - `PLAN.md` 3.2.
  *
- * Der Plan sagt die Option zu, es gab sie nicht. Und der erste Versuch, sie zu bauen, ging
- * an derselben Falle vorbei, vor der dieses Projekt sonst warnt: er **schätzte** mit einer
- * mittleren Zeichenbreite, statt zu messen. Am Bildschirm nachgesehen kam heraus, dass die
- * Schätzung „Nachrichten" auf dem Standardraster ausgeblendet hätte, obwohl es dort
- * vollständig steht — und dass „Messages" auf vier Spalten abschneidet, obwohl die
- * Schätzung „passt" sagte. Zwei Fehler in beide Richtungen, mit einer Zahl, die für Atkinson
- * gar nicht stimmt.
+ * the plan promised the option and it did not exist. the first attempt to build it walked
+ * into the very trap this project otherwise warns about: it **estimated** with an average
+ * character width instead of measuring. checked on screen, the estimate would have hidden a
+ * label that stands there in full, and called another one fitting although it is cut - two
+ * faults in both directions, with a number that does not hold for atkinson at all.
  *
- * Jetzt misst `BigTile` mit dem `TextMeasurer`, bevor gezeichnet wird. Hier bleibt nur die
- * Rechnung, wie viel Platz da ist.
+ * now `BigTile` measures with the `TextMeasurer` before drawing. what is left here is the
+ * arithmetic of how much room there is.
  */
 class LabelFitTest {
 
     @Test
-    fun `die Beschriftung bekommt die Kachel ohne ihre Raender`() {
-        // 166 dp breit, 186 dp hoch: Rand ist 186 * 0,06 = 11,16 dp je Seite.
+    fun `the label gets the tile without its margins`() {
+        // 166 dp wide, 186 dp tall: the margin is 186 * 0.06 = 11.16 dp per side.
         assertEquals(143.68f, labelWidthDp(166f, 186f), 0.01f)
     }
 
-    /** Der Rand ist gedeckelt, sonst fraesse er auf hohen Kacheln die halbe Breite. */
+    /** the margin is capped, or it would eat half the width on tall tiles. */
     @Test
-    fun `der Rand bleibt zwischen sechs und sechzehn`() {
+    fun `the margin stays between six and sixteen`() {
         assertEquals(166f - 12f, labelWidthDp(166f, 50f), 0.01f)
         assertEquals(166f - 32f, labelWidthDp(166f, 400f), 0.01f)
     }
 
     @Test
-    fun `auf einer schmalen Kachel bleibt trotzdem eine Breite uebrig`() {
+    fun `a narrow tile still leaves some width`() {
         assertTrue(labelWidthDp(10f, 186f) >= 1f)
     }
 
-    /** Und die Messung selbst steht in der Kachel, nicht als Schätzung daneben. */
+    /** and the measuring itself stands in the tile, not as an estimate beside it. */
     @Test
-    fun `gemessen wird mit dem TextMeasurer`() {
-        val quelle = Quelltext.file("org/biglau/ui/BigTile.kt").readText()
-        assertTrue("rememberTextMeasurer fehlt", "rememberTextMeasurer()" in quelle)
-        assertTrue("hasVisualOverflow fehlt", "hasVisualOverflow" in quelle)
+    fun `it measures with the TextMeasurer`() {
+        val source = Quelltext.file("org/biglau/ui/BigTile.kt").readText()
+        assertTrue("rememberTextMeasurer is gone", "rememberTextMeasurer()" in source)
+        assertTrue("hasVisualOverflow is gone", "hasVisualOverflow" in source)
     }
 
-    // --- Erst kleiner werden, dann abschneiden (02.09.2026) ---
+    // --- shrink first, cut afterwards (02.09.2026) ---
 
     /**
-     * Bei 200 % App-Schrift auf 1,35-facher Systemschrift stand auf den Kacheln
-     * „Einstellun…" und „Verpasste …". Wer 200 % einstellt, tut das nicht zum Spass — ein
-     * abgeschnittenes Wort hilft ihm nicht, ein etwas kleineres schon.
+     * at 200 % app type on 1.35x system type the tiles read as cut-off fragments. whoever
+     * sets 200 % does not do it for fun - a cut word does not help them, a slightly smaller
+     * one does.
      */
     @Test
-    fun `die Leiter beginnt beim Wunsch und endet bei siebzig Prozent`() {
-        val leiter = labelLadder(40f)
-        assertEquals(40f, leiter.first(), 0.01f)
-        assertEquals(28f, leiter.last(), 0.01f)
+    fun `the ladder starts at the wish and ends at seventy percent`() {
+        val ladder = labelLadder(40f)
+        assertEquals(40f, ladder.first(), 0.01f)
+        assertEquals(28f, ladder.last(), 0.01f)
     }
 
     @Test
-    fun `die Leiter wird Stufe fuer Stufe kleiner`() {
-        val leiter = labelLadder(24f)
-        leiter.zipWithNext().forEach { (gross, klein) ->
-            assertTrue("$klein muesste kleiner sein als $gross", klein < gross)
+    fun `the ladder gets smaller step by step`() {
+        val ladder = labelLadder(24f)
+        ladder.zipWithNext().forEach { (large, small) ->
+            assertTrue("$small should be smaller than $large", small < large)
         }
     }
 
     @Test
-    fun `auch die kleinste Stufe bleibt eine Groesse`() {
-        // Sonst waere die Beschriftung bei winzigen Kacheln rechnerisch weg, statt zu
-        // weichen - und ein Text mit Groesse null ist kein Text, sondern ein Fehler.
+    fun `even the smallest step stays a size`() {
+        // otherwise the label would be gone by arithmetic on tiny tiles instead of yielding -
+        // and text at size zero is no text but a fault.
         labelLadder(14f).forEach { assertTrue(it > 0f) }
     }
 }

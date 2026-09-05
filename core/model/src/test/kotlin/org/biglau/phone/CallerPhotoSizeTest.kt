@@ -6,149 +6,147 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Wie groß das Foto des Anrufers werden darf (`PLAN.md` 4.6).
+ * how large the caller's photo may get (`PLAN.md` 4.6).
  *
- * Der springende Punkt ist die Obergrenze. Auf dem Bildschirm, auf dem ein Fehler bedeutet,
- * dass jemand einen Anruf nicht annehmen kann, darf ein Foto niemals den Annehmen-Knopf
- * hinausschieben — auch nicht in der Stufe „so groß wie es passt".
+ * the point is the upper bound. on the screen where a fault means somebody cannot answer a
+ * call, a photo must never push the answer button out - not even at the step "as large as it
+ * fits".
  */
 class CallerPhotoSizeTest {
 
-    /** Nutzbare Höhe des Jelly 2 (PLAN.md 3.2). */
+    /** the jelly 2's usable height (PLAN.md 3.2). */
     private val jelly = 581f
 
-    /** Es klingelt: Annehmen und Ablehnen. */
-    private val klingelt = 2
+    /** it rings: answer and reject. */
+    private val ringing = 2
 
-    /** Das Gespräch läuft: Auflegen, Stumm, Lautsprecher, Halten, Tastenfeld. */
-    private val gespraech = 5
+    /** the call runs: hang up, mute, speaker, hold, keypad. */
+    private val inCall = 5
 
     @Test
-    fun `ohne Foto bleibt kein Platz belegt`() {
-        assertEquals(0f, CallerPhotoSize.heightDp(CallerPhoto.OFF, jelly, klingelt), 0.01f)
+    fun `without a photo no room is taken`() {
+        assertEquals(0f, CallerPhotoSize.heightDp(CallerPhoto.OFF, jelly, ringing), 0.01f)
     }
 
     @Test
-    fun `die Stufen werden groesser`() {
-        val klein = CallerPhotoSize.heightDp(CallerPhoto.SMALL, jelly, klingelt)
-        val halb = CallerPhotoSize.heightDp(CallerPhoto.HALF, jelly, klingelt)
-        val voll = CallerPhotoSize.heightDp(CallerPhoto.FULL, jelly, klingelt)
-        assertTrue("klein < halb", klein < halb)
-        assertTrue("halb <= voll", halb <= voll)
+    fun `the steps get larger`() {
+        val small = CallerPhotoSize.heightDp(CallerPhoto.SMALL, jelly, ringing)
+        val half = CallerPhotoSize.heightDp(CallerPhoto.HALF, jelly, ringing)
+        val full = CallerPhotoSize.heightDp(CallerPhoto.FULL, jelly, ringing)
+        assertTrue("small < half", small < half)
+        assertTrue("half <= full", half <= full)
     }
 
     @Test
-    fun `auch die groesste Stufe laesst Platz fuer Name und Knoepfe`() {
-        CallerPhoto.entries.forEach { stufe ->
-            val hoehe = CallerPhotoSize.heightDp(stufe, jelly, klingelt)
+    fun `even the largest step leaves room for the name and the buttons`() {
+        CallerPhoto.entries.forEach { step ->
+            val height = CallerPhotoSize.heightDp(step, jelly, ringing)
             assertTrue(
-                "$stufe laesst nur ${jelly - hoehe} dp uebrig",
-                jelly - hoehe >= CallerPhotoSize.reservedDp(klingelt),
+                "$step leaves only ${jelly - height} dp",
+                jelly - height >= CallerPhotoSize.reservedDp(ringing),
             )
         }
     }
 
     @Test
-    fun `auf einem sehr kurzen Bildschirm faellt das Foto ganz weg`() {
-        // Weniger Platz als der Rest braucht: dann lieber kein Foto als kein Knopf.
-        assertEquals(0f, CallerPhotoSize.heightDp(CallerPhoto.FULL, 200f, klingelt), 0.01f)
+    fun `on a very short screen the photo goes entirely`() {
+        // less room than the rest needs: then rather no photo than no button.
+        assertEquals(0f, CallerPhotoSize.heightDp(CallerPhoto.FULL, 200f, ringing), 0.01f)
     }
 
     @Test
-    fun `die Hoehe wird nie negativ`() {
-        CallerPhoto.entries.forEach { stufe ->
-            assertTrue(CallerPhotoSize.heightDp(stufe, 50f, klingelt) >= 0f)
+    fun `the height never goes negative`() {
+        CallerPhoto.entries.forEach { step ->
+            assertTrue(CallerPhotoSize.heightDp(step, 50f, ringing) >= 0f)
         }
     }
 
     @Test
-    fun `klein bleibt auf dem Jelly 2 wirklich klein`() {
-        // Knapp ein Fuenftel - genug, um ein Gesicht zu erkennen, ohne den Namen zu
-        // verdraengen.
-        assertEquals(104.6f, CallerPhotoSize.heightDp(CallerPhoto.SMALL, jelly, klingelt), 1f)
+    fun `small really stays small on the jelly 2`() {
+        // barely a fifth - enough to recognise a face without crowding out the name.
+        assertEquals(104.6f, CallerPhotoSize.heightDp(CallerPhoto.SMALL, jelly, ringing), 1f)
     }
 
-    // --- Foto, Initialen oder nichts ---
+    // --- photo, initials or nothing ---
 
     /**
-     * Der Fund vom 02.09.2026: mit „halbes Display" standen nach dem Annehmen nur noch
-     * zwei von fünf Knöpfen im Bild. Der Platz für das Foto muss von der Zahl der Knöpfe
-     * abhängen, nicht von einer festen Zahl.
+     * with "half the display" only two of five buttons stood in the picture after answering.
+     * the room for the photo has to depend on the number of buttons, not on a fixed number.
      */
     @Test
-    fun `waehrend des Gespraechs bleiben alle fuenf Knoepfe im Bild`() {
-        CallerPhoto.entries.forEach { stufe ->
-            val hoehe = CallerPhotoSize.heightDp(stufe, jelly, gespraech)
-            val rest = jelly - hoehe
+    fun `during the call all five buttons stay in the picture`() {
+        CallerPhoto.entries.forEach { step ->
+            val height = CallerPhotoSize.heightDp(step, jelly, inCall)
+            val left = jelly - height
             assertTrue(
-                "$stufe laesst nur $rest dp fuer fuenf Knoepfe",
-                rest >= CallerPhotoSize.reservedDp(gespraech) ||
-                    // Oder das Foto faellt ganz weg - dann ist ohnehin alles frei.
-                    hoehe == 0f,
+                "$step leaves only $left dp for five buttons",
+                left >= CallerPhotoSize.reservedDp(inCall) ||
+                    // or the photo goes entirely - then everything is free anyway.
+                    height == 0f,
             )
         }
     }
 
     @Test
-    fun `mehr Knoepfe lassen dem Foto weniger Platz`() {
-        val beiZwei = CallerPhotoSize.heightDp(CallerPhoto.FULL, 900f, klingelt)
-        val beiFuenf = CallerPhotoSize.heightDp(CallerPhoto.FULL, 900f, gespraech)
-        assertTrue("$beiFuenf < $beiZwei", beiFuenf < beiZwei)
+    fun `more buttons leave the photo less room`() {
+        val atTwo = CallerPhotoSize.heightDp(CallerPhoto.FULL, 900f, ringing)
+        val atFive = CallerPhotoSize.heightDp(CallerPhoto.FULL, 900f, inCall)
+        assertTrue("$atFive < $atTwo", atFive < atTwo)
     }
 
     @Test
-    fun `auf drei Zoll weicht das Foto im Gespraech ganz`() {
-        // 581 dp minus Kopfzeile, fuenf Knoepfe und der Leerraum gegen das Ohr: es bleibt
-        // kein Streifen uebrig, der ein Gesicht zeigen koennte.
-        assertEquals(0f, CallerPhotoSize.heightDp(CallerPhoto.FULL, jelly, gespraech), 0.01f)
+    fun `on three inches the photo yields entirely during a call`() {
+        // 581 dp minus the header, five buttons and the gap against the ear: no strip is left
+        // that could show a face.
+        assertEquals(0f, CallerPhotoSize.heightDp(CallerPhoto.FULL, jelly, inCall), 0.01f)
     }
 
     @Test
-    fun `der Leerraum gegen das Ohr steckt in der Reservierung`() {
-        val ohne = CallerPhotoSize.HEADER_DP + gespraech * CallerPhotoSize.ROW_DP +
-            (gespraech + 1) * CallerPhotoSize.ROW_GAP_DP
+    fun `the gap against the ear sits in the reservation`() {
+        val without = CallerPhotoSize.HEADER_DP + inCall * CallerPhotoSize.ROW_DP +
+            (inCall + 1) * CallerPhotoSize.ROW_GAP_DP
         assertEquals(
             CallerPhotoSize.EAR_GAP_DP,
-            CallerPhotoSize.reservedDp(gespraech) - ohne,
+            CallerPhotoSize.reservedDp(inCall) - without,
             0.01f,
         )
     }
 
     @Test
-    fun `mit Foto steht das Foto da`() {
+    fun `with a photo the photo stands there`() {
         assertEquals(
             CallerPhotoSize.Image.PHOTO,
             CallerPhotoSize.imageFor(200f, "content://foto/1", "Anna Bauer"),
         )
     }
 
-    /** Der Fund am Emulator: halbe Fläche reserviert, kein Foto, und alles blieb schwarz. */
+    /** found on the emulator: half the area reserved, no photo, and it all stayed black. */
     @Test
-    fun `ohne Foto aber mit Namen die Initialen`() {
+    fun `without a photo but with a name, the initials`() {
         assertEquals(CallerPhotoSize.Image.INITIALS, CallerPhotoSize.imageFor(200f, null, "Anna Bauer"))
     }
 
-    /** Aus „+43" liesse sich kein Zeichen machen, das etwas bedeutet. */
+    /** out of "+43" no character could be made that means anything. */
     @Test
-    fun `eine unbekannte Nummer bekommt nichts`() {
+    fun `an unknown number gets nothing`() {
         assertEquals(CallerPhotoSize.Image.NONE, CallerPhotoSize.imageFor(200f, null, null))
         assertEquals(CallerPhotoSize.Image.NONE, CallerPhotoSize.imageFor(200f, null, "  "))
     }
 
     @Test
-    fun `ohne reservierte Hoehe steht gar nichts da`() {
+    fun `without a reserved height nothing stands there`() {
         assertEquals(CallerPhotoSize.Image.NONE, CallerPhotoSize.imageFor(0f, "content://foto/1", "Anna Bauer"))
     }
 
     @Test
-    fun `die Hinweiszeile beim zweiten Anruf nimmt dem Foto Platz`() {
-        val ohne = CallerPhotoSize.heightDp(CallerPhoto.HALF, jelly, klingelt, notice = false)
-        val mit = CallerPhotoSize.heightDp(CallerPhoto.HALF, jelly, klingelt, notice = true)
-        assertTrue("$mit < $ohne", mit < ohne)
+    fun `the notice line for a second call takes room from the photo`() {
+        val without = CallerPhotoSize.heightDp(CallerPhoto.HALF, jelly, ringing, notice = false)
+        val with = CallerPhotoSize.heightDp(CallerPhoto.HALF, jelly, ringing, notice = true)
+        assertTrue("$with < $without", with < without)
         assertEquals(
             CallerPhotoSize.NOTICE_DP,
-            CallerPhotoSize.reservedDp(klingelt, notice = true) -
-                CallerPhotoSize.reservedDp(klingelt),
+            CallerPhotoSize.reservedDp(ringing, notice = true) -
+                CallerPhotoSize.reservedDp(ringing),
             0.01f,
         )
     }

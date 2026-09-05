@@ -10,7 +10,7 @@ import org.junit.Test
 class PinTest {
 
     @Test
-    fun `gueltig sind vier bis acht Ziffern`() {
+    fun `four to eight digits are valid`() {
         assertTrue(Pin.isValid("1234"))
         assertTrue(Pin.isValid("12345678"))
         assertTrue(!Pin.isValid("123"))
@@ -19,26 +19,26 @@ class PinTest {
     }
 
     @Test
-    fun `Buchstaben sind keine PIN`() {
+    fun `letters are no pin`() {
         assertTrue(!Pin.isValid("12a4"))
         assertTrue(!Pin.isValid("abcd"))
         assertTrue(!Pin.isValid("12 34"))
     }
 
     @Test
-    fun `eine ungueltige PIN laesst sich nicht speichern`() {
+    fun `an invalid pin cannot be stored`() {
         assertNull(Pin.hash("123"))
         assertNull(Pin.hash("abcd"))
     }
 
     @Test
-    fun `die richtige PIN wird erkannt`() {
+    fun `the right pin is recognised`() {
         val stored = Pin.hash("2468")!!
         assertTrue(Pin.verify("2468", stored))
     }
 
     @Test
-    fun `eine falsche PIN wird abgelehnt`() {
+    fun `a wrong pin is refused`() {
         val stored = Pin.hash("2468")!!
         assertTrue(!Pin.verify("2469", stored))
         assertTrue(!Pin.verify("246", stored))
@@ -46,14 +46,14 @@ class PinTest {
     }
 
     @Test
-    fun `ohne gesetzte PIN ist alles offen`() {
+    fun `without a pin set everything is open`() {
         assertTrue(Pin.verify("", null))
         assertTrue(Pin.verify("9999", null))
     }
 
     @Test
-    fun `dieselbe PIN ergibt zweimal verschiedene Werte`() {
-        // Sonst liesse sich aus zwei Sicherungsdateien ablesen, dass dieselbe PIN gilt.
+    fun `the same pin gives two different values`() {
+        // otherwise two backup files would show that the same pin holds.
         val first = Pin.hash("1234")!!
         val second = Pin.hash("1234")!!
         assertTrue(first != second)
@@ -62,80 +62,79 @@ class PinTest {
     }
 
     @Test
-    fun `die PIN steht nicht im Klartext im gespeicherten Wert`() {
+    fun `the pin does not stand in clear text in the stored value`() {
         val stored = Pin.hash("13579")!!
         assertTrue(!stored.contains("13579"))
     }
 
     @Test
-    fun `der gespeicherte Wert hat drei durch Doppelpunkt getrennte Teile`() {
+    fun `the stored value has three parts separated by colons`() {
         val parts = Pin.hash("1234")!!.split(":")
         assertEquals(3, parts.size)
         assertEquals(20_000, parts[0].toInt())
     }
 
     @Test
-    fun `ein zerstoerter gespeicherter Wert sperrt statt zu oeffnen`() {
-        // Im Zweifel zu sperren ist richtig: eine kaputte Datei darf die Einstellungen
-        // nicht versehentlich freigeben. Der Notausstieg bleibt der Weg zurueck.
+    fun `a broken stored value locks instead of opening`() {
+        // locking when in doubt is right: a broken file must not release the settings by
+        // accident. the emergency exit stays the way back.
         listOf("", "kaputt", "1:2", "a:b:c", "20000:!!!:???").forEach { broken ->
-            assertTrue("'$broken' haette sperren muessen", !Pin.verify("1234", broken))
+            assertTrue("'$broken' should have locked", !Pin.verify("1234", broken))
         }
     }
 
     @Test
-    fun `ein anderer Salzwert ergibt einen anderen Hash`() {
+    fun `a different salt gives a different hash`() {
         val a = Pin.hash("1234", ByteArray(16) { 1 })!!
         val b = Pin.hash("1234", ByteArray(16) { 2 })!!
         assertTrue(a != b)
     }
 
     @Test
-    fun `derselbe Salzwert ergibt denselben Hash`() {
+    fun `the same salt gives the same hash`() {
         val salt = ByteArray(16) { 7 }
         assertEquals(Pin.hash("1234", salt), Pin.hash("1234", salt))
     }
 }
 
 /**
- * Die Notausstiegs-Dauer.
+ * how long the emergency exit is held.
  *
- * Sie steht im Erklärtext der Sperre, und der Text muss stimmen: wer 30 Sekunden hält, weil
- * es dort steht, und nach 25 loslässt, weil nichts passiert, hält sich für ausgesperrt. Die
- * Zahl im Text und die Zahl im Code dürfen nicht auseinanderlaufen.
+ * the number stands in the lock's explainer, and that text has to be right: whoever holds for
+ * 30 seconds because it says so and lets go after 25 because nothing happens believes
+ * themselves locked out. the number in the text and the number in the code must not drift.
  */
 class EmergencyHoldTest {
 
     @Test
-    fun `der Notausstieg dauert dreissig Sekunden`() {
+    fun `the emergency exit takes thirty seconds`() {
         assertEquals(30_000L, EMERGENCY_HOLD_MILLIS)
     }
 
     /**
-     * Und `PLAN.md` sagt dieselbe Zahl - an **allen** Stellen, an denen sie vorkommt.
+     * and `PLAN.md` names the same number - in **every** place it occurs. the 30 stood here
+     * and three times in the plan with no connection between them; changing the plan to 20
+     * would have got no word from any test while the lock stayed at 30.
      *
-     * Bis zum 3.9.2026 stand die 30 hier als Zahl im Test und dreimal im Plan, ohne
-     * Verbindung dazwischen. Wer den Plan auf 20 Sekunden ändert, bekommt von keinem Test
-     * ein Wort — und die Sperre bliebe bei 30. Das ist dieselbe Klasse wie der Erklärtext:
-     * wer nach 20 Sekunden loslässt, weil es dort steht, hält sich für ausgesperrt.
+     * the pattern is german because the plan is: it reads PLAN.md, not source.
      */
     @Test
-    fun `der Plan nennt dieselbe Dauer`() {
+    fun `the plan names the same duration`() {
         val plan = java.io.File("../PLAN.md").readText()
-        val zahlen = Regex("""(\d+)[ -]Sekunden?-?Notausstieg|Notausstieg[^.\n]*?(\d+) ?s(?:ekunden)?\b""")
+        val numbers = Regex("""(\d+)[ -]Sekunden?-?Notausstieg|Notausstieg[^.\n]*?(\d+) ?s(?:ekunden)?\b""")
             .findAll(plan)
-            .mapNotNull { treffer ->
-                treffer.groupValues.drop(1).firstOrNull { it.isNotEmpty() }?.toLong()
+            .mapNotNull { hit ->
+                hit.groupValues.drop(1).firstOrNull { it.isNotEmpty() }?.toLong()
             }
             .toList()
         org.junit.Assert.assertTrue(
-            "Im Plan steht keine Dauer mehr zum Notausstieg - dann kann sie auch nicht " +
-                "mehr auseinanderlaufen, aber gemeint war das nicht.",
-            zahlen.isNotEmpty(),
+            "the plan names no duration for the emergency exit any more - then it cannot " +
+                "drift either, but that was not the intention.",
+            numbers.isNotEmpty(),
         )
-        zahlen.forEach {
+        numbers.forEach {
             assertEquals(
-                "PLAN.md nennt $it Sekunden, die Sperre hält ${EMERGENCY_HOLD_MILLIS / 1000}",
+                "PLAN.md says $it seconds, the lock holds ${EMERGENCY_HOLD_MILLIS / 1000}",
                 EMERGENCY_HOLD_MILLIS / 1000,
                 it,
             )
@@ -143,38 +142,38 @@ class EmergencyHoldTest {
     }
 
     @Test
-    fun `die Dauer geht glatt in Sekunden auf`() {
-        // Der Countdown zählt in ganzen Sekunden herunter; ein krummer Wert ließe ihn
-        // bei 1 stehenbleiben, statt bei 0 auszulösen.
+    fun `the duration comes out whole in seconds`() {
+        // the countdown counts down in whole seconds; an odd value would leave it standing at
+        // 1 instead of firing at 0.
         assertEquals(0L, EMERGENCY_HOLD_MILLIS % 1000)
     }
 }
 
 /**
- * Der PIN-Schutz für den Kachel-Editor.
+ * the pin protection for the tile editor.
  *
- * `PLAN.md` 4.5 sagt ihn zu; das Feld stand seit dem ersten Tag im Modell und wurde
- * nirgends gelesen. Der Sinn ist nicht Geheimhaltung, sondern dass die Belegung nicht
- * versehentlich zerlegt wird - ein langer Druck passiert schneller, als man denkt.
+ * `PLAN.md` 4.5 promises it; the field stood in the model from the first day and was read
+ * nowhere. the point is not secrecy but that the tile layout is not taken apart by accident -
+ * a long press happens faster than one thinks.
  */
 class EditorProtectionTest {
 
-    private val gesetzt = Pin.hash("1234")
+    private val set = Pin.hash("1234")
 
     @Test
-    fun `ohne PIN schuetzt nichts`() {
+    fun `without a pin nothing is protected`() {
         assertFalse(Pin.protectsEditor(null, enabled = true))
         assertFalse(Pin.protectsEditor(null, enabled = false))
     }
 
     @Test
-    fun `mit PIN und eingeschaltet wird gefragt`() {
-        assertTrue(Pin.protectsEditor(gesetzt, enabled = true))
+    fun `with a pin and switched on it asks`() {
+        assertTrue(Pin.protectsEditor(set, enabled = true))
     }
 
     @Test
-    fun `mit PIN und ausgeschaltet nicht`() {
-        // Wer die Einstellungen sperrt, will die Kacheln nicht zwangsläufig mitsperren.
-        assertFalse(Pin.protectsEditor(gesetzt, enabled = false))
+    fun `with a pin and switched off it does not`() {
+        // whoever locks the settings does not necessarily want the tiles locked too.
+        assertFalse(Pin.protectsEditor(set, enabled = false))
     }
 }

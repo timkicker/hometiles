@@ -12,7 +12,7 @@ import android.telephony.TelephonyManager
  * carries the dialling-code tables) and the sim's country. [install] hooks both up at start.
  *
  * without that call biglau writes numbers in plain blocks of three. that is no crash but a
- * quiet regression, so `StartAufgabenTest` checks the call is made.
+ * quiet regression, so `StartupTasksTest` checks the call is made.
  */
 object SystemNumbers {
 

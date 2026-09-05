@@ -5,90 +5,86 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 /**
- * PLAN.md 4.5: „PIN zusätzlich für: Kachel-Editor, App-Liste, Deinstallation,
- * Anrufliste löschen".
+ * PLAN.md 4.5: the pin additionally for the tile editor, the app list, uninstalling and
+ * clearing the call log.
  *
- * Der Editor war gebaut. Die App-Liste und das Leeren der Anrufliste kommen hier dazu.
- * **Deinstallation nicht**: die gibt es in dieser App gar nicht, und ein Schloss vor einer
- * Tür, die es nicht gibt, ist keine Sicherheit, sondern eine Zeile in den Einstellungen,
- * die nichts tut.
+ * the editor was built; the app list and clearing the call log arrive here. **not
+ * uninstalling**: this app has none, and a lock in front of a door that does not exist is no
+ * security but a row in the settings that does nothing.
  */
 class PinScopeTest {
 
-    private val mitPin = Security(pin = Pin.hash("1234"))
+    private val withPin = Security(pin = Pin.hash("1234"))
 
     /**
-     * Ohne gesetzte PIN schützt nichts — auch nicht, wenn der Schalter an ist. Ein
-     * eingeschalteter Schutz ohne Schloss wäre eine Zusage, die beim ersten Antippen
-     * zerfällt.
+     * without a pin set nothing is protected, not even with the switch on. protection turned
+     * on without a lock would be a promise that falls apart at the first tap.
      */
     @Test
-    fun `ohne pin schuetzt nichts`() {
-        val ohne = Security(pin = null, pinProtectsAppList = true, pinProtectsEditor = true)
-        assertEquals(false, Pin.protects(ohne.pin, ohne.pinProtectsAppList))
-        assertEquals(false, Pin.protectsEditor(ohne.pin, ohne.pinProtectsEditor))
+    fun `without a pin nothing is protected`() {
+        val without = Security(pin = null, pinProtectsAppList = true, pinProtectsEditor = true)
+        assertEquals(false, Pin.protects(without.pin, without.pinProtectsAppList))
+        assertEquals(false, Pin.protectsEditor(without.pin, without.pinProtectsEditor))
     }
 
     @Test
-    fun `mit pin und schalter schuetzt es`() {
-        assertEquals(true, Pin.protects(mitPin.pin, true))
-        assertEquals(false, Pin.protects(mitPin.pin, false))
+    fun `with a pin and the switch it protects`() {
+        assertEquals(true, Pin.protects(withPin.pin, true))
+        assertEquals(false, Pin.protects(withPin.pin, false))
     }
 
     /**
-     * Die App-Liste ist von Haus aus offen: sie ist der Weg zu jeder App, die auf keiner
-     * Kachel liegt, und wer eine PIN nur für die Einstellungen setzt, will sich nicht aus
-     * seinen eigenen Apps aussperren.
+     * the app list is open by default: it is the way to every app that lies on no tile, and
+     * whoever sets a pin only for the settings does not want to be locked out of their own
+     * apps.
      */
     @Test
-    fun `die app-liste ist von haus aus offen`() {
+    fun `the app list is open by default`() {
         assertEquals(false, Security().pinProtectsAppList)
     }
 
     /**
-     * Das Leeren der Anrufliste dagegen ist von Haus aus geschützt, sobald eine PIN steht:
-     * es ist nicht rückgängig zu machen, und wer eine PIN setzt, will genau solche
-     * Schritte gesichert haben.
+     * clearing the call log is protected by default once a pin stands: it cannot be undone,
+     * and whoever sets a pin wants exactly such steps secured.
      */
     @Test
-    fun `das leeren der anrufliste ist von haus aus geschuetzt`() {
+    fun `clearing the call log is protected by default`() {
         assertEquals(true, Security().pinProtectsCallLogDelete)
-        assertEquals(true, Pin.protects(mitPin.pin, mitPin.pinProtectsCallLogDelete))
+        assertEquals(true, Pin.protects(withPin.pin, withPin.pinProtectsCallLogDelete))
     }
 
-    // Und ohne PIN bleibt es trotzdem offen - sonst waere die Anrufliste fuer jeden ohne
-    // PIN unloeschbar.
+    // and without a pin it stays open, or the call log would be unclearable for everyone
+    // without one.
     @Test
-    fun `ohne pin bleibt die anrufliste loeschbar`() {
-        val ohne = Security()
-        assertEquals(false, Pin.protects(ohne.pin, ohne.pinProtectsCallLogDelete))
+    fun `without a pin the call log stays clearable`() {
+        val without = Security()
+        assertEquals(false, Pin.protects(without.pin, without.pinProtectsCallLogDelete))
     }
 }
 
 /**
- * Wird die PIN entfernt, gehen die Schutzschalter mit.
+ * removing the pin removes the protection switches with it.
  *
- * Aufgefallen beim Prüfen am Gerät: die Schalter stehen nur da, solange eine PIN gesetzt
- * ist. Bleiben sie beim Entfernen stehen, kommt man nicht mehr an sie heran — und eine
- * später gesetzte PIN sperrt ungefragt Türen zu, die vorher offen waren.
+ * the switches only stand there while a pin is set. left standing when it is removed they
+ * cannot be reached any more - and a pin set later shuts doors unasked that were open before.
  */
 class PinRemovalTest {
 
     @Test
-    fun `ohne pin stehen die schalter wieder auf vorgabe`() {
-        val zurueck = Security()
-        assertEquals(null, zurueck.pin)
-        assertEquals(true, zurueck.pinProtectsEditor)
-        assertEquals(false, zurueck.pinProtectsAppList)
-        assertEquals(true, zurueck.pinProtectsCallLogDelete)
+    fun `without a pin the switches stand at their defaults again`() {
+        val back = Security()
+        assertEquals(null, back.pin)
+        assertEquals(true, back.pinProtectsEditor)
+        assertEquals(false, back.pinProtectsAppList)
+        assertEquals(true, back.pinProtectsCallLogDelete)
     }
 
-    // Und dann schuetzt keiner von ihnen etwas.
+    // and then none of them protects anything.
     @Test
-    fun `ohne pin schuetzt keiner der schalter`() {
-        val ohne = Security()
-        assertEquals(false, Pin.protects(ohne.pin, ohne.pinProtectsEditor))
-        assertEquals(false, Pin.protects(ohne.pin, ohne.pinProtectsAppList))
-        assertEquals(false, Pin.protects(ohne.pin, ohne.pinProtectsCallLogDelete))
+    fun `without a pin none of the switches protects`() {
+        val without = Security()
+        assertEquals(false, Pin.protects(without.pin, without.pinProtectsEditor))
+        assertEquals(false, Pin.protects(without.pin, without.pinProtectsAppList))
+        assertEquals(false, Pin.protects(without.pin, without.pinProtectsCallLogDelete))
     }
 }

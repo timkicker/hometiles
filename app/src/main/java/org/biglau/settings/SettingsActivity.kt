@@ -198,7 +198,7 @@ class SettingsActivity : BigLauActivity() {
         val store = ConfigStore.get(this)
 
         setContent {
-            // for work that does not belong on the main thread. see HauptfadenTest.
+            // for work that does not belong on the main thread. see MainThreadTest.
             val fadenBereich = rememberCoroutineScope()
             val config by store.config.collectAsStateWithLifecycle()
             val locked = Pin.usable(config.security.pin)
@@ -540,7 +540,7 @@ class SettingsActivity : BigLauActivity() {
                         // rebuild itself and to turn.
                         Page.APPEARANCE -> AppearanceList(
                             appearance = config.appearance,
-                            onChange = { neu -> store.update { it.copy(appearance = neu) } },
+                            onChange = { updated -> store.update { it.copy(appearance = updated) } },
                             onLanguageChanged = { recreate() },
                             onOrientationChanged = { requestedOrientation = Orientation.requested(it) },
                         )
@@ -548,7 +548,7 @@ class SettingsActivity : BigLauActivity() {
 
                         Page.BEHAVIOUR -> BehaviourList(
                             blinkOn = config.behaviour.blinkOnNotification,
-                            // Beim Wiederkommen neu nachsehen - siehe `resumes`.
+                            // look again on coming back - see `resumes`.
                             accessGranted = remember(resumes.intValue) {
                                 NotificationRepository.isEnabled(this@SettingsActivity)
                             },
@@ -688,13 +688,13 @@ class SettingsActivity : BigLauActivity() {
                         // it back changed.
                         Page.ACCESSIBILITY -> AccessibilityList(
                             behaviour = config.behaviour,
-                            onChange = { neu -> store.update { it.copy(behaviour = neu) } },
+                            onChange = { updated -> store.update { it.copy(behaviour = updated) } },
                         )
 
 
                         Page.SOS -> SosSettings(
                             config = config.sos,
-                            onChange = { neu -> store.update { it.copy(sos = neu) } },
+                            onChange = { updated -> store.update { it.copy(sos = updated) } },
                             onNeedLocation = {
                                 askLocation.launch(
                                     arrayOf(
@@ -754,7 +754,7 @@ class SettingsActivity : BigLauActivity() {
                         // to the messages.
                         Page.MESSAGES -> MessagesSettingsList(
                             sms = config.sms,
-                            onChange = { neu -> store.update { it.copy(sms = neu) } },
+                            onChange = { updated -> store.update { it.copy(sms = updated) } },
                             holdsSmsRole = remember(resumes.intValue) {
                                 SmsRepository.get(this@SettingsActivity).isDefaultSmsApp()
                             },
@@ -796,8 +796,8 @@ class SettingsActivity : BigLauActivity() {
                         // answer.
                         Page.CALL_TYPES -> CallTypesList(
                             phone = config.phone,
-                            onChange = { neu -> store.update { it.copy(phone = neu) } },
-                            hatTelefonRolle = remember(resumes.intValue) {
+                            onChange = { updated -> store.update { it.copy(phone = updated) } },
+                            hasPhoneRole = remember(resumes.intValue) {
                                 DialerRole.held(this@SettingsActivity)
                             },
                             onDialerApp = {
@@ -1036,13 +1036,13 @@ private fun ScreenList(
             }
             // the way there instead of directions to it, as with the sos without contacts
             // and the call log.
-            items(unreachable, key = { "sprung-${it.id}" }) { schirm ->
-                if (jumpTilePossible(schirm)) {
+            items(unreachable, key = { "sprung-${it.id}" }) { screen ->
+                if (jumpTilePossible(screen)) {
                     BigRow(
-                        label = stringResource(R.string.screens_add_jump, schirm.name),
+                        label = stringResource(R.string.screens_add_jump, screen.name),
                         icon = Icons.Filled.Add,
                         surface = palette.surfaceAccent,
-                        onClick = { onAddJumpTile(schirm) },
+                        onClick = { onAddJumpTile(screen) },
                     )
                 } else {
                     Text(
@@ -1534,32 +1534,32 @@ private fun AppearanceList(
             }
         }
         item { BigHeading(stringResource(R.string.appearance_gutter)) }
-        items(GridLooks.GUTTERS) { wert ->
+        items(GridLooks.GUTTERS) { value ->
             BigRow(
-                label = "$wert dp",
-                icon = if (wert == appearance.gutterDp) Icons.Filled.Check else null,
-                selected = wert == appearance.gutterDp,
-                onClick = { onChange(appearance.copy(gutterDp = GridLooks.gutter(wert))) },
+                label = "$value dp",
+                icon = if (value == appearance.gutterDp) Icons.Filled.Check else null,
+                selected = value == appearance.gutterDp,
+                onClick = { onChange(appearance.copy(gutterDp = GridLooks.gutter(value))) },
             )
         }
         item { BigHeading(stringResource(R.string.appearance_border)) }
-        items(GridLooks.BORDERS) { wert ->
+        items(GridLooks.BORDERS) { value ->
             BigRow(
-                label = "$wert %",
-                icon = if (wert == appearance.safeBorderPercent) Icons.Filled.Check else null,
-                selected = wert == appearance.safeBorderPercent,
-                onClick = { onChange(appearance.copy(safeBorderPercent = GridLooks.border(wert))) },
+                label = "$value %",
+                icon = if (value == appearance.safeBorderPercent) Icons.Filled.Check else null,
+                selected = value == appearance.safeBorderPercent,
+                onClick = { onChange(appearance.copy(safeBorderPercent = GridLooks.border(value))) },
             )
         }
         item { BigHeading(stringResource(R.string.appearance_corner)) }
         // each row in its own rounding: the number says nothing, the corner everything.
-        items(GridLooks.RADII) { wert ->
+        items(GridLooks.RADII) { value ->
             BigRow(
-                label = "$wert dp",
-                icon = if (wert == appearance.cornerRadiusDp) Icons.Filled.Check else null,
-                selected = wert == appearance.cornerRadiusDp,
-                cornerRadius = wert.dp,
-                onClick = { onChange(appearance.copy(cornerRadiusDp = GridLooks.radius(wert))) },
+                label = "$value dp",
+                icon = if (value == appearance.cornerRadiusDp) Icons.Filled.Check else null,
+                selected = value == appearance.cornerRadiusDp,
+                cornerRadius = value.dp,
+                onClick = { onChange(appearance.copy(cornerRadiusDp = GridLooks.radius(value))) },
             )
         }
         item { BigHeading(stringResource(R.string.appearance_orientation)) }
@@ -1582,12 +1582,12 @@ private fun AppearanceList(
             )
         }
         item { BigHeading(stringResource(R.string.appearance_clock_size)) }
-        items(ClockFormat.SCALES) { wert ->
+        items(ClockFormat.SCALES) { value ->
             BigRow(
-                label = "${(wert * 100).toInt()} %",
-                icon = if (wert == appearance.clockScale) Icons.Filled.Check else null,
-                selected = wert == appearance.clockScale,
-                onClick = { onChange(appearance.copy(clockScale = ClockFormat.scale(wert))) },
+                label = "${(value * 100).toInt()} %",
+                icon = if (value == appearance.clockScale) Icons.Filled.Check else null,
+                selected = value == appearance.clockScale,
+                onClick = { onChange(appearance.copy(clockScale = ClockFormat.scale(value))) },
             )
         }
         item { BigHeading(stringResource(R.string.appearance_clock)) }
@@ -2339,13 +2339,13 @@ private fun AllowedAppsList(
         )
         LazyColumn(verticalArrangement = Arrangement.spacedBy(4.dp)) {
             items(shown, key = { AppDrawer.keyOf(it) }) { app ->
-                val schluessel = AppDrawer.keyOf(app)
-                val erlaubt = schluessel in allowed || app.packageName in allowed
+                val key = AppDrawer.keyOf(app)
+                val isAllowed = key in allowed || app.packageName in allowed
                 BigRow(
                     label = app.label,
-                    icon = if (erlaubt) Icons.Filled.Check else Icons.Filled.Lock,
-                    checked = erlaubt,
-                    onClick = { onToggle(schluessel) },
+                    icon = if (isAllowed) Icons.Filled.Check else Icons.Filled.Lock,
+                    checked = isAllowed,
+                    onClick = { onToggle(key) },
                 )
             }
         }
@@ -2430,22 +2430,22 @@ private fun CallTypesList(
      * does BigLau hold the phone role? comes from outside because the *system* grants it.
      * see `BigLauActivity.resumes`.
      */
-    hatTelefonRolle: Boolean,
+    hasPhoneRole: Boolean,
 ) {
     val palette = LocalBigPalette.current
-    var gesperrtText by remember(phone.blockedNumbers) { mutableStateOf(CallBlocking.format(phone.blockedNumbers)) }
-    val abgewiesen = remember(gesperrtText) { CallBlocking.rejected(gesperrtText) }
+    var blockedText by remember(phone.blockedNumbers) { mutableStateOf(CallBlocking.format(phone.blockedNumbers)) }
+    val rejected = remember(blockedText) { CallBlocking.rejected(blockedText) }
     LazyColumn(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         // the call log stands at the top because the way here comes from it, and seeing a
         // field for blocked numbers first reads as the wrong page. within it, grouping before
         // the kinds: grouping concerns the whole list, hiding kinds only its content.
         item { BigHeading(stringResource(R.string.call_grouping)) }
-        items(CallGrouping.entries.toList()) { art ->
+        items(CallGrouping.entries.toList()) { kind ->
             BigRow(
-                label = stringResource(groupingLabel(art)),
-                secondary = stringResource(groupingHint(art)),
-                selected = art == phone.callGrouping,
-                onClick = { onChange(phone.copy(callGrouping = art)) },
+                label = stringResource(groupingLabel(kind)),
+                secondary = stringResource(groupingHint(kind)),
+                selected = kind == phone.callGrouping,
+                onClick = { onChange(phone.copy(callGrouping = kind)) },
             )
         }
         item { BigHeading(stringResource(R.string.settings_call_types)) }
@@ -2457,20 +2457,20 @@ private fun CallTypesList(
                 modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp),
             )
         }
-        items(CallDirection.entries.toList()) { art ->
-            val sichtbar = art.name !in phone.hiddenCallTypes
+        items(CallDirection.entries.toList()) { kind ->
+            val visible = kind.name !in phone.hiddenCallTypes
             BigRow(
-                label = stringResource(callDirectionLabel(art)),
-                icon = if (sichtbar) Icons.Filled.Check else null,
-                checked = sichtbar,
+                label = stringResource(callDirectionLabel(kind)),
+                icon = if (visible) Icons.Filled.Check else null,
+                checked = visible,
                 onClick = {
-                    val jetzt = phone.hiddenCallTypes
+                    val hidden = phone.hiddenCallTypes
                     onChange(
                         phone.copy(
-                            hiddenCallTypes = if (art.name in jetzt) {
-                                jetzt - art.name
+                            hiddenCallTypes = if (kind.name in hidden) {
+                                hidden - kind.name
                             } else {
-                                jetzt + art.name
+                                hidden + kind.name
                             },
                         ),
                     )
@@ -2485,7 +2485,7 @@ private fun CallTypesList(
                 // rejected without ringing holds only while BigLau has the phone role: only
                 // the default phone app sees incoming calls. without it the block works
                 // outwards alone. see DialerRole.
-                text = if (hatTelefonRolle) {
+                text = if (hasPhoneRole) {
                     stringResource(R.string.blocked_numbers_hint)
                 } else {
                     stringResource(R.string.blocked_numbers_hint_outgoing)
@@ -2497,7 +2497,7 @@ private fun CallTypesList(
         }
         // offer the way, not just the reason: without the phone role the block works half,
         // and the role is two screens away. the row stands only while it is missing.
-        if (!hatTelefonRolle) {
+        if (!hasPhoneRole) {
             item {
                 BigRow(
                     label = stringResource(R.string.blocked_numbers_take_role),
@@ -2508,17 +2508,17 @@ private fun CallTypesList(
         }
         item {
             OutlinedTextField(
-                value = gesperrtText,
-                onValueChange = { gesperrtText = it },
+                value = blockedText,
+                onValueChange = { blockedText = it },
                 placeholder = { Text(stringResource(R.string.blocked_numbers_placeholder), fontSize = bigSp(15f)) },
                 textStyle = LocalTextStyle.current.copy(fontSize = bigSp(17f)),
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
             )
         }
-        if (abgewiesen.isNotEmpty()) {
+        if (rejected.isNotEmpty()) {
             item {
                 Text(
-                    text = stringResource(R.string.blocked_numbers_rejected, abgewiesen.joinToString(", ")),
+                    text = stringResource(R.string.blocked_numbers_rejected, rejected.joinToString(", ")),
                     color = palette.dangerText,
                     fontSize = bigSp(15f),
                     modifier = Modifier.padding(horizontal = 4.dp),
@@ -2529,7 +2529,7 @@ private fun CallTypesList(
             BigRow(
                 label = stringResource(R.string.blocked_numbers_save),
                 surface = palette.surfaceAccent,
-                onClick = { onChange(phone.copy(blockedNumbers = CallBlocking.parse(gesperrtText))) },
+                onClick = { onChange(phone.copy(blockedNumbers = CallBlocking.parse(blockedText))) },
             )
         }
         // PLAN.md 4.6: Standard-Audioausgabe und Lautsprecher bei abgehenden Anrufen.
@@ -2561,11 +2561,11 @@ private fun CallTypesList(
                 modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp),
             )
         }
-        items(CallerPhoto.entries.toList()) { groesse ->
+        items(CallerPhoto.entries.toList()) { size ->
             BigRow(
-                label = stringResource(photoLabel(groesse)),
-                selected = groesse == phone.callerPhoto,
-                onClick = { onChange(phone.copy(callerPhoto = groesse)) },
+                label = stringResource(photoLabel(size)),
+                selected = size == phone.callerPhoto,
+                onClick = { onChange(phone.copy(callerPhoto = size)) },
             )
         }
     }
@@ -2577,20 +2577,20 @@ private fun audioLabel(weg: AudioRoute): Int = when (weg) {
     AudioRoute.BLUETOOTH -> R.string.call_audio_bluetooth
 }
 
-private fun photoLabel(groesse: CallerPhoto): Int = when (groesse) {
+private fun photoLabel(size: CallerPhoto): Int = when (size) {
     CallerPhoto.OFF -> R.string.caller_photo_off
     CallerPhoto.SMALL -> R.string.caller_photo_small
     CallerPhoto.HALF -> R.string.caller_photo_half
     CallerPhoto.FULL -> R.string.caller_photo_full
 }
 
-private fun groupingLabel(art: CallGrouping): Int = when (art) {
+private fun groupingLabel(kind: CallGrouping): Int = when (kind) {
     CallGrouping.NONE -> R.string.call_grouping_none
     CallGrouping.NUMBER -> R.string.call_grouping_number
     CallGrouping.DIRECTION -> R.string.call_grouping_direction
 }
 
-private fun groupingHint(art: CallGrouping): Int = when (art) {
+private fun groupingHint(kind: CallGrouping): Int = when (kind) {
     CallGrouping.NONE -> R.string.call_grouping_none_hint
     CallGrouping.NUMBER -> R.string.call_grouping_number_hint
     CallGrouping.DIRECTION -> R.string.call_grouping_direction_hint

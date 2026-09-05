@@ -6,78 +6,74 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Wer nicht umbrechen darf, misst.
+ * whatever may not wrap has to measure.
  *
- * `softWrap = false` mit `maxLines = 1` und ohne Kürzungszeichen heißt: was nicht passt,
- * wird **stillschweigend abgeschnitten**. Kein Zeichen, keine Ausnahme, kein roter Test —
- * auf dem Telefon des Nutzers (03.09.2026) stand deshalb bei 200 % Textgröße „2:33" statt „2:36 AM".
+ * `softWrap = false` with `maxLines = 1` and no ellipsis means what does not fit is **cut
+ * off silently**. no sign, no exception, no red test - on the user's phone (03.09.2026) the
+ * clock therefore read "2:33" instead of "2:36 AM" at 200 % text size.
  *
- * Die Größe kam aus einer Rechnung mit mittlerer Zeichenbreite (0,60 der Schriftgröße). Das
- * ist eine Schätzung, und sie geht bei einer breiteren Schrift nicht auf — dieselbe Lehre,
- * die bei den Kachelbeschriftungen längst als Kommentar danebensteht.
+ * the size came from a calculation with an average character width of 0.60 of the type size.
+ * that is an estimate, and it does not hold for a wider typeface - the same lesson that has
+ * long stood as a comment beside the tile labels.
  *
- * Diese Regel hält fest: eine Zeile, die nicht umbrechen darf, bekommt ihre Größe von
- * `fittedSingleLineDp` — das misst mit dem Stil, der auch gezeichnet wird, und wird kleiner,
- * bis es passt. Die Rechnung darf den *Wunsch* liefern, nicht das letzte Wort.
+ * this rule holds: a line that may not wrap gets its size from `fittedSingleLineDp`, which
+ * measures with the style actually drawn and shrinks until it fits. the calculation may
+ * deliver the *wish*, not the last word.
  */
 class FittedTextTest {
 
     /**
-     * Zeilen mit `softWrap = false`, samt der Datei und der Zeilennummer.
+     * lines with `softWrap = false`, with file and line number.
      *
-     * Gesucht wird mit einem Muster, nicht mit der Zeichenkette `"softWrap = false,"`. Die
-     * erste Fassung verglich genau darauf — heute passte das auf alle sieben Stellen, aber
-     * es hing an einem Komma: der letzte Parameter eines Aufrufs hat keines, und eine
-     * Umformatierung hätte die Regel lautlos halbiert. `zaehltAlleStellen` unten rechnet
-     * dagegen.
+     * searched with a pattern, not with the literal `"softWrap = false,"`. the first version
+     * compared against that and hung on a comma: the last parameter of a call has none, and a
+     * reformatting would have halved the rule silently. `countsEveryPlace` below guards it.
      */
-    private val muster = Regex("""softWrap\s*=\s*false""")
+    private val pattern = Regex("""softWrap\s*=\s*false""")
 
-    private fun ohneUmbruch(): List<Triple<java.io.File, Int, List<String>>> =
-        Quelltext.files().flatMap { datei ->
-            val zeilen = datei.readLines()
-            zeilen.withIndex()
-                .filter { muster.containsMatchIn(it.value) && !it.value.trim().startsWith("*") }
-                .map { Triple(datei, it.index, zeilen.subList(maxOf(0, it.index - 20), it.index)) }
+    private fun withoutWrap(): List<Triple<java.io.File, Int, List<String>>> =
+        Quelltext.files().flatMap { file ->
+            val lines = file.readLines()
+            lines.withIndex()
+                .filter { pattern.containsMatchIn(it.value) && !it.value.trim().startsWith("*") }
+                .map { Triple(file, it.index, lines.subList(maxOf(0, it.index - 20), it.index)) }
         }
 
     /**
-     * Die Regel sieht jede Stelle, an der das Wort vorkommt.
-     *
-     * Ohne diese Gegenrechnung ist nicht zu merken, wenn das Muster eine Schreibweise nicht
-     * mehr trifft: die Regel bleibt grün und prüft weniger.
+     * the rule sees every place the word occurs. without this counter-count there is no way
+     * to notice the pattern missing a spelling: the rule stays green and checks less.
      */
     @Test
-    fun `zaehltAlleStellen`() {
-        val roh = Quelltext.files().sumOf { datei ->
-            datei.readLines().count {
+    fun `countsEveryPlace`() {
+        val raw = Quelltext.files().sumOf { file ->
+            file.readLines().count {
                 "softWrap" in it && !Quelltext.isCommentLine(it)
             }
         }
-        assertEquals("Das Muster trifft nicht jede Schreibweise von softWrap", roh, ohneUmbruch().size)
+        assertEquals("the pattern does not match every spelling of softWrap", raw, withoutWrap().size)
     }
 
     @Test
-    fun `es gibt solche Zeilen ueberhaupt`() {
-        assertTrue("keine Zeile mit softWrap = false mehr - Regel ins Leere", ohneUmbruch().size >= 4)
+    fun `such lines exist at all`() {
+        assertTrue("no line with softWrap = false left - the rule runs into nothing", withoutWrap().size >= 4)
     }
 
     @Test
-    fun `keine unumbrechbare Zeile nimmt die geschaetzte Groesse`() {
-        val treffer = ohneUmbruch().filter { (_, _, davor) ->
-            davor.any { "fontSize = dpSp(singleLineSizeSp(" in it || "fontSize = dpSp(\n" in it } &&
-                davor.none { "fittedSingleLineDp(" in it }
-        }.map { (datei, index, _) -> "${datei.name}:${index + 1}" }
-        assertEquals("schaetzt statt zu messen: $treffer", emptyList<String>(), treffer)
+    fun `no unwrappable line takes the estimated size`() {
+        val hits = withoutWrap().filter { (_, _, before) ->
+            before.any { "fontSize = dpSp(singleLineSizeSp(" in it || "fontSize = dpSp(\n" in it } &&
+                before.none { "fittedSingleLineDp(" in it }
+        }.map { (file, index, _) -> "${file.name}:${index + 1}" }
+        assertEquals("estimates instead of measuring: $hits", emptyList<String>(), hits)
     }
 
-    /** Und jede von ihnen misst wirklich - sonst genügte es, die Rechnung wegzulassen. */
+    /** and each of them really measures - otherwise leaving out the calculation would do. */
     @Test
-    fun `jede unumbrechbare Zeile misst`() {
-        val ohne = ohneUmbruch()
-            .filter { (datei, _, _) -> datei.name != "TextSizing.kt" }
-            .filterNot { (_, _, davor) -> davor.any { "fittedSingleLineDp(" in it } }
-            .map { (datei, index, _) -> "${datei.name}:${index + 1}" }
-        assertEquals("misst nicht: $ohne", emptyList<String>(), ohne)
+    fun `every unwrappable line measures`() {
+        val without = withoutWrap()
+            .filter { (file, _, _) -> file.name != "TextSizing.kt" }
+            .filterNot { (_, _, before) -> before.any { "fittedSingleLineDp(" in it } }
+            .map { (file, index, _) -> "${file.name}:${index + 1}" }
+        assertEquals("does not measure: $without", emptyList<String>(), without)
     }
 }

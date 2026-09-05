@@ -28,16 +28,16 @@ class OverlayFocusTest {
 
     /**
      * what lies over the home screen, and what shows in the source that it takes the focus.
-     * the same surfaces as in `verdeckt`; `VerdecktTest` holds that none is missing.
+     * the same surfaces as in `covered`; `CoveredTest` holds that none is missing.
      */
     private val overlays = mapOf(
-        "ordner" to "active = onTop",
-        "kachelMenue" to "anchors.first().requestFocus()",
+        "folder" to "active = onTop",
+        "tileMenu" to "anchors.first().requestFocus()",
         "label" to "anchors.requestFocus()",
-        // in `verdeckt` it is called `asking`, in the source `ContactChoice`.
+        // in `covered` it is called `asking`, in the source `ContactChoice`.
         "asking" to "anchors.first().requestFocus()",
         // the keypad takes the focus itself, see BigKeypad and TastaturfolgeTest.
-        "wartend" to "takesFocus = true",
+        "pending" to "takesFocus = true",
         "phoneStateAsked" to "anchors.first().requestFocus()",
     )
 
@@ -46,7 +46,7 @@ class OverlayFocusTest {
 
     @Test
     fun `every overlay is accounted for`() {
-        val condition = Quelltext.cut(home, "val verdeckt = ", "Column(")
+        val condition = Quelltext.cut(home, "val covered = ", "Column(")
         val named = overlays.keys + unmeasured
         val missing = named.filterNot { it in condition }
         assertTrue("the list is empty, then this rule measures nothing", named.size >= 5)
@@ -57,13 +57,13 @@ class OverlayFocusTest {
             emptyList<String>(),
             missing,
         )
-        // and the other direction: nothing in `verdeckt` that is missing here.
+        // and the other direction: nothing in `covered` that is missing here.
         val inCondition = Regex("""(\w+)(?:\.value)? != null|(\w+)\.value \|\|""")
             .findAll(condition)
             .map { it.groupValues.drop(1).first { value -> value.isNotEmpty() } }
             .toSet()
         assertEquals(
-            "these overlays stand in `verdeckt` but not in this rule. for each of them the " +
+            "these overlays stand in `covered` but not in this rule. for each of them the " +
                 "question whether it takes the focus belongs answered.",
             emptyList<String>(),
             inCondition.filterNot { it in named },

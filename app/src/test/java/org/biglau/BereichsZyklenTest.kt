@@ -41,7 +41,7 @@ class BereichsZyklenTest {
     }
 
     private fun zyklen(): Set<Set<String>> {
-        val kanten = Bereiche.kanten()
+        val kanten = Areas.edges()
         return kanten.filter { (paar, _) -> kanten.containsKey(paar.second to paar.first) }
             .keys.map { setOf(it.first, it.second) }.toSet()
     }

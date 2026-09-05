@@ -14,7 +14,7 @@ import org.junit.Test
  * es richtig machte.
  *
  * Das ist derselbe Fehler wie bei der Lupentaste in der App-Liste (siehe
- * [LupentasteTest]) und am selben Tag gefunden: die Pruefung haengt am einzelnen Weg
+ * [SearchKeyLockTest]) und am selben Tag gefunden: die Pruefung haengt am einzelnen Weg
  * statt an der Stelle, an der alle Wege zusammenlaufen. Jetzt gibt es diese Stelle -
  * `starten` - und die Regel haelt fest, dass niemand daran vorbeikommt.
  */
@@ -33,7 +33,7 @@ class SperreAnJederKachelTest {
             .map { it.index + 1 }
         assertTrue("Es startet gar nichts mehr - liest die Regel noch, was sie meint?", starts.isNotEmpty())
 
-        val beiStarten = zeilen.indexOfFirst { it.trim().startsWith("private fun starten(") }
+        val beiStarten = zeilen.indexOfFirst { it.trim().startsWith("private fun startAction(") }
         assertTrue("`starten` gibt es nicht mehr", beiStarten > 0)
         val ende = zeilen.drop(beiStarten).indexOfFirst { it == "    }" } + beiStarten + 1
 
@@ -50,10 +50,10 @@ class SperreAnJederKachelTest {
     @Test
     fun `vor jedem Start steht die Frage nach der Sperre`() {
         val ohneFrage = zeilen.withIndex()
-            .filter { (_, z) -> z.trim().startsWith("starten(") }
+            .filter { (_, z) -> z.trim().startsWith("startAction(") }
             .filter { (i, _) ->
                 zeilen.subList(maxOf(0, i - 6), i)
-                    .none { "gesperrt(" in it || "onAccept" in it }
+                    .none { "isLocked(" in it || "onAccept" in it }
             }
             .map { it.index + 1 }
         assertEquals(
@@ -66,7 +66,7 @@ class SperreAnJederKachelTest {
 
     @Test
     fun `die Sperre kennt beide Sorten Kachel`() {
-        val beiGesperrt = zeilen.indexOfFirst { it.trim().startsWith("private fun gesperrt(") }
+        val beiGesperrt = zeilen.indexOfFirst { it.trim().startsWith("private fun isLocked(") }
         assertTrue("`gesperrt` gibt es nicht mehr", beiGesperrt > 0)
         val rumpf = zeilen.subList(beiGesperrt, minOf(zeilen.size, beiGesperrt + 20)).joinToString("\n")
         assertTrue(

@@ -7,114 +7,107 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Logik, die nur der Test aufruft, ist keine Logik der App.
+ * logic only the test calls is not the app's logic.
  *
- * Anlass: ein Durchlauf über alle `object`-Funktionen fand **22 Stück**, die keine Stelle
- * der App aufrief — jede davon mit Tests, alle grün. Darunter `FolderEdits.orphaned`, auf
- * das ein Kommentar ausdrücklich verwies („ob eine fehlt, prüft FolderEdits.orphaned"),
- * und `CellLayout.fitToGrid`, dessen Rechnung ein zweites Mal von Hand in `setGrid` stand —
- * die getestete Fassung lief nie, die laufende war ungetestet.
+ * a run over all `object` functions found **22** that no place in the app called - every one
+ * of them with tests, all green. among them `FolderEdits.orphaned`, which a comment expressly
+ * pointed at, and `CellLayout.fitToGrid`, whose calculation stood a second time by hand in
+ * `setGrid`: the tested version never ran, the running one was untested.
  *
- * Das ist die teuerste Sorte Fehler in diesem Projekt: die Tests sagen, es funktioniere,
- * und sie haben recht — nur benutzt es niemand. Geprüft werden Funktionen in `object`s,
- * weil das die reine Logik ist; Klassen und Composables haben Aufrufwege, die kein
- * Textvergleich sicher findet.
+ * this is the most expensive kind of fault in this project: the tests say it works, and they
+ * are right - only nobody uses it. functions in `object`s are checked because that is the
+ * pure logic; classes and composables have call paths no text comparison finds reliably.
  */
 class DeadLogicTest {
 
-
     /**
-     * Was es geben darf, ohne dass die App es aufruft.
-     *
-     * Nur mit Grund und nur mit Pfad zur Wiedervorlage — eine Ausnahme ohne beides ist
-     * bloss ein leiser gestellter Fehler.
+     * what may exist without the app calling it. only with a reason and a path back to it -
+     * an exception without both is only a fault turned down quieter.
      */
-    private val begruendeteAusnahmen = emptyMap<String, String>()
+    private val reasonedExceptions = emptyMap<String, String>()
 
-    private fun dateien(): List<File> =
+    private fun files(): List<File> =
         Quelltext.files()
 
-    /** Funktionsname → "Objekt.Name", für alle Funktionen direkt in einem `object`. */
-    private fun deklarationen(): List<Pair<String, String>> {
-        val gefunden = mutableListOf<Pair<String, String>>()
-        dateien().forEach { datei ->
-            var objekt: String? = null
-            datei.readLines().forEach { zeile ->
-                Regex("""^\s*(?:internal\s+)?object\s+(\w+)""").find(zeile)?.let {
-                    objekt = it.groupValues[1]
+    /** function name to "object.name", for every function directly in an `object`. */
+    private fun declarations(): List<Pair<String, String>> {
+        val found = mutableListOf<Pair<String, String>>()
+        files().forEach { file ->
+            var obj: String? = null
+            file.readLines().forEach { line ->
+                Regex("""^\s*(?:internal\s+)?object\s+(\w+)""").find(line)?.let {
+                    obj = it.groupValues[1]
                 }
-                Regex("""^\s{4}(?:internal\s+)?fun\s+(?:<[^>]*>\s*)?(\w+)\s*\(""").find(zeile)?.let {
+                Regex("""^\s{4}(?:internal\s+)?fun\s+(?:<[^>]*>\s*)?(\w+)\s*\(""").find(line)?.let {
                     val name = it.groupValues[1]
-                    objekt?.let { o -> gefunden += name to "$o.$name" }
+                    obj?.let { o -> found += name to "$o.$name" }
                 }
             }
         }
-        return gefunden
+        return found
     }
 
-    private val quelltext: String by lazy { dateien().joinToString("\n") { it.readText() } }
+    private val source: String by lazy { files().joinToString("\n") { it.readText() } }
 
     /**
-     * Drei Zaehlungen ueber den ganzen Quelltext - **einmal**, nicht je Name.
+     * three counts over the whole source - **once**, not per name.
      *
-     * Die erste Fassung baute fuer jeden Namen drei eigene `Regex` und liess sie ueber den
-     * gesamten Quelltext laufen. Am 3.9.2026 gemessen: **26 Sekunden**, ein Viertel des
-     * Testlaufs von `:app`, fuer eine Regel, die nichts findet. Jetzt wird dreimal
-     * durchgezaehlt und danach nur noch nachgeschlagen.
+     * the first version built three `Regex`es per name and ran them over the entire source,
+     * measured at **26 seconds**, a quarter of `:app`'s test run, for a rule that finds
+     * nothing. now it counts three times through and afterwards only looks up.
      */
-    private val aufrufe: Map<String, Int> by lazy {
-        Regex("""([A-Za-z_][A-Za-z0-9_]*)\s*\(""").findAll(quelltext)
+    private val calls: Map<String, Int> by lazy {
+        Regex("""([A-Za-z_][A-Za-z0-9_]*)\s*\(""").findAll(source)
             .groupingBy { it.groupValues[1] }.eachCount()
     }
 
-    private val funktionen: Map<String, Int> by lazy {
-        Regex("""fun\s+(?:<[^>]*>\s*)?([A-Za-z_][A-Za-z0-9_]*)\s*\(""").findAll(quelltext)
+    private val functions: Map<String, Int> by lazy {
+        Regex("""fun\s+(?:<[^>]*>\s*)?([A-Za-z_][A-Za-z0-9_]*)\s*\(""").findAll(source)
             .groupingBy { it.groupValues[1] }.eachCount()
     }
 
-    private val verweise: Map<String, Int> by lazy {
-        Regex("""::([A-Za-z_][A-Za-z0-9_]*)""").findAll(quelltext)
+    private val references: Map<String, Int> by lazy {
+        Regex("""::([A-Za-z_][A-Za-z0-9_]*)""").findAll(source)
             .groupingBy { it.groupValues[1] }.eachCount()
     }
 
-    /** Aufrufe minus Deklarationen, plus Methodenverweise (`::name`). */
-    private fun wirdAufgerufen(name: String): Boolean =
-        (aufrufe[name] ?: 0) - (funktionen[name] ?: 0) + (verweise[name] ?: 0) > 0
+    /** calls minus declarations, plus method references (`::name`). */
+    private fun isCalled(name: String): Boolean =
+        (calls[name] ?: 0) - (functions[name] ?: 0) + (references[name] ?: 0) > 0
 
     @Test
-    fun `jede Funktion in einem object wird auch aufgerufen`() {
-        val tot = deklarationen()
-            .filterNot { (name, _) -> wirdAufgerufen(name) }
+    fun `every function in an object is called too`() {
+        val dead = declarations()
+            .filterNot { (name, _) -> isCalled(name) }
             .map { it.second }
-            .filterNot { it in begruendeteAusnahmen }
+            .filterNot { it in reasonedExceptions }
             .distinct()
             .sorted()
         assertEquals(
-            "Diese Logik ruft nur der Test auf. Entweder fehlt die Stelle, an der sie " +
-                "laufen sollte, oder es gibt sie schon woanders und das hier ist die " +
-                "zweite Kopie: $tot",
+            "only the test calls this logic. either the place where it should run is " +
+                "missing, or it already exists elsewhere and this is the second copy: $dead",
             emptyList<String>(),
-            tot,
+            dead,
         )
     }
 
     @Test
-    fun `jede Ausnahme nennt ihren Grund und gibt es wirklich`() {
-        val bekannt = deklarationen().map { it.second }.toSet()
-        begruendeteAusnahmen.forEach { (eintrag, grund) ->
-            assertTrue("$eintrag gibt es nicht mehr - Ausnahme streichen", eintrag in bekannt)
-            assertTrue("$eintrag braucht einen Grund", grund.length > 20)
+    fun `every exception names its reason and really exists`() {
+        val known = declarations().map { it.second }.toSet()
+        reasonedExceptions.forEach { (entry, reason) ->
+            assertTrue("$entry no longer exists - strike the exception", entry in known)
+            assertTrue("$entry needs a reason", reason.length > 20)
         }
     }
 
     @Test
-    fun `die Regel findet einen erfundenen Namen nicht`() {
-        // Gegenprobe: ohne sie wuerde ein kaputter Suchausdruck alles durchwinken.
-        assertTrue(!wirdAufgerufen("dieseFunktionGibtEsNicht"))
+    fun `the rule does not find an invented name`() {
+        // counter-check: without it a broken pattern would wave everything through.
+        assertTrue(!isCalled("dieseFunktionGibtEsNicht"))
     }
 
     @Test
-    fun `die Regel erkennt einen echten Aufruf`() {
-        assertTrue("group wird von CallLogRepository aufgerufen", wirdAufgerufen("group"))
+    fun `the rule recognises a real call`() {
+        assertTrue("group is called by CallLogRepository", isCalled("group"))
     }
 }

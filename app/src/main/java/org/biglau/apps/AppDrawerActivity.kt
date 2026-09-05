@@ -280,7 +280,7 @@ class AppDrawerActivity : BigLauActivity() {
                             }
                             // the way into the settings, and always.
                             //
-                            // measured on the user's device: eight assigned tiles, none of
+                            // measured on the user's device on 03.09.2026: eight assigned tiles, none of
                             // them the settings, swiping off, no free slot to long press. no
                             // way there was left except giving up an app by reassigning its
                             // tile, and one has to think of that first.

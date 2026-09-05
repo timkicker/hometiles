@@ -46,7 +46,7 @@ class OrdnerWechselTest {
     fun `die eine stelle schliesst den ordner`() {
         val wechseln = Quelltext.cut(
             activate,
-            from = "val wechseln: (String) -> Unit = {",
+            from = "val switchScreen: (String) -> Unit = {",
             to = "}",
         )
         assertEquals(

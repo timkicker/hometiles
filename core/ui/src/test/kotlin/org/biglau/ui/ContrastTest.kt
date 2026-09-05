@@ -7,18 +7,18 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * PLAN.md 3.3 legt die Kontrastschwellen als Funktion fest, nicht als Geschmack.
- * Wer eine Farbe aendert, faellt hier durch statt es erst auf dem Geraet zu merken.
+ * PLAN.md 3.3 sets the contrast thresholds as a function, not as a matter of taste. changing
+ * a colour fails here instead of being noticed on the device.
  */
 class ContrastTest {
 
     @Test
-    fun `bekannte Verhaeltnisse stimmen mit der WCAG-Formel ueberein`() {
-        // Schwarz auf Weiss ist per Definition 21:1.
+    fun `known ratios agree with the wcag formula`() {
+        // black on white is 21:1 by definition.
         assertEquals(21.0, contrastRatio(0xFF000000L, 0xFFFFFFFFL), 0.01)
-        // Gleiche Farbe ergibt 1:1.
+        // the same colour gives 1:1.
         assertEquals(1.0, contrastRatio(0xFF2763CBL, 0xFF2763CBL), 0.0001)
-        // Die Reihenfolge der Argumente darf nichts aendern.
+        // the order of the arguments must change nothing.
         assertEquals(
             contrastRatio(0xFF2763CBL, Tokens.DARK_BACKGROUND),
             contrastRatio(Tokens.DARK_BACKGROUND, 0xFF2763CBL),
@@ -27,38 +27,38 @@ class ContrastTest {
     }
 
     @Test
-    fun `jede dunkle Kachel hebt sich vom Hintergrund ab`() {
+    fun `every dark tile stands out from the background`() {
         Tokens.DARK_TILES.forEach { tile ->
             val ratio = contrastRatio(tile, Tokens.DARK_BACKGROUND)
             assertTrue(
-                "Kachel ${tile.toHex()} erreicht nur %.2f:1 gegen den Hintergrund".format(ratio),
+                "the tile ${tile.toHex()} reaches only %.2f:1 against the background".format(ratio),
                 ratio >= Tokens.MIN_TILE_ON_BACKGROUND,
             )
         }
     }
 
     @Test
-    fun `weisse Beschriftung ist auf jeder dunklen Kachel lesbar`() {
+    fun `a white label is readable on every dark tile`() {
         Tokens.DARK_TILES.forEach { tile ->
             val ratio = contrastRatio(0xFFFFFFFFL, tile)
             assertTrue(
-                "Weiss auf ${tile.toHex()} erreicht nur %.2f:1".format(ratio),
+                "white on ${tile.toHex()} reaches only %.2f:1".format(ratio),
                 ratio >= Tokens.MIN_LABEL_ON_TILE,
             )
         }
     }
 
     @Test
-    fun `die Kacheln liegen alle auf demselben Kontrastniveau`() {
-        // Sonst wirkt eine Kachel schwerer als die andere und die Unterscheidung
-        // laeuft nicht mehr rein ueber den Farbton.
+    fun `the tiles all lie at the same contrast level`() {
+        // otherwise one tile looks heavier than another and telling them apart no longer runs
+        // through the hue alone.
         val ratios = Tokens.DARK_TILES.map { contrastRatio(it, Tokens.DARK_BACKGROUND) }
         val spread = ratios.max() - ratios.min()
-        assertTrue("Kontrastspanne betraegt %.2f, erlaubt sind 0,3".format(spread), spread <= 0.3)
+        assertTrue("the contrast spread is %.2f, allowed is 0.3".format(spread), spread <= 0.3)
     }
 
     @Test
-    fun `Text ausserhalb der Kacheln erreicht die strengere Schwelle`() {
+    fun `text outside the tiles reaches the stricter threshold`() {
         assertTrue(
             contrastRatio(Tokens.DARK_ON_BACKGROUND, Tokens.DARK_BACKGROUND) >= Tokens.MIN_TEXT_ON_BACKGROUND,
         )
@@ -71,28 +71,27 @@ class ContrastTest {
     }
 
     /**
-     * Die Warnfarbe wird an fuenfzehn Stellen als **Schrift** auf dem Hintergrund
-     * gezeichnet - dort, wo etwas schiefgehen kann. Bis zum 04.09.2026 hat das niemand
-     * geprueft: die Regel darueber sah nur `ON_BACKGROUND` an, und `DANGER` kam in keinem
-     * einzigen Test gegen einen Hintergrund vor.
+     * the danger colour is drawn as **type** on the background in fifteen places - wherever
+     * something can go wrong. nobody had checked that: the rule above looked only at
+     * `ON_BACKGROUND`, and `DANGER` appeared in not a single test against a background.
      *
-     * Nachgemessen war das alte Rot bei **6,20:1** (dunkel), **5,39:1** (hell) und
-     * **6,58:1** (Kontrast) - dreimal unter der eigenen Schwelle von 7,0. Deshalb gibt es
-     * jetzt einen eigenen Schriftton; die Flaechenfarbe bleibt, wie sie war.
+     * measured, the old red reached 6.20:1 (dark), 5.39:1 (light) and 6.58:1 (contrast) -
+     * three times under its own threshold of 7.0. hence a type tone of its own; the surface
+     * colour stays as it was.
      */
     @Test
-    fun `die Warnschrift erreicht die strengere Schwelle in jedem Thema`() {
+    fun `the danger type reaches the stricter threshold in every theme`() {
         listOf(
-            Triple("dunkel", Tokens.DARK_DANGER_TEXT, Tokens.DARK_BACKGROUND),
-            Triple("hell", Tokens.LIGHT_DANGER_TEXT, Tokens.LIGHT_BACKGROUND),
-            Triple("Kontrast", Tokens.CONTRAST_DANGER_TEXT, Tokens.CONTRAST_BACKGROUND),
-            // Auch auf der leeren Kachel: dort steht sie im Kachel-Editor.
-            Triple("dunkel, leere Kachel", Tokens.DARK_DANGER_TEXT, Tokens.DARK_EMPTY_TILE),
-            Triple("hell, leere Kachel", Tokens.LIGHT_DANGER_TEXT, Tokens.LIGHT_EMPTY_TILE),
-        ).forEach { (name, schrift, grund) ->
-            val ratio = contrastRatio(schrift, grund)
+            Triple("dark", Tokens.DARK_DANGER_TEXT, Tokens.DARK_BACKGROUND),
+            Triple("light", Tokens.LIGHT_DANGER_TEXT, Tokens.LIGHT_BACKGROUND),
+            Triple("contrast", Tokens.CONTRAST_DANGER_TEXT, Tokens.CONTRAST_BACKGROUND),
+            // on the empty tile as well: that is where it stands in the tile editor.
+            Triple("dark, empty tile", Tokens.DARK_DANGER_TEXT, Tokens.DARK_EMPTY_TILE),
+            Triple("light, empty tile", Tokens.LIGHT_DANGER_TEXT, Tokens.LIGHT_EMPTY_TILE),
+        ).forEach { (name, type, ground) ->
+            val ratio = contrastRatio(type, ground)
             assertTrue(
-                "Warnschrift ($name) erreicht nur %.2f:1, verlangt sind %.1f"
+                "the danger type ($name) reaches only %.2f:1, required is %.1f"
                     .format(ratio, Tokens.MIN_TEXT_ON_BACKGROUND),
                 ratio >= Tokens.MIN_TEXT_ON_BACKGROUND,
             )
@@ -100,55 +99,54 @@ class ContrastTest {
     }
 
     /**
-     * Die Flaechenfarbe bleibt eine Flaechenfarbe: sie muss sich vom Hintergrund abheben
-     * und ihre eigene Beschriftung tragen. Beides galt vorher und gilt weiter - der neue
-     * Schriftton ersetzt sie nicht, er steht daneben.
+     * the surface colour stays a surface colour: it has to stand out from the background and
+     * carry its own label. the new type tone does not replace it, it stands beside it.
      */
     @Test
-    fun `die Warnflaeche bleibt eine Flaeche`() {
+    fun `the danger surface stays a surface`() {
         listOf(
-            Triple("dunkel", Tokens.DARK_DANGER, Tokens.DARK_BACKGROUND),
-            Triple("hell", Tokens.LIGHT_DANGER, Tokens.LIGHT_BACKGROUND),
-        ).forEach { (name, flaeche, grund) ->
-            val ratio = contrastRatio(flaeche, grund)
+            Triple("dark", Tokens.DARK_DANGER, Tokens.DARK_BACKGROUND),
+            Triple("light", Tokens.LIGHT_DANGER, Tokens.LIGHT_BACKGROUND),
+        ).forEach { (name, surface, ground) ->
+            val ratio = contrastRatio(surface, ground)
             assertTrue(
-                "Warnflaeche ($name) hebt sich nur %.2f:1 ab".format(ratio),
+                "the danger surface ($name) stands out by only %.2f:1".format(ratio),
                 ratio >= Tokens.MIN_TILE_ON_BACKGROUND,
             )
         }
         listOf(
-            Triple("dunkel", Tokens.DARK_ON_DANGER, Tokens.DARK_DANGER),
-            Triple("hell", Tokens.LIGHT_ON_DANGER, Tokens.LIGHT_DANGER),
-            Triple("Kontrast", Tokens.CONTRAST_ON_DANGER, Tokens.CONTRAST_DANGER),
-        ).forEach { (name, schrift, flaeche) ->
-            val ratio = contrastRatio(schrift, flaeche)
+            Triple("dark", Tokens.DARK_ON_DANGER, Tokens.DARK_DANGER),
+            Triple("light", Tokens.LIGHT_ON_DANGER, Tokens.LIGHT_DANGER),
+            Triple("contrast", Tokens.CONTRAST_ON_DANGER, Tokens.CONTRAST_DANGER),
+        ).forEach { (name, type, surface) ->
+            val ratio = contrastRatio(type, surface)
             assertTrue(
-                "Schrift auf der Warnflaeche ($name) erreicht nur %.2f:1".format(ratio),
+                "type on the danger surface ($name) reaches only %.2f:1".format(ratio),
                 ratio >= Tokens.MIN_LABEL_ON_TILE,
             )
         }
     }
 
     @Test
-    fun `das Kontrastthema bleibt bei Schwarz und Gelb`() {
+    fun `the contrast theme stays at black and yellow`() {
         val ratio = contrastRatio(Tokens.CONTRAST_INK, Tokens.CONTRAST_BACKGROUND)
-        assertTrue("Gelb auf Schwarz erreicht nur %.2f:1".format(ratio), ratio >= 15.0)
+        assertTrue("yellow on black reaches only %.2f:1".format(ratio), ratio >= 15.0)
     }
 
     @Test
-    fun `helle Kacheln tragen ebenfalls weisse Beschriftung`() {
+    fun `light tiles carry a white label as well`() {
         Tokens.LIGHT_TILES.forEach { tile ->
             assertTrue(
-                "Weiss auf ${tile.toHex()} ist zu schwach",
+                "white on ${tile.toHex()} is too weak",
                 contrastRatio(0xFFFFFFFFL, tile) >= Tokens.MIN_LABEL_ON_TILE,
             )
         }
     }
 
     @Test
-    fun `Text auf der Akzentflaeche ist lesbar`() {
-        // Weiss auf dem hellen Akzent des dunklen Themas erreichte nur 2,85:1 -
-        // deshalb gibt es ein eigenes Token dafuer statt einer Annahme.
+    fun `text on the accent surface is readable`() {
+        // white on the dark theme's light accent reached only 2.85:1 - hence a token of its
+        // own instead of an assumption.
         listOf(
             Tokens.DARK_ON_ACCENT to Tokens.DARK_ACCENT,
             Tokens.LIGHT_ON_ACCENT to Tokens.LIGHT_ACCENT,
@@ -156,14 +154,14 @@ class ContrastTest {
         ).forEach { (ink, accent) ->
             val ratio = contrastRatio(ink, accent)
             assertTrue(
-                "${ink.toHex()} auf ${accent.toHex()} erreicht nur %.2f:1".format(ratio),
+                "${ink.toHex()} on ${accent.toHex()} reaches only %.2f:1".format(ratio),
                 ratio >= Tokens.MIN_LABEL_ON_TILE,
             )
         }
     }
 
     @Test
-    fun `der Akzent selbst hebt sich vom Hintergrund ab`() {
+    fun `the accent itself stands out from the background`() {
         assertTrue(contrastRatio(Tokens.DARK_ACCENT, Tokens.DARK_BACKGROUND) >= Tokens.MIN_TILE_ON_BACKGROUND)
         assertTrue(contrastRatio(Tokens.LIGHT_ACCENT, Tokens.LIGHT_BACKGROUND) >= Tokens.MIN_TILE_ON_BACKGROUND)
     }

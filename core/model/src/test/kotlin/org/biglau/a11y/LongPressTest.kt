@@ -18,24 +18,24 @@ class LongPressTest {
     private val both = Accessibility(speakOnLongPress = true, popupOnLongPress = true)
 
     @Test
-    fun `ohne Barrierefreiheit oeffnet der Langdruck den Editor`() {
+    fun `without accessibility the long press opens the editor`() {
         assertEquals(listOf(LongPressAction.EDIT), LongPress.decide(off, editMode = false))
     }
 
     @Test
-    fun `mit Vorlesen wird vorgelesen statt bearbeitet`() {
-        // Wer sich Kacheln vorlesen laesst, weil er sie nicht liest, darf nicht
-        // versehentlich im Editor landen.
+    fun `with reading aloud it reads instead of editing`() {
+        // whoever has tiles read to them because they cannot read them must not end up in
+        // the editor by accident.
         assertEquals(listOf(LongPressAction.SPEAK), LongPress.decide(speak, editMode = false))
     }
 
     @Test
-    fun `mit Popup wird angezeigt statt bearbeitet`() {
+    fun `with the popup it shows instead of editing`() {
         assertEquals(listOf(LongPressAction.POPUP), LongPress.decide(popup, editMode = false))
     }
 
     @Test
-    fun `beides zusammen widerspricht sich nicht`() {
+    fun `both together do not contradict each other`() {
         assertEquals(
             listOf(LongPressAction.SPEAK, LongPressAction.POPUP),
             LongPress.decide(both, editMode = false),
@@ -43,33 +43,33 @@ class LongPressTest {
     }
 
     @Test
-    fun `im Bearbeitungsmodus gewinnt immer der Editor`() {
+    fun `in edit mode the editor always wins`() {
         listOf(off, speak, popup, both).forEach { config ->
             assertEquals(listOf(LongPressAction.EDIT), LongPress.decide(config, editMode = true))
         }
     }
 
     @Test
-    fun `der Editor bleibt ohne Barrierefreiheit per Langdruck erreichbar`() {
+    fun `without accessibility the editor stays reachable by long press`() {
         assertTrue(LongPress.editorReachableByLongPress(off, editMode = false))
     }
 
     @Test
-    fun `mit Barrierefreiheit braucht der Editor einen anderen Weg`() {
-        // Sonst waere die Belegung unerreichbar, sobald jemand das Vorlesen einschaltet -
-        // dieselbe Falle wie bei der ausgeblendeten App und beim Screen ohne Heim-Kachel.
+    fun `with accessibility the editor needs another way`() {
+        // otherwise assigning tiles becomes unreachable the moment someone switches reading
+        // aloud on - the same trap as the hidden app and the screen without a home tile.
         assertTrue(LongPress.needsEditModeEntry(speak))
         assertTrue(LongPress.needsEditModeEntry(popup))
         assertTrue(LongPress.needsEditModeEntry(both))
     }
 
     @Test
-    fun `ohne Barrierefreiheit braucht es keinen zweiten Weg`() {
+    fun `without accessibility no second way is needed`() {
         assertTrue(!LongPress.needsEditModeEntry(off))
     }
 
     @Test
-    fun `der Bearbeitungsmodus macht den Editor immer erreichbar`() {
+    fun `edit mode always makes the editor reachable`() {
         listOf(off, speak, popup, both).forEach { config ->
             assertTrue(LongPress.editorReachableByLongPress(config, editMode = true))
         }
@@ -77,13 +77,13 @@ class LongPressTest {
 }
 
 /**
- * Die Lesehilfe muss einen Telefonwechsel ueberleben und darf eine aeltere Konfiguration
- * nicht zerreissen - sonst steht jemand nach dem Umzug wieder vor stummen Kacheln.
+ * the reading aid has to survive a change of phone and must not tear an older configuration
+ * apart - or someone stands in front of silent tiles again after moving.
  */
 class AccessibilityConfigTest {
 
     @Test
-    fun `Lesehilfe ueberlebt Export und Import`() {
+    fun `the reading aid survives export and import`() {
         val config = LauncherConfig().let {
             it.copy(
                 behaviour = it.behaviour.copy(
@@ -98,132 +98,130 @@ class AccessibilityConfigTest {
     }
 
     @Test
-    fun `alte Konfiguration ohne Lesehilfe laedt mit beiden Schaltern aus`() {
+    fun `an old configuration without the reading aid loads with both switches off`() {
         val old = """{"screens":[{"id":"home","name":"Start","cells":[]}],"behaviour":{}}"""
         val config = ConfigTransfer.import(old)
         assertNotNull(config)
         assertFalse(config!!.behaviour.accessibility.speakOnLongPress)
         assertFalse(config.behaviour.accessibility.popupOnLongPress)
-        // Und damit bleibt der Editor da, wo er immer war.
+        // and so the editor stays where it always was.
         assertTrue(LongPress.editorReachableByLongPress(config.behaviour.accessibility, editMode = false))
     }
 }
 
 /**
- * Auslösen per langem Druck.
+ * triggering by a long press.
  *
- * Für zittrige Hände die wichtigste Einstellung der App: ein versehentliches Streifen
- * startet dann nichts mehr. Sie kollidiert aber mit allem anderen, was am langen Druck
- * hängt - Editor und Vorlesen -, und diese Kollision wird hier entschieden statt vertagt.
+ * for shaky hands the most important setting in the app: brushing a tile by accident then
+ * starts nothing. it collides with everything else hanging on the long press - editor and
+ * reading aloud - and that collision is decided here rather than postponed.
  */
 class PressModeTest {
 
-    private val aus = Accessibility()
-    private val vorlesen = Accessibility(speakOnLongPress = true)
+    private val off = Accessibility()
+    private val speak = Accessibility(speakOnLongPress = true)
 
     @Test
-    fun `bei kurzem Druck bleibt alles wie bisher`() {
+    fun `with a short press everything stays as it was`() {
         assertEquals(
             listOf(LongPressAction.EDIT),
-            LongPress.decide(aus, editMode = false, pressMode = PressMode.SHORT),
+            LongPress.decide(off, editMode = false, pressMode = PressMode.SHORT),
         )
     }
 
     @Test
-    fun `bei langem Druck loest der lange Druck aus`() {
+    fun `with a long press the long press triggers`() {
         assertEquals(
             listOf(LongPressAction.ACTIVATE),
-            LongPress.decide(aus, editMode = false, pressMode = PressMode.LONG),
+            LongPress.decide(off, editMode = false, pressMode = PressMode.LONG),
         )
     }
 
     @Test
-    fun `Auslösen geht dem Vorlesen vor`() {
-        // Wer den Langdruck zum Starten gewaehlt hat, will starten. Vorlesen bleibt ueber
-        // die Einstellungen erreichbar - eine Kachel, die statt zu starten vorliest, waere
-        // fuer diesen Nutzer unbrauchbar.
+    fun `triggering comes before reading aloud`() {
+        // whoever chose the long press to start things wants to start. reading aloud stays
+        // reachable through the settings; a tile that reads instead of starting would be
+        // useless to this user.
         assertEquals(
             listOf(LongPressAction.ACTIVATE),
-            LongPress.decide(vorlesen, editMode = false, pressMode = PressMode.LONG),
+            LongPress.decide(speak, editMode = false, pressMode = PressMode.LONG),
         )
     }
 
     @Test
-    fun `der Bearbeitungsmodus gewinnt trotzdem`() {
+    fun `edit mode still wins`() {
         assertEquals(
             listOf(LongPressAction.EDIT),
-            LongPress.decide(vorlesen, editMode = true, pressMode = PressMode.LONG),
+            LongPress.decide(speak, editMode = true, pressMode = PressMode.LONG),
         )
     }
 
     @Test
-    fun `bei langem Druck braucht der Editor einen anderen Weg`() {
-        // Dieselbe Falle wie beim Vorlesen: sonst waere die Belegung unerreichbar.
-        assertTrue(LongPress.needsEditModeEntry(aus, PressMode.LONG))
-        assertFalse(LongPress.needsEditModeEntry(aus, PressMode.SHORT))
+    fun `with a long press the editor needs another way`() {
+        // the same trap as with reading aloud: assigning tiles would be unreachable.
+        assertTrue(LongPress.needsEditModeEntry(off, PressMode.LONG))
+        assertFalse(LongPress.needsEditModeEntry(off, PressMode.SHORT))
     }
 }
 
 /**
- * Die Zweitbelegung einer Kachel.
+ * a tile's second action. `PLAN.md` 4.3: every action assignable to the long press as well,
+ * independent of the short press. the field stood in the model from the first day and was
+ * only written, never read - the editor could set it and pressing did nothing.
  *
- * `PLAN.md` 4.3, Zeile 485: „Jede Aktion zusätzlich auf Langdruck belegbar, unabhängig vom
- * Kurzdruck." Das Feld dafür stand seit dem ersten Tag im Modell und wurde nur geschrieben,
- * nie gelesen - der Editor konnte es setzen, und beim Drücken passierte nichts.
- *
- * Sie geht allem anderen vor, weil sie eine Entscheidung für genau diese eine Kachel ist,
- * während Vorlesen und Druckmodus allgemeine Vorgaben sind. Wer sie setzt, will sie auslösen.
+ * it comes before everything else because it is a decision for this one tile, while reading
+ * aloud and the press mode are general settings. whoever sets it wants to trigger it.
  */
 class SecondActionTest {
 
-    private val aus = Accessibility()
-    private val vorlesen = Accessibility(speakOnLongPress = true)
+    private val off = Accessibility()
+    private val speak = Accessibility(speakOnLongPress = true)
 
     @Test
-    fun `ohne Zweitbelegung bleibt alles wie bisher`() {
+    fun `without a second action everything stays as it was`() {
         assertEquals(
             listOf(LongPressAction.EDIT),
-            LongPress.decide(aus, editMode = false, hasSecondAction = false),
+            LongPress.decide(off, editMode = false, hasSecondAction = false),
         )
     }
 
     @Test
-    fun `mit Zweitbelegung wird sie ausgeloest`() {
+    fun `with a second action it is triggered`() {
         assertEquals(
             listOf(LongPressAction.SECOND_ACTION),
-            LongPress.decide(aus, editMode = false, hasSecondAction = true),
+            LongPress.decide(off, editMode = false, hasSecondAction = true),
         )
     }
 
     @Test
-    fun `sie geht dem Vorlesen vor`() {
+    fun `it comes before reading aloud`() {
         assertEquals(
             listOf(LongPressAction.SECOND_ACTION),
-            LongPress.decide(vorlesen, editMode = false, hasSecondAction = true),
+            LongPress.decide(speak, editMode = false, hasSecondAction = true),
         )
     }
 
     @Test
-    fun `sie geht auch dem Druckmodus vor`() {
+    fun `it comes before the press mode too`() {
         assertEquals(
             listOf(LongPressAction.SECOND_ACTION),
-            LongPress.decide(aus, editMode = false, PressMode.LONG, hasSecondAction = true),
+            LongPress.decide(off, editMode = false, PressMode.LONG, hasSecondAction = true),
         )
     }
 
     @Test
-    fun `der Bearbeitungsmodus schlaegt sie trotzdem`() {
-        // Sonst koennte man eine Kachel mit Zweitbelegung nie wieder aendern.
+    fun `edit mode beats it anyway`() {
+        // or a tile with a second action could never be changed again.
         assertEquals(
             listOf(LongPressAction.EDIT),
-            LongPress.decide(aus, editMode = true, hasSecondAction = true),
+            LongPress.decide(off, editMode = true, hasSecondAction = true),
         )
     }
 
     @Test
-    fun `mit Zweitbelegung braucht der Editor einen anderen Weg`() {
+    fun `with a second action the editor needs another way`() {
         assertFalse(
-            LongPress.editorReachableByLongPress(aus, editMode = false, hasSecondAction = true),
+            LongPress.editorReachableByLongPress(off, editMode = false, hasSecondAction = true),
         )
     }
 }
