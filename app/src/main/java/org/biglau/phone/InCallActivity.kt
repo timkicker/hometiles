@@ -14,6 +14,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
@@ -22,6 +24,7 @@ import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.CallEnd
 import androidx.compose.material.icons.filled.Dialpad
 import androidx.compose.material.icons.filled.Mic
+import androidx.compose.material.icons.filled.Message
 import androidx.compose.material.icons.filled.MicOff
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PhoneInTalk
@@ -45,6 +48,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
 import coil.compose.AsyncImage
 import org.biglau.ui.cappedTextScale
 import org.biglau.ui.theme.LocalCornerRadius
@@ -88,6 +92,7 @@ class InCallActivity : BigLauActivity() {
             var showKeypad by remember { mutableStateOf(false) }
             // reachable only with bluetooth; otherwise the row toggles directly.
             var audioChoice by remember { mutableStateOf(false) }
+            var replyChoice by remember { mutableStateOf(false) }
             var now by remember { mutableStateOf(System.currentTimeMillis()) }
 
             LaunchedEffect(Unit) {
@@ -139,6 +144,19 @@ class InCallActivity : BigLauActivity() {
                         return@Box
                     }
 
+                    if (replyChoice) {
+                        ReplyChoice(
+                            onPick = { text ->
+                                if (InCallRepository.rejectWith(text).isFailure) {
+                                    Notice.show(this@InCallActivity, R.string.call_action_failed)
+                                }
+                                replyChoice = false
+                            },
+                            onClose = { replyChoice = false },
+                        )
+                        return@BigLauTheme
+                    }
+
                     if (audioChoice) {
                         AudioChoice(
                             current = current.audioRoute,
@@ -169,12 +187,21 @@ class InCallActivity : BigLauActivity() {
                             // photo that pushes the answer button off screen would be the
                             // worst fault on exactly this screen. no photo with the keypad
                             // open, where the room is needed for the digits.
+                            // the *usable* height, not the window's: `screenHeightDp` counts
+                            // the status and gesture bars in. with two rows the slack hid it,
+                            // with three the last row ran under the gesture bar. seen at the
+                            // emulator on 05.09.2026. same reckoning as in SystemBarsTest.
+                            val screenDensity = LocalDensity.current
+                            val insets = WindowInsets.safeDrawing
+                            val usableHeightDp = LocalConfiguration.current.screenHeightDp -
+                                with(screenDensity) {
+                                    (insets.getTop(this) + insets.getBottom(this)).toDp().value
+                                }
                             val photoHeight =
                                 if (showKeypad) 0f
                                 else CallerPhotoSize.heightDp(
                                     size = config.phone.callerPhoto,
-                                    availableDp = LocalConfiguration.current.screenHeightDp
-                                        .toFloat(),
+                                    availableDp = usableHeightDp,
                                     buttons = rows.size,
                                     notice = current.otherName != null &&
                                         current.status == CallStatus.RINGING,
@@ -256,6 +283,7 @@ class InCallActivity : BigLauActivity() {
                                     action = action,
                                     toggleKeypad = { showKeypad = !showKeypad },
                                     openAudio = { audioChoice = true },
+                                    openReplies = { replyChoice = true },
                                 )
                             }
                         }
@@ -269,6 +297,7 @@ class InCallActivity : BigLauActivity() {
         action: CallAction,
         toggleKeypad: () -> Unit,
         openAudio: () -> Unit = {},
+        openReplies: () -> Unit = {},
     ) {
         // any of these can fail: the call is gone by now, telecom took it from us.
         // `InCallRepository` catches that and returns a `Result`; throwing it away leaves a
@@ -286,6 +315,7 @@ class InCallActivity : BigLauActivity() {
             CallAction.SWITCH -> InCallRepository.switchCall()
             CallAction.AUDIO -> { openAudio(); null }
             CallAction.KEYPAD -> { toggleKeypad(); null }
+            CallAction.REJECT_WITH_TEXT -> { openReplies(); null }
         }
         if (outcome?.isFailure == true) Notice.show(this, R.string.call_action_failed)
     }
@@ -302,6 +332,9 @@ private fun ActionRow(
     val surface = when (action) {
         CallAction.ANSWER -> palette.surfaceTile(1)
         CallAction.REJECT, CallAction.HANG_UP -> palette.surfaceDanger
+        // turning down with a word is not the same danger as turning down flat: it stays a
+        // plain row, so the eye does not read two red buttons under the answer one.
+        CallAction.REJECT_WITH_TEXT -> palette.surfaceDefault
         else -> palette.surfaceDefault
     }
     BigRow(
@@ -330,6 +363,7 @@ private fun ActionRow(
                 AudioRoute.EARPIECE -> Icons.Filled.PhoneInTalk
             }
             CallAction.KEYPAD -> Icons.Filled.Dialpad
+            CallAction.REJECT_WITH_TEXT -> Icons.Filled.Message
         },
         surface = surface,
         modifier = Modifier.height(72.dp),
@@ -337,11 +371,56 @@ private fun ActionRow(
     )
 }
 
+/**
+ * the short answers offered instead of a plain refusal.
+ *
+ * telecom takes the text and hands it to the default sms app, which is BigLau itself: it
+ * lands in the conversation ready to send, and the owner sends it. so nothing goes out
+ * without a hand movement - the promise this whole app rests on. see OutgoingTest.
+ */
+@Composable
+private fun ReplyChoice(
+    onPick: (String) -> Unit,
+    onClose: () -> Unit,
+) {
+    val palette = LocalBigPalette.current
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(palette.background)
+            .safeDrawingPadding()
+            .padding(horizontal = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        BigHeading(stringResource(R.string.incall_reject_with_text))
+        listOf(
+            R.string.incall_reply_busy,
+            R.string.incall_reply_later,
+            R.string.incall_reply_who,
+        ).forEach { text ->
+            val body = stringResource(text)
+            BigRow(
+                label = body,
+                icon = Icons.Filled.Message,
+                modifier = Modifier.height(72.dp),
+                onClick = { onPick(body) },
+            )
+        }
+        BigRow(
+            label = stringResource(R.string.prev_screen),
+            icon = Icons.Filled.ArrowBack,
+            modifier = Modifier.height(72.dp),
+            onClick = onClose,
+        )
+    }
+}
+
 /** the text size setting acts on the call screen only up to here. see cappedTextScale. */
 const val INCALL_MAX_TEXT_SCALE = 1.25f
 
 private fun actionLabel(action: CallAction) = when (action) {
     CallAction.ANSWER -> R.string.incall_answer
+    CallAction.REJECT_WITH_TEXT -> R.string.incall_reject_with_text
     CallAction.REJECT -> R.string.incall_reject
     CallAction.HANG_UP -> R.string.incall_hangup
     CallAction.MUTE -> R.string.incall_mute

@@ -30,6 +30,9 @@ enum class CallAction {
      */
     SWITCH,
     KEYPAD,
+
+    /** turn the call down and say why in a short message. */
+    REJECT_WITH_TEXT,
 }
 
 data class CallView(
@@ -96,7 +99,13 @@ object CallForeground {
 object CallActions {
 
     fun availableFor(view: CallView): List<CallAction> = when (view.status) {
-        CallStatus.RINGING -> listOf(CallAction.ANSWER, CallAction.REJECT)
+        // a withheld number cannot be written to, and a button that promises a message and
+        // then sends none is worse than no button. see `PhoneNumbers.isDialable`.
+        CallStatus.RINGING -> listOfNotNull(
+            CallAction.ANSWER,
+            CallAction.REJECT,
+            CallAction.REJECT_WITH_TEXT.takeIf { PhoneNumbers.isDialable(view.number) },
+        )
 
         CallStatus.DIALING, CallStatus.CONNECTING -> listOf(
             CallAction.HANG_UP,

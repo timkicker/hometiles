@@ -650,4 +650,8 @@
         <item quantity="one">%d ligne</item>
         <item quantity="other">%d lignes</item>
     </plurals>
+    <string name="incall_reject_with_text">Écrire plutôt</string>
+    <string name="incall_reply_busy">Je ne peux pas parler maintenant.</string>
+    <string name="incall_reply_later">Je vous rappelle plus tard.</string>
+    <string name="incall_reply_who">Qui est à l\'appareil, s\'il vous plaît ?</string>
 </resources>

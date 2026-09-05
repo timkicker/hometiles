@@ -651,4 +651,8 @@
         <item quantity="one">%d fila</item>
         <item quantity="other">%d filas</item>
     </plurals>
+    <string name="incall_reject_with_text">Enviar mensaje</string>
+    <string name="incall_reply_busy">Ahora no puedo hablar.</string>
+    <string name="incall_reply_later">Le llamo más tarde.</string>
+    <string name="incall_reply_who">¿Quién es, por favor?</string>
 </resources>

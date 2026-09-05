@@ -45,6 +45,15 @@ object InCallRepository {
 
     fun answer() = runCatching { current?.answer(0) }
     fun reject() = runCatching { current?.reject(false, null) }
+
+    /**
+     * turn the call down and hand a short text to telecom.
+     *
+     * telecom passes it to the default sms app, which is BigLau: the text lands in
+     * `RespondViaMessageService` and from there in the conversation, ready to send. so the
+     * message still leaves only on a hand movement - see OutgoingTest.
+     */
+    fun rejectWith(text: String) = runCatching { current?.reject(true, text) }
     fun hangUp() = runCatching { current?.disconnect() }
     fun hold() = runCatching { current?.hold() }
     fun unhold() = runCatching { current?.unhold() }

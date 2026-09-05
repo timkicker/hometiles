@@ -32,8 +32,18 @@ class CallActionsTest {
     )
 
     @Test
-    fun `a ringing call offers answer and reject`() {
+    fun `a ringing call offers answer, reject and a short answer`() {
         val actions = CallActions.availableFor(view(CallStatus.RINGING))
+        assertEquals(
+            listOf(CallAction.ANSWER, CallAction.REJECT, CallAction.REJECT_WITH_TEXT),
+            actions,
+        )
+    }
+
+    /** with nothing to write to, only the two remain. see RejectWithTextTest. */
+    @Test
+    fun `a withheld number offers answer and reject only`() {
+        val actions = CallActions.availableFor(view(CallStatus.RINGING, number = ""))
         assertEquals(listOf(CallAction.ANSWER, CallAction.REJECT), actions)
     }
 

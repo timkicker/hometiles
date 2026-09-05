@@ -650,4 +650,8 @@
         <item quantity="one">%d riga</item>
         <item quantity="other">%d righe</item>
     </plurals>
+    <string name="incall_reject_with_text">Scrivi invece</string>
+    <string name="incall_reply_busy">Ora non posso parlare.</string>
+    <string name="incall_reply_later">La richiamo più tardi.</string>
+    <string name="incall_reply_who">Chi parla, per favore?</string>
 </resources>

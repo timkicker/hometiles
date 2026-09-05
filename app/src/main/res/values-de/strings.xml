@@ -645,4 +645,8 @@
     <string name="screens_add_jump_full">Der Startbildschirm ist voll. Machen Sie dort eine Kachel frei, dann kommt dieses Angebot zurück.</string>
     <string name="sos_call_now">%1$s anrufen</string>
     <string name="sos_call_hint">Die Wähltastatur geht mit der Nummer auf. BigLau wählt nie von selbst.</string>
+    <string name="incall_reject_with_text">Kurz antworten</string>
+    <string name="incall_reply_busy">Ich kann gerade nicht sprechen.</string>
+    <string name="incall_reply_later">Ich rufe später zurück.</string>
+    <string name="incall_reply_who">Wer spricht da, bitte?</string>
 </resources>

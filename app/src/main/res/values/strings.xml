@@ -646,4 +646,8 @@
     <string name="screens_add_jump_full">The start screen is full. Clear a tile there first, then this offer comes back.</string>
     <string name="sos_call_now">Call %1$s</string>
     <string name="sos_call_hint">The keypad opens with the number. BigLau never dials on its own.</string>
+    <string name="incall_reject_with_text">Send a message</string>
+    <string name="incall_reply_busy">I cannot talk right now.</string>
+    <string name="incall_reply_later">I will call you back later.</string>
+    <string name="incall_reply_who">Who is this, please?</string>
 </resources>
