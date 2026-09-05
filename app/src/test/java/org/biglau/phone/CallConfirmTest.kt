@@ -6,47 +6,44 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Aus dem Verlauf wird nicht sofort gewählt.
+ * the call log does not dial straight away.
  *
- * `PLAN.md` 3.1, Leitsatz 5 nennt drei Dinge, die eine Rückfrage brauchen: Löschen,
- * **Anrufen aus dem Verlauf**, SOS. Löschen und SOS fragten, das Anrufen nicht — ein Tipp
- * auf eine Zeile wählte. In einer Liste, die jemand mit zittriger Hand durchsieht, ist ein
- * Tipp daneben damit ein Anruf bei einem Menschen. Gefunden beim Abgleich Plan gegen
- * Quelltext.
+ * `PLAN.md` 3.1, principle 5 names three things needing a confirmation: deleting, calling
+ * from the log, sos. deleting and sos asked, calling did not - a tap on a row dialled. in a
+ * list somebody goes through with a shaky hand, a tap beside the mark is then a call to a
+ * person.
  *
- * Geprüft wird an der Stelle, an der es schiefging: die Zeile der Anrufliste darf nicht
- * unmittelbar wählen.
+ * checked where it went wrong: the call log's row must not dial directly.
  */
 class CallConfirmTest {
 
-    private val quelle = Quelltext.file("org/biglau/phone/DialerActivity.kt").readText()
+    private val source = Quelltext.file("org/biglau/phone/DialerActivity.kt").readText()
 
-    /** Die Zeile öffnet die Rückfrage, statt zu wählen. */
     @Test
-    fun `die Zeile im Verlauf fragt erst`() {
-        val zeile = Quelltext.cut(quelle, "items(groups, key =", "onLongClick")
-        assertTrue("Die Zeile ruft onAskCall auf: $zeile", "onAskCall(" in zeile)
-        assertTrue("Die Zeile darf nicht unmittelbar waehlen: $zeile", "onCall(" !in zeile)
+    fun `the row in the log asks first`() {
+        val row = Quelltext.cut(source, "items(groups, key =", "onLongClick")
+        assertTrue("the row calls onAskCall: $row", "onAskCall(" in row)
+        assertTrue("the row must not dial directly: $row", "onCall(" !in row)
     }
 
-    /** Es gibt beide Wege aus der Frage heraus - sonst wäre sie eine Sackgasse. */
+    /** both ways out of the question exist - otherwise it would be a dead end. */
     @Test
-    fun `die Rueckfrage hat ein Ja und ein Nein`() {
-        assertTrue("calllog_call_yes fehlt", "R.string.calllog_call_yes" in quelle)
-        assertTrue("calllog_call_no fehlt", "R.string.calllog_call_no" in quelle)
-        assertTrue("onCancelCall fehlt", "onCancelCall" in quelle)
-        assertTrue("onConfirmCall fehlt", "onConfirmCall" in quelle)
+    fun `the confirmation has a yes and a no`() {
+        assertTrue("calllog_call_yes is missing", "R.string.calllog_call_yes" in source)
+        assertTrue("calllog_call_no is missing", "R.string.calllog_call_no" in source)
+        assertTrue("onCancelCall is missing", "onCancelCall" in source)
+        assertTrue("onConfirmCall is missing", "onConfirmCall" in source)
     }
 
     /**
-     * Der Notruf bleibt davon unberührt: er geht ohnehin an den System-Dialer und nicht
-     * über diese Zeile. Siehe [PhoneNumbers.looksLikeEmergency] und `dial`.
+     * the emergency path stays untouched: it goes to the system dialer anyway, not through
+     * this row. see [PhoneNumbers.looksLikeEmergency] and `dial`.
      */
     @Test
-    fun `der Notrufweg bleibt vor der Sperre`() {
-        val dial = Quelltext.cut(quelle, "private fun dial(", "\n    }")
+    fun `the emergency path stays before the block`() {
+        val dial = Quelltext.cut(source, "private fun dial(", "\n    }")
         assertTrue(
-            "Der Notruf muss vor der Nummernsperre geprüft werden",
+            "the emergency number has to be checked before the number block",
             dial.indexOf("looksLikeEmergency") < dial.indexOf("CallBlocking.isBlocked"),
         )
     }

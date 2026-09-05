@@ -5,74 +5,74 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * PLAN.md 4.1: „Raster pro Screen frei: 1–6 Spalten × 1–8 Zeilen".
+ * PLAN.md 4.1: the grid is free per screen, 1-6 columns by 1-8 rows.
  *
- * Gebaut war eine feste Liste von sechs Vorlagen, die bei drei Spalten endete — mit dem
- * Argument, mehr werde auf 349 dp zur Briefmarke. Das stimmt für dieses Gerät und ist
- * trotzdem die falsche Antwort: es macht die Grenze zu einer Zahl im Quelltext statt zu
- * einer Eigenschaft des Bildschirms.
+ * what was built was a fixed list of six presets ending at three columns, with the argument
+ * that more turns into a postage stamp on 349 dp. that holds for this device and is still
+ * the wrong answer: it makes the limit a number in the source instead of a property of the
+ * screen.
  */
 class GridLimitsTest {
 
-    // Jelly 2: 349 dp breit, 2 % Rand auf jeder Seite, 4 dp Abstand.
-    private val jellyBreite = 335f
-    private val jellyHoehe = 551f
+    // Jelly 2: 349 dp wide, 2 percent margin on each side, 4 dp gutter.
+    private val jellyWidth = 335f
+    private val jellyHeight = 551f
 
     @Test
-    fun `auf drei zoll sind vier spalten das aeusserste`() {
-        assertEquals(4, GridLimits.maxColumns(jellyBreite, gutterDp = 4))
-        assertEquals(8, GridLimits.maxRows(jellyHoehe, gutterDp = 4))
+    fun `on three inches four columns are the most`() {
+        assertEquals(4, GridLimits.maxColumns(jellyWidth, gutterDp = 4))
+        assertEquals(8, GridLimits.maxRows(jellyHeight, gutterDp = 4))
     }
 
     @Test
-    fun `ein breiterer bildschirm bekommt mehr`() {
+    fun `a wider screen gets more`() {
         assertEquals(6, GridLimits.maxColumns(600f, gutterDp = 4))
     }
 
-    // Die Obergrenze aus dem Plan gilt trotzdem: mehr als sechs Spalten ergibt auf keinem
-    // Telefon eine Kachel, auf der ein Wort steht.
+    // the plan's upper limit holds anyway: more than six columns gives a tile with a word on
+    // it on no phone.
     @Test
-    fun `ueber sechs geht es nie`() {
+    fun `above six it never goes`() {
         assertEquals(GridLimits.MAX_COLUMNS, GridLimits.maxColumns(4000f, gutterDp = 0))
         assertEquals(GridLimits.MAX_ROWS, GridLimits.maxRows(4000f, gutterDp = 0))
     }
 
-    // Auch auf einem winzigen Bildschirm bleibt eine Spalte uebrig - ein Raster mit null
-    // Spalten waere ein leerer Startbildschirm.
+    // even on a tiny screen one column is left - a grid with zero columns would be an empty
+    // home screen.
     @Test
-    fun `mindestens eine spalte bleibt immer`() {
+    fun `at least one column always stays`() {
         assertEquals(1, GridLimits.maxColumns(10f, gutterDp = 4))
         assertEquals(1, GridLimits.maxRows(10f, gutterDp = 4))
     }
 
-    // Ein groesserer Abstand kostet Platz und damit unter Umstaenden eine Spalte.
+    // a larger gutter costs room and possibly a column with it.
     @Test
-    fun `der abstand zaehlt mit`() {
+    fun `the gutter counts`() {
         assertTrue(GridLimits.maxColumns(300f, gutterDp = 0) >= GridLimits.maxColumns(300f, gutterDp = 12))
     }
 
     @Test
-    fun `jede angebotene spalte haelt das mindestmass ein`() {
-        for (n in GridLimits.columns(jellyBreite, gutterDp = 4)) {
-            val zelle = (jellyBreite - (n - 1) * 4) / n
-            assertTrue("$n Spalten ergeben $zelle dp", zelle >= GridLimits.MIN_CELL_WIDTH_DP)
+    fun `every offered column keeps the minimum`() {
+        for (n in GridLimits.columns(jellyWidth, gutterDp = 4)) {
+            val cell = (jellyWidth - (n - 1) * 4) / n
+            assertTrue("$n columns give $cell dp", cell >= GridLimits.MIN_CELL_WIDTH_DP)
         }
     }
 
-    // Gegenprobe: die naechstgroessere Zahl faellt tatsaechlich durch.
+    // counter-check: the next larger number really does fail.
     @Test
-    fun `eine spalte mehr waere zu schmal`() {
-        val n = GridLimits.maxColumns(jellyBreite, gutterDp = 4) + 1
-        val zelle = (jellyBreite - (n - 1) * 4) / n
-        assertTrue("$n Spalten ergeben $zelle dp", zelle < GridLimits.MIN_CELL_WIDTH_DP)
+    fun `one column more would be too narrow`() {
+        val n = GridLimits.maxColumns(jellyWidth, gutterDp = 4) + 1
+        val cell = (jellyWidth - (n - 1) * 4) / n
+        assertTrue("$n columns give $cell dp", cell < GridLimits.MIN_CELL_WIDTH_DP)
     }
 
-    // Die Vorgabe muss unter dem bleiben, was das Geraet traegt - sonst stuende die App
-    // mit einem Raster da, das sie selbst nicht mehr anbietet.
+    // the default has to stay under what the device carries - otherwise the app would stand
+    // there with a grid it no longer offers itself.
     @Test
-    fun `die vorgabe passt ins angebot`() {
-        val vorgabe = org.biglau.data.Defaults.mainScreen()
-        assertTrue(vorgabe.cols <= GridLimits.maxColumns(jellyBreite, gutterDp = 4))
-        assertTrue(vorgabe.rows <= GridLimits.maxRows(jellyHoehe, gutterDp = 4))
+    fun `the default fits into what is offered`() {
+        val default = org.biglau.data.Defaults.mainScreen()
+        assertTrue(default.cols <= GridLimits.maxColumns(jellyWidth, gutterDp = 4))
+        assertTrue(default.rows <= GridLimits.maxRows(jellyHeight, gutterDp = 4))
     }
 }

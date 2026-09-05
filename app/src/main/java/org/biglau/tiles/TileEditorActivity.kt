@@ -186,7 +186,7 @@ class TileEditorActivity : BigLauActivity() {
             // where the next choice goes. `PLAN.md` 4.3 promises that *every* action may
             // sit on the long press too; two separate lists covered only apps and functions.
             // the same lists for both ways instead of eight more modes.
-            var aufLangdruck by remember { mutableStateOf(false) }
+            var forLongPress by remember { mutableStateOf(false) }
             var chosenContact by remember { mutableStateOf<PhoneContact?>(null) }
             var chosenNumber by remember { mutableStateOf<String?>(null) }
             var shortcutApp by remember { mutableStateOf<LaunchableApp?>(null) }
@@ -246,7 +246,7 @@ class TileEditorActivity : BigLauActivity() {
 
             /** puts the chosen action on the short or the long press, by the way one came. */
             fun belege(action: ButtonAction) {
-                if (aufLangdruck) {
+                if (forLongPress) {
                     write(TileEdits.withLongPress(button, action))
                 } else {
                     write(TileEdits.withAction(button, action))
@@ -256,7 +256,7 @@ class TileEditorActivity : BigLauActivity() {
 
             // back in the menu the short press holds again, also after the back key, or the
             // next choice would silently land on the long press.
-            LaunchedEffect(mode) { if (mode == Mode.MENU) aufLangdruck = false }
+            LaunchedEffect(mode) { if (mode == Mode.MENU) forLongPress = false }
 
             var pendingWidget by remember { mutableStateOf<Pair<Int, WidgetProviderRow>?>(null) }
 
@@ -456,7 +456,7 @@ var contactsGranted by remember(resumes.intValue) { mutableStateOf(contacts.hasP
                     // press kinds, and without it the long-press way would look like the main
                     // assignment. getting that wrong overwrites what the tile did.
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    if (aufLangdruck && mode != Mode.MENU) {
+                    if (forLongPress && mode != Mode.MENU) {
                         Text(
                             text = stringResource(R.string.editor_long_press_banner),
                             color = LocalBigPalette.current.onBackground,
@@ -674,7 +674,7 @@ var contactsGranted by remember(resumes.intValue) { mutableStateOf(contacts.hasP
                         // would be too long to scan on this screen.
                         Mode.PICK_LONG_PRESS -> LongPressKindList(
                             onPick = { gewaehlt ->
-                                aufLangdruck = true
+                                forLongPress = true
                                 mode = gewaehlt
                                 if (gewaehlt == Mode.PICK_CONTACT && !contactsGranted) {
                                     askForContacts.launch(Manifest.permission.READ_CONTACTS)
@@ -1386,7 +1386,7 @@ private fun HuePicker(selected: Float?, onPick: (Float) -> Unit) {
                             }
                         }
                     }
-                    // Eine angefangene Reihe darf die Felder nicht breiter machen.
+                    // a started row must not make the slots wider.
                     repeat(4 - reihe.size) { Box(Modifier.weight(1f)) }
                 }
             }

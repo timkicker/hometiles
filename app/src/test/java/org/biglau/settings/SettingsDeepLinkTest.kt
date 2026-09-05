@@ -8,93 +8,85 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Der Sprung auf eine Unterseite - und was ihn am Emulator lange nicht ankommen liess.
+ * the jump to a sub page - and what kept it from arriving for a long time.
  *
- * Gemessen: kalt gestartet sprang er, warm nicht. Android liefert einer schon laufenden
- * Activity den neuen Intent nur ueber `onNewIntent`, und `onNewIntent` kommt nur bei einem
- * Startmodus, der die vorhandene Instanz wiederverwendet. Ohne `singleTop` verwarf das
- * System den Aufruf mit "intent has been delivered to currently running top-most instance"
- * und die Seite von vorhin blieb stehen - ein Schalter, der einmal wirkt und danach nie
- * wieder.
+ * measured: started cold it jumped, warm it did not. android delivers a new intent to an
+ * already running activity only through `onNewIntent`, and `onNewIntent` comes only with a
+ * launch mode that reuses the existing instance. without `singleTop` the system discarded
+ * the call and the earlier page stayed - a switch that works once and never again.
  */
 class SettingsDeepLinkTest {
 
     private val manifest = File("src/main/AndroidManifest.xml").readText()
 
     @Test
-    fun `bekannter Name ergibt die Seite`() {
+    fun `a known name gives the page`() {
         assertEquals(Page.CALL_TYPES, SettingsDeepLink.target("CALL_TYPES"))
         assertEquals(Page.CONTACTS, SettingsDeepLink.target("CONTACTS"))
     }
 
-    /** Eine Sicherung aus einer spaeteren Fassung darf die Einstellungen nicht abschiessen. */
+    /** a backup from a later version must not shoot down the settings. */
     @Test
-    fun `unbekannter oder fehlender Name ergibt nichts`() {
+    fun `an unknown or missing name gives nothing`() {
         assertNull(SettingsDeepLink.target("GIBTSNICHT"))
         assertNull(SettingsDeepLink.target(null))
         assertNull(SettingsDeepLink.target(""))
     }
 
     @Test
-    fun `ohne Ziel oeffnet die Hauptseite`() {
+    fun `without a target the main page opens`() {
         assertEquals(Page.MAIN, SettingsDeepLink.start(locked = false, target = null))
     }
 
     @Test
-    fun `mit Ziel oeffnet die Unterseite`() {
+    fun `with a target the sub page opens`() {
         assertEquals(Page.MESSAGES, SettingsDeepLink.start(locked = false, target = Page.MESSAGES))
     }
 
-    /** Sonst waere die PIN mit einem Aufruf von aussen umgangen. */
+    /** otherwise the pin would be bypassed by a call from outside. */
     @Test
-    fun `das Schloss geht dem Ziel vor`() {
+    fun `the lock comes before the target`() {
         assertEquals(Page.GATE, SettingsDeepLink.start(locked = true, target = Page.MESSAGES))
         assertNull(SettingsDeepLink.jump(Page.GATE, Page.MESSAGES))
     }
 
     @Test
-    fun `eine spaetere Anfrage springt`() {
+    fun `a later request jumps`() {
         assertEquals(Page.CALL_TYPES, SettingsDeepLink.jump(Page.MESSAGES, Page.CALL_TYPES))
     }
 
     @Test
-    fun `ohne Anfrage und auf der eigenen Seite bleibt alles stehen`() {
+    fun `without a request and on its own page everything stays`() {
         assertNull(SettingsDeepLink.jump(Page.MESSAGES, null))
         assertNull(SettingsDeepLink.jump(Page.MESSAGES, Page.MESSAGES))
     }
 
-    /**
-     * Ohne wiederverwendenden Startmodus kommt die zweite Anfrage nie an. Das war der Fehler
-     * am Emulator: der Code stimmte, nur rief ihn niemand auf.
-     */
+    /** without a reusing launch mode the second request never arrives. */
     @Test
-    fun `die Einstellungen nehmen einen zweiten Aufruf entgegen`() {
+    fun `the settings accept a second call`() {
         val block = Quelltext.cut(manifest, ".settings.SettingsActivity", "/>")
         assertTrue(
-            "SettingsActivity nimmt einen Deep-Link entgegen und braucht darum einen " +
-                "Startmodus, bei dem onNewIntent ankommt: $block",
+            "SettingsActivity accepts a deep link and therefore needs a launch mode where " +
+                "onNewIntent arrives: $block",
             "singleTop" in block || "singleTask" in block,
         )
     }
 
     /**
-     * Ein Name, den keine Seite traegt, fuehrt stumm nirgendwohin.
-     *
-     * Gelesen wird `SettingsLink` - dort stehen die Kennungen, seit der Sprung ueber eine
-     * Absicht laeuft. In `SettingsActivity` stehen sie nur noch als Verweis, und ein Test,
-     * der dort nach Zeichenketten sucht, faende **nichts** und waere gruen, ohne etwas zu
-     * pruefen.
+     * `SettingsLink` is read, not `SettingsActivity`: the identifiers stand there since the
+     * jump runs through an intent, and a test looking for strings in `SettingsActivity`
+     * would find **nothing** and be green without checking anything.
      */
     @Test
-    fun `jede angebotene Kennung gehoert zu einer Seite`() {
-        val namen = Page.entries.map { it.name }
-        val treffer = Regex("""const val PAGE_[A-Z_]+ = "([A-Z_]+)"""")
+    fun `every offered identifier belongs to a page`() {
+        val names = Page.entries.map { it.name }
+        val hits = Regex("""const val PAGE_[A-Z_]+ = "([A-Z_]+)"""")
             .findAll(Quelltext.file("org/biglau/ui/SettingsLink.kt").readText())
             .toList()
-        assertTrue("keine einzige Kennung gefunden - liest der Test die richtige Datei?", treffer.isNotEmpty())
-        treffer.forEach {
-            val wert = it.groupValues[1]
-            assertTrue("PAGE-Kennung \"$wert\" gehoert zu keiner Seite", wert in namen)
+        assertTrue("not a single identifier found - does the test read the right file?", hits.isNotEmpty())
+        hits.forEach {
+            val value = it.groupValues[1]
+            assertTrue("PAGE identifier \"$value\" belongs to no page", value in names)
         }
     }
 }

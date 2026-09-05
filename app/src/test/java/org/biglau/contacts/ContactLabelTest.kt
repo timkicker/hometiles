@@ -6,51 +6,53 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Die Bezeichnung einer Nummer kommt vom System, nicht von uns.
+ * a number's label comes from the system, not from us.
  *
- * Am Telefon des Nutzers gesehen (03.09.2026): unter der Nummer seines Vaters stand **„Mobil"**,
- * während der Knopf daneben „Call straight away" hieß. Das Gerät steht auf Englisch; drei
- * deutsche Wörter waren fest im Quelltext einer Zuordnung eingetragen, und alles außerhalb
- * dieser drei - Fax, Pager, Hauptanschluss, eigene Bezeichnungen - hatte gar keine.
+ * seen on the user's phone (03.09.2026): under a number stood the german word for mobile
+ * while the button beside it said "Call straight away". the device is set to english; three
+ * german words stood hardcoded in a mapping, and everything outside those three - fax, pager,
+ * main line, custom labels - had none at all.
  *
- * `Phone.getTypeLabel` kennt alle Arten und übersetzt in die Sprache der übergebenen
- * Ressourcen. Genau deshalb bekommt `load` sie jetzt vom Aufrufer: eine Activity gibt ihre
- * eigenen, und die stehen schon in der Sprache der **App** - nicht in der des Telefons.
- * Ohne diesen Umweg wäre der Fehler bloß von Deutsch nach Englisch gewandert.
+ * `Phone.getTypeLabel` knows every kind and translates into the language of the resources
+ * handed to it. that is why `load` now gets them from the caller: an activity passes its own,
+ * and those already stand in the **app's** language, not the phone's. without that detour
+ * the fault would merely have moved from german to english.
  */
 class ContactLabelTest {
 
-    private val quelle = Quelltext.file("org/biglau/contacts/ContactRepository.kt").readText()
+    private val source = Quelltext.file("org/biglau/contacts/ContactRepository.kt").readText()
 
     @Test
-    fun `die Bezeichnung kommt aus getTypeLabel`() {
-        assertTrue("getTypeLabel wird nicht benutzt", "getTypeLabel(" in quelle)
+    fun `the label comes from getTypeLabel`() {
+        assertTrue("getTypeLabel is not used", "getTypeLabel(" in source)
     }
 
     @Test
-    fun `keine eigene Zuordnung mit festen Woertern`() {
-        val verboten = listOf("\"Mobil\"", "\"Privat\"", "\"Arbeit\"", "\"Mobile\"", "\"Home\"", "\"Work\"")
+    fun `no mapping of our own with fixed words`() {
+        // german words among them: they are what stood in the source, and the check compares
+        // them literally.
+        val forbidden = listOf("\"Mobil\"", "\"Privat\"", "\"Arbeit\"", "\"Mobile\"", "\"Home\"", "\"Work\"")
         assertEquals(
-            "feste Bezeichnung im Quelltext",
+            "fixed label in the source",
             emptyList<String>(),
-            verboten.filter { it in quelle },
+            forbidden.filter { it in source },
         )
     }
 
     /**
-     * Und die Ressourcen kommen von außen. Nähme das Lesen die des Anwendungs-Contexts,
-     * stünde die Bezeichnung in der Sprache des Telefons statt in der der App - derselbe
-     * Fehler, nur unauffälliger.
+     * and the resources come from outside. were the reading to take the application
+     * context's, the label would stand in the phone's language instead of the app's - the
+     * same fault, only less conspicuous.
      */
     @Test
-    fun `die Sprache gibt der Aufrufer vor`() {
-        assertTrue("load nimmt keine Ressourcen", "fun load(resources: Resources" in quelle)
-        val rufer = listOf(
+    fun `the caller sets the language`() {
+        assertTrue("load takes no resources", "fun load(resources: Resources" in source)
+        val callers = listOf(
             "org/biglau/contacts/ContactsActivity.kt",
             "org/biglau/sms/SmsActivity.kt",
             "org/biglau/phone/DialerActivity.kt",
         )
-        val ohne = rufer.filterNot { "load(resources)" in Quelltext.file(it).readText() }
-        assertEquals("liest Kontakte ohne eigene Sprache: $ohne", emptyList<String>(), ohne)
+        val without = callers.filterNot { "load(resources)" in Quelltext.file(it).readText() }
+        assertEquals("reads contacts without its own language: $without", emptyList<String>(), without)
     }
 }

@@ -6,47 +6,41 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Der Name des Benachrichtigungs-Dienstes darf sich nicht ändern.
+ * the notification listener's name must not change.
  *
- * Die Erlaubnis für den Benachrichtigungszugriff steht **ausserhalb der App**: Android
- * merkt sie sich in `Settings.Secure.enabled_notification_listeners`, und zwar als
- * vollständigen Klassennamen. Wandert die Klasse in ein anderes Paket, zeigt der Eintrag
- * ins Leere — die Erlaubnis ist still weg, die Kacheln blinken nie wieder, und niemand
- * bekommt eine Meldung. Wiederherstellen kann sie nur der Nutzer selbst, in den
- * Systemeinstellungen.
+ * the permission for notification access lives **outside the app**: android remembers it in
+ * `Settings.Secure.enabled_notification_listeners` as a full class name. if the class moves
+ * to another package the entry points at nothing - the permission is silently gone, the
+ * tiles never blink again, and nobody gets a message. only the user can restore it, in the
+ * system settings.
  *
- * Am 3.9.2026 sind in dieser Nacht vier Dateien aus `notify` nach `sms` gewandert, darunter
- * ein Empfänger, der im Manifest steht. Der Zuhörer war nicht dabei — geprüft hat das
- * niemand, es war Glück. `ManifestKlassenTest` hätte den Umzug bemerkt, aber nur, weil das
- * Manifest mitgezogen worden wäre; die Zeile in den Systemeinstellungen des Nutzers zieht
- * niemand mit.
- *
- * Am Gerät nachgesehen: nach rund fünfzehn Neuinstallationen dieser Nacht steht der Eintrag
- * unverändert und der Dienst ist verbunden.
+ * on 03.09.2026 four files moved from `notify` to `sms`, one of them a receiver named in the
+ * manifest. the listener was not among them; nobody had checked. `ManifestClassesTest` would
+ * have noticed the move, but only because the manifest would have come along - the line in
+ * the user's system settings comes along with nothing.
  */
 class ListenerNameTest {
 
     private val name = "org.biglau.notify.BigNotificationListener"
 
     @Test
-    fun `der Zuhoerer heisst noch genauso`() {
-        // Über Quelltext.file, nicht über einen selbst gebauten Pfad: sonst hängt die
-        // Regel am Modul, und genau das verbietet QuelltextTest - beim Schreiben prompt
-        // hineingelaufen.
-        val gefunden = runCatching { Quelltext.file("${name.replace('.', '/')}.kt") }.isSuccess
+    fun `the listener is still called the same`() {
+        // through Quelltext.file, not a hand-built path: otherwise the rule hangs on the
+        // module, which QuelltextTest forbids.
+        val found = runCatching { Quelltext.file("${name.replace('.', '/')}.kt") }.isSuccess
         assertTrue(
-            "Der Benachrichtigungs-Dienst ist umgezogen oder umbenannt. Die Erlaubnis des " +
-                "Nutzers steht in den Systemeinstellungen unter dem alten Namen und ist " +
-                "damit still verloren - er müsste sie von Hand neu erteilen.",
-            gefunden,
+            "the notification listener has moved or been renamed. the user's permission " +
+                "stands in the system settings under the old name and is thereby silently " +
+                "lost - they would have to grant it again by hand.",
+            found,
         )
     }
 
     @Test
-    fun `das Manifest nennt genau diesen Namen`() {
+    fun `the manifest names exactly this name`() {
         val manifest = File("src/main/AndroidManifest.xml").readText()
         assertTrue(
-            "Manifest und Klassenname gehen auseinander",
+            "manifest and class name have drifted apart",
             ".notify.BigNotificationListener" in manifest,
         )
     }

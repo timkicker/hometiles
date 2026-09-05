@@ -5,32 +5,32 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
+// the names are german and dutch test data: the checks compare the sort keys literally.
 class ContactSortTest {
 
     private fun contact(name: String, starred: Boolean = false, number: String = "+431") =
         PhoneContact(name.hashCode().toLong(), name, null, listOf(PhoneNumber(number, null)), starred)
 
     @Test
-    fun `nach Vornamen bleibt der Name wie er ist`() {
+    fun `by first name the name stays as it is`() {
         assertEquals("anna berger", ContactSort.sortKey("Anna Berger", ContactOrder.FIRST_NAME))
     }
 
     @Test
-    fun `nach Nachnamen wandert der letzte Teil nach vorn`() {
+    fun `by surname the last part moves to the front`() {
         assertEquals("berger anna", ContactSort.sortKey("Anna Berger", ContactOrder.SURNAME))
     }
 
     @Test
-    fun `bei drei Teilen bleibt die Mitte beim Vornamen`() {
+    fun `with three parts the middle stays with the first name`() {
         assertEquals("zimmermann anna maria", ContactSort.sortKey("Anna Maria Zimmermann", ContactOrder.SURNAME))
     }
 
     @Test
-    fun `Namenszusaetze zaehlen fuer die Reihenfolge nicht mit`() {
-        // Die alte Fassung dieses Tests behauptete im Kommentar "gehoert unter D, nicht
-        // unter V" und pruefte dann auf "van dijk anna" - also auf V. Sie hat den Fehler
-        // festgehalten, statt ihn zu finden. Am Emulator stand "Bernd von Ackeren"
-        // zwischen Oma und Zimmermann, wo ihn niemand sucht.
+    fun `name particles do not count for the order`() {
+        // the old version of this test claimed in its comment "belongs under D, not under V"
+        // and then checked for "van dijk anna" - so for V. it held the fault fast instead of
+        // finding it.
         assertEquals("dijk anna van", ContactSort.sortKey("Anna van Dijk", ContactOrder.SURNAME))
         assertEquals("trapp maria von", ContactSort.sortKey("Maria von Trapp", ContactOrder.SURNAME))
         assertEquals("cruz juan de la", ContactSort.sortKey("Juan de la Cruz", ContactOrder.SURNAME))
@@ -38,60 +38,60 @@ class ContactSortTest {
     }
 
     @Test
-    fun `der Zusatz allein vor dem Nachnamen zaehlt auch nicht`() {
-        // Ein Kontakt, der nur "de Vries" heisst, ohne Vornamen.
+    fun `the particle alone before the surname does not count either`() {
+        // a contact called only "de Vries", without a first name.
         assertEquals("vries de", ContactSort.sortKey("de Vries", ContactOrder.SURNAME))
     }
 
     @Test
-    fun `mit und ohne Zusatz behalten eine feste Reihenfolge`() {
-        // Waeren beide Schluessel gleich, wechselten die zwei Zeilen bei jedem Neuladen
-        // die Plaetze - und man haelt die Liste fuer unruhig.
-        val ohne = ContactSort.sortKey("Anna Dijk", ContactOrder.SURNAME)
-        val mit = ContactSort.sortKey("Anna van Dijk", ContactOrder.SURNAME)
-        assertEquals("dijk anna", ohne)
-        assertEquals("dijk anna van", mit)
-        assertTrue("ohne Zusatz zuerst", ohne < mit)
+    fun `with and without a particle keep a fixed order`() {
+        // were both keys equal, the two rows would swap places on every reload - and the
+        // list would look restless.
+        val without = ContactSort.sortKey("Anna Dijk", ContactOrder.SURNAME)
+        val with = ContactSort.sortKey("Anna van Dijk", ContactOrder.SURNAME)
+        assertEquals("dijk anna", without)
+        assertEquals("dijk anna van", with)
+        assertTrue("without the particle first", without < with)
     }
 
     @Test
-    fun `nach Vornamen bleibt der Zusatz stehen, wo er steht`() {
-        // Nur die Nachnamen-Sortierung raeumt um; die Vornamen-Sortierung liest den Namen,
-        // wie er dasteht.
+    fun `by first name the particle stays where it stands`() {
+        // only the surname order rearranges; the first-name order reads the name as it is.
         assertEquals("anna van dijk", ContactSort.sortKey("Anna van Dijk", ContactOrder.FIRST_NAME))
     }
 
     @Test
-    fun `eine Ziffernfolge sieht nach einer Nummer aus`() {
+    fun `a run of digits looks like a number`() {
         assertTrue(ContactSort.looksLikeNumber("111003"))
-        assertTrue("Leerzeichen und Plus gehoeren dazu", ContactSort.looksLikeNumber("+43 664 111"))
-        assertTrue("Bindestriche auch", ContactSort.looksLikeNumber("0664-111"))
+        assertTrue("spaces and plus belong to it", ContactSort.looksLikeNumber("+43 664 111"))
+        assertTrue("hyphens too", ContactSort.looksLikeNumber("0664-111"))
     }
 
     @Test
-    fun `ein Name sieht nicht nach einer Nummer aus`() {
+    fun `a name does not look like a number`() {
         assertFalse(ContactSort.looksLikeNumber("Anna"))
-        // Ein Kontakt namens "X3" darf den Hinweis nicht ausloesen - und zwei Ziffern
-        // ebenso wenig, dafuer tippt niemand eine Nummer.
+        // a contact called "X3" must not trigger the hint - nor two digits, nobody types a
+        // number for that.
         assertFalse(ContactSort.looksLikeNumber("X3"))
         assertFalse(ContactSort.looksLikeNumber("12"))
-        assertFalse("Buchstaben schliessen es aus", ContactSort.looksLikeNumber("Haus 111"))
+        assertFalse("letters rule it out", ContactSort.looksLikeNumber("Haus 111"))
     }
 
     @Test
-    fun `eine leere Suche sieht nach nichts aus`() {
+    fun `an empty search looks like nothing`() {
         assertFalse(ContactSort.looksLikeNumber(""))
     }
 
     @Test
-    fun `ein einzelner Name bleibt unveraendert`() {
+    fun `a single name stays unchanged`() {
         assertEquals("oma", ContactSort.sortKey("Oma", ContactOrder.SURNAME))
         assertEquals("oma", ContactSort.sortKey("Oma", ContactOrder.FIRST_NAME))
     }
 
     @Test
-    fun `Umlaute werden fuer die Sortierung normalisiert`() {
-        // Sonst landet "Müller" hinter "Mzyk", weil das Zeichen einen hoeheren Codepunkt hat.
+    fun `diacritics are normalised for the sorting`() {
+        // otherwise "Mueller" written with the umlaut lands behind "Mzyk", because the
+        // character has a higher code point.
         assertTrue(
             ContactSort.sortKey("Anna Müller", ContactOrder.SURNAME) <
                 ContactSort.sortKey("Anna Mzyk", ContactOrder.SURNAME),
@@ -99,17 +99,17 @@ class ContactSortTest {
     }
 
     @Test
-    fun `ueberfluessige Leerzeichen stoeren nicht`() {
+    fun `superfluous spaces do not disturb`() {
         assertEquals("berger anna", ContactSort.sortKey("  Anna   Berger  ", ContactOrder.SURNAME))
     }
 
     @Test
-    fun `ein leerer Name ergibt einen leeren Schluessel`() {
+    fun `an empty name gives an empty key`() {
         assertEquals("", ContactSort.sortKey("   ", ContactOrder.SURNAME))
     }
 
     @Test
-    fun `die Liste wird nach dem Schluessel sortiert`() {
+    fun `the list is sorted by the key`() {
         val list = listOf(contact("Anna Zimmermann"), contact("Bertha Adler"))
         assertEquals(
             listOf("Bertha Adler", "Anna Zimmermann"),
@@ -122,7 +122,7 @@ class ContactSortTest {
     }
 
     @Test
-    fun `Favoriten stehen oben und sind untereinander sortiert`() {
+    fun `favourites stand on top and are sorted among themselves`() {
         val list = listOf(
             contact("Anna Adler"),
             contact("Zora Zimmer", starred = true),
@@ -135,7 +135,7 @@ class ContactSortTest {
     }
 
     @Test
-    fun `Favoriten lassen sich auch gleich behandeln`() {
+    fun `favourites can also be treated alike`() {
         val list = listOf(contact("Anna Adler"), contact("Zora Zimmer", starred = true))
         assertEquals(
             listOf("Anna Adler", "Zora Zimmer"),
@@ -144,7 +144,7 @@ class ContactSortTest {
     }
 
     @Test
-    fun `die Suche kann Nummern einschliessen`() {
+    fun `the search can include numbers`() {
         val anna = contact("Anna Berger", number = "+43 660 1234")
         assertTrue(!ContactSort.searchText(anna, includeNumbers = false).contains("660"))
         assertTrue(ContactSort.searchText(anna, includeNumbers = true).contains("660"))
@@ -152,44 +152,43 @@ class ContactSortTest {
 }
 
 /**
- * Die Favoritenliste als eigene Kachel.
+ * the favourites list as a tile of its own.
  *
- * `PLAN.md` 4.3 sagt sie zu; gebaut war bisher nur „Favoriten zuerst" innerhalb der vollen
- * Liste. Bei 338 Kontakten ist auch eine sortierte Liste ein Umweg zu den drei Menschen,
- * die man täglich anruft.
+ * `PLAN.md` 4.3 promises it; built so far was only "favourites first" inside the full list.
+ * with 338 contacts even a sorted list is a detour to the three people one calls daily.
  */
 class FavouritesOnlyTest {
 
-    private fun kontakt(id: Long, name: String, stern: Boolean) = PhoneContact(
+    private fun contact(id: Long, name: String, starred: Boolean) = PhoneContact(
         id = id,
         name = name,
         photoUri = null,
         numbers = listOf(PhoneNumber("+43660$id", null)),
-        starred = stern,
+        starred = starred,
     )
 
-    private val alle = listOf(
-        kontakt(1, "Zita Zauner", true),
-        kontakt(2, "Anna Auer", false),
-        kontakt(3, "Berta Berger", true),
+    private val all = listOf(
+        contact(1, "Zita Zauner", true),
+        contact(2, "Anna Auer", false),
+        contact(3, "Berta Berger", true),
     )
 
     @Test
-    fun `nur die mit Stern`() {
-        val nur = ContactSort.favouritesOnly(alle, ContactOrder.FIRST_NAME)
-        assertEquals(listOf("Berta Berger", "Zita Zauner"), nur.map { it.name })
+    fun `only the starred ones`() {
+        val only = ContactSort.favouritesOnly(all, ContactOrder.FIRST_NAME)
+        assertEquals(listOf("Berta Berger", "Zita Zauner"), only.map { it.name })
     }
 
     @Test
-    fun `innerhalb der Favoriten wird normal sortiert`() {
-        // Nicht "Favoriten zuerst" - hier sind alle Favoriten, also zaehlt nur der Name.
-        val nur = ContactSort.favouritesOnly(alle, ContactOrder.SURNAME)
-        assertEquals(listOf("Berta Berger", "Zita Zauner"), nur.map { it.name })
+    fun `within the favourites it sorts normally`() {
+        // not "favourites first" - here everyone is a favourite, so only the name counts.
+        val only = ContactSort.favouritesOnly(all, ContactOrder.SURNAME)
+        assertEquals(listOf("Berta Berger", "Zita Zauner"), only.map { it.name })
     }
 
     @Test
-    fun `ohne Favoriten bleibt die Liste leer`() {
-        val ohne = alle.map { it.copy(starred = false) }
-        assertTrue(ContactSort.favouritesOnly(ohne, ContactOrder.FIRST_NAME).isEmpty())
+    fun `without favourites the list stays empty`() {
+        val none = all.map { it.copy(starred = false) }
+        assertTrue(ContactSort.favouritesOnly(none, ContactOrder.FIRST_NAME).isEmpty())
     }
 }

@@ -554,9 +554,9 @@ private fun Conversation(
     // 63, field 92, send row 90 pixels, together more than is left above the keyboard, and
     // the send button was half covered. of the three the heading is the most dispensable:
     // one has just chosen whom to write to.
-    val tastaturOffen = WindowInsets.ime.getBottom(LocalDensity.current) > 0
+    val keyboardOpen = WindowInsets.ime.getBottom(LocalDensity.current) > 0
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        if (!tastaturOffen) BigHeading(title)
+        if (!keyboardOpen) BigHeading(title)
         // a conversation starts at the bottom: opening at the top would mean scrolling to
         // the newest message, which is the reason for opening it.
         val listState = rememberLazyListState()
@@ -663,7 +663,7 @@ private fun Conversation(
                 modifier = Modifier.fillMaxWidth(),
             )
         }
-        val knopf = @Composable {
+        val sendButton = @Composable {
             BigRow(
                 label = if (asking) {
                     stringResource(R.string.sms_send_confirm)
@@ -708,11 +708,11 @@ private fun Conversation(
             )
         }
         if (sendButtonAbove) {
-            knopf()
+            sendButton()
             feld()
         } else {
             feld()
-            knopf()
+            sendButton()
         }
     }
 }

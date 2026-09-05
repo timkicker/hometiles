@@ -6,33 +6,31 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Im Assistenten wächst der Text mit — dort wird die Größe ja gerade eingestellt.
+ * in the wizard the text grows along - that step is where the size is being set.
  *
- * Schritt 2 heißt „Wählen Sie, was sich für Sie gut liest. Die Änderung wirkt sofort hier."
- * Der erklärende Satz daneben machte die Änderung **nicht** mit: er hing an `dpSp` und blieb
- * gleich, während Überschrift und Auswahlzeilen wuchsen. Ein Satz, der die Wirkung zeigen
- * soll und sie nicht zeigt, ist ein schlechter Beweis.
+ * the explaining sentence beside the choice did **not** follow: it hung on `dpSp` and stayed
+ * put while heading and rows grew. a sentence meant to show the effect and not showing it is
+ * a poor proof.
  *
- * Damit der wachsende Text die Knöpfe nie hinausschiebt, blättert er in seinem eigenen Feld;
- * die Knöpfe stehen darunter fest — dieselbe Aufteilung, die die Auswahlschritte schon
- * hatten. Bei 200 % am Emulator nachgesehen: „Los geht's" bleibt unten stehen.
+ * so that the growing text never pushes the buttons out, it scrolls in a field of its own and
+ * the buttons stand below it - the same split the choosing steps already had.
  */
 class WizardTextTest {
 
-    private val quelle = Quelltext.file("org/biglau/wizard/WizardActivity.kt").readText()
+    private val source = Quelltext.file("org/biglau/wizard/WizardActivity.kt").readText()
 
     @Test
-    fun `der Erklaertext folgt der eingestellten Groesse`() {
-        assertTrue("bigSp fehlt im Assistenten", "bigSp(" in quelle)
+    fun `the explaining text follows the chosen size`() {
+        assertTrue("bigSp is missing in the wizard", "bigSp(" in source)
         assertTrue(
-            "Der Erklaertext haengt noch an dpSp - er wuerde die Aenderung nicht zeigen",
-            "fontSize = dpSp(17f)" !in quelle && "fontSize = dpSp(16f)" !in quelle,
+            "the explaining text still hangs on dpSp - it would not show the change",
+            "fontSize = dpSp(17f)" !in source && "fontSize = dpSp(16f)" !in source,
         )
     }
 
     @Test
-    fun `der Text blaettert, damit die Knoepfe stehenbleiben`() {
-        assertTrue("kein eigenes Blaetterfeld fuer den Text", "verticalScroll" in quelle)
-        assertTrue("das Feld gibt keinen Platz ab", "weight(1f, fill = false)" in quelle)
+    fun `the text scrolls so the buttons stay put`() {
+        assertTrue("no scrolling field of its own for the text", "verticalScroll" in source)
+        assertTrue("the field gives no room away", "weight(1f, fill = false)" in source)
     }
 }

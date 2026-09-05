@@ -6,52 +6,49 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Die Kanäle der Nachrichten-Meldung räumen sich selbst weg.
+ * the message notice's channels clear themselves away.
  *
- * Android lässt die Vibration eines Benachrichtigungskanals nach dem Anlegen nicht mehr
- * ändern. BigLau legt deshalb je Vibrationsdauer einen eigenen Kanal an (`sms-500`) und
- * löscht beim nächsten Mal die anderen. Das ist der übliche Weg — und er hängt daran, dass
- * die Kennung und das Aufräumen **dasselbe Präfix** benutzen.
+ * android does not let a notification channel's vibration be changed after it is created.
+ * BigLau therefore creates a channel per vibration length (`sms-500`) and deletes the others
+ * next time. that hangs on the identifier and the clearing using the **same prefix**.
  *
- * Liefen die beiden auseinander, sammelten sich in den Systemeinstellungen des Nutzers
- * stumme Kanäle an, die nie wieder jemand benutzt. Sichtbar wäre das nur dort — in der App
- * nicht, in keinem Test, in keiner Meldung.
+ * if the two drifted apart, silent channels nobody ever uses again would pile up in the
+ * user's system settings. that would be visible only there - not in the app, in no test, in
+ * no notice.
  */
 class SmsChannelTest {
 
-    private val quelle = Quelltext.withoutComments("org/biglau/sms/SmsNotifications.kt")
+    private val source = Quelltext.withoutComments("org/biglau/sms/SmsNotifications.kt")
 
     @Test
-    fun `Kennung und Aufraeumen benutzen dasselbe Praefix`() {
+    fun `identifier and clearing use the same prefix`() {
         assertTrue(
-            "channelId baut die Kennung nicht aus CHANNEL_PREFIX",
-            "\"\$CHANNEL_PREFIX\$vibrationMs\"" in quelle,
+            "channelId does not build the identifier from CHANNEL_PREFIX",
+            "\"\$CHANNEL_PREFIX\$vibrationMs\"" in source,
         )
         assertTrue(
-            "das Aufräumen sucht nicht nach CHANNEL_PREFIX - dann bleiben alte Kanäle liegen",
-            "startsWith(CHANNEL_PREFIX)" in quelle,
+            "the clearing does not look for CHANNEL_PREFIX - then old channels stay behind",
+            "startsWith(CHANNEL_PREFIX)" in source,
         )
-        // Die Definition selbst ist die eine erlaubte Stelle - sie **ist** das Präfix.
-        // Die erste Fassung dieser Prüfung zählte sie mit und fiel über ihren eigenen
-        // Gegenstand; das dritte Mal heute Nacht, dass eine Regel sich selbst findet.
-        val hartGeschrieben = quelle.lines()
+        // the definition itself is the one allowed place - it **is** the prefix. the first
+        // version of this check counted it and fell over its own subject.
+        val hardcoded = source.lines()
             .filterNot { "const val CHANNEL_PREFIX" in it }
             .count { "\"sms-\"" in it }
         assertEquals(
-            "hart geschriebenes \"sms-\" neben der Definition - dann laufen die Stellen " +
-                "eines Tages auseinander",
+            "a hardcoded \"sms-\" beside the definition - then the places drift apart one day",
             0,
-            hartGeschrieben,
+            hardcoded,
         )
     }
 
     @Test
-    fun `jede angebotene Vibrationsdauer ergibt eine eigene Kennung`() {
-        val dauern = SmsNotifications.VIBRATION_CHOICES
+    fun `every offered vibration length gives its own identifier`() {
+        val lengths = SmsNotifications.VIBRATION_CHOICES
         assertEquals(
-            "zwei Dauern mit derselben Kennung - dann behielte eine die Vibration der anderen",
-            dauern.size,
-            dauern.map { SmsNotifications.channelId(it) }.toSet().size,
+            "two lengths with the same identifier - then one would keep the other's vibration",
+            lengths.size,
+            lengths.map { SmsNotifications.channelId(it) }.toSet().size,
         )
     }
 }

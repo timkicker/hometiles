@@ -7,70 +7,66 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Die Diagnoseseite muss jedes gefährliche Recht nennen.
+ * the diagnostics page has to name every dangerous permission.
  *
- * Sie ist die Antwort auf „es geht nicht" — auf dem Gerät eines Menschen gibt es kein `adb`.
- * Ein Recht, das dort fehlt, ist eine fehlende Antwort: in der Nacht vom 02.09.2026 war die
- * Anrufliste zu sehen, aber nichts daraus zu löschen, weil `WRITE_CALL_LOG` fehlte — und die
- * Seite, die man dafür aufschlägt, zeigte genau diese Zeile nicht.
+ * it is the answer to "it does not work" - there is no `adb` on a person's phone. a
+ * permission missing there is a missing answer: on 02.09.2026 the call log was visible but
+ * nothing could be deleted from it because `WRITE_CALL_LOG` was missing, and the page one
+ * opens for that did not show exactly this row.
  */
 class DiagnosticsCoverageTest {
 
     private val manifest = File("src/main/AndroidManifest.xml")
-    private val seite = Quelltext.file("org/biglau/settings/Diagnostics.kt")
+    private val page = Quelltext.file("org/biglau/settings/Diagnostics.kt")
 
-    /** Nur diese Gruppe wird zur Laufzeit erteilt; der Rest kommt beim Installieren. */
-    private val gefaehrlich = setOf(
+    /** only this group is granted at runtime; the rest comes with the install. */
+    private val dangerous = setOf(
         "CALL_PHONE", "READ_CALL_LOG", "WRITE_CALL_LOG", "READ_PHONE_STATE",
         "READ_CONTACTS", "WRITE_CONTACTS", "SEND_SMS", "READ_SMS", "RECEIVE_SMS",
         "ACCESS_FINE_LOCATION", "ACCESS_COARSE_LOCATION",
     )
 
     /**
-     * Rechte, die die Seite nicht einzeln nennen muss.
+     * permissions the page need not name one by one.
      *
-     * `ACCESS_COARSE_LOCATION` steht mit dem feinen zusammen in einer Zeile — beide werden
-     * gemeinsam erfragt, und zwei Zeilen für dieselbe Frage sind auf drei Zoll Ballast.
-     * `WRITE_CONTACTS` und `RECEIVE_SMS` hängen an einer Rolle, die die Seite ohnehin zeigt.
-     *
-     * `READ_PHONE_STATE` stand hier bis zum 04.09.2026 mit dem Grund, es werde „bewusst
-     * nicht erteilt". Am Gerät nachgesehen war es erteilt — BigLau fragt eigens danach,
-     * damit die Empfangsbalken etwas anzeigen. Der Grund war eine gemessene Tatsache, die
-     * gealtert ist; die Zeile steht jetzt auf der Seite.
+     * `READ_PHONE_STATE` stood here until 04.09.2026 with the reason that it was
+     * deliberately not granted. looked at on the user's device it was granted - BigLau asks
+     * for it so the signal bars show something. the reason was a measured fact that had
+     * aged; the row now stands on the page.
      */
-    private val ausnahmen = mapOf(
-        "ACCESS_COARSE_LOCATION" to "steht zusammen mit ACCESS_FINE_LOCATION in einer Zeile",
-        "WRITE_CONTACTS" to "haengt an derselben Frage wie READ_CONTACTS",
-        "RECEIVE_SMS" to "haengt an der SMS-Rolle, die die Seite als Standard-SMS-App zeigt",
+    private val exceptions = mapOf(
+        "ACCESS_COARSE_LOCATION" to "stands on one row together with ACCESS_FINE_LOCATION",
+        "WRITE_CONTACTS" to "hangs on the same question as READ_CONTACTS",
+        "RECEIVE_SMS" to "hangs on the sms role, which the page shows as default sms app",
     )
 
-    private fun angemeldet(): Set<String> =
+    private fun declared(): Set<String> =
         Regex("""uses-permission android:name="android\.permission\.([A-Z_]+)"""")
             .findAll(manifest.readText())
             .map { it.groupValues[1] }
-            .filter { it in gefaehrlich }
+            .filter { it in dangerous }
             .toSet()
 
     @Test
-    fun `jedes gefaehrliche Recht steht auf der Diagnoseseite`() {
-        val text = seite.readText()
-        val fehlt = (angemeldet() - ausnahmen.keys)
+    fun `every dangerous permission stands on the diagnostics page`() {
+        val text = page.readText()
+        val missing = (declared() - exceptions.keys)
             .filterNot { text.contains("Manifest.permission.$it") }
             .sorted()
         assertEquals(
-            "Diese Rechte nennt die Diagnose nicht - wer wissen will, warum etwas nicht " +
-                "geht, findet die Antwort dort nicht: $fehlt",
+            "the diagnostics do not name these permissions - whoever wants to know why " +
+                "something does not work finds no answer there: $missing",
             emptyList<String>(),
-            fehlt,
+            missing,
         )
     }
 
     @Test
-    fun `jede Ausnahme nennt ihren Grund und gibt es wirklich`() {
-        val vorhanden = angemeldet()
-        ausnahmen.forEach { (name, grund) ->
-            assertTrue("$name steht nicht mehr im Manifest", name in vorhanden)
-            assertTrue("$name braucht einen Grund", grund.length > 20)
+    fun `every exception names its reason and really exists`() {
+        val present = declared()
+        exceptions.forEach { (name, reason) ->
+            assertTrue("$name no longer stands in the manifest", name in present)
+            assertTrue("$name needs a reason", reason.length > 20)
         }
     }
 }

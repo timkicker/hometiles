@@ -12,110 +12,109 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * PLAN.md 4.1 „Screen … duplizieren".
+ * PLAN.md 4.1, duplicating a screen.
  *
- * Gedacht zum Ausprobieren: eine neue Anordnung bauen, ohne die alte zu verlieren. Der
- * wichtigste Teil ist deshalb nicht das Kopieren, sondern was nicht mitkopiert wird.
+ * meant for trying things out: build a new arrangement without losing the old one. the most
+ * important part is therefore not what is copied but what is not.
  */
 class ScreenCopyTest {
 
-    private fun kachel(action: ButtonAction) = Button(action = action)
+    private fun tile(action: ButtonAction) = Button(action = action)
 
-    private val voll = Screen(
+    private val full = Screen(
         id = "home",
         name = "Start",
         cols = 2,
         rows = 2,
         cells = listOf(
-            Cell(0, 0, button = kachel(ButtonAction.App("a", "b"))),
-            Cell(1, 0, button = kachel(ButtonAction.Action(Builtin.SETTINGS))),
-            Cell(0, 1, button = kachel(ButtonAction.Widget("p/W", 7, "Uhr"))),
+            Cell(0, 0, button = tile(ButtonAction.App("a", "b"))),
+            Cell(1, 0, button = tile(ButtonAction.Action(Builtin.SETTINGS))),
+            Cell(0, 1, button = tile(ButtonAction.Widget("p/W", 7, "Uhr"))),
         ),
     )
 
-    private val config = LauncherConfig(screens = listOf(voll), homeScreenId = "home")
+    private val config = LauncherConfig(screens = listOf(full), homeScreenId = "home")
 
     @Test
-    fun `die kopie hat dasselbe raster und einen neuen namen`() {
-        val ergebnis = ScreenCopy.duplicate(config, "home", "Start (Kopie)")
-        val fertig = ergebnis as ScreenCopy.Result.Done
-        val kopie = fertig.config.screenById(fertig.newId)!!
-        assertEquals("Start (Kopie)", kopie.name)
-        assertEquals(2, kopie.cols)
-        assertEquals(2, kopie.rows)
+    fun `the copy has the same grid and a new name`() {
+        val result = ScreenCopy.duplicate(config, "home", "Start (Kopie)")
+        val done = result as ScreenCopy.Result.Done
+        val copy = done.config.screenById(done.newId)!!
+        assertEquals("Start (Kopie)", copy.name)
+        assertEquals(2, copy.cols)
+        assertEquals(2, copy.rows)
     }
 
     /**
-     * Widgets werden nicht mitkopiert. Eine Widget-Kachel hält eine Kennung, die der
-     * AppWidgetHost genau einmal vergeben hat; zweimal dieselbe hieße, dass das Löschen
-     * der einen Kachel die andere kaputtmacht.
+     * widgets are not copied along. a widget tile holds an id the AppWidgetHost handed out
+     * exactly once; the same one twice would mean deleting one tile breaks the other.
      */
     @Test
-    fun `widgets bleiben zurueck und werden gezaehlt`() {
-        val fertig = ScreenCopy.duplicate(config, "home", "K") as ScreenCopy.Result.Done
-        val kopie = fertig.config.screenById(fertig.newId)!!
-        assertEquals(false, kopie.cells.any { it.button.action is ButtonAction.Widget })
-        assertEquals(1, fertig.skippedWidgets)
-        assertEquals(2, fertig.copied)
+    fun `widgets stay behind and are counted`() {
+        val done = ScreenCopy.duplicate(config, "home", "K") as ScreenCopy.Result.Done
+        val copy = done.config.screenById(done.newId)!!
+        assertEquals(false, copy.cells.any { it.button.action is ButtonAction.Widget })
+        assertEquals(1, done.skippedWidgets)
+        assertEquals(2, done.copied)
     }
 
-    // Zu einem Ordner gehoert genau eine Kachel; sein Loeschen raeumt beides zusammen weg.
-    // Zwei Kacheln auf denselben Ordner liessen nach dem Loeschen eine ins Leere zeigen.
+    // exactly one tile belongs to a folder; deleting it clears both away together. two tiles
+    // on the same folder would leave one pointing at nothing after the deletion.
     @Test
-    fun `ordnerkacheln bleiben zurueck`() {
-        val mitOrdner = config.copy(
+    fun `folder tiles stay behind`() {
+        val withFolder = config.copy(
             screens = listOf(
-                voll.copy(cells = listOf(Cell(0, 0, button = kachel(ButtonAction.Folder("f"))))),
+                full.copy(cells = listOf(Cell(0, 0, button = tile(ButtonAction.Folder("f"))))),
                 Screen("f", "Mehr", 2, 2, kind = ScreenKind.FOLDER),
             ),
         )
-        val fertig = ScreenCopy.duplicate(mitOrdner, "home", "K") as ScreenCopy.Result.Done
-        val kopie = fertig.config.screenById(fertig.newId)!!
-        assertEquals(false, kopie.cells.any { it.button.action is ButtonAction.Folder })
-        assertEquals(1, fertig.skippedFolders)
+        val done = ScreenCopy.duplicate(withFolder, "home", "K") as ScreenCopy.Result.Done
+        val copy = done.config.screenById(done.newId)!!
+        assertEquals(false, copy.cells.any { it.button.action is ButtonAction.Folder })
+        assertEquals(1, done.skippedFolders)
     }
 
     /**
-     * Das Wichtigste: die Kopie ist erreichbar. Ein Screen, zu dem keine Kachel führt, ist
-     * eingerichtet und unauffindbar — genau der Zustand, vor dem die Screens-Seite warnt.
+     * the most important part: the copy is reachable. a screen no tile leads to is set up
+     * and unfindable - exactly the state the screens page warns about.
      */
     @Test
-    fun `eine kachel fuehrt zur kopie`() {
-        val fertig = ScreenCopy.duplicate(config, "home", "K") as ScreenCopy.Result.Done
-        val ziele = fertig.config.screenById("home")!!.cells
+    fun `a tile leads to the copy`() {
+        val done = ScreenCopy.duplicate(config, "home", "K") as ScreenCopy.Result.Done
+        val targets = done.config.screenById("home")!!.cells
             .mapNotNull { (it.button.action as? ButtonAction.GoToScreen)?.screenId }
-        assertTrue(ziele.contains(fertig.newId))
-        assertEquals(emptyList<Screen>(), ScreenEdits.unreachable(fertig.config))
+        assertTrue(targets.contains(done.newId))
+        assertEquals(emptyList<Screen>(), ScreenEdits.unreachable(done.config))
     }
 
-    // Lieber gar nicht verdoppeln als eine unauffindbare Kopie hinterlassen.
+    // better not to duplicate at all than to leave an unfindable copy behind.
     @Test
-    fun `ohne freie zelle wird nicht verdoppelt`() {
-        val randvoll = config.copy(
+    fun `without a free cell nothing is duplicated`() {
+        val brimFull = config.copy(
             screens = listOf(
-                voll.copy(
+                full.copy(
                     cols = 1,
                     rows = 1,
-                    cells = listOf(Cell(0, 0, button = kachel(ButtonAction.App("a", "b")))),
+                    cells = listOf(Cell(0, 0, button = tile(ButtonAction.App("a", "b")))),
                 ),
             ),
         )
         assertEquals(
             ScreenCopy.Result.NoRoomForJumpTile,
-            ScreenCopy.duplicate(randvoll, "home", "K"),
+            ScreenCopy.duplicate(brimFull, "home", "K"),
         )
     }
 
     @Test
-    fun `ein unbekannter screen ergibt nichts`() {
+    fun `an unknown screen gives nothing`() {
         assertEquals(ScreenCopy.Result.NoSuchScreen, ScreenCopy.duplicate(config, "weg", "K"))
     }
 
-    // Die Kennung muss neu sein, sonst ueberschreibt die Kopie das Original.
+    // the id has to be new, otherwise the copy overwrites the original.
     @Test
-    fun `die kopie bekommt eine eigene kennung`() {
-        val fertig = ScreenCopy.duplicate(config, "home", "K") as ScreenCopy.Result.Done
-        assertEquals(2, fertig.config.screens.size)
-        assertTrue(fertig.newId != "home")
+    fun `the copy gets an id of its own`() {
+        val done = ScreenCopy.duplicate(config, "home", "K") as ScreenCopy.Result.Done
+        assertEquals(2, done.config.screens.size)
+        assertTrue(done.newId != "home")
     }
 }

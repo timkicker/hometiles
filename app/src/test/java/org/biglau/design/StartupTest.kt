@@ -6,41 +6,37 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Der Startweg trägt nichts, was warten kann.
+ * the startup way carries nothing that can wait.
  *
- * Am Jelly 2 gemessen: vom Antippen bis zum sichtbaren Startbildschirm **zwei Sekunden**
- * (Fehlersuchfassung). Der Anteil der App daran war klein, aber messbar — allein das erste
- * Einlesen der Einrichtung kostete **186 ms**, und zwar nicht wegen der Datei (zwölf
- * Kilobyte), sondern wegen des ersten Benutzens des Umwandlers.
- *
- * Auf dem Startfaden lag das vor allem anderen. Daneben läuft es jetzt mit, während Android
- * die Activity hochzieht — gefahrlos, weil `ConfigStore.get` gegen zwei gleichzeitige Aufrufe
- * gesichert ist: kommt die Oberfläche früher, wartet sie genauso lange wie vorher. Gemessen
- * hat es rund **80 bis 130 ms** gebracht.
+ * measured on the Jelly 2: two seconds from the tap to the visible home screen (debug build).
+ * the first read of the configuration alone cost 186 ms - not because of the file (twelve
+ * kilobytes) but because of the first use of the converter. it now runs alongside while
+ * android brings the activity up, which is safe because `ConfigStore.get` is guarded against
+ * two calls at once. that gained around 80 to 130 ms.
  */
 class StartupTest {
 
-    /** Ohne Kommentare: eine Erklaerung darf die Regel nennen, ohne sie zu brechen. */
+    /** without comments: an explanation may name the rule without breaking it. */
     private val app = Quelltext.file("org/biglau/BigLauApp.kt")
         .readLines()
         .filterNot { Quelltext.isCommentLine(it) }
         .joinToString("\n")
 
     @Test
-    fun `die Einrichtung wird nicht auf dem Startfaden eingelesen`() {
-        val vorDemFaden = Quelltext.cut(app, "", "Thread {")
-        assertTrue("kein eigener Faden im Start", "Thread {" in app)
+    fun `the configuration is not read on the startup thread`() {
+        val beforeTheThread = Quelltext.cut(app, "", "Thread {")
+        assertTrue("no thread of its own in the startup", "Thread {" in app)
         assertTrue(
-            "ConfigStore wird noch auf dem Startfaden gebaut",
-            "ConfigStore.get" !in vorDemFaden,
+            "ConfigStore is still built on the startup thread",
+            "ConfigStore.get" !in beforeTheThread,
         )
     }
 
     @Test
-    fun `der Absturzschreiber bleibt vorne`() {
-        // Er kostet zwei Millisekunden und muss stehen, bevor irgendetwas abstuerzen kann -
-        // sonst hat der Notmodus beim naechsten Start nichts anzuzeigen.
-        val vorDemFaden = Quelltext.cut(app, "", "Thread {")
-        assertTrue("CrashRecorder fehlt am Anfang", "CrashRecorder.get" in vorDemFaden)
+    fun `the crash recorder stays at the front`() {
+        // it costs two milliseconds and must stand before anything can crash - otherwise the
+        // emergency mode has nothing to show at the next start.
+        val beforeTheThread = Quelltext.cut(app, "", "Thread {")
+        assertTrue("CrashRecorder is missing at the start", "CrashRecorder.get" in beforeTheThread)
     }
 }

@@ -7,69 +7,68 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Jeder Text muss irgendwo stehen.
+ * every text has to stand somewhere.
  *
- * Anlass: „Diesen Eintrag löschen" lag übersetzt in beiden Sprachen und wurde von keiner
- * Zeile jemals angezeigt - das Löschen eines einzelnen Anrufs war nur durch langes Halten
- * erreichbar, und das stand nirgends. Ein Text ohne Fundstelle ist entweder ein Rest oder
- * ein Versprechen, das die Oberfläche nicht einlöst; beides fällt sonst niemandem auf,
- * weil ein ungenutzter Text nichts kaputt macht - er fehlt nur da, wo er hingehörte.
+ * "delete this entry" lay translated in both languages and was never shown by any line -
+ * deleting a single call was reachable by long press alone, and that stood nowhere. a text
+ * without a place is either a leftover or a promise the surface does not keep; neither shows
+ * on its own, because an unused text breaks nothing - it is only missing where it belonged.
  *
- * Geprüft wird gegen den englischen Satz, weil beide Sprachen dieselben Schlüssel führen
- * (siehe [TranslationsTest]); ein deutscher Rest fiele dort auf.
+ * checked against the english set, since both languages carry the same keys (see
+ * [TranslationsTest]); a german leftover would show up there.
  */
 class UnusedStringsTest {
 
     private val res = Quelltext.resRoots
 
     /**
-     * Namen, die es zu Recht ohne Fundstelle im Quelltext gibt.
+     * names that rightly have no place in the source.
      *
-     * `app_name` steht im Manifest, nicht im Kotlin-Code - und wird dort über `@string/`
-     * gefunden, weshalb die Liste heute leer bleiben würde. Sie steht trotzdem hier, damit
-     * ein künftiger Sonderfall benannt werden muss statt die Regel zu lockern.
+     * the list would stay empty today - `app_name` stands in the manifest and is found there
+     * through `@string/`. it stands here so a future special case has to be named instead of
+     * the rule being loosened.
      */
-    private val ohneFundstelle = emptySet<String>()
+    private val withoutAPlace = emptySet<String>()
 
-    private fun namen(tag: String): List<String> {
-        val dateien = Quelltext.texts("values", if (tag == "plurals") "plurals.xml" else "strings.xml")
-        assertTrue("values/$tag fehlt in jedem Modul", dateien.isNotEmpty())
-        return dateien.flatMap { datei ->
-            Regex("<$tag name=\"([^\"]+)\"").findAll(datei.readText()).map { it.groupValues[1] }
+    private fun names(tag: String): List<String> {
+        val files = Quelltext.texts("values", if (tag == "plurals") "plurals.xml" else "strings.xml")
+        assertTrue("values/$tag is missing in every module", files.isNotEmpty())
+        return files.flatMap { file ->
+            Regex("<$tag name=\"([^\"]+)\"").findAll(file.readText()).map { it.groupValues[1] }
         }.toList()
     }
 
-    /** Alles, was auf einen Ressourcennamen zeigt: `R.string.x`, `R.plurals.x`, `@string/x`. */
-    private fun verwendet(): Set<String> {
-        val treffer = mutableSetOf<String>()
-        val zeiger = Regex("""R\.(?:string|plurals)\.([A-Za-z0-9_]+)|@(?:string|plurals)/([A-Za-z0-9_]+)""")
-        (Quelltext.roots + res + File("src/main/AndroidManifest.xml")).forEach { ort ->
-            ort.walkTopDown().filter { it.isFile }.forEach { datei ->
-                zeiger.findAll(datei.readText()).forEach {
-                    treffer += it.groupValues[1].ifEmpty { it.groupValues[2] }
+    /** everything pointing at a resource name: `R.string.x`, `R.plurals.x`, `@string/x`. */
+    private fun used(): Set<String> {
+        val hits = mutableSetOf<String>()
+        val pointer = Regex("""R\.(?:string|plurals)\.([A-Za-z0-9_]+)|@(?:string|plurals)/([A-Za-z0-9_]+)""")
+        (Quelltext.roots + res + File("src/main/AndroidManifest.xml")).forEach { place ->
+            place.walkTopDown().filter { it.isFile }.forEach { file ->
+                pointer.findAll(file.readText()).forEach {
+                    hits += it.groupValues[1].ifEmpty { it.groupValues[2] }
                 }
             }
         }
-        return treffer
+        return hits
     }
 
     @Test
-    fun `kein Text steht ungenutzt herum`() {
-        val benutzt = verwendet()
-        val verwaist = (namen("string") + namen("plurals"))
-            .filterNot { it in benutzt || it in ohneFundstelle }
+    fun `no text stands around unused`() {
+        val used = used()
+        val orphaned = (names("string") + names("plurals"))
+            .filterNot { it in used || it in withoutAPlace }
         assertEquals(
-            "Diese Texte zeigt niemand an - entweder fehlt die Stelle, an der sie stehen " +
-                "sollten, oder sie sind ein Rest und gehören gelöscht: $verwaist",
+            "nobody shows these texts - either the place they should stand is missing, or " +
+                "they are a leftover and belong deleted: $orphaned",
             emptyList<String>(),
-            verwaist,
+            orphaned,
         )
     }
 
     @Test
-    fun `die Regel findet einen erfundenen Rest`() {
-        // Gegenprobe: ohne sie würde ein kaputter Suchausdruck alles durchwinken.
-        val benutzt = verwendet()
-        assertTrue("erfundener Name darf nicht als benutzt gelten", "biglau_gibt_es_nicht" !in benutzt)
+    fun `the rule finds an invented leftover`() {
+        // without this a broken search expression would wave everything through.
+        val used = used()
+        assertTrue("an invented name must not count as used", "biglau_gibt_es_nicht" !in used)
     }
 }

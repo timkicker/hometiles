@@ -10,36 +10,36 @@ class SmsThreadsTest {
     private fun msg(
         thread: Long,
         at: Long,
-        body: String = "Hallo",
+        body: String = "Hello",
         address: String = "+436601234567",
         incoming: Boolean = true,
         read: Boolean = true,
     ) = SmsMessage(nextId++, thread, address, body, at, incoming, read)
 
     @Test
-    fun `Nachrichten eines Gespraechs werden zusammengefasst`() {
+    fun `messages of one conversation are grouped`() {
         val threads = SmsThreads.group(listOf(msg(1, 100), msg(1, 200), msg(2, 150)))
         assertEquals(2, threads.size)
     }
 
     @Test
-    fun `das neueste Gespraech steht oben`() {
+    fun `the newest conversation stands on top`() {
         val threads = SmsThreads.group(listOf(msg(1, 100), msg(2, 500)))
         assertEquals(2L, threads.first().threadId)
     }
 
     @Test
-    fun `die letzte Nachricht bestimmt Vorschau und Adresse`() {
+    fun `the last message decides preview and address`() {
         val threads = SmsThreads.group(
-            listOf(msg(1, 100, body = "alt"), msg(1, 300, body = "neu")),
+            listOf(msg(1, 100, body = "old"), msg(1, 300, body = "new")),
         )
-        assertEquals("neu", threads.first().lastMessage.body)
+        assertEquals("new", threads.first().lastMessage.body)
     }
 
     @Test
-    fun `ungelesen zaehlen nur eingehende Nachrichten`() {
-        // Eine selbst geschriebene Nachricht ist nie ungelesen - sonst blinkt die Kachel,
-        // weil man selbst etwas geschrieben hat.
+    fun `only incoming messages count as unread`() {
+        // a message one wrote oneself is never unread - otherwise the tile blinks because one
+        // has written something.
         val threads = SmsThreads.group(
             listOf(
                 msg(1, 100, incoming = true, read = false),
@@ -51,13 +51,13 @@ class SmsThreadsTest {
     }
 
     @Test
-    fun `ohne ungelesene Nachricht bleibt es bei null`() {
+    fun `without an unread message it stays at zero`() {
         val threads = SmsThreads.group(listOf(msg(1, 100, read = true)))
         assertTrue(!threads.first().hasUnread)
     }
 
     @Test
-    fun `jedes Gespraech zaehlt seine eigenen Ungelesenen`() {
+    fun `every conversation counts its own unread ones`() {
         val threads = SmsThreads.group(
             listOf(
                 msg(1, 100, incoming = true, read = false),
@@ -70,28 +70,28 @@ class SmsThreadsTest {
     }
 
     @Test
-    fun `der Name des Kontakts wird uebernommen wenn es einen gibt`() {
-        val threads = SmsThreads.group(listOf(msg(1, 100))) { "Oma" }
-        assertEquals("Oma", threads.first().title)
+    fun `the contact's name is taken over where there is one`() {
+        val threads = SmsThreads.group(listOf(msg(1, 100))) { "Alex" }
+        assertEquals("Alex", threads.first().title)
     }
 
     @Test
-    fun `ohne Namen steht die Adresse als Titel`() {
+    fun `without a name the address stands as the title`() {
         val threads = SmsThreads.group(listOf(msg(1, 100)))
-        // In Bloecken, wie in der Anrufliste. Vorher stand hier die rohe Nummer, und
-        // dieselbe Nummer sah in den beiden Listen verschieden aus - wer vergleicht,
-        // vergleicht dann zwei Schreibweisen statt zweier Nummern.
+        // in blocks, as in the call log. the raw number stood here before, and the same
+        // number looked different in the two lists - whoever compares then compares two
+        // spellings instead of two numbers.
         assertEquals("+436 601 234 567", threads.first().title)
     }
 
     @Test
-    fun `die Vorschau ist einzeilig`() {
-        val message = msg(1, 100, body = "Erste Zeile\nZweite  Zeile")
-        assertEquals("Erste Zeile Zweite Zeile", SmsThreads.preview(message))
+    fun `the preview is one line`() {
+        val message = msg(1, 100, body = "first line\nsecond  line")
+        assertEquals("first line second line", SmsThreads.preview(message))
     }
 
     @Test
-    fun `lange Vorschauen werden gekuerzt`() {
+    fun `long previews are cut`() {
         val long = "a".repeat(200)
         val preview = SmsThreads.preview(msg(1, 100, body = long))
         assertEquals(SmsThreads.PREVIEW_LENGTH, preview.length)
@@ -99,17 +99,16 @@ class SmsThreadsTest {
     }
 
     @Test
-    fun `eine Unterhaltung liest sich von alt nach neu`() {
+    fun `a conversation reads from old to new`() {
         val messages = listOf(msg(1, 300), msg(1, 100), msg(1, 200), msg(2, 400))
         val conversation = SmsThreads.conversation(messages, 1L)
         assertEquals(listOf(100L, 200L, 300L), conversation.map { it.timestamp })
     }
 
     @Test
-    fun `gruppiert wird nach der Kennung des Anbieters, nicht nach der Nummer`() {
-        // Bewusst so, siehe SmsThreads: nach der Nummer zu gruppieren wuerfe Gespraeche
-        // zusammen, die der Anbieter getrennt fuehrt. Eine eigene Nummernvergleichs-
-        // funktion gab es dafuer einmal - sie hat nie jemand aufgerufen.
+    fun `grouping goes by the provider's id, not by the number`() {
+        // deliberately so, see SmsThreads: grouping by the number would throw conversations
+        // together that the provider keeps apart.
         val threads = SmsThreads.group(
             listOf(msg(1, 100, address = "+43 660 123"), msg(2, 200, address = "+43660123")),
         )
@@ -117,33 +116,33 @@ class SmsThreadsTest {
     }
 
     @Test
-    fun `eine leere Liste ergibt keine Gespraeche`() {
+    fun `an empty list yields no conversations`() {
         assertTrue(SmsThreads.group(emptyList()).isEmpty())
     }
 
-    // --- Absender, die keine Nummer sind (02.09.2026) ---
+    // --- senders that are no number (02.09.2026) ---
 
     /**
-     * Banken, Paketdienste und Anmeldecodes kommen als Buchstabenkennung. Bis hierher
-     * blieb davon **nichts** uebrig: `PhoneNumbers.clean` wirft Buchstaben weg, und in der
-     * Liste stand eine leere Zeile - bei genau den Nachrichten, die man am ehesten sucht.
+     * banks, parcel services and sign-in codes come as a letter id. until here **nothing** of
+     * it was left: `PhoneNumbers.clean` throws letters away, and an empty row stood in the
+     * list - on exactly the messages one looks for most.
      */
     @Test
-    fun `eine Buchstabenkennung steht als Titel da`() {
+    fun `a letter id stands there as the title`() {
         val threads = SmsThreads.group(listOf(msg(1, 100, address = "ADAC")))
         assertEquals("ADAC", threads.first().title)
     }
 
     @Test
-    fun `ohne Absender steht der Ersatztext da`() {
+    fun `without a sender the replacement text stands there`() {
         val threads = SmsThreads.group(listOf(msg(1, 100, address = "")))
         assertEquals("", threads.first().title)
-        assertEquals("Unbekannt", threads.first().titleOr("Unbekannt"))
+        assertEquals("Unknown", threads.first().titleOr("Unknown"))
     }
 
     @Test
-    fun `mit Absender bleibt der Ersatztext weg`() {
+    fun `with a sender the replacement text stays away`() {
         val threads = SmsThreads.group(listOf(msg(1, 100)))
-        assertEquals("+436 601 234 567", threads.first().titleOr("Unbekannt"))
+        assertEquals("+436 601 234 567", threads.first().titleOr("Unknown"))
     }
 }

@@ -5,45 +5,39 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 /**
- * PLAN.md 4.4: „Bestätigungsdialog statt kurzer Einblendung."
+ * PLAN.md 4.4: a confirmation dialog instead of a short flash.
  *
- * Eine Einblendung ist nach zwei Sekunden weg. Wer langsam liest, weiß danach nur, dass
- * etwas aufgeblitzt ist - nicht, was.
+ * a flash is gone after two seconds. whoever reads slowly knows afterwards only that
+ * something flashed up - not what.
  */
 class NoticeStyleTest {
 
     @Test
-    fun `ohne die einstellung bleibt es bei der einblendung`() {
+    fun `without the setting it stays with the flash`() {
         assertEquals(NoticeStyle.TOAST, Notice.styleFor(false))
     }
 
     @Test
-    fun `mit der einstellung wartet die meldung`() {
+    fun `with the setting the notice waits`() {
         assertEquals(NoticeStyle.DIALOG, Notice.styleFor(true))
     }
 
-    // Die Vorgabe ist die Einblendung: eine Meldung, die jedes Mal einen Knopf verlangt,
-    // ist fuer die meisten eine Zumutung. Die Wahl gehoert dem, der sie braucht.
+    // the default is the flash: a notice that demands a button every time is an imposition
+    // for most. the choice belongs to whoever needs it.
     @Test
-    fun `die vorgabe ist die einblendung`() {
+    fun `the default is the flash`() {
         assertEquals(false, Behaviour().confirmMessages)
         assertEquals(NoticeStyle.TOAST, Notice.styleFor(Behaviour().confirmMessages))
     }
 
     /**
-     * Und die Meldung selbst ist das Größte auf diesem Bildschirm.
-     *
-     * Am Gerät gesehen: die Nachricht stand in gewöhnlicher Textgröße über einem großen
-     * „Diese Meldung schließen" — der Knopf rief, die Nachricht flüsterte. Auf einem
-     * Bildschirm, den es nur wegen dieser einen Zeile gibt, ist das die falsche Rangfolge.
-     *
-     * `BigHeading` bringt zwei Dinge mit, die eine Meldung braucht: die Überschriftengröße
-     * und die Stufenleiter, die **kleiner wird, bevor sie trennt** — eine Meldung darf lang
-     * sein, und mitten im Wort getrennt liest sie sich wie ein Fehler.
+     * `BigHeading` brings two things a notice needs: the heading size and the scale that
+     * **shrinks before it hyphenates** - a notice may be long, and split mid-word it reads
+     * like a fault.
      */
     @Test
-    fun `die Meldung steht in Ueberschriftengroesse`() {
-        val quelle = org.biglau.Quelltext.file("org/biglau/ui/NoticeActivity.kt").readText()
-        assertEquals(true, "BigHeading(text)" in quelle)
+    fun `the notice stands in heading size`() {
+        val source = org.biglau.Quelltext.file("org/biglau/ui/NoticeActivity.kt").readText()
+        assertEquals(true, "BigHeading(text)" in source)
     }
 }

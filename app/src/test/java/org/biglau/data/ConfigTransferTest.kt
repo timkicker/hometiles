@@ -19,14 +19,14 @@ class ConfigTransferTest {
     )
 
     @Test
-    fun `Ausgeschriebenes laesst sich wieder einlesen`() {
+    fun `what was written out can be read back in`() {
         val text = ConfigTransfer.export(sample)
         val back = ConfigTransfer.import(text)
         assertEquals(ConfigTransfer.strippedForTransfer(sample), back)
     }
 
     @Test
-    fun `Aussehen und ausgeblendete Apps wandern mit`() {
+    fun `appearance and hidden apps travel along`() {
         val back = ConfigTransfer.import(ConfigTransfer.export(sample))!!
         assertEquals(ThemeName.HIGH_CONTRAST, back.appearance.theme)
         assertEquals(1.5f, back.appearance.textScale, 0.001f)
@@ -34,9 +34,9 @@ class ConfigTransferTest {
     }
 
     @Test
-    fun `Widget-Kacheln wandern nicht mit`() {
-        // Die Kennung stammt vom AppWidgetHost des alten Geraets. Auf dem neuen zeigt sie
-        // auf nichts oder - schlimmer - auf ein fremdes Widget.
+    fun `widget tiles do not travel along`() {
+        // the id comes from the old device's AppWidgetHost. on the new one it points at
+        // nothing or - worse - at a foreign widget.
         val withWidget = sample.copy(
             screens = listOf(
                 Defaults.mainScreen().let { screen ->
@@ -51,13 +51,13 @@ class ConfigTransferTest {
         )
         val back = ConfigTransfer.import(ConfigTransfer.export(withWidget))!!
         assertTrue(
-            "Widget-Kachel haette geleert werden muessen",
+            "the widget tile should have been emptied",
             back.screens.flatMap { it.cells }.none { it.button.action is ButtonAction.Widget },
         )
     }
 
     @Test
-    fun `App- und Kontaktkacheln wandern sehr wohl mit`() {
+    fun `app and contact tiles do travel along`() {
         val config = LauncherConfig(
             screens = listOf(
                 Screen(
@@ -77,34 +77,35 @@ class ConfigTransferTest {
     }
 
     @Test
-    fun `zuletzt benutzte Apps wandern nicht mit`() {
+    fun `recently used apps do not travel along`() {
         assertTrue(ConfigTransfer.import(ConfigTransfer.export(sample))!!.apps.recent.isEmpty())
     }
 
     @Test
-    fun `Unsinn ergibt keine Konfiguration`() {
+    fun `nonsense gives no configuration`() {
         assertNull(ConfigTransfer.import(""))
         assertNull(ConfigTransfer.import("das ist kein JSON"))
         assertNull(ConfigTransfer.import("[1,2,3]"))
     }
 
     @Test
-    fun `eine leere Datei setzt nicht stillschweigend auf Werkseinstellung zurueck`() {
-        // Weil jedes Feld einen Vorgabewert hat, ergaebe "{}" klaglos die Standardbelegung -
-        // der Import haette die gesamte Belegung geloescht und dabei ausgesehen, als
-        // haette er geklappt.
+    fun `an empty file does not silently reset to the factory setting`() {
+        // since every field has a default, "{}" would give the standard arrangement
+        // without complaint - the import would have deleted the whole arrangement while
+        // looking as if it had worked.
         assertNull(ConfigTransfer.import("{}"))
         assertNull(ConfigTransfer.import("""{"appearance":{"theme":"DARK"}}"""))
     }
 
     @Test
-    fun `eine Konfiguration ohne Screen wird abgelehnt`() {
-        // Ein Launcher ohne Homescreen waere ein Telefon, das nach dem Import nicht startet.
+    fun `a configuration without a screen is refused`() {
+        // a launcher without a home screen would be a phone that does not start after the
+        // import.
         assertNull(ConfigTransfer.import("""{"version":1,"screens":[],"homeScreenId":"home"}"""))
     }
 
     @Test
-    fun `ein Startscreen ins Leere wird auf den ersten gebogen`() {
+    fun `a home screen pointing at nothing is bent to the first one`() {
         val text = """
             {"version":1,
              "screens":[{"id":"a","name":"A","cols":2,"rows":3,"cells":[]}],
@@ -114,7 +115,7 @@ class ConfigTransferTest {
     }
 
     @Test
-    fun `unbekannte Felder aus einer neueren Fassung stoeren nicht`() {
+    fun `unknown fields from a newer version do not disturb`() {
         val text = """
             {"version":99,"kommtSpaeter":true,
              "screens":[{"id":"a","name":"A","cols":2,"rows":3,"cells":[],"neu":1}],
@@ -124,31 +125,30 @@ class ConfigTransferTest {
     }
 
     @Test
-    fun `der Dateiname traegt das Datum`() {
+    fun `the file name carries the date`() {
         // 2026-08-31, 12:00 UTC
         assertEquals("biglau-2026-08-31.json", ConfigTransfer.suggestedFileName(1788177600000L))
     }
 
     @Test
-    fun `die Ausgabe ist lesbar formatiert`() {
-        // Die Datei landet auf einem Rechner und soll sich dort ansehen lassen.
+    fun `the output is formatted readably`() {
+        // the file lands on a computer and should be readable there.
         assertTrue(ConfigTransfer.export(sample).contains("\n"))
         assertTrue(ConfigTransfer.export(sample).contains("\"version\""))
     }
 
     /**
-     * Nach dem Einlesen traegt die Konfiguration die **eigene** Nummer.
+     * after reading, the configuration carries its **own** number.
      *
-     * Am Emulator gesehen: eine Sicherung mit `version: 2` wurde eingelesen — richtig mit
-     * dem Hinweis „was diese Fassung nicht kennt, blieb weg" —, aber die Zwei blieb stehen.
-     * Damit haette jede spaetere Sicherung dieses Telefons behauptet, sie stamme aus einem
-     * neueren BigLau, und die Warnung erschiene fuer immer.
+     * a backup with `version: 2` was read in correctly, with the hint that what this version
+     * does not know stayed out - but the two stayed. every later backup of this phone would
+     * then have claimed to come from a newer BigLau, and the warning would appear for ever.
      */
     @Test
-    fun `eine Sicherung aus einer neueren Fassung bekommt die eigene Nummer`() {
+    fun `a backup from a newer version gets our own number`() {
         val text = ConfigTransfer.export(sample).replace("\"version\": 1", "\"version\": 2")
-        assertTrue("Vorbedingung: die Datei nennt Fassung 2", ConfigTransfer.isFromNewerVersion(text))
-        val gelesen = ConfigTransfer.import(text)
-        assertEquals(CONFIG_VERSION, gelesen?.version)
+        assertTrue("precondition: the file names version 2", ConfigTransfer.isFromNewerVersion(text))
+        val read = ConfigTransfer.import(text)
+        assertEquals(CONFIG_VERSION, read?.version)
     }
 }

@@ -5,7 +5,7 @@ import java.io.File
 /**
  * who knows whom inside `:app` - computed once, for the rules that need it.
  *
- * two rules read the same thing: `BereichsZyklenTest` looks for cycles, `FeatureEdgesTest`
+ * two rules read the same thing: `AreaCyclesTest` looks for cycles, `FeatureEdgesTest`
  * for edges between future modules. written twice, the day one gets fixed and the other does
  * not is only a matter of time.
  *

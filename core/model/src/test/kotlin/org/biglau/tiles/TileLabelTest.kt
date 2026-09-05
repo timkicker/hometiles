@@ -8,113 +8,112 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 /**
- * PLAN.md 4.4: automatische Beschriftung neu angelegter Kacheln.
+ * PLAN.md 4.4: the automatic label of a newly made tile.
  *
- * Abgeleitet statt gespeichert - deshalb steht hier auch, was passiert, wenn sich das
- * Ziel danach aendert.
+ * derived instead of stored - so what happens when the target changes afterwards stands here
+ * too.
  */
 class TileLabelTest {
 
-    private val worte = TileLabel.Words(
-        emptyTile = "Leer",
-        folder = "Ordner",
-        nextScreen = "Nächster Bildschirm",
+    private val words = TileLabel.Words(
+        emptyTile = "Empty",
+        folder = "Folder",
+        nextScreen = "Next screen",
         widget = "Widget",
     )
 
-    private val screens = mapOf("mehr" to "Mehr", "zwei" to "Zweiter")
+    private val screens = mapOf("more" to "More", "two" to "Second")
 
     private fun label(button: Button, apps: (ButtonAction.App) -> String? = { "App" }) =
         TileLabel.of(
             button,
-            worte,
+            words,
             screenName = { screens[it] },
             appLabel = apps,
             builtinLabel = { it.name },
         )
 
     @Test
-    fun `eine eigene beschriftung schlaegt alles`() {
-        val kachel = Button(action = ButtonAction.Action(Builtin.CAMERA), label = "Oma")
-        assertEquals("Oma", label(kachel))
+    fun `an own label beats everything`() {
+        val tile = Button(action = ButtonAction.Action(Builtin.CAMERA), label = "Alex")
+        assertEquals("Alex", label(tile))
     }
 
     @Test
-    fun `eine app heisst wie die app`() {
+    fun `an app is called like the app`() {
         assertEquals("Signal", label(Button(action = ButtonAction.App("org.thoughtcrime", "Main"))) { "Signal" })
     }
 
-    // Ohne installierte App bleibt der Paketname. Haesslich, aber wahr - und besser als
-    // eine leere Kachel, auf der nichts steht.
+    // without the app installed the package name stays. ugly, but true - and better than an
+    // empty tile with nothing on it.
     @Test
-    fun `eine fehlende app zeigt das paket`() {
-        val kachel = Button(action = ButtonAction.App("org.weg", "Main"))
-        assertEquals("org.weg", label(kachel) { null })
+    fun `a missing app shows the package`() {
+        val tile = Button(action = ButtonAction.App("org.gone", "Main"))
+        assertEquals("org.gone", label(tile) { null })
     }
 
-    // Der Fall, der die zwei getrennten Ableitungen auffliegen liess: der Editor sagte
-    // nur "Ordner". Bei zwei Ordnern war dort nicht mehr zu erkennen, welcher gemeint war.
+    // the case that exposed the two separate derivations: the editor said only "folder". with
+    // two folders one could no longer tell which was meant.
     @Test
-    fun `ein ordner heisst wie der ordner`() {
-        assertEquals("Mehr", label(Button(action = ButtonAction.Folder("mehr"))))
-    }
-
-    @Test
-    fun `ein sprung heisst wie das ziel`() {
-        assertEquals("Zweiter", label(Button(action = ButtonAction.GoToScreen("zwei"))))
-    }
-
-    // Zeigt der Screen nicht mehr, faellt die Kachel auf ein allgemeines Wort zurueck
-    // statt auf eine leere Beschriftung.
-    @Test
-    fun `ein verschwundenes ziel bleibt benannt`() {
-        assertEquals("Ordner", label(Button(action = ButtonAction.Folder("weg"))))
-        assertEquals("Nächster Bildschirm", label(Button(action = ButtonAction.GoToScreen("weg"))))
+    fun `a folder is called like the folder`() {
+        assertEquals("More", label(Button(action = ButtonAction.Folder("more"))))
     }
 
     @Test
-    fun `ein kontakt heisst wie der kontakt`() {
-        val kachel = Button(action = ButtonAction.Contact("Oma", "0", mode = ContactMode.ASK))
-        assertEquals("Oma", label(kachel))
+    fun `a jump is called like its target`() {
+        assertEquals("Second", label(Button(action = ButtonAction.GoToScreen("two"))))
+    }
+
+    // with the screen gone the tile falls back on a general word instead of an empty label.
+    @Test
+    fun `a vanished target stays named`() {
+        assertEquals("Folder", label(Button(action = ButtonAction.Folder("gone"))))
+        assertEquals("Next screen", label(Button(action = ButtonAction.GoToScreen("gone"))))
     }
 
     @Test
-    fun `ein widget ohne namen bekommt ein wort`() {
+    fun `a contact is called like the contact`() {
+        val tile = Button(action = ButtonAction.Contact("Alex", "0", mode = ContactMode.ASK))
+        assertEquals("Alex", label(tile))
+    }
+
+    @Test
+    fun `a widget without a name gets a word`() {
         assertEquals("Widget", label(Button(action = ButtonAction.Widget("com.x/W", 7, ""))))
-        assertEquals("Uhr", label(Button(action = ButtonAction.Widget("com.x/W", 7, "Uhr"))))
+        assertEquals("Clock", label(Button(action = ButtonAction.Widget("com.x/W", 7, "Clock"))))
     }
 
     @Test
-    fun `ein link heisst wie die seite`() {
+    fun `a link is called like the site`() {
         assertEquals("orf.at", label(Button(action = ButtonAction.Link("https://orf.at/news"))))
     }
 
     @Test
-    fun `eine leere kachel sagt, dass sie leer ist`() {
-        assertEquals("Leer", label(Button()))
+    fun `an empty tile says that it is empty`() {
+        assertEquals("Empty", label(Button()))
     }
 
     @Test
-    fun `eine eingebaute funktion heisst wie die funktion`() {
+    fun `a builtin function is called like the function`() {
         assertEquals("CAMERA", label(Button(action = ButtonAction.Action(Builtin.CAMERA))))
     }
 
-    // Jede Aktionsart muss etwas ergeben. Waechst die Liste, faellt das hier auf, bevor
-    // eine Kachel ohne Beschriftung auf dem Startbildschirm landet.
+    // every kind of action must yield something. as the list grows this shows up before a
+    // tile without a label lands on the home screen.
     @Test
-    fun `keine aktionsart bleibt ohne beschriftung`() {
-        val alle = listOf(
+    fun `no kind of action stays without a label`() {
+        val all = listOf(
             ButtonAction.None,
             ButtonAction.Action(Builtin.CAMERA),
             ButtonAction.App("a", "b"),
-            ButtonAction.Contact("Oma", "0", mode = ContactMode.ASK),
-            ButtonAction.Shortcut("p", "u", "Kurz"),
+            ButtonAction.Contact("Alex", "0", mode = ContactMode.ASK),
+            ButtonAction.Shortcut("p", "u", "Short"),
             ButtonAction.Widget("com.x/W", 1, "W"),
-            ButtonAction.GoToScreen("mehr"),
-            ButtonAction.Folder("mehr"),
+            ButtonAction.GoToScreen("more"),
+            ButtonAction.Folder("more"),
             ButtonAction.Link("orf.at"),
         )
-        val ohne = alle.filter { label(Button(action = it)).isBlank() }
-        assertEquals(emptyList<ButtonAction>(), ohne)
+        val without = all.filter { label(Button(action = it)).isBlank() }
+        assertEquals(emptyList<ButtonAction>(), without)
     }
 }

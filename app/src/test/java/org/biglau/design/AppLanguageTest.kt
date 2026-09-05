@@ -6,60 +6,53 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Texte in der Sprache der App, nicht in der des Telefons.
+ * texts in the app's language, not the phone's.
  *
- * `AppLocale.wrap` hing nur an `BigLauActivity`. Alles ausserhalb einer Activity — Meldungen,
- * Wecker, der Vorgabetext des Notrufs — holte seine Texte aus dem rohen Context, also in der
- * Systemsprache. Am Emulator gesehen: Oberfläche auf Deutsch, die Meldung darüber auf
- * Englisch („Message not sent yet").
+ * `AppLocale.wrap` hung on `BigLauActivity` alone. everything outside an activity - notices,
+ * the alarm, the sos default text - fetched its texts from the raw context, so in the system
+ * language.
  *
- * Das trifft genau den Fall, für den es diese Einstellung gibt: ein Telefon, dessen
- * Systemsprache jemand anderes gesetzt hat — der Sohn beim Einrichten, der Händler, die
- * Werkseinstellung. Wer sie ändern wollte, müsste sich durch Systemeinstellungen in einer
- * Sprache arbeiten, die er nicht liest.
+ * that hits exactly the case this setting exists for: a phone whose system language somebody
+ * else set. changing it would mean working through system settings in a language one cannot
+ * read.
  */
 class AppLanguageTest {
 
-
-    private fun dateien(): List<File> =
+    private fun files(): List<File> =
         Quelltext.files()
 
     /**
-     * Innerhalb einer Activity hängt die Sprache schon am Context (`attachBaseContext`),
-     * und Composables lesen über `stringResource`. Geprüft wird der Rest.
+     * inside an activity the language already hangs on the context (`attachBaseContext`),
+     * and composables read through `stringResource`. the rest is checked.
      */
-    private fun ausserhalbEinerActivity(datei: File): Boolean =
-        !datei.name.endsWith("Activity.kt") && !datei.path.contains("/ui/")
+    private fun outsideAnActivity(file: File): Boolean =
+        !file.name.endsWith("Activity.kt") && !file.path.contains("/ui/")
 
     @Test
-    fun `Texte ausserhalb einer Activity gehen durch AppLocale`() {
-        val roh = mutableListOf<String>()
-        dateien().filter(::ausserhalbEinerActivity).forEach { datei ->
-            val inhalt = datei.readText()
-            // Welche Namen in dieser Datei fuer einen gewrappten Context stehen.
-            val erlaubt = Regex("""val (\w+) = AppLocale\.forApp\(""")
-                .findAll(inhalt)
+    fun `texts outside an activity go through AppLocale`() {
+        val raw = mutableListOf<String>()
+        files().filter(::outsideAnActivity).forEach { file ->
+            val content = file.readText()
+            // which names stand for a wrapped context in this file.
+            val wrapped = Regex("""val (\w+) = AppLocale\.forApp\(""")
+                .findAll(content)
                 .map { it.groupValues[1] }
                 .toSet()
-            datei.readLines().forEachIndexed { index, zeile ->
-                // **Beide** Wege zu einem Text, nicht nur einer. Bis zum 04.09.2026 sah
-                // diese Regel nur `getString` an; `getQuantityString` holt genauso einen
-                // Text und kam genauso aus dem rohen Context. Aufgefallen, als eine neue
-                // Meldung auf der SOS-Seite beides benutzte und nur die eine Haelfte
-                // gemeldet wurde.
-                val treffer = Regex("""(\w+)?\.?(?:resources\.)?get(?:String|QuantityString)\(R\.(?:string|plurals)""")
-                    .find(zeile)
+            file.readLines().forEachIndexed { index, line ->
+                // **both** ways to a text, not only one: `getQuantityString` fetches a text
+                // just as much and came out of the raw context just as much.
+                val hit = Regex("""(\w+)?\.?(?:resources\.)?get(?:String|QuantityString)\(R\.(?:string|plurals)""")
+                    .find(line)
                     ?: return@forEachIndexed
-                val empfaenger = treffer.groupValues[1]
-                val gewrappt = empfaenger in erlaubt ||
-                    "AppLocale.forApp" in zeile
-                if (!gewrappt) roh += "${datei.name}:${index + 1}: ${zeile.trim()}"
+                val receiver = hit.groupValues[1]
+                val throughAppLocale = receiver in wrapped || "AppLocale.forApp" in line
+                if (!throughAppLocale) raw += "${file.name}:${index + 1}: ${line.trim()}"
             }
         }
         assertTrue(
-            "Diese Texte kaemen in der Sprache des Telefons statt der der App:\n" +
-                roh.joinToString("\n"),
-            roh.isEmpty(),
+            "these texts would come in the phone's language instead of the app's:\n" +
+                raw.joinToString("\n"),
+            raw.isEmpty(),
         )
     }
 }

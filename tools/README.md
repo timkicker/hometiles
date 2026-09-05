@@ -283,7 +283,7 @@ Programmnamen, Nummern, Kurzwahl und PIN.
 
 Vorher gab es dafür nur `RealConfigRoundTripTest`, der sich ohne die echte Datei
 stillschweigend übersprang, und das tat er seit seiner Entstehung. Die Prüfdatei läuft bei
-jedem Lauf mit (`GewachseneFassungTest`).
+jedem Lauf mit (`GrownConfigTest`).
 
 ## `mehrzahlformen.py`
 

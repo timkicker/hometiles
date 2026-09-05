@@ -10,62 +10,59 @@ import org.junit.Assert.assertSame
 import org.junit.Test
 
 /**
- * „Wie das Telefon" (PLAN.md 4.2, viertes Thema).
+ * "Wie das Telefon", the plan's fourth theme (PLAN.md 4.2, german because the plan is).
  *
- * Es ist kein eigenes Aussehen, sondern eine Frage ans System — und deshalb die einzige
- * Wahl, deren Ergebnis sich ändert, ohne dass jemand etwas in BigLau anfasst.
+ * it is no look of its own but a question to the system - and so the only choice whose result
+ * changes without anyone touching anything in BigLau.
  */
 class SystemThemeTest {
 
     @Test
-    fun `steht das Telefon dunkel, ist es das dunkle Thema`() {
+    fun `with the phone set dark it is the dark theme`() {
         assertSame(paletteFor(ThemeName.DARK, true), paletteFor(ThemeName.SYSTEM, true))
     }
 
     @Test
-    fun `steht das Telefon hell, ist es das helle Thema`() {
+    fun `with the phone set light it is the light theme`() {
         assertSame(paletteFor(ThemeName.LIGHT, false), paletteFor(ThemeName.SYSTEM, false))
     }
 
     @Test
-    fun `die beiden Zustaende ergeben nicht dasselbe`() {
-        // Sonst waere die Wahl eine Attrappe.
+    fun `the two states do not give the same`() {
+        // otherwise the choice would be a dummy.
         assertNotEquals(paletteFor(ThemeName.SYSTEM, true), paletteFor(ThemeName.SYSTEM, false))
     }
 
     @Test
-    fun `die anderen drei Themen fragen das Telefon nicht`() {
-        // Wer ausdrücklich "hell" wählt, will hell - auch auf einem dunkel gestellten
-        // Telefon. Sonst hätte die Wahl keinen Sinn.
-        listOf(ThemeName.DARK, ThemeName.HIGH_CONTRAST, ThemeName.LIGHT).forEach { thema ->
+    fun `the other three themes do not ask the phone`() {
+        // whoever expressly chooses light wants light - on a phone set dark as well.
+        listOf(ThemeName.DARK, ThemeName.HIGH_CONTRAST, ThemeName.LIGHT).forEach { theme ->
             assertSame(
-                "$thema darf sich vom System nicht umstimmen lassen",
-                paletteFor(thema, true),
-                paletteFor(thema, false),
+                "$theme must not let the system talk it round",
+                paletteFor(theme, true),
+                paletteFor(theme, false),
             )
         }
     }
 
     @Test
-    fun `das Kontrast-Thema kennt keine Kachelfarben`() {
-        // PLAN.md 3.3: dort zaehlt nur Schwarz/Gelb. Am Emulator gesehen - schwarze
-        // Kacheln mit gelbem Rand, 17,20:1 fuer Rand und Beschriftung -, und hier
-        // festgehalten, damit es so bleibt: weder eine Palettenfarbe noch ein frei
-        // gewaehlter Ton darf sich dort durchsetzen.
-        val kontrast = paletteFor(ThemeName.HIGH_CONTRAST, true).tiles.map { it.toArgbLong() }
-        assertEquals(false, FreeTileColor.themeUsesTileColours(kontrast))
+    fun `the contrast theme knows no tile colours`() {
+        // PLAN.md 3.3: only black and yellow count there, so neither a palette colour nor a
+        // freely chosen hue may win through.
+        val contrast = paletteFor(ThemeName.HIGH_CONTRAST, true).tiles.map { it.toArgbLong() }
+        assertEquals(false, FreeTileColor.themeUsesTileColours(contrast))
     }
 
     @Test
-    fun `die anderen Themen kennen sehr wohl Kachelfarben`() {
-        listOf(ThemeName.DARK, ThemeName.LIGHT).forEach { thema ->
-            val tiles = paletteFor(thema, true).tiles.map { it.toArgbLong() }
-            assertEquals("$thema", true, FreeTileColor.themeUsesTileColours(tiles))
+    fun `the other themes do know tile colours`() {
+        listOf(ThemeName.DARK, ThemeName.LIGHT).forEach { theme ->
+            val tiles = paletteFor(theme, true).tiles.map { it.toArgbLong() }
+            assertEquals("$theme", true, FreeTileColor.themeUsesTileColours(tiles))
         }
     }
 
     @Test
-    fun `es gibt genau vier Themen zur Wahl`() {
+    fun `there are exactly four themes to choose from`() {
         // PLAN.md 4.2: "Dunkel / Kontrast / Hell / Systemabhängig".
         assertEquals(4, ThemeName.entries.size)
     }

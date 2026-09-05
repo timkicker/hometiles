@@ -10,6 +10,7 @@ class TextSearchTest {
 
     private fun app(label: String) = LaunchableApp(label, "pkg.${label.lowercase()}", "pkg.Main")
 
+    // the german names are the check object: umlauts and eszett are what the folding is for.
     private val apps = listOf(
         app("AnkiDroid"),
         app("Brave"),
@@ -22,26 +23,26 @@ class TextSearchTest {
     )
 
     @Test
-    fun `leere Anfrage laesst die Liste unveraendert`() {
+    fun `an empty query leaves the list unchanged`() {
         assertEquals(apps, TextSearch.filter(apps, "") { it.label })
         assertEquals(apps, TextSearch.filter(apps, "   ") { it.label })
     }
 
     @Test
-    fun `Anfang des Namens rangiert vor Vorkommen in der Mitte`() {
-        // "app" steckt in "WhatsApp" mittendrin, "Müller App" hat es am Wortanfang.
+    fun `the start of the name ranks before a hit in the middle`() {
+        // "app" sits inside "WhatsApp", "Müller App" has it at the start of a word.
         val result = TextSearch.filter(apps, "app") { it.label }
         assertEquals(listOf("Müller App", "WhatsApp"), result.map { it.label })
     }
 
     @Test
-    fun `Suche findet auch mitten im Wort`() {
-        // Genau das kann eine reine Praefixsuche nicht - und deshalb gibt es sie hier.
+    fun `the search finds a hit in the middle of a word too`() {
+        // exactly what a pure prefix search cannot do - and why this one exists.
         assertEquals(listOf("Photo Editor"), TextSearch.filter(apps, "dito") { it.label }.map { it.label })
     }
 
     @Test
-    fun `Gross- und Kleinschreibung spielt keine Rolle`() {
+    fun `upper and lower case make no difference`() {
         assertEquals(
             TextSearch.filter(apps, "BRAVE") { it.label }.map { it.label },
             TextSearch.filter(apps, "brave") { it.label }.map { it.label },
@@ -49,30 +50,30 @@ class TextSearchTest {
     }
 
     @Test
-    fun `Umlaute werden gefunden ohne Umlaute zu tippen`() {
+    fun `umlauts are found without typing umlauts`() {
         assertEquals(listOf("Müller App"), TextSearch.filter(apps, "muller") { it.label }.map { it.label })
         assertEquals(listOf("Öffi"), TextSearch.filter(apps, "offi") { it.label }.map { it.label })
     }
 
     @Test
-    fun `Eszett wird wie Doppel-s behandelt`() {
+    fun `eszett counts as double s`() {
         val list = listOf(app("Straße"))
         assertEquals(1, TextSearch.filter(list, "strasse") { it.label }.size)
     }
 
     @Test
-    fun `mehrere Wortteile muessen alle zutreffen`() {
+    fun `several word parts must all match`() {
         assertEquals(listOf("Google Maps"), TextSearch.filter(apps, "goog map") { it.label }.map { it.label })
         assertTrue(TextSearch.filter(apps, "goog zzz") { it.label }.isEmpty())
     }
 
     @Test
-    fun `ohne Treffer bleibt die Liste leer`() {
+    fun `without a hit the list stays empty`() {
         assertTrue(TextSearch.filter(apps, "xyzzy") { it.label }.isEmpty())
     }
 
     @Test
-    fun `Rangfolge unterscheidet Anfang Wortanfang und Mitte`() {
+    fun `the rank tells start, word start and middle apart`() {
         assertEquals(0, TextSearch.rank("Google Maps", "goo"))
         assertEquals(1, TextSearch.rank("Google Maps", "map"))
         assertEquals(2, TextSearch.rank("WhatsApp", "atsa"))
@@ -80,23 +81,23 @@ class TextSearchTest {
     }
 
     @Test
-    fun `Trennzeichen gelten als Wortgrenze`() {
+    fun `a separator counts as a word boundary`() {
         assertEquals(1, TextSearch.rank("Firefox-Klar", "klar"))
-        assertEquals(1, TextSearch.rank("org.mein_dienst", "dienst"))
+        assertEquals(1, TextSearch.rank("org.my_service", "service"))
     }
 
     @Test
-    fun `bei gleichem Rang wird alphabetisch sortiert`() {
-        val list = listOf(app("Zebra Tool"), app("Alpha Tool"), app("Mittel Tool"))
+    fun `at equal rank it sorts alphabetically`() {
+        val list = listOf(app("Zebra Tool"), app("Alpha Tool"), app("Middle Tool"))
         assertEquals(
-            listOf("Alpha Tool", "Mittel Tool", "Zebra Tool"),
+            listOf("Alpha Tool", "Middle Tool", "Zebra Tool"),
             TextSearch.filter(list, "tool") { it.label }.map { it.label },
         )
     }
 
     @Test
-    fun `die Reihenfolge bleibt zwischen zwei Tastendruecken stabil`() {
-        // Sonst springt die Liste unter dem Finger weg - auf drei Zoll besonders aergerlich.
+    fun `the order stays stable between two key presses`() {
+        // otherwise the list jumps away under the finger - on three inches especially annoying.
         val once = TextSearch.filter(apps, "a") { it.label }.map { it.label }
         val twice = TextSearch.filter(apps.shuffled(), "a") { it.label }.map { it.label }
         assertEquals(once, twice)
@@ -104,12 +105,11 @@ class TextSearchTest {
 }
 
 /**
- * Suchen, bis genau einer übrig ist.
+ * searching until exactly one is left.
  *
- * Auf drei Zoll verdeckt die Tastatur die Trefferliste vollständig - zwischen Suchfeld und
- * Tastatur bleiben zwanzig Pixel. Der Ausweg ist nicht mehr Platz, den es nicht gibt,
- * sondern: die Zahl der Treffer steht im Feld, und bei genau einem startet ihn die
- * Lupentaste. Diese Tests halten fest, dass man dorthin auch kommt.
+ * on three inches the keyboard covers the hit list entirely - twenty pixels are left between
+ * search field and keyboard. the way out is not more room, which does not exist, but: the
+ * number of hits stands in the field, and at exactly one the magnifier key starts it.
  */
 class SingleMatchTest {
 
@@ -119,39 +119,39 @@ class SingleMatchTest {
         "Microsoft SwiftKey Keyboard", "Settings",
     )
 
-    private fun treffer(query: String) = TextSearch.filter(apps, query) { it }
+    private fun hits(query: String) = TextSearch.filter(apps, query) { it }
 
     @Test
-    fun `vier Buchstaben genuegen fuer einen einzigen Treffer`() {
-        assertEquals(listOf("Calculator"), treffer("calc"))
+    fun `four letters are enough for a single hit`() {
+        assertEquals(listOf("Calculator"), hits("calc"))
     }
 
     @Test
-    fun `drei Buchstaben lassen hier noch zwei uebrig`() {
-        // "cal" trifft Calculator und Calendar - die Zahl im Feld sagt das, und die
-        // Lupentaste tut dann nichts, statt willkuerlich eine der beiden zu starten.
-        assertEquals(2, treffer("cal").size)
-        assertNull(treffer("cal").singleOrNull())
+    fun `three letters still leave two here`() {
+        // "cal" hits Calculator and Calendar - the number in the field says so, and the
+        // magnifier key then does nothing instead of starting one of them at random.
+        assertEquals(2, hits("cal").size)
+        assertNull(hits("cal").singleOrNull())
     }
 
     @Test
-    fun `zwei Wortteile fuehren schneller zum Ziel`() {
-        assertEquals(listOf("Google Maps"), treffer("goog map"))
+    fun `two word parts lead to the target faster`() {
+        assertEquals(listOf("Google Maps"), hits("goog map"))
     }
 
     @Test
-    fun `ein Wort in der Mitte zaehlt auch`() {
-        assertEquals(listOf("Microsoft SwiftKey Keyboard"), treffer("swift"))
+    fun `a word in the middle counts too`() {
+        assertEquals(listOf("Microsoft SwiftKey Keyboard"), hits("swift"))
     }
 
     @Test
-    fun `ohne Treffer bleibt nichts uebrig`() {
-        assertEquals(emptyList<String>(), treffer("zzz"))
-        assertNull(treffer("zzz").singleOrNull())
+    fun `without a hit nothing is left`() {
+        assertEquals(emptyList<String>(), hits("zzz"))
+        assertNull(hits("zzz").singleOrNull())
     }
 
     @Test
-    fun `die leere Anfrage zeigt alles`() {
-        assertEquals(apps.size, treffer("").size)
+    fun `the empty query shows everything`() {
+        assertEquals(apps.size, hits("").size)
     }
 }

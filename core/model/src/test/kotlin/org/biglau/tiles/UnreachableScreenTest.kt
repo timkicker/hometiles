@@ -13,57 +13,54 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Bildschirme, zu denen kein Weg führt — und Warnungen, die nicht stimmen.
+ * screens no way leads to - and warnings that are not true.
  *
- * Der Fall stammt vom Gerät des Nutzers, 3.9.2026: `Screen 2` war eingerichtet, das Wischen
- * zwischen den Screens aus, keine Kachel sprang hinüber. Sieben freie Felder, unerreichbar.
- * Die App warnt davor — er hat die Warnung nur nie gesehen, weil er gar nicht in die
- * Einstellungen kam (siehe `STATUS.md`, 05:25).
+ * the case comes from the user's device, 3.9.2026: `Screen 2` was set up, swiping between
+ * screens off, no tile jumped over. seven free fields, unreachable.
  *
- * Die Gegenrichtung ist genauso wichtig und war falsch: eine Kachel „nächster Bildschirm"
- * blättert durch dieselbe Reihe wie das Wischen, **auch wenn das Wischen aus ist**. Wer sie
- * hat, kommt überall hin und bekam trotzdem die Warnung. Der Kommentar in `unreachable`
- * sagt selbst, warum das schlimm ist: eine Warnung, die nicht stimmt, nimmt man auch dort
- * nicht mehr ernst, wo sie stimmt.
+ * the other direction matters as much and was wrong: a "next screen" tile pages through the
+ * same row as swiping, **even when swiping is off**. whoever has one gets everywhere and got
+ * the warning anyway - and a warning that is not true is not believed where it is true
+ * either.
  */
 class UnreachableScreenTest {
 
-    private fun zelle(x: Int, y: Int, action: ButtonAction) =
+    private fun cell(x: Int, y: Int, action: ButtonAction) =
         Cell(x = x, y = y, button = Button(action = action))
 
-    private fun config(kachelAufStart: ButtonAction? = null, wischen: Boolean = false) =
+    private fun config(tileOnHome: ButtonAction? = null, swipe: Boolean = false) =
         LauncherConfig(
             screens = listOf(
                 Screen(
                     id = "home",
                     name = "Start",
-                    cells = listOfNotNull(kachelAufStart?.let { zelle(0, 0, it) }),
+                    cells = listOfNotNull(tileOnHome?.let { cell(0, 0, it) }),
                 ),
-                Screen(id = "zwei", name = "Screen 2"),
+                Screen(id = "two", name = "Screen 2"),
             ),
             homeScreenId = "home",
-            behaviour = Behaviour(swipeBetweenScreens = wischen),
+            behaviour = Behaviour(swipeBetweenScreens = swipe),
         )
 
     @Test
-    fun `ohne wischen und ohne sprungkachel ist der zweite bildschirm unerreichbar`() {
-        assertEquals(listOf("zwei"), ScreenEdits.unreachable(config()).map { it.id })
+    fun `without swiping and without a jump tile the second screen is unreachable`() {
+        assertEquals(listOf("two"), ScreenEdits.unreachable(config()).map { it.id })
     }
 
     @Test
-    fun `mit wischen ist er erreichbar`() {
-        assertTrue(ScreenEdits.unreachable(config(wischen = true)).isEmpty())
+    fun `with swiping it is reachable`() {
+        assertTrue(ScreenEdits.unreachable(config(swipe = true)).isEmpty())
     }
 
     @Test
-    fun `eine sprungkachel genuegt`() {
+    fun `one jump tile is enough`() {
         assertTrue(
-            ScreenEdits.unreachable(config(ButtonAction.GoToScreen("zwei"))).isEmpty(),
+            ScreenEdits.unreachable(config(ButtonAction.GoToScreen("two"))).isEmpty(),
         )
     }
 
     @Test
-    fun `eine blaetterkachel genuegt ebenfalls`() {
+    fun `a paging tile is enough as well`() {
         assertTrue(
             ScreenEdits.unreachable(config(ButtonAction.Action(Builtin.NEXT_SCREEN))).isEmpty(),
         )
@@ -73,28 +70,28 @@ class UnreachableScreenTest {
     }
 
     @Test
-    fun `eine kachel zurueck zum start macht den bildschirm nicht erreichbar`() {
-        val wieBeimNutzer = LauncherConfig(
+    fun `a tile back to the home screen does not make the screen reachable`() {
+        val asFound = LauncherConfig(
             screens = listOf(
                 Screen(id = "home", name = "Start"),
                 Screen(
-                    id = "zwei",
+                    id = "two",
                     name = "Screen 2",
-                    cells = listOf(zelle(1, 2, ButtonAction.Action(Builtin.HOME_SCREEN))),
+                    cells = listOf(cell(1, 2, ButtonAction.Action(Builtin.HOME_SCREEN))),
                 ),
             ),
             homeScreenId = "home",
             behaviour = Behaviour(swipeBetweenScreens = false),
         )
-        assertEquals(listOf("zwei"), ScreenEdits.unreachable(wieBeimNutzer).map { it.id })
+        assertEquals(listOf("two"), ScreenEdits.unreachable(asFound).map { it.id })
     }
 
     @Test
-    fun `der startbildschirm und ordner zaehlen nie mit`() {
+    fun `the home screen and folders never count`() {
         val config = LauncherConfig(
             screens = listOf(
                 Screen(id = "home", name = "Start"),
-                Screen(id = "ordner", name = "Mehr", kind = ScreenKind.FOLDER),
+                Screen(id = "folder", name = "More", kind = ScreenKind.FOLDER),
             ),
             homeScreenId = "home",
         )

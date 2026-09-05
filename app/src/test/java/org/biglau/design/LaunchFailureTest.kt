@@ -6,56 +6,48 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Wer „false" zurueckgibt, muss auch gehoert werden.
+ * whoever returns "false" has to be heard.
  *
- * Anlass: am Emulator tat eine App-Kachel gar nichts. Die App dahinter war deinstalliert,
- * `AppRepository.launch` meldete das ordentlich mit `false` — nur sah niemand hin. Auf der
- * Kachel stand weiter der Name, das Tippen loeste nichts aus, und nichts erklaerte warum.
- * Fuer jemanden, der ohnehin unsicher ist, ob er das Telefon richtig bedient, ist eine
- * Kachel, die schweigend nichts tut, schlimmer als eine Fehlermeldung.
+ * `AppRepository.launch` reported an uninstalled app properly with `false` - only nobody
+ * looked. the tile kept the name, tapping did nothing, and nothing explained why. for
+ * someone unsure whether they are operating the phone correctly, a tile that silently does
+ * nothing is worse than an error message.
  *
- * Bei den Verknuepfungen war es von Anfang an richtig gemacht (`shortcut_gone`); nur bei
- * den Apps fehlte es an drei Stellen. Deshalb dieser Test: die Regel gilt fuer jede
- * Startfunktion, die ihr Scheitern meldet.
+ * the rule holds for every launch function that reports its failure.
  */
 class LaunchFailureTest {
 
+    private val checked = listOf(".launch(")
 
-    /** Aufrufe, deren Rueckgabe ausgewertet werden muss. */
-    private val geprueft = listOf(".launch(")
-
-    private fun dateien(): List<File> =
+    private fun files(): List<File> =
         Quelltext.files()
 
     @Test
-    fun `jeder Startversuch wertet sein Ergebnis aus`() {
-        val ungeprueft = mutableListOf<String>()
-        dateien().forEach { datei ->
-            // Die Funktion selbst zaehlt nicht als Aufrufstelle.
-            if (datei.name == "AppRepository.kt" || datei.name == "ShortcutRepository.kt") return@forEach
-            datei.readLines().forEachIndexed { index, zeile ->
-                val ruf = geprueft.any { it in zeile }
-                if (!ruf) return@forEachIndexed
-                // Nur die Startfunktionen der beiden Verzeichnisse, nicht coroutine `launch`.
-                if (!zeile.contains("packageName")) return@forEachIndexed
-                // Der Rueckgabewert darf auch der Wert eines `when` sein, das ein paar
-                // Zeilen darueber einem `val` zugewiesen wird. Am 03.09.2026 zogen die
-                // beiden Startwege in eine gemeinsame Funktion; die Regel las weiter nur
-                // die eine Zeile und meldete einen Fehler, den es nicht gab. Zum dritten
-                // Mal an einem Tag: sie hing an der Form, nicht an der Sache.
-                val zeilen = datei.readLines()
-                val ausgewertet = zeile.contains("if (!") ||
-                    zeile.contains("val ") ||
-                    zeile.contains("return ") ||
-                    zeilen.subList(maxOf(0, index - 4), index)
+    fun `every launch attempt reads its result`() {
+        val unchecked = mutableListOf<String>()
+        files().forEach { file ->
+            // the function itself does not count as a call site.
+            if (file.name == "AppRepository.kt" || file.name == "ShortcutRepository.kt") return@forEach
+            file.readLines().forEachIndexed { index, line ->
+                val call = checked.any { it in line }
+                if (!call) return@forEachIndexed
+                // only the repositories' launch functions, not the coroutine `launch`.
+                if (!line.contains("packageName")) return@forEachIndexed
+                // the returned value may also be the value of a `when` assigned to a `val` a
+                // few lines above.
+                val lines = file.readLines()
+                val read = line.contains("if (!") ||
+                    line.contains("val ") ||
+                    line.contains("return ") ||
+                    lines.subList(maxOf(0, index - 4), index)
                         .any { Regex("""(val \w+ =|return) when""").containsMatchIn(it) }
-                if (!ausgewertet) ungeprueft += "${datei.name}:${index + 1}: ${zeile.trim()}"
+                if (!read) unchecked += "${file.name}:${index + 1}: ${line.trim()}"
             }
         }
         assertTrue(
-            "Diese Startversuche werfen ihr Ergebnis weg - die Kachel taete dann schweigend " +
-                "nichts:\n" + ungeprueft.joinToString("\n"),
-            ungeprueft.isEmpty(),
+            "these launch attempts throw their result away - the tile would then silently " +
+                "do nothing:\n" + unchecked.joinToString("\n"),
+            unchecked.isEmpty(),
         )
     }
 }

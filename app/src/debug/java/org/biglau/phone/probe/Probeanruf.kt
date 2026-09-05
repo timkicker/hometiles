@@ -59,7 +59,7 @@ object Probeanruf {
      *
      * Der Probeanruf geht nie ins Netz, und trotzdem steht diese Pruefung hier: sie kostet
      * nichts und schliesst die eine Moeglichkeit aus, in der aus einer Probe ein Notruf
-     * wird. Siehe `KeinNotrufTest`.
+     * wird. Siehe `NoEmergencyCallTest`.
      */
     fun erlaubt(nummer: String): Boolean =
         nummer.isNotBlank() && !PhoneNumbers.looksLikeEmergency(nummer)

@@ -6,45 +6,45 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Warum nichts hinausging, gehört auf den Bildschirm.
+ * why nothing went out belongs on the screen.
  *
- * Am Emulator durchgespielt (mit entzogener SMS-Erlaubnis, es konnte also nichts hinaus):
- * nach dem Countdown stand dort **„Es konnte nichts gesendet werden."** — derselbe Satz, den
- * es auch bei einem Netzfehler gegeben hätte. Auf dem Bildschirm, der im Notfall der letzte
- * ist, ist das zu wenig: ob die Erlaubnis fehlt, niemand eingetragen ist oder das Netz nicht
- * mitspielte, sind drei verschiedene Dinge — und nur beim ersten kann der Mensch davor etwas
- * tun.
+ * played through with the sms permission withdrawn, so nothing could go out: after the
+ * countdown the screen said that nothing could be sent - the same sentence a network fault
+ * would have produced. on the screen that is the last one in an emergency that is too
+ * little: a missing permission, nobody entered, and a network that did not play along are
+ * three different things, and only the first is one the person in front of it can do
+ * something about.
  *
- * Dazu gehört die zweite Hälfte: nach der Erlaubnis wird jetzt nur gefragt, wenn sie
- * tatsächlich fehlt. Vorher fragte der Bildschirm bei **jedem** Fehlschlag danach — und schob
- * die Schuld damit auf etwas, das gar nicht fehlte.
+ * the second half belongs to it: the permission is now asked for only when it really is
+ * missing. before, the screen asked after **every** failure and so blamed something that was
+ * not missing at all.
  */
 class SosFailureTest {
 
     @Test
-    fun `fehlende Erlaubnis bekommt ihren eigenen Satz`() {
+    fun `a missing permission gets a sentence of its own`() {
         assertEquals(R.string.sos_failed_permission, Sos.failureText(SosFailure.NO_PERMISSION))
     }
 
     @Test
-    fun `ohne Kontakte steht der Hinweis auf die Kontakte`() {
+    fun `without contacts the hint points at the contacts`() {
         assertEquals(R.string.sos_not_configured, Sos.failureText(SosFailure.NO_NUMBERS))
     }
 
     @Test
-    fun `sonst bleibt es beim allgemeinen Satz`() {
+    fun `otherwise it stays at the general sentence`() {
         assertEquals(R.string.sos_failed, Sos.failureText(SosFailure.SEND_FAILED))
         assertEquals(R.string.sos_failed, Sos.failureText(SosFailure.NONE))
     }
 
     @Test
-    fun `ein gelungener Versand hat keinen Grund zu scheitern`() {
+    fun `a successful send has no reason to fail`() {
         assertEquals(SosFailure.NONE, SosResult(sent = 2, failed = 0, hadLocation = true).failure)
     }
 
     @Test
-    fun `ohne gesendete Nachricht ist der Grund gesetzt`() {
-        val ergebnis = SosResult(sent = 0, failed = 1, hadLocation = false)
-        assertTrue(ergebnis.failure != SosFailure.NONE)
+    fun `without a sent message the reason is set`() {
+        val result = SosResult(sent = 0, failed = 1, hadLocation = false)
+        assertTrue(result.failure != SosFailure.NONE)
     }
 }

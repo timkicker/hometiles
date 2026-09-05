@@ -6,55 +6,54 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Erst kleiner werden, dann trennen oder kürzen.
+ * shrink first, then hyphenate or cut.
  *
- * Bei 200 % Textgröße las man in der App: „Einstellun…" auf der Kachel, „Alles zurücksetze /
- * n" als Überschrift, „Nachrichte / n" in der Liste. Compose trennt ein Wort mitten
- * hindurch, sobald es allein nicht mehr in die Zeile passt — und wer 200 % einstellt, hat
- * mit einem zerrissenen Wort nichts gewonnen.
+ * at 200 percent text size one read words split mid-way on the tile, in headings and in the
+ * list. compose splits a word right through as soon as it no longer fits the line on its own
+ * - and whoever sets 200 percent has gained nothing from a torn word.
  *
- * Alle drei Stellen messen jetzt und gehen stufenweise kleiner, bevor sie trennen: die
- * Kachel misst den ganzen Text, Überschrift und Zeile messen das **längste Wort**, denn
- * daran bricht die Zeile.
+ * all three places measure now and step down in size before they split: the tile measures the
+ * whole text, heading and row measure the **longest word**, because that is where the line
+ * breaks.
  */
 class ShrinkBeforeBreakTest {
 
-    private fun quelle(pfad: String) = Quelltext.file(pfad).readText()
+    private fun source(path: String) = Quelltext.file(path).readText()
 
     @Test
-    fun `Kachel, Ueberschrift und Zeile benutzen dieselbe Leiter`() {
+    fun `tile, heading and row use the same ladder`() {
         listOf(
             "org/biglau/ui/BigTile.kt",
             "org/biglau/ui/BigRow.kt",
-        ).forEach { pfad ->
-            assertTrue("$pfad misst nicht in Stufen", "labelLadder(" in quelle(pfad))
+        ).forEach { path ->
+            assertTrue("$path does not measure in steps", "labelLadder(" in source(path))
         }
     }
 
     @Test
-    fun `Ueberschrift und Zeile messen das laengste Wort`() {
-        val zeilen = quelle("org/biglau/ui/BigRow.kt")
-        // Beide stehen in derselben Datei: BigRow und BigHeading.
-        assertTrue("das laengste Wort wird nicht gemessen", "longestWord(" in zeilen)
+    fun `heading and row measure the longest word`() {
+        val text = source("org/biglau/ui/BigRow.kt")
+        // both stand in the same file: BigRow and BigHeading.
+        assertTrue("the longest word is not measured", "longestWord(" in text)
         assertTrue(
-            "es wird nur einmal gemessen - eine der beiden Stellen fehlt",
-            zeilen.split("longestWord(").size - 1 >= 2,
+            "it is measured only once - one of the two places is missing",
+            text.split("longestWord(").size - 1 >= 2,
         )
     }
 
     /**
-     * Drei Zeilen, wo drei Zeilen Platz haben — **gemessen**, nicht an der Art des Aufbaus
-     * geraten. Der erste Versuch fragte nur, ob die Höhe überhaupt begrenzt ist; auf dem
-     * Notrufbildschirm ist sie das (fester Aufbau), aber reichlich — dort stand deshalb
-     * weiter „Kontakte jetzt eintr…", obwohl der halbe Bildschirm leer war.
+     * three lines where three lines have room - **measured**, not guessed from the kind of
+     * layout. the first attempt only asked whether the height was bounded at all; on the sos
+     * screen it is (fixed layout) but generously, so a label kept being cut there while half
+     * the screen stood empty.
      */
     @Test
-    fun `die dritte Zeile haengt an der gemessenen Hoehe`() {
-        val zeilen = quelle("org/biglau/ui/BigRow.kt")
-        assertTrue("die Hoehe wird nicht gemessen", "maxLines = 3" in zeilen)
+    fun `the third line hangs on the measured height`() {
+        val text = source("org/biglau/ui/BigRow.kt")
+        assertTrue("the height is not measured", "maxLines = 3" in text)
         assertTrue(
-            "es wird nicht gegen den verfuegbaren Platz geprueft",
-            "constraints.maxHeight" in zeilen,
+            "it is not checked against the available room",
+            "constraints.maxHeight" in text,
         )
     }
 }

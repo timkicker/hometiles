@@ -6,66 +6,58 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Gemessen wird mit dem Stil, der auch gezeichnet wird.
+ * measuring happens with the style that is drawn.
  *
- * Diese App misst Text, bevor sie ihn zeichnet - Kachelbeschriftungen, Zeilen, das Datum
- * auf der Uhr-Kachel. Gemessen wurde dabei an drei Stellen mit einem **frisch gebauten**
- * `TextStyle`, in dem nur die Groesse stand. Der Nutzer hat aber „Hyperlegible" gewaehlt,
- * und die ist breiter als die Standardschrift: die Messung sagte „passt in eine Zeile", und
- * auf dem Geraet brach es um. So gesehen an der Uhr-Kachel, wo unter „Wednesday, September"
- * die **2 allein** stand.
+ * three places measured with a freshly built `TextStyle` holding only the size. with
+ * "Hyperlegible", which is wider than the system font, the measurement said "fits on one
+ * line" and it wrapped on the device - the clock tile showed the **2 alone** under
+ * "Wednesday, September".
  *
- * Der Fehler ist leise, weil er nur bei fremder Schrift auftritt - wer mit der Systemschrift
- * entwickelt, sieht ihn nie. Deshalb eine Regel und kein Merksatz.
+ * the fault is quiet because it only appears with a foreign font: whoever develops with the
+ * system font never sees it.
  */
 class MeasureStyleTest {
 
-    private fun messende() = Quelltext.files().filter { "rememberTextMeasurer" in it.readText() }
+    private fun measuring() = Quelltext.files().filter { "rememberTextMeasurer" in it.readText() }
 
     @Test
-    fun `wer misst kennt den gezeichneten Stil`() {
-        val ohne = messende().filterNot { "LocalTextStyle.current" in it.readText() }
-        assertEquals("misst ohne den Stil der Oberflaeche: $ohne", emptyList<Any>(), ohne)
+    fun `whoever measures knows the drawn style`() {
+        val without = measuring().filterNot { "LocalTextStyle.current" in it.readText() }
+        assertEquals("measures without the surface style: $without", emptyList<Any>(), without)
+    }
+
+    /** `copy` of the surface style is allowed - then the user's font survives. */
+    @Test
+    fun `no freshly built style in a measuring file`() {
+        val pattern = Regex("""(?:=|to|style =)\s*TextStyle\(""")
+        val hits = measuring().flatMap { file ->
+            file.readLines().withIndex()
+                .filter { pattern.containsMatchIn(it.value) }
+                .map { "${file.name}:${it.index + 1}  ${it.value.trim()}" }
+        }
+        assertEquals("freshly built style instead of copy: $hits", emptyList<String>(), hits)
+    }
+
+    /** and they really exist - otherwise the rule checks an empty set. */
+    @Test
+    fun `measuring files exist`() {
+        assertTrue("no file measures text any more", measuring().size >= 3)
     }
 
     /**
-     * Kein frisch gebautes `TextStyle` in einer messenden Datei. Erlaubt ist `copy` vom
-     * Stil der Oberflaeche - dann bleibt die Schrift des Nutzers erhalten.
+     * `Text(style = ...)` **replaces** the surrounding style, it does not add to it. a
+     * `val TabularDigits = TextStyle(fontFeatureSettings = "tnum")` threw the chosen font
+     * away: clock, battery level, dial pad and call duration stood in the system font,
+     * everything beside them in the user's.
      */
     @Test
-    fun `kein frisch gebauter Stil in einer messenden Datei`() {
-        val muster = Regex("""(?:=|to|style =)\s*TextStyle\(""")
-        val treffer = messende().flatMap { datei ->
-            datei.readLines().withIndex()
-                .filter { muster.containsMatchIn(it.value) }
-                .map { "${datei.name}:${it.index + 1}  ${it.value.trim()}" }
+    fun `no style kept in stock beside the surface style`() {
+        val pattern = Regex("""^(?:internal |private )?val \w+\s*(?::\s*TextStyle\s*)?= TextStyle\(""")
+        val hits = Quelltext.files().flatMap { file ->
+            file.readLines().withIndex()
+                .filter { pattern.containsMatchIn(it.value) }
+                .map { "${file.name}:${it.index + 1}  ${it.value.trim()}" }
         }
-        assertEquals("frisch gebauter Stil statt copy: $treffer", emptyList<String>(), treffer)
-    }
-
-    /** Und es gibt sie wirklich - sonst pruefte die Regel eine leere Menge. */
-    @Test
-    fun `es gibt messende Dateien`() {
-        assertTrue("keine Datei misst mehr Text", messende().size >= 3)
-    }
-
-    /**
-     * Kein eigenstaendiger `TextStyle` als Vorrat.
-     *
-     * `Text(style = …)` **ersetzt** den Stil der Umgebung, es ergaenzt ihn nicht. Ein
-     * `val TabellenZiffern = TextStyle(fontFeatureSettings = "tnum")` warf damit die
-     * eingestellte Schrift weg: Uhr, Ladestand, Waehltastatur und Gespraechsdauer standen
-     * in der Systemschrift, alles daneben in der des Nutzers. Ein Schriftwechsel mitten auf
-     * dem Bildschirm liest sich wie ein Fehler - und war hier einer.
-     */
-    @Test
-    fun `kein Stil auf Vorrat neben dem der Oberflaeche`() {
-        val muster = Regex("""^(?:internal |private )?val \w+\s*(?::\s*TextStyle\s*)?= TextStyle\(""")
-        val treffer = Quelltext.files().flatMap { datei ->
-            datei.readLines().withIndex()
-                .filter { muster.containsMatchIn(it.value) }
-                .map { "${datei.name}:${it.index + 1}  ${it.value.trim()}" }
-        }
-        assertEquals("Stil ohne die Schrift der Oberflaeche: $treffer", emptyList<String>(), treffer)
+        assertEquals("style without the surface font: $hits", emptyList<String>(), hits)
     }
 }

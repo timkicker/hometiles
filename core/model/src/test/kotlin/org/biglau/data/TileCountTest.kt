@@ -4,30 +4,27 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 /**
- * Eine Kachel ist eine belegte Zelle - eine leere ist ein freier Platz.
+ * a tile is a filled cell - an empty one is a free spot.
  *
- * Der Unterschied klingt spitzfindig und war es nicht: beim Laden einer Sicherung stand
- * „3 screens with 14 tiles", beim Zurücksetzen „2 screens with 14 tiles and 1 folder" —
- * dieselbe Einrichtung, zwei Zahlen, weil drei Stellen `cells.size` zählten und eine
- * `cells.count { … != None }`. Auf einem halb belegten Raster hätte die Sicherung mehr
- * Kacheln versprochen, als sie enthält.
- *
- * Jetzt gibt es die Zahl **einmal**, und diese Regel sagt, was sie bedeutet.
+ * loading a backup said "3 screens with 14 tiles", resetting said "2 screens with 14 tiles
+ * and 1 folder" - the same setup, two numbers, because three places counted `cells.size` and
+ * one `cells.count { ... != None }`. on a half filled grid the backup would have promised
+ * more tiles than it holds.
  */
 class TileCountTest {
 
-    private fun zelle(x: Int, action: ButtonAction) =
+    private fun cell(x: Int, action: ButtonAction) =
         Cell(x = x, y = 0, button = Button(action = action))
 
     @Test
-    fun `leere Zellen zaehlen nicht mit`() {
+    fun `empty cells do not count`() {
         val screen = Screen(
             id = "s",
-            name = "Probe",
+            name = "Test",
             cells = listOf(
-                zelle(0, ButtonAction.GoToScreen("home")),
-                zelle(1, ButtonAction.None),
-                zelle(2, ButtonAction.App("org.example", "Main")),
+                cell(0, ButtonAction.GoToScreen("home")),
+                cell(1, ButtonAction.None),
+                cell(2, ButtonAction.App("org.example", "Main")),
             ),
         )
         assertEquals(3, screen.cells.size)
@@ -35,22 +32,21 @@ class TileCountTest {
     }
 
     @Test
-    fun `ein leerer Screen hat keine Kacheln`() {
-        assertEquals(0, Screen(id = "leer", name = "Leer").tileCount)
+    fun `an empty screen has no tiles`() {
+        assertEquals(0, Screen(id = "empty", name = "Empty").tileCount)
     }
 
     /**
-     * Eine leere Zelle mit eigener Beschriftung bleibt eine leere Zelle: der
-     * Startbildschirm zeigt dort zwar ihren Text statt „Antippen zum Belegen", aber
-     * angetippt passiert nichts. Sie zu zählen hiesse, eine Kachel zu versprechen, die
-     * nichts tut.
+     * an empty cell with its own label stays an empty cell: the home screen does show its
+     * text there instead of the invitation to fill it, but tapping it does nothing. counting
+     * it would promise a tile that does nothing.
      */
     @Test
-    fun `eine leere Zelle mit Beschriftung ist trotzdem keine Kachel`() {
+    fun `an empty cell with a label is still no tile`() {
         val screen = Screen(
             id = "s",
-            name = "Probe",
-            cells = listOf(Cell(x = 0, y = 0, button = Button(label = "Später"))),
+            name = "Test",
+            cells = listOf(Cell(x = 0, y = 0, button = Button(label = "Later"))),
         )
         assertEquals(0, screen.tileCount)
     }

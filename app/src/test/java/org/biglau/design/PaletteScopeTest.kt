@@ -7,71 +7,69 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Die Farben eines Bildschirms kommen von seinem Thema, nicht vom Vorgabewert.
+ * a screen's colours come from its theme, not from the default value.
  *
- * `LocalBigPalette` ist ein `staticCompositionLocalOf { Dark }`. Wer ihn **vor** dem eigenen
- * `BigLauTheme`-Aufruf liest, bekommt nicht das eingestellte Thema, sondern diese Vorgabe —
- * und zwar lautlos: im dunklen Thema, das ohnehin Standard ist, sieht es richtig aus.
+ * `LocalBigPalette` is a `staticCompositionLocalOf { Dark }`. reading it **before** the
+ * screen's own `BigLauTheme` call gives that default instead of the chosen theme - and
+ * silently, since in the dark theme, which is the default anyway, it looks right.
  *
- * Sechs Bildschirme machten genau das: Nachrichten, Notruf, Assistent, App-Liste, Einlesen
- * und **der Anrufbildschirm**. Aufgefallen ist es erst, als ich den Emulator auf „hell"
- * gestellt und die Bildschirmfotos ausgemessen habe: die Nachrichtenliste stand auf
- * #0A0A0A, während der Rest der App #E8EAEC trug, und ihre Überschrift war in der dunklen
- * Tinte des hellen Themas praktisch unsichtbar. Wer das Kontrast-Thema braucht — also
- * derjenige, der es am nötigsten hat —, bekam auf diesen sechs Bildschirmen etwas anderes,
- * als er eingestellt hatte.
+ * six screens did exactly that. it showed only after setting the emulator to light and
+ * measuring the screenshots: the message list stood on #0A0A0A while the rest of the app
+ * carried #E8EAEC, and its heading was practically invisible in the light theme's dark ink.
+ * whoever needs the contrast theme - the person who needs it most - got something other than
+ * what they had set.
  */
 class PaletteScopeTest {
 
-    private val quellen: List<File> =
+    private val sources: List<File> =
         Quelltext.files()
 
-    /** Zeile des ersten Aufrufs von [name] in dieser Datei, oder null. */
-    private fun ersteZeile(zeilen: List<String>, treffer: (String) -> Boolean): Int? =
-        zeilen.indexOfFirst(treffer).takeIf { it >= 0 }
+    /** line of the first match in this file, or null. */
+    private fun firstLine(lines: List<String>, hit: (String) -> Boolean): Int? =
+        lines.indexOfFirst(hit).takeIf { it >= 0 }
 
     @Test
-    fun `keine Palette wird vor ihrem Thema gelesen`() {
-        val zuFrueh = mutableListOf<String>()
-        quellen.forEach { datei ->
-            val zeilen = datei.readLines()
-            val thema = ersteZeile(zeilen) {
+    fun `no palette is read before its theme`() {
+        val tooEarly = mutableListOf<String>()
+        sources.forEach { file ->
+            val lines = file.readLines()
+            val theme = firstLine(lines) {
                 it.contains("BigLauTheme(") && !it.contains("fun BigLauTheme")
             } ?: return@forEach
-            val palette = ersteZeile(zeilen) { it.contains("LocalBigPalette.current") }
+            val palette = firstLine(lines) { it.contains("LocalBigPalette.current") }
                 ?: return@forEach
-            if (palette < thema) {
-                zuFrueh += "${datei.name}:${palette + 1} (Thema erst in Zeile ${thema + 1})"
+            if (palette < theme) {
+                tooEarly += "${file.name}:${palette + 1} (theme only on line ${theme + 1})"
             }
         }
         assertEquals(
-            "Hier steht die Vorgabepalette statt des eingestellten Themas: $zuFrueh",
+            "the default palette stands here instead of the chosen theme: $tooEarly",
             emptyList<String>(),
-            zuFrueh,
+            tooEarly,
         )
     }
 
     @Test
-    fun `jeder Bildschirm setzt ueberhaupt ein Thema`() {
-        // Eine Activity ohne BigLauTheme malt durchgehend in der Vorgabe - derselbe Fehler,
-        // nur vollstaendig.
-        val ohne = quellen
+    fun `every screen sets a theme at all`() {
+        // an activity without BigLauTheme paints in the default throughout - the same fault,
+        // only complete.
+        val without = sources
             .filter { it.name.endsWith("Activity.kt") }
             .filter { it.readText().contains("setContent") }
             .filterNot { it.readText().contains("BigLauTheme(") }
             .map { it.name }
-        assertEquals("Diese Bildschirme malen ohne Thema: $ohne", emptyList<String>(), ohne)
+        assertEquals("these screens paint without a theme: $without", emptyList<String>(), without)
     }
 
     @Test
-    fun `die Regel wuerde den alten Zustand finden`() {
-        // Gegenprobe an einer erfundenen Datei.
-        val kaputt = listOf(
+    fun `the rule would find the old state`() {
+        // counter-check on an invented file.
+        val broken = listOf(
             "val palette = LocalBigPalette.current",
             "BigLauTheme(theme) {",
         )
-        val thema = kaputt.indexOfFirst { it.contains("BigLauTheme(") }
-        val palette = kaputt.indexOfFirst { it.contains("LocalBigPalette.current") }
-        assertTrue("die Reihenfolge muss auffallen", palette < thema)
+        val theme = broken.indexOfFirst { it.contains("BigLauTheme(") }
+        val palette = broken.indexOfFirst { it.contains("LocalBigPalette.current") }
+        assertTrue("the order has to show", palette < theme)
     }
 }

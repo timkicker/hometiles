@@ -45,8 +45,8 @@ class DreiRollenTest {
     @Test
     fun `jede Rolle wird beim Wiederkommen neu gelesen`() {
         listOf(
-            "istStartbildschirm = remember",
-            "istTelefonApp = remember",
+            "isHomeScreen = remember",
+            "isDialerApp = remember",
             "istNachrichtenApp = remember",
         ).forEach { anfang ->
             val stelle = baum.indexOf(anfang)

@@ -8,76 +8,76 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Erst kuerzen, dann umbrechen - auch beim Datum auf der Uhr-Kachel.
+ * shorten first, then wrap - the date on the clock tile too.
  *
- * Am Telefon des Nutzers gesehen (03.09.2026): auf der 1x1-Kachel stand „Wednesday, September" und
- * darunter die **2 allein**. Im Quelltext stand dazu „Auf der Kachel ist Platz fuer die
- * langen Namen" - eine Behauptung ueber ein Geraet, die niemand nachgemessen hatte.
+ * seen on the user's phone (03.09.2026): the 1x1 tile showed "Wednesday, September" and
+ * below it the **2 alone**. the source said there was room on the tile for the long names -
+ * a claim about a device nobody had measured.
  *
- * Diese Regel prueft die Stufenleiter und das, womit gemessen wird. Ob eine Stufe passt,
- * entscheidet die Messung in `ClockContent`; was hier festgehalten wird, ist, dass es
- * ueberhaupt eine kuerzere Stufe *gibt* und dass sie kuerzer ist.
+ * this rule checks the ladder and what is measured with. whether a step fits is decided by
+ * the measurement in `ClockContent`; what is held here is that a shorter step *exists* at
+ * all and that it is shorter.
  */
 class ClockDateLadderTest {
 
     @Test
-    fun `die Kachel hat eine kuerzere Stufe als die lange Form`() {
-        val stufen = ClockFormat.dateSkeletons(ClockDisplay.TIME_DATE_WEEKDAY, onTile = true)
-        assertTrue("keine Stufe zum Kuerzen: $stufen", stufen.size >= 2)
-        assertEquals("EEEEdMMMM", stufen.first())
-        assertTrue("die Leiter wird nicht kuerzer: $stufen", stufen.last().length < stufen.first().length)
+    fun `the tile has a shorter step than the long form`() {
+        val steps = ClockFormat.dateSkeletons(ClockDisplay.TIME_DATE_WEEKDAY, onTile = true)
+        assertTrue("no step to shorten to: $steps", steps.size >= 2)
+        assertEquals("EEEEdMMMM", steps.first())
+        assertTrue("the ladder does not get shorter: $steps", steps.last().length < steps.first().length)
     }
 
     @Test
-    fun `ohne Wochentag geht es genauso vom langen zum kurzen Monat`() {
+    fun `without a weekday it goes from the long to the short month just the same`() {
         assertEquals(
             listOf("dMMMM", "dMMM"),
             ClockFormat.dateSkeletons(ClockDisplay.TIME_DATE, onTile = true),
         )
     }
 
-    /** Die Kopfzeile ist schmal und faengt gleich beim kurzen an - eine Stufe, keine Leiter. */
+    /** the header is narrow and starts at the short form - one step, no ladder. */
     @Test
-    fun `die Kopfzeile bleibt bei der kurzen Form`() {
+    fun `the header stays at the short form`() {
         assertEquals(listOf("EEEdMMM"), ClockFormat.dateSkeletons(ClockDisplay.TIME_DATE_WEEKDAY, onTile = false))
         assertEquals(listOf("dMMM"), ClockFormat.dateSkeletons(ClockDisplay.TIME_DATE, onTile = false))
     }
 
     @Test
-    fun `ohne Datum gibt es keine Stufen`() {
+    fun `without a date there are no steps`() {
         assertTrue(ClockFormat.dateSkeletons(ClockDisplay.OFF, onTile = true).isEmpty())
         assertTrue(ClockFormat.dateSkeletons(ClockDisplay.TIME, onTile = true).isEmpty())
     }
 
-    /** Die alte Frage nach *einer* Stufe bleibt beantwortet - sie ist jetzt die erste. */
+    /** the old question about *one* step stays answered - it is now the first. */
     @Test
-    fun `dateSkeleton ist die erste Stufe`() {
-        ClockDisplay.entries.forEach { anzeige ->
-            listOf(true, false).forEach { aufKachel ->
+    fun `dateSkeleton is the first step`() {
+        ClockDisplay.entries.forEach { display ->
+            listOf(true, false).forEach { onTile ->
                 assertEquals(
-                    ClockFormat.dateSkeletons(anzeige, aufKachel).firstOrNull(),
-                    ClockFormat.dateSkeleton(anzeige, aufKachel),
+                    ClockFormat.dateSkeletons(display, onTile).firstOrNull(),
+                    ClockFormat.dateSkeleton(display, onTile),
                 )
             }
         }
     }
 
     /**
-     * Gemessen wird mit dem laengsten Datum des Jahres, nicht mit dem heutigen. Sonst
-     * haette die Kachel je nach Wochentag ein anderes Aussehen.
+     * measured with the year's longest date, not with today's. otherwise the tile would look
+     * different depending on the weekday.
      */
     @Test
-    fun `das laengste Datum nimmt den laengsten Wochentag und Monat`() {
+    fun `the longest date takes the longest weekday and month`() {
         val format = SimpleDateFormat("EEEE, d MMMM", Locale.ENGLISH)
-        val laengstes = ClockFormat.longestDate(format)
-        assertTrue("Wednesday fehlt: $laengstes", "Wednesday" in laengstes)
-        assertTrue("September fehlt: $laengstes", "September" in laengstes)
+        val longest = ClockFormat.longestDate(format)
+        assertTrue("Wednesday is missing: $longest", "Wednesday" in longest)
+        assertTrue("September is missing: $longest", "September" in longest)
     }
 
     @Test
-    fun `die kurze Form ist wirklich kuerzer als die lange`() {
-        val lang = ClockFormat.longestDate(SimpleDateFormat("EEEE, d MMMM", Locale.ENGLISH))
-        val kurz = ClockFormat.longestDate(SimpleDateFormat("EEE, d MMM", Locale.ENGLISH))
-        assertTrue("$kurz ist nicht kuerzer als $lang", kurz.length < lang.length)
+    fun `the short form really is shorter than the long one`() {
+        val long = ClockFormat.longestDate(SimpleDateFormat("EEEE, d MMMM", Locale.ENGLISH))
+        val short = ClockFormat.longestDate(SimpleDateFormat("EEE, d MMM", Locale.ENGLISH))
+        assertTrue("$short is not shorter than $long", short.length < long.length)
     }
 }

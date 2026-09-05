@@ -313,7 +313,7 @@ var logGranted by remember(resumes.intValue) { mutableStateOf(callLog.hasPermiss
                                 // over the number being entered.
                                 if (typed.isEmpty()) SpeedDial.targetFor(config.phone, key)?.name else null
                             },
-                            kurzwahlBelegt = SpeedDial.anyAssigned(config.phone),
+                            anySpeedDial = SpeedDial.anyAssigned(config.phone),
                             onDigit = { typed += it },
                             onLongDigit = { key ->
                                 val target = SpeedDial.targetFor(config.phone, key)
@@ -471,7 +471,7 @@ var logGranted by remember(resumes.intValue) { mutableStateOf(callLog.hasPermiss
 private fun Keypad(
     typed: String,
     hintFor: (Char) -> String?,
-    kurzwahlBelegt: Boolean,
+    anySpeedDial: Boolean,
     onDigit: (Char) -> Unit,
     onLongDigit: (Char) -> Unit,
     onBackspace: () -> Unit,
@@ -479,7 +479,7 @@ private fun Keypad(
     onLog: () -> Unit,
 ) {
     val palette = LocalBigPalette.current
-    val waehlbar = PhoneNumbers.isDialable(typed)
+    val dialable = PhoneNumbers.isDialable(typed)
     Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxSize()) {
         Box(
             modifier = Modifier.fillMaxWidth().height(64.dp).padding(horizontal = 4.dp),
@@ -504,7 +504,7 @@ private fun Keypad(
                         // empty key it leads to assigning, on an assigned one it dials at
                         // once. one sentence covered both, the harmless and the dangerous.
                         text = stringResource(
-                            if (kurzwahlBelegt) {
+                            if (anySpeedDial) {
                                 R.string.dialer_speeddial_hint_call
                             } else {
                                 R.string.dialer_speeddial_hint_assign
@@ -560,9 +560,9 @@ private fun Keypad(
                 // `dial` refuses anything that is not one (`isDialable`), which was right but
                 // invisible: the row stood in full accent colour, one tapped, and nothing
                 // happened silently. on a keypad that is the row one relies on most.
-                surface = if (waehlbar) palette.surfaceAccent else palette.surfaceDefault,
+                surface = if (dialable) palette.surfaceAccent else palette.surfaceDefault,
                 modifier = Modifier.weight(1f),
-                onClick = if (waehlbar) onCall else null,
+                onClick = if (dialable) onCall else null,
             )
             // an icon instead of a word: the label broke mid-word as soon as a speed dial
             // made the keypad taller. two labelled buttons do not fit side by side on three

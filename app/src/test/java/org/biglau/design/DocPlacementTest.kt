@@ -7,70 +7,64 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Jede Erklärung steht bei dem, was sie erklärt.
+ * every explanation stands beside what it explains.
  *
- * Anlass: an zwölf Stellen standen zwei oder mehr Doku-Blöcke aufeinander, und nur der
- * letzte gehörte zu der Funktion darunter. In `SettingsActivity` waren es vier — die
- * Begründungen für „Ausgeblendete Apps", „Sicherung" und „Notruf" hingen über der
- * Barrierefreiheit-Seite. In `Intents` beschrieben die obersten beiden Blöcke zwei
- * Funktionen, die dreißig Zeilen tiefer standen.
- *
- * In diesem Projekt tragen die Kommentare die Begründung — warum eine Rückfrage zweistufig
- * ist, warum eine Zahl dort steht. Eine Begründung über der falschen Funktion ist schlimmer
- * als keine: sie wird geglaubt. Der Compiler merkt davon nichts, und beim Lesen fällt es
- * nur auf, wenn man beide Stellen kennt.
+ * in this project the comments carry the reasoning - why a confirmation is in two steps, why
+ * a number stands there. a reason above the wrong function is worse than none: it is
+ * believed. the compiler notices nothing of it, and reading catches it only if one knows
+ * both places.
  */
 class DocPlacementTest {
 
-    private val quellen: List<File> = Quelltext.files() + Quelltext.testFiles()
+    private val sources: List<File> = Quelltext.files() + Quelltext.testFiles()
 
     @Test
-    fun `kein Doku-Block steht auf einem anderen`() {
-        val gestapelt = mutableListOf<String>()
-        quellen.forEach { datei ->
-            val zeilen = datei.readLines()
-            zeilen.forEachIndexed { index, zeile ->
-                val naechste = zeilen.getOrNull(index + 1)?.trim() ?: return@forEachIndexed
-                if (zeile.trim().endsWith("*/") && naechste.startsWith("/**")) {
-                    gestapelt += "${datei.name}:${index + 2}"
+    fun `no doc block stands on another`() {
+        val stacked = mutableListOf<String>()
+        sources.forEach { file ->
+            val lines = file.readLines()
+            lines.forEachIndexed { index, line ->
+                val next = lines.getOrNull(index + 1)?.trim() ?: return@forEachIndexed
+                if (line.trim().endsWith("*/") && next.startsWith("/**")) {
+                    stacked += "${file.name}:${index + 2}"
                 }
             }
         }
         assertEquals(
-            "Hier steht eine Erklärung über einer anderen - also über der falschen Sache: " +
-                "$gestapelt",
+            "an explanation stands above another one here - so above the wrong thing: " +
+                "$stacked",
             emptyList<String>(),
-            gestapelt,
+            stacked,
         )
     }
 
     @Test
-    fun `kein Doku-Block steht am Ende eines Blocks`() {
-        // Der andere Fall: die beschriebene Funktion ist weg, die Erklärung blieb stehen.
-        val verwaist = mutableListOf<String>()
-        quellen.forEach { datei ->
-            val zeilen = datei.readLines()
-            zeilen.forEachIndexed { index, zeile ->
-                val naechste = zeilen.getOrNull(index + 1)?.trim() ?: return@forEachIndexed
-                if (zeile.trim().endsWith("*/") && (naechste == "}" || naechste.isEmpty())) {
-                    verwaist += "${datei.name}:${index + 2}"
+    fun `no doc block stands at the end of a block`() {
+        // the other case: the function described is gone, the explanation stayed.
+        val orphaned = mutableListOf<String>()
+        sources.forEach { file ->
+            val lines = file.readLines()
+            lines.forEachIndexed { index, line ->
+                val next = lines.getOrNull(index + 1)?.trim() ?: return@forEachIndexed
+                if (line.trim().endsWith("*/") && (next == "}" || next.isEmpty())) {
+                    orphaned += "${file.name}:${index + 2}"
                 }
             }
         }
         assertEquals(
-            "Diese Erklärung beschreibt nichts mehr: $verwaist",
+            "this explanation describes nothing any more: $orphaned",
             emptyList<String>(),
-            verwaist,
+            orphaned,
         )
     }
 
     @Test
-    fun `die Regel findet einen erfundenen Stapel`() {
-        // Gegenprobe an einer erfundenen Datei, damit ein kaputter Vergleich auffaellt.
-        val zeilen = listOf(" */", "/** zweiter Block */", "fun x() = 1")
-        val treffer = zeilen.filterIndexed { index, zeile ->
-            zeile.trim().endsWith("*/") && (zeilen.getOrNull(index + 1)?.trim()?.startsWith("/**") == true)
+    fun `the rule finds an invented stack`() {
+        // counter-check on an invented file, so a broken comparison shows.
+        val lines = listOf(" */", "/** second block */", "fun x() = 1")
+        val hits = lines.filterIndexed { index, line ->
+            line.trim().endsWith("*/") && (lines.getOrNull(index + 1)?.trim()?.startsWith("/**") == true)
         }
-        assertTrue("ein Stapel muss auffallen", treffer.isNotEmpty())
+        assertTrue("a stack has to show", hits.isNotEmpty())
     }
 }

@@ -15,12 +15,11 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * PLAN.md 4.9 „Alles zurücksetzen" - der einzige Schritt in dieser App, der nicht
- * rückgängig zu machen ist.
+ * PLAN.md 4.9, resetting everything - the only step in this app that cannot be undone.
  */
 class ResetTest {
 
-    private fun kachel(action: ButtonAction) = Button(action = action)
+    private fun tile(action: ButtonAction) = Button(action = action)
 
     private val config = LauncherConfig(
         screens = listOf(
@@ -30,10 +29,10 @@ class ResetTest {
                 cols = 2,
                 rows = 3,
                 cells = listOf(
-                    Cell(0, 0, button = kachel(ButtonAction.Action(Builtin.SETTINGS))),
-                    Cell(1, 0, button = kachel(ButtonAction.App("a", "b"))),
-                    Cell(0, 1, button = kachel(ButtonAction.None)),
-                    Cell(1, 1, button = kachel(ButtonAction.Widget("p/W", 7, "Uhr"))),
+                    Cell(0, 0, button = tile(ButtonAction.Action(Builtin.SETTINGS))),
+                    Cell(1, 0, button = tile(ButtonAction.App("a", "b"))),
+                    Cell(0, 1, button = tile(ButtonAction.None)),
+                    Cell(1, 1, button = tile(ButtonAction.Widget("p/W", 7, "Uhr"))),
                 ),
             ),
             Screen(
@@ -42,78 +41,76 @@ class ResetTest {
                 cols = 2,
                 rows = 3,
                 kind = ScreenKind.FOLDER,
-                cells = listOf(Cell(0, 0, button = kachel(ButtonAction.Widget("p/W", 9, "Wetter")))),
+                cells = listOf(Cell(0, 0, button = tile(ButtonAction.Widget("p/W", 9, "Wetter")))),
             ),
         ),
     )
 
-    // Eine Zahl macht die Warnung wahr. "Bist du sicher" tippt man weg, ohne es zu lesen.
+    // a number makes the warning true. "are you sure" gets tapped away unread.
     @Test
-    fun `die rueckfrage zaehlt, was verschwindet`() {
-        val verlust = Reset.losses(config)
-        assertEquals(1, verlust.screens)
-        assertEquals(1, verlust.folders)
-        assertEquals(4, verlust.tiles)
+    fun `the confirmation counts what disappears`() {
+        val loss = Reset.losses(config)
+        assertEquals(1, loss.screens)
+        assertEquals(1, loss.folders)
+        assertEquals(4, loss.tiles)
     }
 
-    // Leere Kacheln sind kein Verlust - sie mitzuzaehlen machte die Warnung groesser,
-    // als sie ist, und eine uebertriebene Warnung glaubt man beim naechsten Mal nicht.
+    // empty tiles are no loss - counting them would make the warning bigger than it is, and
+    // an exaggerated warning is not believed the next time.
     @Test
-    fun `leere kacheln zaehlen nicht mit`() {
-        val leer = LauncherConfig(
+    fun `empty tiles do not count`() {
+        val empty = LauncherConfig(
             screens = listOf(
                 Screen("x", "X", 2, 3, cells = listOf(Cell(0, 0, button = Button()))),
             ),
         )
-        assertEquals(0, Reset.losses(leer).tiles)
+        assertEquals(0, Reset.losses(empty).tiles)
     }
 
     @Test
-    fun `die pin wird eigens genannt`() {
+    fun `the pin is named separately`() {
         assertEquals(false, Reset.losses(config).hasPin)
-        val mitPin = config.copy(security = Security(pin = Pin.hash("1234")))
-        assertEquals(true, Reset.losses(mitPin).hasPin)
+        val withPin = config.copy(security = Security(pin = Pin.hash("1234")))
+        assertEquals(true, Reset.losses(withPin).hasPin)
     }
 
-    // Ohne diesen Schritt behielte der Widget-Host die Kennungen fuer immer, und die
-    // Anbieter-App hielte ein Widget am Leben, das niemand mehr sieht.
+    // without this step the widget host would keep the ids for ever, and the provider app
+    // would keep alive a widget nobody sees any more.
     @Test
-    fun `alle widget-kennungen werden eingesammelt`() {
+    fun `all widget ids are collected`() {
         assertEquals(listOf(7, 9), Reset.widgetIds(config))
     }
 
     @Test
-    fun `der Notfall-Bildschirm wirft dieselben Widget-Kennungen weg`() {
-        // Der Notfall-Bildschirm hatte sein eigenes Zuruecksetzen: `LauncherConfig()`
-        // direkt, ohne die Kennungen freizugeben. Der Widget-Host haette sie fuer immer
-        // gehalten - und gemerkt haette es niemand, weil man auf diesem Bildschirm ohnehin
-        // nichts sieht. Beide Wege benutzen jetzt dieselben zwei Funktionen hier.
+    fun `the emergency screen throws away the same widget ids`() {
+        // it had a reset of its own: `LauncherConfig()` straight, without releasing the ids.
+        // both ways now use the same two functions here.
         assertEquals(LauncherConfig(), Reset.fresh())
-        assertTrue("es gibt Widget-Kennungen zum Freigeben", Reset.widgetIds(config).isNotEmpty())
+        assertTrue("there are widget ids to release", Reset.widgetIds(config).isNotEmpty())
     }
 
     @Test
-    fun `zuruecksetzen ergibt den zustand nach der installation`() {
+    fun `resetting gives the state after the install`() {
         assertEquals(LauncherConfig(), Reset.fresh())
-        assertTrue("die eingerichtete Belegung ist nicht die Vorgabe", config != Reset.fresh())
+        assertTrue("the set-up arrangement is not the default", config != Reset.fresh())
     }
 
-    // Sonst stuende man vor einem fremden Startbildschirm ohne Hinweis, was zu tun ist.
+    // otherwise one would stand before a strange home screen with no hint what to do.
     @Test
-    fun `der assistent laeuft danach wieder`() {
+    fun `the wizard runs again afterwards`() {
         assertEquals(false, Reset.fresh().wizardDone)
     }
 
-    // Der haeufigste Fehler dieser App waere hier am teuersten: ein Startbildschirm ohne
-    // Weg in die Einstellungen ist ohne adb nicht mehr zu retten.
+    // this app's most common fault would be most expensive here: a home screen without a way
+    // into the settings cannot be rescued without adb.
     @Test
-    fun `der frische startbildschirm hat eine einstellungs-kachel`() {
-        val kacheln = Reset.fresh().homeScreen.cells.map { it.button.action }
-        assertEquals(true, kacheln.contains(ButtonAction.Action(Builtin.SETTINGS)))
+    fun `the fresh home screen has a settings tile`() {
+        val tiles = Reset.fresh().homeScreen.cells.map { it.button.action }
+        assertEquals(true, tiles.contains(ButtonAction.Action(Builtin.SETTINGS)))
     }
 
     @Test
-    fun `der frische startbildschirm ist der vorgabe-bildschirm`() {
+    fun `the fresh home screen is the default screen`() {
         assertEquals(Defaults.mainScreen(), Reset.fresh().homeScreen)
     }
 }

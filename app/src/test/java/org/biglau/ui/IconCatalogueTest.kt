@@ -10,82 +10,76 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Das selbst gewählte Symbol einer Kachel. `PLAN.md` 2.2 („`icon: IconRef?`") und 3.4.
+ * a tile's self-chosen icon. `PLAN.md` 2.2 (`icon: IconRef?`) and 3.4.
  *
- * Die App leitete jedes Symbol aus der Aktion ab. Das trifft meistens, aber nicht immer: der
- * Ordner mit den Bankgeschäften trägt keinen Ordner, sondern eine Karte. Der Plan sah die
- * Wahl von Anfang an vor; im Editor gab es sie nicht.
+ * deriving every icon from the action mostly fits, but not always: the folder with the bank
+ * business carries a card, not a folder.
  */
 class IconCatalogueTest {
 
     @Test
-    fun `jeder Name im Katalog hat auch ein Bild`() {
-        val ohneBild = IconCatalogue.NAMES.filter { IconCatalogue.vectorFor(it) == null }
-        assertEquals(emptyList<String>(), ohneBild)
+    fun `every name in the catalogue has a picture too`() {
+        val withoutPicture = IconCatalogue.NAMES.filter { IconCatalogue.vectorFor(it) == null }
+        assertEquals(emptyList<String>(), withoutPicture)
     }
 
     /**
-     * `PLAN.md` 3.6: „Keine reinen Icon-Buttons ohne Label irgendwo in der App."
-     *
-     * Eine Wand aus Symbolen ohne Wort ist ein Ratespiel - für jemanden, der schlecht sieht,
-     * und für einen Screenreader erst recht.
+     * `PLAN.md` 3.6: no icon-only buttons without a label anywhere in the app. a wall of
+     * icons without a word is a guessing game.
      */
     @Test
-    fun `jedes Symbol hat ein Wort`() {
-        val ohneWort = IconCatalogue.NAMES.filter { IconCatalogue.labelFor(it) == null }
-        assertEquals(emptyList<String>(), ohneWort)
+    fun `every icon has a word`() {
+        val withoutWord = IconCatalogue.NAMES.filter { IconCatalogue.labelFor(it) == null }
+        assertEquals(emptyList<String>(), withoutWord)
     }
 
-    /** Zweimal dasselbe Symbol in der Liste hiesse zweimal dieselbe Wahl. */
+    /** the same icon twice in the list would be the same choice twice. */
     @Test
-    fun `kein Symbol steht zweimal da`() {
+    fun `no icon stands there twice`() {
         assertEquals(IconCatalogue.NAMES.size, IconCatalogue.NAMES.toSet().size)
     }
 
     @Test
-    fun `die Gruppen sind nicht leer und haben eine Ueberschrift`() {
+    fun `the groups are not empty and have a heading`() {
         assertTrue(IconCatalogue.GROUPS.isNotEmpty())
-        IconCatalogue.GROUPS.forEach { gruppe ->
-            assertTrue("Gruppe ohne Symbole", gruppe.names.isNotEmpty())
-            assertTrue("Gruppe ohne Überschrift", gruppe.titleRes != 0)
+        IconCatalogue.GROUPS.forEach { group ->
+            assertTrue("group without icons", group.names.isNotEmpty())
+            assertTrue("group without a heading", group.titleRes != 0)
         }
     }
 
     /**
-     * Ein unbekannter Name gibt `null` und nicht etwa ein Ersatzsymbol: die Kachel fällt
-     * dann auf das abgeleitete zurück. Eine Sicherung aus einer späteren Fassung darf keine
-     * leere Kachel hinterlassen.
+     * an unknown name gives `null` and not a stand-in icon: the tile falls back on the
+     * derived one. a backup from a later version must leave no empty tile behind.
      */
     @Test
-    fun `ein unbekannter Name faellt zurueck`() {
+    fun `an unknown name falls back`() {
         assertNull(IconCatalogue.vectorFor("GibtsNicht"))
         assertNull(IconCatalogue.vectorFor(null))
         assertNotNull(IconCatalogue.vectorFor(IconCatalogue.NAMES.first()))
     }
 
     /**
-     * Sind die Symbole global abgeschaltet, sagt die Zeile es.
-     *
-     * Sonst waere die Symbolwahl eine Einstellung ohne sichtbare Wirkung: der Nutzer waehlt
-     * ein Herz und auf der Kachel passiert nichts. Die Zeile bleibt trotzdem stehen - die
-     * Wahl gilt, sobald die Symbole wieder an sind.
+     * with icons switched off globally the row says so, otherwise the icon choice is a
+     * setting with no visible effect. the row stays: the choice holds as soon as icons are
+     * on again.
      */
     @Test
-    fun `bei ausgeschalteten Symbolen steht der Grund daneben`() {
-        val quelle = Quelltext.file("org/biglau/tiles/TileEditorActivity.kt").readText()
-        // Mit dem Komma: ohne das trifft die Marke auch die Ueberschrift der Symbolwahl
-        // weiter unten, und welche der beiden Stellen geprueft wird, entschiede die
-        // Reihenfolge im Quelltext.
-        val zeile = Quelltext.cut(quelle, "R.string.editor_pick_icon),", "onClick")
-        assertTrue("Der Hinweis fehlt: $zeile", "editor_pick_icon_off" in zeile)
-        assertTrue("Die Sichtbarkeit wird nicht gelesen: $zeile", "LocalIconVisibility" in zeile)
+    fun `with icons switched off the reason stands beside it`() {
+        val source = Quelltext.file("org/biglau/tiles/TileEditorActivity.kt").readText()
+        // with the comma: without it the mark also hits the heading of the icon choice
+        // further down, and which of the two places gets checked would be decided by the
+        // order in the source.
+        val row = Quelltext.cut(source, "R.string.editor_pick_icon),", "onClick")
+        assertTrue("the hint is missing: $row", "editor_pick_icon_off" in row)
+        assertTrue("the visibility is not read: $row", "LocalIconVisibility" in row)
     }
 
     @Test
-    fun `automatisch heisst kein Name`() {
-        val mitSymbol = TileEdits.withIcon(Button(), "Home")
-        assertEquals("Home", mitSymbol.iconName)
-        assertNull(TileEdits.withIcon(mitSymbol, null).iconName)
-        assertNull(TileEdits.withIcon(mitSymbol, "  ").iconName)
+    fun `automatic is no name`() {
+        val withIcon = TileEdits.withIcon(Button(), "Home")
+        assertEquals("Home", withIcon.iconName)
+        assertNull(TileEdits.withIcon(withIcon, null).iconName)
+        assertNull(TileEdits.withIcon(withIcon, "  ").iconName)
     }
 }

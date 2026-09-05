@@ -12,7 +12,7 @@ import org.junit.Test
 class TileEditsTest {
 
     @Test
-    fun `Auto-Farbe laeuft zeilenweise durch die Palette`() {
+    fun `the automatic colour runs through the palette row by row`() {
         val indices = (0 until 3).flatMap { y ->
             (0 until 2).map { x -> TileEdits.autoColorIndex(x, y, cols = 2, paletteSize = 6) }
         }
@@ -20,50 +20,50 @@ class TileEditsTest {
     }
 
     @Test
-    fun `Auto-Farbe beachtet die tatsaechliche Spaltenzahl`() {
-        // Der Fehler, den dieser Test festhaelt: mit fest verdrahteten zwei Spalten
-        // bekamen in einem Dreierraster benachbarte Kacheln dieselbe Farbe.
+    fun `the automatic colour minds the actual number of columns`() {
+        // with two columns wired in, neighbouring tiles in a three-column grid got the same
+        // colour.
         val firstRow = (0 until 3).map { x -> TileEdits.autoColorIndex(x, 0, cols = 3, paletteSize = 6) }
         val secondRow = (0 until 3).map { x -> TileEdits.autoColorIndex(x, 1, cols = 3, paletteSize = 6) }
         assertEquals(listOf(0, 1, 2), firstRow)
         assertEquals(listOf(3, 4, 5), secondRow)
-        assertEquals("Innerhalb einer Zeile darf sich keine Farbe wiederholen", 3, firstRow.toSet().size)
+        assertEquals("no colour may repeat within one row", 3, firstRow.toSet().size)
     }
 
     @Test
-    fun `Auto-Farbe laeuft bei grossen Rastern rundum weiter`() {
+    fun `the automatic colour wraps around on large grids`() {
         val index = TileEdits.autoColorIndex(x = 5, y = 7, cols = 6, paletteSize = 6)
         assertTrue(index in 0..5)
         assertEquals((7 * 6 + 5) % 6, index)
     }
 
     @Test
-    fun `Auto-Farbe lehnt unsinnige Raster ab`() {
+    fun `the automatic colour rejects nonsensical grids`() {
         listOf(0 to 6, 3 to 0, -1 to 6).forEach { (cols, palette) ->
             try {
                 TileEdits.autoColorIndex(0, 0, cols, palette)
-                throw AssertionError("cols=$cols palette=$palette haette abgelehnt werden muessen")
+                throw AssertionError("cols=$cols palette=$palette should have been rejected")
             } catch (expected: IllegalArgumentException) {
-                // so soll es sein
+                // as it should be
             }
         }
     }
 
     @Test
-    fun `eine eigene Beschriftung ueberlebt den Wechsel innerhalb derselben Art`() {
-        val button = Button(ButtonAction.App("a.b", "a.b.Main"), label = "Oma")
-        assertEquals("Oma", TileEdits.withAction(button, ButtonAction.App("c.d", "c.d.Main")).label)
+    fun `an own label survives a change within the same kind`() {
+        val button = Button(ButtonAction.App("a.b", "a.b.Main"), label = "Alex")
+        assertEquals("Alex", TileEdits.withAction(button, ButtonAction.App("c.d", "c.d.Main")).label)
     }
 
     @Test
-    fun `eine eigene Beschriftung faellt beim Wechsel der Art weg`() {
-        // "Oma" auf einer Kamera-Kachel waere schlimmer als gar keine Beschriftung.
-        val button = Button(ButtonAction.Contact("Oma", "+43123"), label = "Oma")
+    fun `an own label falls away when the kind changes`() {
+        // a person's name on a camera tile would be worse than no label at all.
+        val button = Button(ButtonAction.Contact("Alex", "+43123"), label = "Alex")
         assertNull(TileEdits.withAction(button, ButtonAction.Action(Builtin.CAMERA)).label)
     }
 
     @Test
-    fun `ohne eigene Beschriftung aendert sich beim Wechsel nichts daran`() {
+    fun `without an own label a change alters nothing about it`() {
         val button = Button(ButtonAction.Action(Builtin.DIALER))
         val next = TileEdits.withAction(button, ButtonAction.Action(Builtin.CAMERA))
         assertNull(next.label)
@@ -71,22 +71,22 @@ class TileEditsTest {
     }
 
     @Test
-    fun `leere Eingabe heisst automatisch beschriften`() {
-        val button = Button(ButtonAction.Action(Builtin.DIALER), label = "Anrufen")
+    fun `empty input means label automatically`() {
+        val button = Button(ButtonAction.Action(Builtin.DIALER), label = "Call")
         assertNull(TileEdits.withLabel(button, "").label)
         assertNull(TileEdits.withLabel(button, "   ").label)
         assertNull(TileEdits.withLabel(button, null).label)
     }
 
     @Test
-    fun `Beschriftungen werden getrimmt`() {
-        assertEquals("Oma", TileEdits.withLabel(Button(), "  Oma  ").label)
+    fun `labels are trimmed`() {
+        assertEquals("Alex", TileEdits.withLabel(Button(), "  Alex  ").label)
     }
 
     @Test
-    fun `ein freier Farbton loescht die Palettenwahl`() {
-        // Sonst gaebe es zwei Antworten auf dieselbe Frage, und welche gilt, haenge an der
-        // Reihenfolge im Zeichencode.
+    fun `a free hue clears the palette choice`() {
+        // otherwise there are two answers to the same question, and which one holds hangs on
+        // the order in the drawing code.
         val button = Button(ButtonAction.Action(Builtin.DIALER), colorIndex = 3)
         val next = TileEdits.withColorHue(button, 210f)
         assertEquals(210f, next.colorHue)
@@ -94,7 +94,7 @@ class TileEditsTest {
     }
 
     @Test
-    fun `eine Farbe aus der Palette loescht den freien Ton`() {
+    fun `a colour from the palette clears the free hue`() {
         val button = Button(ButtonAction.Action(Builtin.DIALER), colorHue = 210f)
         val next = TileEdits.withColorIndex(button, 3)
         assertEquals(3, next.colorIndex)
@@ -102,7 +102,7 @@ class TileEditsTest {
     }
 
     @Test
-    fun `Farbe automatisch loescht auch den freien Ton`() {
+    fun `colour automatically clears the free hue too`() {
         val button = Button(ButtonAction.Action(Builtin.DIALER), colorHue = 210f)
         val next = TileEdits.withColorIndex(button, null)
         assertEquals(-1, next.colorIndex)
@@ -110,16 +110,16 @@ class TileEditsTest {
     }
 
     @Test
-    fun `Farbe automatisch setzt den Index zurueck`() {
+    fun `colour automatically resets the index`() {
         val button = Button(ButtonAction.Action(Builtin.DIALER), colorIndex = 4)
         assertEquals(-1, TileEdits.withColorIndex(button, null).colorIndex)
     }
 
     @Test
-    fun `Leeren entfernt wirklich alles`() {
+    fun `clearing really removes everything`() {
         val button = Button(
-            action = ButtonAction.Contact("Oma", "+43123", mode = ContactMode.SMS),
-            label = "Oma",
+            action = ButtonAction.Contact("Alex", "+43123", mode = ContactMode.SMS),
+            label = "Alex",
             colorIndex = 2,
             longPress = ButtonAction.Action(Builtin.SOS),
         )
@@ -128,11 +128,11 @@ class TileEditsTest {
         assertNull(cleared.label)
         assertEquals(-1, cleared.colorIndex)
         assertNull(cleared.longPress)
-        assertEquals("Die Ausgangskachel darf nicht veraendert werden", "Oma", button.label)
+        assertEquals("the tile started from must not be changed", "Alex", button.label)
     }
 
     @Test
-    fun `eine Langdruck-Aktion ohne Wirkung wird nicht gespeichert`() {
+    fun `a long-press action without effect is not stored`() {
         val button = Button(ButtonAction.Action(Builtin.DIALER))
         assertNull(TileEdits.withLongPress(button, ButtonAction.None).longPress)
         assertEquals(
@@ -141,22 +141,22 @@ class TileEditsTest {
         )
     }
 
-    // Die Zweitbelegung darf jetzt auch eine App sein - "Halten oeffnet Spotify" ist
-    // der Fall, den man wirklich will, nicht nur eine eingebaute Funktion.
+    // the second action may be an app now - holding opens a music player is the case one
+    // really wants, not only a builtin function.
     @Test
-    fun `zweitbelegung nimmt eine app`() {
-        val kachel = Button(action = ButtonAction.App("org.example", "org.example.Main"))
-        val mit = TileEdits.withLongPress(kachel, ButtonAction.App("com.spotify.music", "Main"))
-        assertEquals(ButtonAction.App("com.spotify.music", "Main"), mit.longPress)
-        assertEquals(kachel.action, mit.action)
+    fun `the second action takes an app`() {
+        val tile = Button(action = ButtonAction.App("org.example", "org.example.Main"))
+        val withApp = TileEdits.withLongPress(tile, ButtonAction.App("com.spotify.music", "Main"))
+        assertEquals(ButtonAction.App("com.spotify.music", "Main"), withApp.longPress)
+        assertEquals(tile.action, withApp.action)
     }
 
-    // Eine Zweitbelegung, die nichts tut, waere schlimmer als keine: das Halten
-    // faende dann weder eine Aktion noch den Editor.
+    // a second action that does nothing would be worse than none: holding would then find
+    // neither an action nor the editor.
     @Test
-    fun `leere zweitbelegung wird nicht gespeichert`() {
-        val kachel = Button(action = ButtonAction.Action(Builtin.CAMERA))
-        assertNull(TileEdits.withLongPress(kachel, ButtonAction.None).longPress)
-        assertNull(TileEdits.withLongPress(kachel, null).longPress)
+    fun `an empty second action is not stored`() {
+        val tile = Button(action = ButtonAction.Action(Builtin.CAMERA))
+        assertNull(TileEdits.withLongPress(tile, ButtonAction.None).longPress)
+        assertNull(TileEdits.withLongPress(tile, null).longPress)
     }
 }

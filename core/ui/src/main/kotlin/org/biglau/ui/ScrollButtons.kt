@@ -108,7 +108,7 @@ fun ScrollButtonPair(
  * `Tokens.MIN_TILE_ON_BACKGROUND` (3.0) applies. at 0.4 the light theme reached 2.59, under
  * the threshold; 0.5 gives 5.37 / 4.53 / 3.44 against 18.10 / 17.20 / 15.66 when awake.
  */
-internal const val BLASS = 0.5f
+internal const val PALE = 0.5f
 
 @Composable
 private fun PageButton(
@@ -129,7 +129,7 @@ private fun PageButton(
             .heightIn(min = 56.dp)
             .widthIn(min = 48.dp)
             .clip(RoundedCornerShape(LocalCornerRadius.current))
-            .background(if (enabled) surface.fill else surface.fill.copy(alpha = BLASS))
+            .background(if (enabled) surface.fill else surface.fill.copy(alpha = PALE))
             .clickable(enabled = enabled, onClick = onClick)
             .semantics { contentDescription = description },
         contentAlignment = Alignment.Center,
@@ -137,7 +137,7 @@ private fun PageButton(
         Icon(
             imageVector = icon,
             contentDescription = null,
-            tint = if (enabled) surface.ink else surface.ink.copy(alpha = BLASS),
+            tint = if (enabled) surface.ink else surface.ink.copy(alpha = PALE),
             modifier = Modifier.padding(4.dp).height(36.dp),
         )
     }

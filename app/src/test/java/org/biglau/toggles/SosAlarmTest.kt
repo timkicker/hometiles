@@ -8,45 +8,43 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Alarmton und Blinklicht während des Notrufs, `PLAN.md` 4.8.
+ * alarm sound and flashing light during the sos, `PLAN.md` 4.8.
  *
- * Der Punkt stand seit dem ersten Tag im Plan und war nirgends gebaut — er stand nicht
- * einmal unter den offenen Sachen. Gefunden beim Abgleich Plan gegen Quelltext.
+ * the point had stood in the plan from the first day and was built nowhere - it did not even
+ * stand among the open items. found while comparing the plan against the source.
  */
 class SosAlarmTest {
 
-    private val sosQuelle = Quelltext.withoutComments("org/biglau/toggles/SosActivity.kt")
+    private val sosSource = Quelltext.withoutComments("org/biglau/toggles/SosActivity.kt")
 
     @Test
-    fun `beides aus heisst nichts tun`() {
+    fun `both off means do nothing`() {
         assertFalse(SosAlarm.active(SosConfig()))
         assertTrue(SosAlarm.active(SosConfig(alarmSound = true)))
         assertTrue(SosAlarm.active(SosConfig(alarmFlash = true)))
     }
 
     /**
-     * Erst nach dem Countdown, nicht währenddessen.
-     *
-     * Wer im Supermarkt versehentlich auf den Knopf kommt und ihn wegdrückt, soll keine
-     * Sirene ausgelöst haben — sonst schaltet er den Notruf danach ganz ab. Geprüft an der
-     * Reihenfolge im Quelltext: der Start steht hinter dem Countdown und direkt beim Senden.
+     * only after the countdown, not during it. whoever hits the button by accident in a shop
+     * and presses it away should not have set off a siren - otherwise they switch the sos
+     * off entirely afterwards. checked on the order in the source: the start stands after
+     * the countdown and right beside the sending.
      */
     @Test
-    fun `der Alarm beginnt erst mit dem Senden`() {
-        val start = sosQuelle.indexOf("SosAlarm.start")
-        val countdown = sosQuelle.indexOf("if (remaining == 0) break")
-        assertTrue("SosAlarm.start fehlt in SosActivity", start > 0)
-        assertTrue("Der Alarm darf nicht vor dem Ende des Countdowns beginnen", start > countdown)
+    fun `the alarm begins only with the sending`() {
+        val start = sosSource.indexOf("SosAlarm.start")
+        val countdown = sosSource.indexOf("if (remaining == 0) break")
+        assertTrue("SosAlarm.start is missing in SosActivity", start > 0)
+        assertTrue("the alarm must not begin before the countdown ends", start > countdown)
     }
 
-    /** Ein Ton, den man nur durch Neustart losgeworden wäre, macht aus dem Notruf ein Ärgernis. */
+    /** a sound one could only get rid of by restarting turns the sos into a nuisance. */
     @Test
-    fun `der Alarm hoert mit dem Bildschirm auf`() {
-        assertTrue("SosAlarm.stop fehlt in SosActivity", "SosAlarm.stop" in sosQuelle)
-        // Nach dem Inhalt gefragt, nicht nach der Schreibweise: im selben Aufraeumen steht
-        // inzwischen auch das Abmelden der Ortung, und daran soll diese Regel nicht
-        // zerbrechen.
-        val aufraeumen = Quelltext.cut(sosQuelle, "onDispose {", "}")
-        assertTrue("Es fehlt das onDispose dazu: $aufraeumen", "SosAlarm.stop" in aufraeumen)
+    fun `the alarm stops with the screen`() {
+        assertTrue("SosAlarm.stop is missing in SosActivity", "SosAlarm.stop" in sosSource)
+        // asked about the content, not the spelling: the same cleanup now also unregisters
+        // the location, and this rule should not break on that.
+        val cleanup = Quelltext.cut(sosSource, "onDispose {", "}")
+        assertTrue("the onDispose for it is missing: $cleanup", "SosAlarm.stop" in cleanup)
     }
 }

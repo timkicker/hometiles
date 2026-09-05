@@ -6,19 +6,15 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Zahlen, die sich ändern, stehen in Tabellenziffern.
+ * numbers that change stand in tabular figures.
  *
- * `PLAN.md` 3.7: „Zahlen (Anrufliste, Wähltastatur, Dauer) mit Tabellenziffern […], damit
- * Spalten nicht springen." Das war nirgends umgesetzt — obwohl die mitgelieferte Schrift
- * `tnum` kann; sie wurde nur nie danach gefragt.
- *
- * Gemessen am Bildschirm, vorher: „11 %" in der Kopfzeile war 64 Pixel breit, „88 %" 74.
- * Die Anzeige rutschte bei jedem Prozent hin und her. Nachher: 57 gegen 59.
+ * `PLAN.md` 3.7 asks for it so columns do not jump. measured on the screen, before: "11 %"
+ * in the header was 64 pixels wide, "88 %" 74. afterwards: 57 against 59.
  */
 class TabularDigitsTest {
 
-    /** Stellen, an denen sich eine Zahl an Ort und Stelle ändert. */
-    private val stellen = listOf(
+    /** places where a number changes in place. */
+    private val places = listOf(
         "org/biglau/ui/HomeHeader.kt",
         "org/biglau/ui/InfoTiles.kt",
         "org/biglau/phone/InCallActivity.kt",
@@ -26,36 +22,35 @@ class TabularDigitsTest {
     )
 
     @Test
-    fun `jede laufende Zahl bekommt Tabellenziffern`() {
-        val ohne = stellen.filterNot { "tabularFigures()" in Quelltext.file(it).readText() }
-        assertTrue("Ohne Tabellenziffern: $ohne", ohne.isEmpty())
+    fun `every running number gets tabular figures`() {
+        val without = places.filterNot { "tabularFigures()" in Quelltext.file(it).readText() }
+        assertTrue("without tabular figures: $without", without.isEmpty())
     }
 
     /**
-     * Und sie kommen vom Stil der Oberfläche, nicht aus einem eigenen `TextStyle`.
-     *
-     * `Text(style = …)` ersetzt den Stil der Umgebung. Ein Vorrat-Stil, der nur `tnum`
-     * setzt, warf damit die eingestellte Schrift weg — die Zahlen standen in der
-     * Systemschrift, während alles daneben in der des Nutzers stand. Ausgerechnet die
-     * Schrift, von der der zweite Test hier sagt, dass sie `tnum` kann.
+     * `Text(style = ...)` replaces the surrounding style. a stock style setting only `tnum`
+     * threw the chosen font away - the numbers stood in the system font while everything
+     * beside them stood in the user's.
      */
     @Test
-    fun `die Tabellenziffern behalten die Schrift der Oberflaeche`() {
-        val quelle = Quelltext.file("org/biglau/ui/TextSizing.kt").readText()
-        assertTrue("tabularFigures baut einen eigenen Stil", "LocalTextStyle.current.copy(" in quelle)
-        assertTrue("es gibt wieder einen Vorrat-Stil", "val TabellenZiffern" !in quelle)
+    fun `the tabular figures keep the surface font`() {
+        val source = Quelltext.file("org/biglau/ui/TextSizing.kt").readText()
+        assertTrue("tabularFigures builds a style of its own", "LocalTextStyle.current.copy(" in source)
+        // the german name is the one the stock style once had; the check guards against
+        // exactly it coming back.
+        assertTrue("a stock style is there again", "val TabellenZiffern" !in source)
     }
 
-    /** Und die Schrift kann es auch - sonst wäre die Angabe wirkungslos. */
+    /** and the font can do it - otherwise the setting has no effect. */
     @Test
-    fun `die mitgelieferte Schrift kennt tnum`() {
+    fun `the shipped font knows tnum`() {
         listOf("atkinson_regular.ttf", "atkinson_bold.ttf").forEach { name ->
             val bytes = Quelltext.resource("font/$name").readBytes()
-            val marke = "tnum".toByteArray()
-            val drin = (0..bytes.size - marke.size).any { i ->
-                marke.indices.all { bytes[i + it] == marke[it] }
+            val mark = "tnum".toByteArray()
+            val inside = (0..bytes.size - mark.size).any { i ->
+                mark.indices.all { bytes[i + it] == mark[it] }
             }
-            assertTrue("$name hat keine Tabellenziffern", drin)
+            assertTrue("$name has no tabular figures", inside)
         }
     }
 }

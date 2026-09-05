@@ -4,15 +4,14 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 /**
- * Die Signalkachel.
+ * the signal tile.
  *
- * Vier Zustände, weil sie zu verschiedenen Handlungen führen: keine Karte, kein Netz,
- * schwacher Empfang, Empfang in Ordnung. Ein leerer Balken für alle drei ersten Fälle
- * sagt nicht, was zu tun ist.
+ * four states, because they lead to different actions: no card, no network, weak reception,
+ * reception in order. an empty bar for all three of the first cases does not say what to do.
  */
 class SignalInfoTest {
 
-    private fun lesung(
+    private fun reading(
         level: Int = 3,
         hasSim: Boolean = true,
         inService: Boolean = true,
@@ -28,70 +27,70 @@ class SignalInfoTest {
     )
 
     @Test
-    fun `ohne Karte ist alles andere gleichgueltig`() {
-        val ohne = lesung(level = 4, hasSim = false)
-        assertEquals(SignalInfo.State.NO_SIM, SignalInfo.stateOf(ohne))
-        assertEquals(0, SignalInfo.bars(ohne))
-        assertEquals("", SignalInfo.caption(ohne))
+    fun `without a card everything else is beside the point`() {
+        val without = reading(level = 4, hasSim = false)
+        assertEquals(SignalInfo.State.NO_SIM, SignalInfo.stateOf(without))
+        assertEquals(0, SignalInfo.bars(without))
+        assertEquals("", SignalInfo.caption(without))
     }
 
     @Test
-    fun `Karte ohne Netz ist etwas anderes als kein Empfang`() {
-        val kein = lesung(level = 2, inService = false)
-        assertEquals(SignalInfo.State.NO_SERVICE, SignalInfo.stateOf(kein))
-        assertEquals(0, SignalInfo.bars(kein))
+    fun `a card without a network is something else than no reception`() {
+        val none = reading(level = 2, inService = false)
+        assertEquals(SignalInfo.State.NO_SERVICE, SignalInfo.stateOf(none))
+        assertEquals(0, SignalInfo.bars(none))
     }
 
     @Test
-    fun `ein Balken oder keiner heisst schwach`() {
-        assertEquals(SignalInfo.State.WEAK, SignalInfo.stateOf(lesung(level = 0)))
-        assertEquals(SignalInfo.State.WEAK, SignalInfo.stateOf(lesung(level = 1)))
-        assertEquals(SignalInfo.State.OK, SignalInfo.stateOf(lesung(level = 2)))
+    fun `one bar or none means weak`() {
+        assertEquals(SignalInfo.State.WEAK, SignalInfo.stateOf(reading(level = 0)))
+        assertEquals(SignalInfo.State.WEAK, SignalInfo.stateOf(reading(level = 1)))
+        assertEquals(SignalInfo.State.OK, SignalInfo.stateOf(reading(level = 2)))
     }
 
     @Test
-    fun `unbekannt zaehlt als leer und nicht als voll`() {
-        // getLevel liefert -1, wenn das Netz nichts meldet. Ein negativer Wert als Balken
-        // waere ein Absturz oder ein voller Balken - beides falsch.
-        assertEquals(0, SignalInfo.bars(lesung(level = -1)))
+    fun `unknown counts as empty, not as full`() {
+        // getLevel returns -1 when the network reports nothing. a negative value as bars
+        // would be a crash or a full bar - both wrong.
+        assertEquals(0, SignalInfo.bars(reading(level = -1)))
     }
 
     @Test
-    fun `mehr als vier Balken gibt es nicht`() {
-        assertEquals(SignalInfo.MAX_LEVEL, SignalInfo.bars(lesung(level = 9)))
+    fun `there are no more than four bars`() {
+        assertEquals(SignalInfo.MAX_LEVEL, SignalInfo.bars(reading(level = 9)))
     }
 
     @Test
-    fun `Roaming steht auf der Kachel`() {
-        // Es kostet Geld, und in der Systemleiste eines Drei-Zoll-Geraets uebersieht man es.
-        assertEquals("R 4G", SignalInfo.caption(lesung(roaming = true)))
-        assertEquals("R", SignalInfo.caption(lesung(roaming = true, networkType = "")))
-        assertEquals("4G", SignalInfo.caption(lesung(roaming = false)))
+    fun `roaming stands on the tile`() {
+        // it costs money, and in the status bar of a three-inch device one misses it.
+        assertEquals("R 4G", SignalInfo.caption(reading(roaming = true)))
+        assertEquals("R", SignalInfo.caption(reading(roaming = true, networkType = "")))
+        assertEquals("4G", SignalInfo.caption(reading(roaming = false)))
     }
 
     @Test
-    fun `ohne Netz steht kein Zusatz da`() {
-        assertEquals("", SignalInfo.caption(lesung(inService = false, roaming = true)))
+    fun `without a network no addition stands there`() {
+        assertEquals("", SignalInfo.caption(reading(inService = false, roaming = true)))
     }
 
     @Test
-    fun `Leerzeichen in der Netzart stoeren nicht`() {
-        assertEquals("LTE", SignalInfo.caption(lesung(networkType = "  LTE  ")))
+    fun `spaces in the network type do not disturb`() {
+        assertEquals("LTE", SignalInfo.caption(reading(networkType = "  LTE  ")))
     }
 }
 
 /**
- * „Weiß nichts" ist etwas anderes als „keine Karte".
+ * "knows nothing" is something else than "no card".
  *
- * Beim ersten Lauf am Gerät meldete die Kachel „Keine SIM-Karte", während die Karte steckte
- * und die Systemleiste 4G zeigte - BigLau hatte nur die Leseberechtigung nicht. Eine Anzeige,
- * die eine fehlende Karte behauptet, schickt den Nutzer den Deckel aufschrauben.
+ * on the first run the tile reported no sim card while the card was in and the status bar
+ * showed 4G - BigLau simply did not have the read permission. a display claiming a missing
+ * card sends the user to open the case.
  */
 class SignalPermissionTest {
 
     @Test
-    fun `ohne Leseerlaubnis sagt die Kachel das auch`() {
-        val ohne = SignalReading(
+    fun `without read permission the tile says so`() {
+        val without = SignalReading(
             level = -1,
             mayRead = false,
             hasSim = false,
@@ -99,15 +98,15 @@ class SignalPermissionTest {
             roaming = false,
             networkType = "",
         )
-        assertEquals(SignalInfo.State.NO_PERMISSION, SignalInfo.stateOf(ohne))
-        assertEquals(0, SignalInfo.bars(ohne))
-        assertEquals("", SignalInfo.caption(ohne))
+        assertEquals(SignalInfo.State.NO_PERMISSION, SignalInfo.stateOf(without))
+        assertEquals(0, SignalInfo.bars(without))
+        assertEquals("", SignalInfo.caption(without))
     }
 
     @Test
-    fun `die Erlaubnis geht allem anderen vor`() {
-        // Selbst wenn irgendwoher Werte kaemen: ohne Erlaubnis sind sie nicht zu trauen.
-        val widerspruch = SignalReading(
+    fun `the permission comes before everything else`() {
+        // even if values came from somewhere: without the permission they cannot be trusted.
+        val contradiction = SignalReading(
             level = 4,
             mayRead = false,
             hasSim = true,
@@ -115,12 +114,12 @@ class SignalPermissionTest {
             roaming = false,
             networkType = "4G",
         )
-        assertEquals(SignalInfo.State.NO_PERMISSION, SignalInfo.stateOf(widerspruch))
+        assertEquals(SignalInfo.State.NO_PERMISSION, SignalInfo.stateOf(contradiction))
     }
 
     @Test
-    fun `mit Erlaubnis und ohne Karte bleibt es bei keine Karte`() {
-        val ohneKarte = SignalReading(
+    fun `with permission and without a card it stays at no card`() {
+        val withoutCard = SignalReading(
             level = -1,
             mayRead = true,
             hasSim = false,
@@ -128,6 +127,6 @@ class SignalPermissionTest {
             roaming = false,
             networkType = "",
         )
-        assertEquals(SignalInfo.State.NO_SIM, SignalInfo.stateOf(ohneKarte))
+        assertEquals(SignalInfo.State.NO_SIM, SignalInfo.stateOf(withoutCard))
     }
 }

@@ -6,52 +6,49 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Nach einem Notruf steht ein Anruf-Knopf da — und er wählt nicht von selbst.
+ * after an sos a call button stands there - and it does not dial by itself.
  *
- * `PLAN.md` 4.8 verlangt beides: „Danach ein **Anruf-Knopf**, kein automatischer Anruf …
- * ein grosser Knopf, der die Wähltastatur mit der Nummer öffnet, ist einen Tipp entfernt und
- * löst nie von selbst aus."
+ * `PLAN.md` 4.8 demands both: a call button afterwards, no automatic call. a big button that
+ * opens the dial pad with the number is one tap away and never triggers on its own.
  *
- * Bis zum 3.9.2026 endete der Bildschirm nach dem Senden mit „Schliessen" — und im
- * schlimmsten Fall mit dem Satz „Es konnte nichts gesendet werden". Das ist die Stelle, an
- * der ein Mensch am wenigsten überlegen kann, und sie bot nichts an.
+ * until 03.09.2026 the screen ended after sending with "close" - in the worst case together
+ * with the sentence that nothing could be sent. that is the moment a person can think least,
+ * and it offered nothing.
  *
- * Zwei Zusicherungen, und die zweite ist die wichtigere:
- *
- * 1. Der Knopf ist da.
- * 2. Er ruft `Intents.dial` und **nicht** `Intents.call`. `dial` öffnet die Wähltastatur mit
- *    der Nummer; gewählt wird erst durch einen zweiten Tipp eines Menschen. Genau deshalb
- *    steht `SosActivity` auch nicht in der Liste von `OutgoingTest`.
+ * two assurances, and the second is the more important: the button is there, and it calls
+ * `Intents.dial`, **not** `Intents.call`. `dial` opens the dial pad with the number; the
+ * dialling happens only through a second tap by a person. that is why `SosActivity` does not
+ * stand in `OutgoingTest`'s list either.
  */
 class SosCallButtonTest {
 
-    private val quelle = Quelltext.withoutComments("org/biglau/toggles/SosActivity.kt")
+    private val source = Quelltext.withoutComments("org/biglau/toggles/SosActivity.kt")
 
     @Test
-    fun `nach dem Senden steht ein Anruf-Knopf da`() {
+    fun `after sending a call button stands there`() {
         assertTrue(
-            "kein Anruf-Knopf nach dem Notruf - PLAN.md 4.8 verlangt ihn",
-            "R.string.sos_call_now" in quelle && "Intents.dial(" in quelle,
+            "no call button after the sos - PLAN.md 4.8 demands it",
+            "R.string.sos_call_now" in source && "Intents.dial(" in source,
         )
     }
 
     @Test
-    fun `der Notruf-Bildschirm waehlt nie selbst`() {
+    fun `the sos screen never dials by itself`() {
         assertFalse(
-            "SosActivity ruft Intents.call - der Notruf darf nie von selbst wählen",
-            "Intents.call(" in quelle,
+            "SosActivity calls Intents.call - the sos must never dial by itself",
+            "Intents.call(" in source,
         )
-        assertFalse("ACTION_CALL im Notruf-Bildschirm", "ACTION_CALL" in quelle)
+        assertFalse("ACTION_CALL in the sos screen", "ACTION_CALL" in source)
     }
 
     @Test
-    fun `in der Probe steht der Knopf nicht`() {
-        val stelle = quelle.indexOf("R.string.sos_call_now")
-        val davor = quelle.substring(maxOf(0, stelle - 300), stelle)
+    fun `the button does not stand in the preview`() {
+        val place = source.indexOf("R.string.sos_call_now")
+        val before = source.substring(maxOf(0, place - 300), place)
         assertTrue(
-            "der Knopf muss an !preview hängen - eine Probe hat niemanden angerufen und " +
-                "soll auch nicht dazu einladen",
-            "!preview" in davor,
+            "the button has to hang on !preview - a preview has called nobody and should " +
+                "not invite it either",
+            "!preview" in before,
         )
     }
 }

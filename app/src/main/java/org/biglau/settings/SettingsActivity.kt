@@ -396,10 +396,10 @@ class SettingsActivity : BigLauActivity() {
                             onContacts = { page = Page.CONTACTS },
                             onCallTypes = { page = Page.CALL_TYPES },
                             onMessages = { page = Page.MESSAGES },
-                            istStartbildschirm = remember(resumes.intValue) {
+                            isHomeScreen = remember(resumes.intValue) {
                                 Diagnostics.isDefaultHome(this@SettingsActivity)
                             },
-                            istTelefonApp = remember(resumes.intValue) {
+                            isDialerApp = remember(resumes.intValue) {
                                 DialerRole.held(this@SettingsActivity)
                             },
                             istNachrichtenApp = remember(resumes.intValue) {
@@ -873,8 +873,8 @@ private fun MainList(
     onHomeApp: () -> Unit,
     onDialerApp: () -> Unit,
     onSmsApp: () -> Unit,
-    istStartbildschirm: Boolean,
-    istTelefonApp: Boolean,
+    isHomeScreen: Boolean,
+    isDialerApp: Boolean,
     istNachrichtenApp: Boolean,
     onDone: () -> Unit,
 ) {
@@ -894,24 +894,24 @@ private fun MainList(
         item {
             BigRow(
                 label = stringResource(
-                    if (istStartbildschirm) R.string.is_home else R.string.set_as_home,
+                    if (isHomeScreen) R.string.is_home else R.string.set_as_home,
                 ),
-                secondary = if (istStartbildschirm) stringResource(R.string.role_change_hint) else null,
+                secondary = if (isHomeScreen) stringResource(R.string.role_change_hint) else null,
                 icon = Icons.Filled.Home,
-                surface = if (istStartbildschirm) palette.surfaceAccent else palette.surfaceDefault,
+                surface = if (isHomeScreen) palette.surfaceAccent else palette.surfaceDefault,
                 onClick = onHomeApp,
             )
         }
         item {
             BigRow(
                 label = stringResource(
-                    if (istTelefonApp) R.string.is_dialer else R.string.set_as_dialer,
+                    if (isDialerApp) R.string.is_dialer else R.string.set_as_dialer,
                 ),
                 secondary = stringResource(
-                    if (istTelefonApp) R.string.role_change_hint else R.string.set_as_dialer_hint,
+                    if (isDialerApp) R.string.role_change_hint else R.string.set_as_dialer_hint,
                 ),
                 icon = Icons.Filled.Call,
-                surface = if (istTelefonApp) palette.surfaceAccent else palette.surfaceDefault,
+                surface = if (isDialerApp) palette.surfaceAccent else palette.surfaceDefault,
                 onClick = onDialerApp,
             )
         }
@@ -1166,7 +1166,7 @@ private fun ScreenList(
  * spoken, not written: the row shows the colour full width, which is the better answer for
  * the eye. anyone not seeing it heard the same sentence five times.
  */
-internal val HINTERGRUND_NAMEN = listOf(
+internal val BACKGROUND_NAMES = listOf(
     R.string.screen_background_blue,
     R.string.screen_background_violet,
     R.string.screen_background_green,
@@ -1284,7 +1284,7 @@ private fun ScreenPanel(
             val gewaehlt = (screen.background as? Background.Solid)?.argb == farbe
             BigRow(
                 label = stringResource(R.string.screen_background_colour),
-                labelSpeech = stringResource(HINTERGRUND_NAMEN[platz % HINTERGRUND_NAMEN.size]),
+                labelSpeech = stringResource(BACKGROUND_NAMES[platz % BACKGROUND_NAMES.size]),
                 icon = if (gewaehlt) Icons.Filled.Check else null,
                 selected = gewaehlt,
                 surface = BigSurface(
@@ -1355,7 +1355,7 @@ private fun AppearanceList(
     onChange: (Appearance) -> Unit,
     /** the activity rebuilds itself after a language change. */
     onLanguageChanged: () -> Unit,
-    /** Eine Drehung setzt die Activity sofort um. */
+    /** a turn takes effect on the activity at once. */
     onOrientationChanged: (ScreenOrientation) -> Unit,
 ) {
     val palette = LocalBigPalette.current

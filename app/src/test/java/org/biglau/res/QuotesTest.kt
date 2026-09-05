@@ -6,32 +6,30 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 /**
- * Ein Anführungszeichen, das nie ankommt.
+ * a quotation mark that never arrives.
  *
- * Android verschluckt ein **gerades** Anführungszeichen (`"`) in einem String, wenn es nicht
- * mit `\"` geschrieben ist. Am Bildschirm stand deshalb „Anna Bauer jetzt anrufen? — mit
- * offenem Anführungszeichen und ohne schließendes. Zehn deutsche Texte waren betroffen, die
- * ältesten seit Wochen: „%1$s" löschen?, Auf „%1$s" führt keine Kachel …
+ * android swallows a **straight** quotation mark (`"`) in a string unless it is written
+ * `\"`. the screen therefore showed an opening quote with no closing one. ten german texts
+ * were affected, the oldest for weeks.
  *
- * Aufgefallen erst, als ich die Anrufliste auf Deutsch am Bildschirm ansah. Im Quelltext
- * sieht so ein String vollkommen richtig aus — genau die Sorte Fehler, die man nur am Gerät
- * findet.
+ * it showed only on looking at the call log in german on the screen. in the source such a
+ * string looks perfectly right - exactly the kind of fault one finds only on the device.
  *
- * Die Regel: in Texten stehen **typografische** Anführungszeichen (Deutsch „…", Englisch
- * “…”). Sie werden nicht verschluckt und sehen besser aus.
+ * the rule: texts carry **typographic** quotation marks. they are not swallowed and look
+ * better.
  */
 class QuotesTest {
 
-    private val dateien = Quelltext.allTexts()
+    private val files = Quelltext.allTexts()
 
     @Test
-    fun `kein gerades Anfuehrungszeichen in einem Text`() {
-        val treffer = dateien.flatMap { datei ->
+    fun `no straight quotation mark in a text`() {
+        val hits = files.flatMap { file ->
             Regex("""<(string |string>|item)[^>]*>((?:(?!</).)*)<""", RegexOption.DOT_MATCHES_ALL)
-                .findAll(datei.readText())
+                .findAll(file.readText())
                 .filter { '"' in it.groupValues[2] }
-                .map { "${datei.name}: ${it.groupValues[2].take(40)}" }
+                .map { "${file.name}: ${it.groupValues[2].take(40)}" }
         }
-        assertEquals(emptyList<String>(), treffer)
+        assertEquals(emptyList<String>(), hits)
     }
 }

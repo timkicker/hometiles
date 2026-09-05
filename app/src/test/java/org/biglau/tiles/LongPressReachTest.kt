@@ -6,27 +6,25 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 /**
- * Jede Aktion muss auch auf den Langdruck passen.
+ * every action must fit on the long press too.
  *
- * `PLAN.md` 4.3, Zeile 499: „Jede Aktion zusätzlich auf **Langdruck** belegbar, unabhängig
- * vom Kurzdruck." Zur Wahl standen aber nur Apps und eingebaute Funktionen — Kontakte,
- * Verknüpfungen, Screens und Webseiten fehlten, obwohl das Modell sie längst trägt und der
- * Startbildschirm sie ausführt. Ein halb eingelöstes Versprechen sieht von außen aus wie
- * eine Einstellung, die es nicht gibt.
+ * `PLAN.md` 4.3: every action additionally assignable to the **long press**, independent of
+ * the short press. only apps and builtins were on offer, though the model has long carried
+ * contacts, shortcuts, screens and web pages and the home screen runs them. a half-kept
+ * promise looks from outside like a setting that does not exist.
  *
- * Seither führen beide Wege durch dieselben Auswahllisten. Der Preis dafür ist eine
- * Fallunterscheidung beim Schreiben — und genau die prüft der zweite Test: schriebe ein
- * Zweig wieder unmittelbar auf die Hauptaktion, überschriebe die Auswahl auf dem
- * Langdruckweg stumm das, was die Kachel bisher tat.
+ * the price is a case distinction while writing - and that is what the second test checks:
+ * were a branch to write straight onto the main action again, a choice made on the long
+ * press path would silently overwrite what the tile did before.
  */
 class LongPressReachTest {
 
-    private val quelle = Quelltext.file("org/biglau/tiles/TileEditorActivity.kt").readText()
+    private val source = Quelltext.file("org/biglau/tiles/TileEditorActivity.kt").readText()
 
     @Test
-    fun `jede Art laesst sich auch auf den Langdruck legen`() {
-        val angeboten = Regex("""onPick\(Mode\.(\w+)\)""")
-            .findAll(quelle)
+    fun `every kind can be put on the long press as well`() {
+        val offered = Regex("""onPick\(Mode\.(\w+)\)""")
+            .findAll(source)
             .map { it.groupValues[1] }
             .toSet()
         assertEquals(
@@ -34,28 +32,28 @@ class LongPressReachTest {
                 "PICK_APP", "PICK_CONTACT", "PICK_BUILTIN", "PICK_SHORTCUT_APP", "PICK_SCREEN",
                 "EDIT_LINK", "EDIT_NUMBER",
             ),
-            angeboten,
+            offered,
         )
     }
 
     /**
-     * Widget und Ordner stehen absichtlich nicht zur Wahl: beide sind kein Griff, sondern
-     * der Inhalt einer Zelle. Sie schreiben deshalb weiterhin unmittelbar — und nur sie.
+     * widget and folder are deliberately not on offer: both are not a handle but the content
+     * of a cell. they therefore keep writing straight - and only they.
      */
     @Test
-    fun `die Auswahl schreibt nie an der Fallunterscheidung vorbei`() {
-        val zeilen = quelle.lines()
-        val fremde = zeilen.mapIndexedNotNull { index, zeile ->
-            if (!zeile.contains("TileEdits.withAction(")) {
+    fun `the choice never writes past the case distinction`() {
+        val lines = source.lines()
+        val strays = lines.mapIndexedNotNull { index, line ->
+            if (!line.contains("TileEdits.withAction(")) {
                 null
             } else {
-                val umfeld = zeilen.subList(index, minOf(index + 4, zeilen.size)).joinToString(" ")
-                val erlaubt = "ButtonAction.Widget" in umfeld ||
-                    "ButtonAction.Folder" in umfeld ||
-                    "aufLangdruck" in zeilen.subList(maxOf(0, index - 4), index).joinToString(" ")
-                if (erlaubt) null else "Zeile ${index + 1}: ${zeile.trim()}"
+                val around = lines.subList(index, minOf(index + 4, lines.size)).joinToString(" ")
+                val allowed = "ButtonAction.Widget" in around ||
+                    "ButtonAction.Folder" in around ||
+                    "forLongPress" in lines.subList(maxOf(0, index - 4), index).joinToString(" ")
+                if (allowed) null else "line ${index + 1}: ${line.trim()}"
             }
         }
-        assertEquals(emptyList<String>(), fremde)
+        assertEquals(emptyList<String>(), strays)
     }
 }

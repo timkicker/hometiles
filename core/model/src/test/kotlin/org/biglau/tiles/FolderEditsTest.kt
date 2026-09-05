@@ -14,18 +14,18 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Ordner: anlegen, hineinschauen, löschen.
+ * folders: create, look into, delete.
  *
- * Der gefährliche Fall ist das Löschen. Ein Ordner und die Kachel, die ihn öffnet, gehören
- * zusammen; bleibt eines von beiden zurück, entsteht genau das, wovor die Einstellungen sonst
- * warnen - ein Screen, zu dem kein Weg führt, oder eine Kachel, die ins Leere zeigt.
+ * deleting is the dangerous case. a folder and the tile that opens it belong together; if
+ * one of the two stays behind, exactly what the settings otherwise warn about appears - a
+ * screen no way leads to, or a tile pointing at nothing.
  */
 class FolderEditsTest {
 
     private fun app(name: String) =
         Button(action = ButtonAction.App(name, "$name.Main"))
 
-    private val ordner = Screen(
+    private val folder = Screen(
         id = "f1",
         name = "Bank",
         cols = 2,
@@ -40,7 +40,7 @@ class FolderEditsTest {
         ),
     )
 
-    private val start = Screen(
+    private val home = Screen(
         id = "home",
         name = "Start",
         cells = listOf(
@@ -49,118 +49,119 @@ class FolderEditsTest {
         ),
     )
 
-    private val config = LauncherConfig(screens = listOf(start, ordner), homeScreenId = "home")
+    private val config = LauncherConfig(screens = listOf(home, folder), homeScreenId = "home")
 
     @Test
-    fun `ein neuer Ordner ist leer und hat keine Heim-Kachel`() {
-        // Anders als ein neuer Screen: der Ordner schliesst sich mit der Zurueck-Geste,
-        // er kann keine Sackgasse werden.
-        val neu = FolderEdits.newFolder("f2", "Ämter", start)
-        assertTrue(neu.isFolder)
-        assertTrue(neu.cells.isEmpty())
-        assertEquals(start.cols, neu.cols)
-        assertEquals(start.rows, neu.rows)
+    fun `a new folder is empty and has no home tile`() {
+        // unlike a new screen: the folder closes with the back gesture, it cannot become a
+        // dead end. the name stays german because it is the interface's own wording.
+        val fresh = FolderEdits.newFolder("f2", "Ämter", home)
+        assertTrue(fresh.isFolder)
+        assertTrue(fresh.cells.isEmpty())
+        assertEquals(home.cols, fresh.cols)
+        assertEquals(home.rows, fresh.rows)
     }
 
     @Test
-    fun `die Vorschau zeigt vier Kacheln, von links oben gelesen`() {
-        val vorschau = FolderEdits.preview(ordner)
-        assertEquals(FolderEdits.PREVIEW_COUNT, vorschau.size)
-        assertEquals(listOf(0 to 0, 1 to 0, 0 to 1, 1 to 1), vorschau.map { it.x to it.y })
+    fun `the preview shows four tiles, read from the top left`() {
+        val preview = FolderEdits.preview(folder)
+        assertEquals(FolderEdits.PREVIEW_COUNT, preview.size)
+        assertEquals(listOf(0 to 0, 1 to 0, 0 to 1, 1 to 1), preview.map { it.x to it.y })
     }
 
     @Test
-    fun `ein leerer Ordner hat eine leere Vorschau`() {
-        assertTrue(FolderEdits.preview(FolderEdits.newFolder("f2", "Leer", start)).isEmpty())
+    fun `an empty folder has an empty preview`() {
+        assertTrue(FolderEdits.preview(FolderEdits.newFolder("f2", "Leer", home)).isEmpty())
     }
 
     @Test
-    fun `die Screen-Verwaltung zeigt Ordner nicht`() {
+    fun `the screen management does not show folders`() {
         assertEquals(listOf("home"), FolderEdits.plainScreens(config).map { it.id })
         assertEquals(listOf("f1"), FolderEdits.folders(config).map { it.id })
     }
 
     @Test
-    fun `in einem Ordner gibt es keinen Ordner`() {
-        assertTrue(FolderEdits.mayContainFolder(start))
-        assertFalse(FolderEdits.mayContainFolder(ordner))
+    fun `there is no folder inside a folder`() {
+        assertTrue(FolderEdits.mayContainFolder(home))
+        assertFalse(FolderEdits.mayContainFolder(folder))
     }
 
     @Test
-    fun `loeschen nimmt den Ordner und die Kachel mit`() {
-        val danach = FolderEdits.delete(config, "f1")
-        assertNull(danach.screens.firstOrNull { it.id == "f1" })
-        val heim = danach.screens.first { it.id == "home" }
-        assertEquals(1, heim.cells.size)
-        assertTrue(heim.cells.single().button.action is ButtonAction.Action)
+    fun `deleting takes the folder and the tile with it`() {
+        val after = FolderEdits.delete(config, "f1")
+        assertNull(after.screens.firstOrNull { it.id == "f1" })
+        val start = after.screens.first { it.id == "home" }
+        assertEquals(1, start.cells.size)
+        assertTrue(start.cells.single().button.action is ButtonAction.Action)
     }
 
     @Test
-    fun `loeschen nennt vorher die Zahl der Kacheln`() {
+    fun `deleting names the number of tiles beforehand`() {
         assertEquals(5, FolderEdits.contentCount(config, "f1"))
         assertEquals(0, FolderEdits.contentCount(config, "gibtsnicht"))
     }
 
     @Test
-    fun `einen gewoehnlichen Screen loescht das nicht`() {
-        // delete ist nur fuer Ordner; ein Screen geht weiter ueber ScreenEdits, samt
-        // seiner eigenen Pruefungen.
+    fun `it does not delete an ordinary screen`() {
+        // delete is for folders only; a screen still goes through ScreenEdits with its own
+        // checks.
         assertEquals(config, FolderEdits.delete(config, "home"))
     }
 
     @Test
-    fun `ein Ordner ohne Kachel faellt auf`() {
-        val ohneKachel = config.copy(
-            screens = listOf(start.copy(cells = start.cells.take(1)), ordner),
+    fun `a folder without a tile stands out`() {
+        val withoutTile = config.copy(
+            screens = listOf(home.copy(cells = home.cells.take(1)), folder),
         )
-        assertEquals(listOf("f1"), FolderEdits.orphaned(ohneKachel).map { it.id })
+        assertEquals(listOf("f1"), FolderEdits.orphaned(withoutTile).map { it.id })
         assertTrue(FolderEdits.orphaned(config).isEmpty())
     }
 
     @Test
-    fun `die Kachel findet ihren Ordner`() {
+    fun `the tile finds its folder`() {
         assertEquals("f1", FolderEdits.folderFor(config, ButtonAction.Folder("f1"))?.id)
         assertNull(FolderEdits.folderFor(config, ButtonAction.Folder("gibtsnicht")))
-        // Ein gewoehnlicher Screen ist kein Ordner, auch wenn eine Ordnerkachel auf ihn zeigt.
+        // an ordinary screen is no folder, even when a folder tile points at it.
         assertNull(FolderEdits.folderFor(config, ButtonAction.Folder("home")))
     }
 }
 
 /**
- * Ein Ordner hat genau einen Namen.
+ * a folder has exactly one name.
  *
- * Er steht auf der Kachel und als Überschrift im geöffneten Ordner. Gäbe es daneben noch
- * eine Kachelbeschriftung, hieße dasselbe Ding zweimal anders - je nachdem, ob man davor
- * steht oder darin. Umbenannt wird deshalb der Ordner, nicht die Kachel.
+ * it stands on the tile and as the heading inside the opened folder. with a tile label
+ * beside it the same thing would be called two different names, depending on whether one
+ * stands in front of it or inside it.
  */
 class FolderNameTest {
 
-    private val ordner = Screen(id = "f1", name = "Bank", kind = ScreenKind.FOLDER)
-    private val heim = Screen(
+    private val folder = Screen(id = "f1", name = "Bank", kind = ScreenKind.FOLDER)
+    private val home = Screen(
         id = "home",
         name = "Start",
         cells = listOf(Cell(0, 0, button = Button(action = ButtonAction.Folder("f1")))),
     )
-    private val config = LauncherConfig(screens = listOf(heim, ordner), homeScreenId = "home")
+    private val config = LauncherConfig(screens = listOf(home, folder), homeScreenId = "home")
 
     @Test
-    fun `umbenennen aendert den Ordner`() {
-        val danach = ScreenEdits.rename(config, "f1", "Ämter")
-        assertEquals("Ämter", danach.screens.first { it.id == "f1" }.name)
+    fun `renaming changes the folder`() {
+        // german test data: the check compares the name literally.
+        val after = ScreenEdits.rename(config, "f1", "Ämter")
+        assertEquals("Ämter", after.screens.first { it.id == "f1" }.name)
     }
 
     @Test
-    fun `die Kachel bleibt dabei unberuehrt`() {
-        // Sie traegt keine eigene Beschriftung, sie zeigt den Namen des Ordners.
-        val danach = ScreenEdits.rename(config, "f1", "Ämter")
-        val kachel = danach.screens.first { it.id == "home" }.cells.single()
-        assertNull(kachel.button.label)
-        assertEquals(ButtonAction.Folder("f1"), kachel.button.action)
+    fun `the tile stays untouched`() {
+        // it carries no label of its own, it shows the folder's name.
+        val after = ScreenEdits.rename(config, "f1", "Ämter")
+        val tile = after.screens.first { it.id == "home" }.cells.single()
+        assertNull(tile.button.label)
+        assertEquals(ButtonAction.Folder("f1"), tile.button.action)
     }
 
     @Test
-    fun `ein leerer Name aendert nichts`() {
-        // Sonst stuende auf der Kachel gar nichts mehr, und im Ordner auch nicht.
+    fun `an empty name changes nothing`() {
+        // otherwise nothing would stand on the tile any more, nor in the folder.
         assertEquals("Bank", ScreenEdits.rename(config, "f1", "   ").screens.first { it.id == "f1" }.name)
     }
 }

@@ -36,7 +36,7 @@ class OverlayFocusTest {
         "label" to "anchors.requestFocus()",
         // in `covered` it is called `asking`, in the source `ContactChoice`.
         "asking" to "anchors.first().requestFocus()",
-        // the keypad takes the focus itself, see BigKeypad and TastaturfolgeTest.
+        // the keypad takes the focus itself, see BigKeypad and KeypadFocusTest.
         "pending" to "takesFocus = true",
         "phoneStateAsked" to "anchors.first().requestFocus()",
     )

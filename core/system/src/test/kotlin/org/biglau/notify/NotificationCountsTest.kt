@@ -17,47 +17,47 @@ class NotificationCountsTest {
     ) = NotificationRow(pkg, clearable, ongoing, groupSummary, 0, category, mediaStyle)
 
     /**
-     * Die pausierte Wiedergabe: der Fall, der am 04.09.2026 am Jelly 2 blinkte.
-     *
-     * Waehrend Spotify spielt, ist die Anzeige `ongoing` und faellt schon durch die alte
-     * Regel. Pausiert ist sie es nicht mehr, laesst sich wegwischen und sah damit aus wie
-     * eine wartende Nachricht. Sie ist aber dieselbe Anzeige und meldet nichts Neues.
+     * paused playback: the case that blinked on 04.09.2026. while the player runs the notice
+     * is `ongoing` and already falls through the old rule. paused it is not, can be swiped
+     * away and so looked like a waiting message - though it is the same notice and reports
+     * nothing new.
      */
     @Test
-    fun `eine pausierte Wiedergabe zaehlt nicht`() {
-        val pausiert = row("musik", clearable = true, ongoing = false, mediaStyle = true)
-        assertTrue("die Vorlage allein muss reichen", !NotificationCounts.counts(pausiert))
+    fun `paused playback does not count`() {
+        val paused = row("musik", clearable = true, ongoing = false, mediaStyle = true)
+        assertTrue("the template alone has to be enough", !NotificationCounts.counts(paused))
         assertEquals(
             emptyMap<String, Int>(),
-            NotificationCounts.summarise(listOf(pausiert)),
+            NotificationCounts.summarise(listOf(paused)),
         )
     }
 
     @Test
-    fun `Anzeigen ueber etwas Laufendes zaehlen nicht`() {
-        // Was die App selbst als Kategorie angibt. Alles hier ist eine Anzeige ueber etwas,
-        // das laeuft oder gilt, und keine Nachricht, auf die jemand antworten wuerde.
+    fun `notices about something running do not count`() {
+        // what the app itself gives as its category. everything here is a notice about
+        // something running or holding, not a message anyone would answer.
         listOf("transport", "service", "progress", "navigation", "call", "alarm", "sys").forEach {
             assertTrue(
-                "Kategorie $it darf nicht blinken",
+                "category $it must not blink",
                 !NotificationCounts.counts(row("app", category = it)),
             )
         }
     }
 
     @Test
-    fun `eine Nachricht zaehlt weiterhin`() {
-        // Die Gegenprobe: ohne sie koennte die Liste zu weit werden und alles wegfiltern.
+    fun `a message still counts`() {
+        // the counter-check: without it the list could grow too wide and filter everything
+        // away.
         listOf(null, "msg", "email", "social", "event", "reminder").forEach {
             assertTrue(
-                "Kategorie $it ist eine Nachricht und muss zaehlen",
+                "category $it is a message and has to count",
                 NotificationCounts.counts(row("app", category = it)),
             )
         }
     }
 
     @Test
-    fun `normale Nachrichten werden pro Paket gezaehlt`() {
+    fun `ordinary messages are counted per package`() {
         val counts = NotificationCounts.summarise(
             listOf(row("chat"), row("chat"), row("mail")),
         )
@@ -65,9 +65,9 @@ class NotificationCountsTest {
     }
 
     @Test
-    fun `laufende Anzeigen zaehlen nicht`() {
-        // Musikwiedergabe und USB-Debugging liegen dauerhaft an. Wuerden sie zaehlen,
-        // blinkte die Kachel fuer immer - und der Nutzer lernt, sie zu ignorieren.
+    fun `running notices do not count`() {
+        // music playback and usb debugging are on permanently. if they counted, the tile
+        // would blink for ever - and the user learns to ignore it.
         val counts = NotificationCounts.summarise(
             listOf(row("player", ongoing = true), row("player")),
         )
@@ -75,14 +75,14 @@ class NotificationCountsTest {
     }
 
     @Test
-    fun `nicht wegwischbare Anzeigen zaehlen nicht`() {
+    fun `notices that cannot be swiped away do not count`() {
         assertTrue(NotificationCounts.summarise(listOf(row("system", clearable = false))).isEmpty())
     }
 
     @Test
-    fun `Gruppenzusammenfassungen zaehlen nicht doppelt`() {
-        // Viele Apps melden drei Nachrichten plus eine Zusammenfassung. Ohne diese Regel
-        // stuende auf der Kachel eine Vier.
+    fun `group summaries do not count twice`() {
+        // many apps report three messages plus a summary. without this rule the tile would
+        // show a four.
         val counts = NotificationCounts.summarise(
             listOf(row("chat"), row("chat"), row("chat"), row("chat", groupSummary = true)),
         )
@@ -90,19 +90,19 @@ class NotificationCountsTest {
     }
 
     @Test
-    fun `eine leere Liste ergibt keine Zaehler`() {
+    fun `an empty list gives no counters`() {
         assertTrue(NotificationCounts.summarise(emptyList()).isEmpty())
     }
 
     @Test
-    fun `ein Paket ohne zaehlbare Anzeige taucht gar nicht auf`() {
-        // Wichtig: nicht mit Null eintragen, sonst blinkt die Kachel bei jeder Aenderung kurz.
+    fun `a package without a countable notice does not appear at all`() {
+        // do not enter it with a zero, otherwise the tile blinks briefly on every change.
         val counts = NotificationCounts.summarise(listOf(row("player", ongoing = true)))
         assertTrue(!counts.containsKey("player"))
     }
 
     @Test
-    fun `die Anzeige stapelt ab zehn`() {
+    fun `the badge stacks from ten on`() {
         assertNull(NotificationCounts.badgeText(0))
         assertNull(NotificationCounts.badgeText(-1))
         assertEquals("1", NotificationCounts.badgeText(1))
@@ -112,7 +112,7 @@ class NotificationCountsTest {
     }
 
     @Test
-    fun `die Einzelpruefung deckt sich mit der Zusammenfassung`() {
+    fun `the single check agrees with the summary`() {
         val rows = listOf(
             row("a"),
             row("b", ongoing = true),

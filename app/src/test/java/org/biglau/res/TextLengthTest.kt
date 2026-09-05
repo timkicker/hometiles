@@ -14,7 +14,7 @@ import org.junit.Test
  * while shortening, the same fault happened twice, and both times a rule caught it: **the
  * where** is the first thing to go. "give the role back" instead of "give it back in the
  * settings". the sentence gets shorter and the way out unusable. so this rule stands beside
- * [org.biglau.tiles.KeinPlatzTest] and [org.biglau.sms.MmsHintTest], which check exactly
+ * [org.biglau.tiles.NoRoomTest] and [org.biglau.sms.MmsHintTest], which check exactly
  * that: shortening is allowed to whoever leaves the way standing.
  *
  * 160 is the longest text still standing after the pass, not a wished-for number. the bound

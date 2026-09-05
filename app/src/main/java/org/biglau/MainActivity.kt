@@ -189,7 +189,7 @@ class MainActivity : BigLauActivity() {
      * the *action* and not the app, because a shortcut used to start without any question,
      * so the lock could be walked around by putting the app on a tile as a shortcut.
      */
-    private data class GesperrterTipp(
+    private data class LockedTap(
         val action: ButtonAction,
         val screenId: String,
         val x: Int,
@@ -200,7 +200,7 @@ class MainActivity : BigLauActivity() {
      * an app waiting for the pin. `PLAN.md` 4.5, see [org.biglau.apps.AppLock]. on the
      * activity so the question survives a trip into another app and back.
      */
-    private val lockedApp = mutableStateOf<GesperrterTipp?>(null)
+    private val lockedApp = mutableStateOf<LockedTap?>(null)
 
     /**
      * counts every return to this screen. whatever is answered outside the app, such as the
@@ -845,7 +845,7 @@ class MainActivity : BigLauActivity() {
         when (val action = cell.button.action) {
             is ButtonAction.App, is ButtonAction.Shortcut ->
                 if (isLocked(action)) {
-                    lockedApp.value = GesperrterTipp(action, screenId, cell.x, cell.y)
+                    lockedApp.value = LockedTap(action, screenId, cell.x, cell.y)
                 } else {
                     startAction(action, screenId, cell.x, cell.y, apps)
                 }

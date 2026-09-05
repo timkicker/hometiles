@@ -6,45 +6,43 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Im Notruf zählt die Position von **jetzt**, nicht die von gestern.
+ * in an sos the position of **now** counts, not yesterday's.
  *
- * Die Notruf-SMS nahm die zuletzt bekannte Position. Auf einem Telefon, das in der Tasche
- * liegt, ist die oft Stunden alt — oder es gibt gar keine, weil zufällig lange keine App
- * danach gefragt hat. Am Emulator war sie **immer** leer (`last location=null`), und genau
- * daran ist die erste Prüfung des Kartenlinks gescheitert: `adb emu geo fix` allein füllt sie
- * nicht.
+ * the sos message took the last known position. on a phone lying in a pocket that is often
+ * hours old - or there is none at all, because no app happened to ask for a long while. on
+ * the emulator it was **always** empty (`last location=null`), and that is what the first
+ * check of the map link failed on: `adb emu geo fix` alone does not fill it.
  *
- * Der Countdown ist das Fenster dafür: er dauert ohnehin einige Sekunden, in denen das Telefon
- * suchen kann. Danach wird die Anfrage abgemeldet — ein Empfänger, der weiterläuft, kostet
- * Strom.
+ * the countdown is the window for it: it lasts some seconds anyway, in which the phone can
+ * search. afterwards the request is unregistered - a receiver that keeps running costs
+ * power.
  *
- * Mit der Suche während des Countdowns kam der Fix am Emulator sofort an, und im Probe-Text
- * stand: `Ich brauche Hilfe.` + `https://maps.google.com/?q=48.20849,16.37208` — **mit Punkt**
- * als Dezimaltrennzeichen, auf einer deutschsprachigen Oberfläche. Das war bis dahin nur
- * gerechnet, nicht gesehen.
+ * with the search during the countdown the fix arrived at once, and the coordinates in the
+ * map link carried a **dot** as the decimal separator on a german interface. that had only
+ * been computed before, never seen.
  */
 class SosLocationTest {
 
-    private val bildschirm =
+    private val screen =
         Quelltext.withoutComments("org/biglau/toggles/SosActivity.kt")
 
     @Test
-    fun `waehrend des Countdowns wird gesucht`() {
-        assertTrue("keine Ortung im Notrufbildschirm", "SosLocation(" in bildschirm)
-        assertTrue("die Suche beginnt nicht", "locator.start()" in bildschirm)
+    fun `during the countdown it searches`() {
+        assertTrue("no location in the sos screen", "SosLocation(" in screen)
+        assertTrue("the search does not begin", "locator.start()" in screen)
     }
 
     @Test
-    fun `nur wenn der Standort ueberhaupt mitgeschickt werden soll`() {
+    fun `only when the position is to be sent along at all`() {
         assertTrue(
-            "es wird auch dann geortet, wenn niemand den Standort will",
-            "if (sos.sendLocation) locator.start()" in bildschirm,
+            "it locates even when nobody wants the position",
+            "if (sos.sendLocation) locator.start()" in screen,
         )
     }
 
     @Test
-    fun `die Suche hoert wieder auf`() {
-        val aufraeumen = Quelltext.cut(bildschirm, "onDispose {", "}")
-        assertTrue("die Ortung laeuft weiter: $aufraeumen", "locator.stop()" in aufraeumen)
+    fun `the search stops again`() {
+        val cleanup = Quelltext.cut(screen, "onDispose {", "}")
+        assertTrue("the location keeps running: $cleanup", "locator.stop()" in cleanup)
     }
 }

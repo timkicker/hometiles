@@ -6,46 +6,42 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 /**
- * Liest diese Fassung eine echte, gewachsene Konfiguration verlustfrei?
+ * does this version read a real, grown configuration without loss?
  *
- * Der Umzug auf ein neues Telefon ist der Grund, aus dem es die Sicherung überhaupt gibt.
- * Die synthetischen Prüfungen daneben decken jedes Feld ab, aber nicht die Mischung, die
- * über Wochen entsteht — mehrere Screens, ein Ordner, eigene Beschriftungen, Farben.
+ * the file deliberately does **not** lie in the repository: it holds a person's app list and
+ * screen names. without it the test skips itself - and that it did from the day it was
+ * written until 3.9.2026, without standing out anywhere.
  *
- * Die Datei liegt bewusst **nicht** im Repository: sie enthält die App-Liste und die
- * Bildschirmnamen eines Menschen. Ohne sie überspringt der Test sich selbst — und genau
- * das tat er von seiner Entstehung bis zum 3.9.2026, ohne dass es irgendwo auffiel.
+ * it stays, because it sees more on the real file than any copy; the always-running copy
+ * beside it is [GrownConfigTest]. to run this one:
  *
- * Er bleibt, weil er an der echten Datei mehr sieht als jede Abschrift; die immer laufende
- * Abschrift daneben ist [GewachseneFassungTest]. Wer diesen hier laufen lassen will:
- *
- *     BIGLAU_REAL_CONFIG=/pfad/config.json ./gradlew :core:model:test
+ *     BIGLAU_REAL_CONFIG=/path/config.json ./gradlew :core:model:test
  */
 class RealConfigRoundTripTest {
 
     @Test
-    fun `eine echte konfiguration ueberlebt den umzug`() {
-        val pfad = System.getenv("BIGLAU_REAL_CONFIG")
-        assumeTrue("BIGLAU_REAL_CONFIG nicht gesetzt", pfad != null)
-        val datei = File(pfad!!)
-        assumeTrue("Datei nicht da: $pfad", datei.exists())
+    fun `a real configuration survives the move`() {
+        val path = System.getenv("BIGLAU_REAL_CONFIG")
+        assumeTrue("BIGLAU_REAL_CONFIG not set", path != null)
+        val file = File(path!!)
+        assumeTrue("file not there: $path", file.exists())
 
-        val text = datei.readText()
-        val geladen = ConfigTransfer.import(text)
-        assertEquals(true, geladen != null)
-        geladen!!
+        val text = file.readText()
+        val loaded = ConfigTransfer.import(text)
+        assertEquals(true, loaded != null)
+        loaded!!
 
-        // Gegenprobe direkt aus dem JSON, ohne den Import-Weg.
+        // counter-check straight from the json, without the import way.
         val original = kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
             .decodeFromString(LauncherConfig.serializer(), text)
-        assertEquals(original.screens.size, geladen.screens.size)
-        assertEquals(original.screens.map { it.name }, geladen.screens.map { it.name })
+        assertEquals(original.screens.size, loaded.screens.size)
+        assertEquals(original.screens.map { it.name }, loaded.screens.map { it.name })
         assertEquals(
             original.screens.sumOf { it.cells.size },
-            geladen.screens.sumOf { it.cells.size },
+            loaded.screens.sumOf { it.cells.size },
         )
-        assertEquals(original.appearance, geladen.appearance)
-        assertEquals(original.behaviour, geladen.behaviour)
-        assertEquals(original.homeScreenId, geladen.homeScreenId)
+        assertEquals(original.appearance, loaded.appearance)
+        assertEquals(original.behaviour, loaded.behaviour)
+        assertEquals(original.homeScreenId, loaded.homeScreenId)
     }
 }

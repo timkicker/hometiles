@@ -7,68 +7,59 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Ein Rollendialog braucht einen Aufrufer.
+ * a role dialog needs a caller.
  *
- * Am Emulator gefunden: der Knopf „BigLau zur Telefon-App machen" tat **nichts**. Im
- * Protokoll stand der Grund: `RequestRoleActivity: Package name cannot be null or empty:
- * null`. Android liest den Aufrufer über `startActivityForResult`; wird der Dialog mit
- * `startActivity` (und erst recht mit `FLAG_ACTIVITY_NEW_TASK`) geöffnet, bricht er ab,
- * bevor er zu sehen ist — auf dem Bildschirm passiert gar nichts, und der Nutzer hält es
- * für einen Fehlgriff.
- *
- * Das betraf beide Rollen: Telefon **und** Startbildschirm. Nach der Änderung erscheint der
- * Dialog („Set BigLau as your default phone app?", am Emulator gesehen).
+ * android reads the caller through `startActivityForResult`; opened with `startActivity`
+ * (and all the more with `FLAG_ACTIVITY_NEW_TASK`) the dialog breaks off before it is
+ * visible - nothing happens on screen, and the user takes it for a misplaced tap. that hit
+ * both roles, phone **and** home screen.
  */
 class RoleRequestTest {
 
     private val intents = Quelltext.withoutComments("org/biglau/actions/Intents.kt")
 
-    private fun rollenTeil(): String =
+    private fun rolePart(): String =
         Quelltext.cut(intents, "fun homeRoleIntent", "private inline fun start")
 
     /**
-     * `createRequestRoleIntent` darf in dieser Datei nur als **Absicht zurückgegeben**
-     * werden, damit der Aufrufer sie über einen Launcher startet.
+     * `createRequestRoleIntent` may only be **returned as an intent** in this file, so the
+     * caller starts it through a launcher.
      */
     @Test
-    fun `die Rollenabsicht wird nicht selbst gestartet`() {
-        val zeilen = intents.lines()
-        val gestartet = zeilen.indices.filter { index ->
-            "createRequestRoleIntent" in zeilen[index] &&
-                (index until minOf(index + 6, zeilen.size)).any { "startActivity" in zeilen[it] }
+    fun `the role intent is not started here`() {
+        val lines = intents.lines()
+        val started = lines.indices.filter { index ->
+            "createRequestRoleIntent" in lines[index] &&
+                (index until minOf(index + 6, lines.size)).any { "startActivity" in lines[it] }
         }
-        assertEquals(emptyList<Int>(), gestartet)
-        assertTrue("NEW_TASK an einer Rollenabsicht", "FLAG_ACTIVITY_NEW_TASK" !in rollenTeil())
+        assertEquals(emptyList<Int>(), started)
+        assertTrue("NEW_TASK on a role intent", "FLAG_ACTIVITY_NEW_TASK" !in rolePart())
     }
 
     /**
-     * Und die Zeilen sagen den Zustand, statt eine erfüllte Aufforderung zu wiederholen.
-     *
-     * „Als Telefon-App verwenden" stand auch dann da, wenn BigLau es längst war — ein Tipp
-     * darauf tat sichtbar nichts, weil der Rollendialog sich sofort wieder schloss
-     * („Application is already a role holder", im Protokoll gesehen).
+     * "use as phone app" stood there even when BigLau already was one - a tap did visibly
+     * nothing because the role dialog closed again at once.
      */
     @Test
-    fun `die Rollenzeilen nennen den Zustand`() {
-        val einstellungen = Quelltext.file("org/biglau/settings/SettingsActivity.kt").readText()
-        listOf("R.string.is_home", "R.string.is_dialer", "istStartbildschirm", "istTelefonApp")
-            .forEach { assertTrue("$it fehlt", it in einstellungen) }
-        // Je Sprache, nicht je Datei - die Texte liegen in mehreren Modulen.
-        listOf("values", "values-de").forEach { sprache ->
-            val texte = Quelltext.texts(sprache).joinToString("\n") { it.readText() }
+    fun `the role rows name the state`() {
+        val settings = Quelltext.file("org/biglau/settings/SettingsActivity.kt").readText()
+        listOf("R.string.is_home", "R.string.is_dialer", "isHomeScreen", "isDialerApp")
+            .forEach { assertTrue("$it is missing", it in settings) }
+        // per language, not per file - the texts lie in several modules.
+        listOf("values", "values-de").forEach { language ->
+            val texts = Quelltext.texts(language).joinToString("\n") { it.readText() }
             listOf("is_home", "is_dialer", "role_change_hint").forEach { name ->
-                assertTrue("$sprache: $name fehlt", "\"$name\"" in texte)
+                assertTrue("$language: $name is missing", "\"$name\"" in texts)
             }
         }
     }
 
-    /** Und die Aufrufer nehmen wirklich einen Launcher. */
     @Test
-    fun `beide Rollen werden ueber einen Launcher gefragt`() {
-        val einstellungen = Quelltext.file("org/biglau/settings/SettingsActivity.kt").readText()
-        assertTrue("Telefon-Rolle ohne Launcher", "askDialerRole.launch(" in einstellungen)
-        assertTrue("Startbildschirm-Rolle ohne Launcher", "Intents.homeRoleIntent(" in einstellungen)
-        val assistent = Quelltext.file("org/biglau/wizard/WizardActivity.kt").readText()
-        assertTrue("Assistent ohne Launcher", "askHomeRole.launch(" in assistent)
+    fun `both roles are asked for through a launcher`() {
+        val settings = Quelltext.file("org/biglau/settings/SettingsActivity.kt").readText()
+        assertTrue("phone role without a launcher", "askDialerRole.launch(" in settings)
+        assertTrue("home screen role without a launcher", "Intents.homeRoleIntent(" in settings)
+        val wizard = Quelltext.file("org/biglau/wizard/WizardActivity.kt").readText()
+        assertTrue("wizard without a launcher", "askHomeRole.launch(" in wizard)
     }
 }

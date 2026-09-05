@@ -6,106 +6,103 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Die Nummernsperre (`PLAN.md` 4.6).
+ * the number block (`PLAN.md` 4.6).
  *
- * Der heikle Teil ist der Vergleich. Dieselbe Person erscheint als „+43 664 1234567",
- * „0043 664 1234567" und „0664 1234567" — wer auf Gleichheit vergleicht, sperrt in zwei von
- * drei Fällen nicht. Eine Sperre, die manchmal nicht greift, ist schlimmer als keine, weil
- * man sich auf sie verlässt.
+ * the delicate part is the comparison. the same person appears as "+43 664 1234567",
+ * "0043 664 1234567" and "0664 1234567" - whoever compares for equality fails to block in
+ * two cases out of three. a block that sometimes does not hold is worse than none, because
+ * one relies on it.
  */
 class CallBlockingTest {
 
-    private val liste = listOf("+436641234567")
+    private val blocked = listOf("+436641234567")
 
     @Test
-    fun `dieselbe Nummer in drei Schreibweisen ist dieselbe Sperre`() {
-        assertTrue(CallBlocking.isBlocked("+43 664 1234567", liste))
-        assertTrue(CallBlocking.isBlocked("0043 664 1234567", liste))
-        assertTrue(CallBlocking.isBlocked("0664 1234567", liste))
-        assertTrue(CallBlocking.isBlocked("06641234567", liste))
+    fun `the same number in three spellings is the same block`() {
+        assertTrue(CallBlocking.isBlocked("+43 664 1234567", blocked))
+        assertTrue(CallBlocking.isBlocked("0043 664 1234567", blocked))
+        assertTrue(CallBlocking.isBlocked("0664 1234567", blocked))
+        assertTrue(CallBlocking.isBlocked("06641234567", blocked))
     }
 
     @Test
-    fun `eine andere Nummer bleibt frei`() {
-        assertFalse(CallBlocking.isBlocked("+436641234568", liste))
-        assertFalse(CallBlocking.isBlocked("+436649999999", liste))
+    fun `another number stays free`() {
+        assertFalse(CallBlocking.isBlocked("+436641234568", blocked))
+        assertFalse(CallBlocking.isBlocked("+436649999999", blocked))
     }
 
     @Test
-    fun `Notrufnummern lassen sich nicht sperren`() {
-        // PLAN.md 4.6: sie gehen immer durch. Eine versehentlich gesperrte 112 waere der
-        // teuerste Fehler, den diese App machen kann.
-        listOf("112", "144", "133").forEach { notruf ->
-            assertFalse(notruf, CallBlocking.isBlocked(notruf, listOf(notruf)))
+    fun `emergency numbers cannot be blocked`() {
+        // PLAN.md 4.6: they always go through. an accidentally blocked 112 would be the
+        // most expensive fault this app can make.
+        listOf("112", "144", "133").forEach { emergency ->
+            assertFalse(emergency, CallBlocking.isBlocked(emergency, listOf(emergency)))
         }
     }
 
     @Test
-    fun `eine unterdrueckte Nummer ist nicht sperrbar`() {
-        // Sonst traefe eine einzige Sperre jeden anonymen Anrufer auf einmal - derselbe
-        // Fehler wie damals beim Gruppieren der Anrufliste.
-        assertFalse(CallBlocking.isBlocked("", liste))
-        assertFalse(CallBlocking.isBlocked("Unbekannt", liste))
+    fun `a withheld number cannot be blocked`() {
+        // otherwise a single block would hit every anonymous caller at once.
+        assertFalse(CallBlocking.isBlocked("", blocked))
+        assertFalse(CallBlocking.isBlocked("Unbekannt", blocked))
     }
 
     @Test
-    fun `zu kurze Eintraege werden nicht uebernommen`() {
-        // Sonst sperrte "123" jede Nummer, die zufaellig so endet.
+    fun `entries that are too short are not taken`() {
+        // otherwise "123" would block every number that happens to end that way.
         assertEquals(emptyList<String>(), CallBlocking.parse("123, 45"))
         assertEquals(listOf("123", "45"), CallBlocking.rejected("123, 45"))
     }
 
     @Test
-    fun `die Zeile wird zerlegt und Dubletten fallen weg`() {
-        val liste = CallBlocking.parse("+436641234567, 0664 1234567; 0680 7654321")
-        assertEquals(2, liste.size)
+    fun `the line is split and duplicates fall away`() {
+        val list = CallBlocking.parse("+436641234567, 0664 1234567; 0680 7654321")
+        assertEquals(2, list.size)
     }
 
     @Test
-    fun `Speichern und Anzeigen sind umkehrbar`() {
+    fun `saving and showing are reversible`() {
         val text = "+436641234567, +436807654321"
         assertEquals(text, CallBlocking.format(CallBlocking.parse(text)))
     }
 
     @Test
-    fun `eine leere Liste sperrt nichts`() {
+    fun `an empty list blocks nothing`() {
         assertFalse(CallBlocking.isBlocked("+436641234567", emptyList()))
     }
 
-    // --- Abweisen, bevor es klingelt (02.09.2026) ---
-
     /**
-     * Die Sperre lief bis hierher erst in `onCallAdded` - also nachdem Android geklingelt
-     * und die Gespraechsansicht gebunden hatte, und in der Anrufliste stand der Anruf als
-     * **abgelehnt**, so als haette der Nutzer ihn weggedrueckt. Mit `CallScreening` fragt
-     * Android vorher; am Emulator geprueft: `mCallBlockReason = 1`, Eintrag mit
-     * `type=6` (blockiert) statt `type=5` (abgelehnt), kein Klingeln.
+     * the block ran in `onCallAdded` alone until 02.09.2026 - after android had rung and
+     * bound the call view, and the call log showed it as **rejected**, as if the user had
+     * pressed it away. with `CallScreening` android asks beforehand: checked on the
+     * emulator, `mCallBlockReason = 1`, entry with `type=6` (blocked) instead of `type=5`
+     * (rejected), no ringing.
      */
     @Test
-    fun `eine gesperrte Nummer wird eingehend abgewiesen`() {
+    fun `a blocked number is turned away on the way in`() {
         assertTrue(
-            CallBlocking.blocksIncoming("+436641234567", incoming = true, blocked = liste),
+            CallBlocking.blocksIncoming("+436641234567", incoming = true, blocked = blocked),
         )
     }
 
     @Test
-    fun `abgehend wird nie abgewiesen`() {
-        // Sonst waehlt der Nutzer eine Nummer, die er selbst gesperrt hat, und nichts
-        // geschieht - ohne dass ihm jemand sagt warum.
+    fun `outgoing is never turned away`() {
+        // otherwise the user dials a number they blocked themselves and nothing happens,
+        // without anybody telling them why.
         assertFalse(
-            CallBlocking.blocksIncoming("+436641234567", incoming = false, blocked = liste),
+            CallBlocking.blocksIncoming("+436641234567", incoming = false, blocked = blocked),
         )
     }
 
     @Test
-    fun `eine freie Nummer kommt durch`() {
+    fun `a free number comes through`() {
         assertFalse(
-            CallBlocking.blocksIncoming("+436649998888", incoming = true, blocked = liste),
+            CallBlocking.blocksIncoming("+436649998888", incoming = true, blocked = blocked),
         )
     }
 
     @Test
-    fun `der Notruf kommt auch eingehend durch`() {
+    fun `the emergency number comes through incoming too`() {
         assertFalse(CallBlocking.blocksIncoming("112", incoming = true, blocked = listOf("112")))
     }
 }
