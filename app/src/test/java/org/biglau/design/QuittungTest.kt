@@ -30,7 +30,7 @@ class QuittungTest {
             .filter { (i, _) ->
                 // Der Aufruf steht ueber mehrere Zeilen; die Quittung darf in den
                 // naechsten acht stehen.
-                senden.lines().drop(i).take(8).none { "quittung" in it }
+                senden.lines().drop(i).take(8).none { "receipt" in it }
             }
             .map { it.index + 1 }
         assertEquals(

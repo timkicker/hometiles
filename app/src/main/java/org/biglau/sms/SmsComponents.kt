@@ -11,55 +11,51 @@ import org.biglau.contacts.ContactRepository
 import org.biglau.data.ConfigStore
 
 /**
- * Die vier Pflichtkomponenten einer Standard-SMS-App.
+ * the four components a default sms app must have.
  *
- * Android verlangt sie alle vier, sonst erscheint die App in der Auswahl der Standard-SMS-App
- * gar nicht - unabhaengig davon, ob sie funktionieren wuerde. Sie stehen deshalb zusammen in
- * einer Datei: wer eine davon loescht, sieht die anderen drei daneben und stutzt.
+ * android demands all four or the app does not appear in the picker at all, whether or not
+ * it would work. they sit in one file so that deleting one shows the other three beside it.
  *
- * 1. [SmsDeliverReceiver] - bekommt eingehende SMS
- * 2. [WapPushDeliverReceiver] - bekommt MMS-Benachrichtigungen
- * 3. [RespondViaMessageService] - "Anruf mit Nachricht ablehnen"
- * 4. Die SENDTO-Activity, siehe Manifest bei SmsActivity
+ * 1. [SmsDeliverReceiver] takes incoming sms
+ * 2. [WapPushDeliverReceiver] takes mms notifications
+ * 3. [RespondViaMessageService] rejects a call with a message
+ * 4. the SENDTO activity, see the manifest at SmsActivity
  */
 class SmsDeliverReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
-        // Wer die Rolle haelt, muss selbst speichern: SMS_DELIVER geht nur an die
-        // Standard-App, und schreibt die nicht, hat die Nachricht niemand. Am Emulator
-        // gesehen - Rolle genommen, Nachricht geschickt, und sie war nirgends.
+        // holding the role means storing it ourselves: SMS_DELIVER goes only to the
+        // default app, and unwritten the message is nobody's.
         if (SmsDelivery.mayWrite(Telephony.Sms.getDefaultSmsPackage(context), context.packageName)) {
-            speichern(context, intent)
+            store(context, intent)
         }
         SmsRepository.notifyChanged()
     }
 
-    private fun speichern(context: Context, intent: Intent) {
-        val teile = Telephony.Sms.Intents.getMessagesFromIntent(intent).orEmpty().mapNotNull { nachricht ->
-            val absender = nachricht?.displayOriginatingAddress ?: return@mapNotNull null
+    private fun store(context: Context, intent: Intent) {
+        val parts = Telephony.Sms.Intents.getMessagesFromIntent(intent).orEmpty().mapNotNull { message ->
+            val sender = message?.displayOriginatingAddress ?: return@mapNotNull null
             SmsDelivery.Part(
-                address = absender,
-                body = nachricht.displayMessageBody.orEmpty(),
-                timestamp = nachricht.timestampMillis,
+                address = sender,
+                body = message.displayMessageBody.orEmpty(),
+                timestamp = message.timestampMillis,
             )
         }
-        // Schlaegt das Schreiben fehl, ist die Nachricht weg - aber ein Absturz im
-        // Empfaenger nimmt zusaetzlich die App mit, und zwar bei jeder weiteren SMS.
+        // a failed write loses the message; a crash in the receiver takes the app with it,
+        // and does so again on every further sms.
         runCatching {
-            SmsDelivery.merge(teile).forEach { ganz ->
-                melden(context, ganz)
+            SmsDelivery.merge(parts).forEach { whole ->
+                announce(context, whole)
                 context.contentResolver.insert(
                     Telephony.Sms.Inbox.CONTENT_URI,
                     ContentValues().apply {
-                        put(Telephony.Sms.ADDRESS, ganz.address)
-                        put(Telephony.Sms.BODY, ganz.body)
-                        // DATE ist die Ankunft hier, DATE_SENT der Stempel des Netzes.
-                        // Am Emulator stand eine gerade eingegangene Nachricht sonst mit
-                        // 14:46 in der Liste, waehrend es 13:47 war: der Stempel des
-                        // Absendernetzes muss nicht zur Uhr dieses Geraets passen, und die
-                        // Liste sortiert nach der Ankunft.
+                        put(Telephony.Sms.ADDRESS, whole.address)
+                        put(Telephony.Sms.BODY, whole.body)
+                        // DATE is the arrival here, DATE_SENT the sending network's stamp,
+                        // which need not match this device's clock: a message that had just
+                        // arrived stood at 14:46 while it was 13:47. the list sorts by
+                        // arrival.
                         put(Telephony.Sms.DATE, System.currentTimeMillis())
-                        put(Telephony.Sms.DATE_SENT, ganz.timestamp)
-                        // Ungelesen und ungesehen: die Nachricht ist gerade erst gekommen.
+                        put(Telephony.Sms.DATE_SENT, whole.timestamp)
                         put(Telephony.Sms.READ, 0)
                         put(Telephony.Sms.SEEN, 0)
                     },
@@ -70,24 +66,23 @@ class SmsDeliverReceiver : BroadcastReceiver() {
 }
 
 /**
- * Sagt Bescheid. Ohne das laege die Nachricht in der Datenbank und niemand wuesste davon,
- * bis er von sich aus die Liste oeffnet - fuer ein Telefon in der Tasche dasselbe wie
- * verloren.
+ * says so. without it the message lies in the database and nobody knows until they open the
+ * list themselves, which for a phone in a pocket is the same as lost.
  */
-private fun melden(context: Context, ganz: SmsDelivery.Incoming) {
+private fun announce(context: Context, whole: SmsDelivery.Incoming) {
     val config = ConfigStore.get(context).current.sms
     SmsNotifications.show(
         context,
         SmsMessage(
             id = 0,
             threadId = 0,
-            address = ganz.address,
-            body = ganz.body,
-            timestamp = ganz.timestamp,
+            address = whole.address,
+            body = whole.body,
+            timestamp = whole.timestamp,
             incoming = true,
             read = false,
         ),
-        name = ContactRepository.get(context).nameFor(ganz.address),
+        name = ContactRepository.get(context).nameFor(whole.address),
         config = config,
     )
 }
@@ -95,35 +90,29 @@ private fun melden(context: Context, ganz: SmsDelivery.Incoming) {
 class WapPushDeliverReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         SmsRepository.notifyChanged()
-        // `PLAN.md` 6, Zeile MMS: „bei Fehlschlag sichtbar an den Nutzer melden statt still
-        // schlucken". Bis zum 3.9.2026 stand hier nur die Zeile darueber - eine Bildnachricht
-        // kam an, BigLau merkte sich, dass sich etwas geaendert hat, und sagte nichts. Wer
-        // ein Bild erwartet, wartet dann auf etwas, das nie kommt.
+        // `PLAN.md` 6, mms line: report a failure visibly instead of swallowing it. with
+        // only the line above, a picture message arrived and BigLau said nothing.
         SmsNotifications.showMmsHint(context, ConfigStore.get(context).current.sms)
     }
 }
 
 /**
- * „Anruf mit Nachricht ablehnen" - der Weg, auf dem eine andere App uns bittet, eine
- * Nachricht zu schicken.
+ * reject a call with a message: the path on which another app asks us to send one.
  *
- * **Hier stand ein stummer Leerlauf:** der Dienst nahm die Bitte an, tat nichts und hielt
- * sich fuer fertig. Wer im System-Dialer „Kann jetzt nicht sprechen" antippte, bekam keine
- * Fehlermeldung - und der Anrufer bekam keine Nachricht. Das ist die schlimmste Sorte
- * Fehler in dieser App: eine, die aussieht wie Erfolg.
+ * this used to be a silent no-op that took the request, did nothing and considered itself
+ * done, which is the worst kind of fault here: one that looks like success.
  *
- * BigLau sendet hier **nicht von sich aus**. Eine Nachricht, die eine fremde App auslöst
- * und die niemand mehr zu sehen bekommt, waere genau das Gegenteil dessen, was diese App
- * verspricht. Stattdessen fuehrt eine Meldung in die Unterhaltung, mit dem Text schon im
- * Feld - abschicken tut der Mensch, dem das Telefon gehoert.
+ * BigLau does not send by itself. a message triggered by a foreign app that nobody gets to
+ * see would be the opposite of what this app promises, so a notice leads into the
+ * conversation with the text in the field and the owner sends it.
  */
 class RespondViaMessageService : Service() {
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        val nummer = intent?.data?.schemeSpecificPart.orEmpty()
+        val number = intent?.data?.schemeSpecificPart.orEmpty()
         val text = intent?.getStringExtra(Intent.EXTRA_TEXT).orEmpty()
-        RespondNotice.show(this, nummer, text)
+        RespondNotice.show(this, number, text)
         stopSelf(startId)
         return START_NOT_STICKY
     }

@@ -66,33 +66,26 @@ import org.biglau.R
 import org.biglau.a11y.TileSpeech
 
 /**
- * Die Breite des Rands, der sagt: hier ist etwas Neues.
+ * width of the border that says there is something new.
  *
- * Er pulste bis zum 04.09.2026, erst in einer Sekunde, dann in 1400 ms. Der Nutzer hat das
- * an dem Tag entschieden: ein pulsendes Rechteck passt an einem Tastentelefon besser zu
- * "hier steht der Fokus" als zu "hier ist etwas Neues". Fuer das Neue reicht ein ganz
- * duenner, ruhiger Rand.
- *
- * Verloren geht dabei nichts. Die Zahl in der Ecke sagt weiterhin, wie viel wartet, und sie
- * sagt es genauer als jede Bewegung.
+ * it used to pulse. on a key phone a pulsing rectangle reads as here is the focus rather
+ * than here is something new, so the new gets a thin quiet border. nothing is lost: the
+ * number in the corner still says how much waits, and more precisely than any movement.
  */
 private const val BADGE_BORDER_DP = 2f
 
 /**
- * Die Breite des Fokusrands. Siehe [org.biglau.ui.FokusrandTest].
- *
- * Deutlich mehr als [BADGE_BORDER_DP], damit auf demselben Bildschirm nicht zwei gleich
- * aussehende Raender auf zwei verschiedene Ziele zeigen: der duenne sagt "hier ist etwas
- * Neues", der dicke sagt "die Auswahltaste trifft hier".
+ * width of the focus border, clearly more than [BADGE_BORDER_DP] so two borders on one
+ * screen do not look alike while pointing at different things.
  */
 private const val FOCUS_BORDER_DP = 8f
 
 /**
- * Eine Kachel im Schild-Entwurf (PLAN.md 3.0): vollflaechige Farbe bis an die Kante,
- * Icon gross oben links, Beschriftung in einer Zone fester Hoehe unten links.
+ * a tile in the sign design (`PLAN.md` 3.0): full colour to the edge, a large icon top
+ * left, the label in a zone of fixed height bottom left.
  *
- * Die feste Labelzone ist der Punkt: dadurch stehen die Beschriftungen einer Rasterzeile
- * auf einer gemeinsamen Grundlinie, egal ob ein- oder zweizeilig.
+ * the fixed label zone is the point: the labels of a grid row then share a baseline,
+ * whether one line or two.
  */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -104,45 +97,39 @@ fun BigTile(
     cellWidth: Dp = cellHeight,
     icon: ImageVector? = null,
     iconBitmap: ImageBitmap? = null,
-    /** Kontaktfoto, formatfuellend hinter der Beschriftung. */
+    /** contact photo, filling the tile behind the label. */
     photoUri: String? = null,
     labelPosition: LabelPosition = LabelPosition.BOTTOM_LEFT,
     cornerRadius: Dp = 12.dp,
-    /** Ueberschreibt den Themenrahmen - genutzt fuer die leere Kachel. */
+    /** overrides the theme border; used by the empty tile. */
     borderOverride: Color? = null,
-    /** Anzahl wartender Benachrichtigungen; groesser null laesst die Kachel blinken. */
+    /** waiting notifications; above zero the tile blinks. */
     badgeCount: Int = 0,
-    /** Ersetzt Icon und Beschriftung - genutzt von Uhr und Batterie. */
+    /** replaces icon and label; used by the clock and the battery. */
     content: (@Composable () -> Unit)? = null,
     /**
-     * Eigene Zeichnung **an der Stelle des Symbols**, mit Beschriftungszone wie sonst auch.
-     * Anders als [content], das die ganze Kachel uebernimmt und damit auch die Beschriftung
-     * verschluckt - der Ordner braucht beides, sein Inhalt oben und sein Name unten.
+     * own drawing *in place of the icon*, with the label zone as usual. unlike [content],
+     * which takes the whole tile and swallows the label; a folder needs both.
      */
     iconContent: (@Composable () -> Unit)? = null,
     /**
-     * Initialen statt eines Symbols. `PLAN.md` 3.4 sagt sie fuer Kontaktkacheln ohne Foto
-     * zu: "ohne Foto die Initialen auf der Kachelfarbe". Sie stehen hier und nicht beim
-     * Aufrufer, weil nur hier die Symbolgroesse ausgerechnet ist - und weil sie derselben
-     * Regel folgen sollen: ist kein Platz fuer ein Symbol, ist auch keiner fuer Buchstaben.
+     * initials instead of an icon (`PLAN.md` 3.4). here and not at the caller, because only
+     * here is the icon size computed, and they follow the same rule: no room for an icon
+     * means no room for letters.
      */
     initials: String? = null,
     contentDescription: String = label,
     /**
-     * Wie der Zaehler an der Ecke vorgelesen wird.
-     *
-     * Vorgabe ist „neue Meldungen" - das stimmt fuer eine App-Kachel. Fuer die verpassten
-     * Anrufe stimmte es **nicht**: die zaehlt keine Meldungen, sondern Anrufe, und die
-     * Vorlesefunktion sagte trotzdem „11 neue Meldungen".
+     * how the corner count is read out. the default fits an app tile; the missed calls tile
+     * counts calls, not notices, and was still announced as new notices.
      */
     badgeSpeech: Int = R.plurals.a11y_badge,
     onClick: () -> Unit = {},
     onLongClick: () -> Unit = {},
 ) {
-    // Der Zaehler an der Ecke ist gezeichnet und traegt keinen Text. Ohne diese Zeile
-    // hoert ein Screenreader "Nachrichten" und nicht, dass fuenf davon warten - siehe
-    // TileSpeech und PLAN.md 3.6. Hier und nicht bei den Aufrufern, damit keine Kachel
-    // vergessen wird.
+    // the corner count is drawn and carries no text: without this a screen reader hears
+    // messages and not that five of them wait. see TileSpeech and `PLAN.md` 3.6. here and
+    // not at the callers, so no tile is forgotten.
     val gesprochen = TileSpeech.describe(
         label = contentDescription,
         badge = if (badgeCount > 0) {
@@ -152,61 +139,56 @@ fun BigTile(
         },
     )
     val palette = LocalBigPalette.current
-    val haptik = LocalHapticFeedback.current
-    val haptikStaerke = LocalHaptics.current
+    val haptics = LocalHapticFeedback.current
+    val hapticStrength = LocalHaptics.current
     val textScale = LocalTextScale.current
     val interaction = remember { MutableInteractionSource() }
     val pressed by interaction.collectIsPressedAsState()
     var focused by remember { mutableStateOf(false) }
     val scale by animateFloatAsState(if (pressed) 0.97f else 1f, label = "press")
 
-    val labelWunsch =
+    val labelWish =
         labelSizeSp(cellWidth.value, cellHeight.value, textScale, LocalLabelScale.current)
-    // PLAN.md 3.2: die Beschriftung kann weichen, wenn sie ohnehin abgeschnitten wuerde.
-    // Faellt sie weg, gehoert ihr Platz dem Symbol - sonst bliebe ein Streifen Nichts.
+    // `PLAN.md` 3.2: the label may go when it would be cut off anyway, and its room then
+    // belongs to the icon.
     //
-    // Gemessen, nicht geschaetzt: eine Rechnung mit mittlerer Zeichenbreite lag daneben
-    // ("Nachrichten" waere ausgeblendet worden, obwohl es passt). Der TextMeasurer misst
-    // vor dem Zeichnen, es blitzt also nichts auf.
-    val messer = rememberTextMeasurer()
-    val dichte = LocalDensity.current
-    val zoneDp = labelZoneDp(cellHeight.value, labelWunsch)
-    // Erst kleiner werden, dann abschneiden: siehe labelLadder. Die Zone bleibt dabei so
-    // hoch wie beim Wunsch - sonst huepfte das Symbol darueber, je nach Wortlaenge.
-    // Vom Stil aus, der wirklich gezeichnet wird - sonst misst die Kachel in der
-    // Standardschrift und zeichnet in der des Nutzers. Hyperlegible ist breiter; die
-    // Messung sagte dann „passt", wo es nicht passte.
-    val grundstil = LocalTextStyle.current
-    val stufen = labelLadder(labelWunsch).map { groesse ->
-        groesse to grundstil.copy(
-            fontSize = dpSp(groesse),
-            lineHeight = dpSp(groesse * 1.1f),
+    // measured, not estimated: an average character width would have hidden "Nachrichten"
+    // although it fits. the measurer runs before drawing, so nothing flashes up.
+    val measurer = rememberTextMeasurer()
+    val density = LocalDensity.current
+    val zoneDp = labelZoneDp(cellHeight.value, labelWish)
+    // shrink first, then cut: see labelLadder. the zone stays as tall as at the wish, or
+    // the icon above it would hop with the word length. measured with the style that is
+    // drawn, since Hyperlegible is wider than the default.
+    val baseStyle = LocalTextStyle.current
+    val steps = labelLadder(labelWish).map { size ->
+        size to baseStyle.copy(
+            fontSize = dpSp(size),
+            lineHeight = dpSp(size * 1.1f),
             fontWeight = FontWeight.Bold,
         )
     }
-    val (labelSp, labelStil, passt) = remember(label, labelWunsch, cellWidth, cellHeight) {
-        val breite = with(dichte) { labelWidthDp(cellWidth.value, cellHeight.value).dp.roundToPx() }
-        // Auch die Hoehe der Beschriftungszone begrenzt: zwei Zeilen passen der Breite nach
-        // oft, aber nicht in die Zone. Am Bildschirm gesehen - "Nachrichten" stand auf vier
-        // Spalten weiter als "Nachrich..." da, obwohl die reine Breitenmessung "passt" sagte.
-        val hoehe = with(dichte) { zoneDp.dp.roundToPx() }
-        fun misst(stil: TextStyle) = !messer.measure(
+    val (labelSp, labelStyle, fits) = remember(label, labelWish, cellWidth, cellHeight) {
+        val widthPx = with(density) { labelWidthDp(cellWidth.value, cellHeight.value).dp.roundToPx() }
+        // the zone height bounds it too: two lines often fit the width but not the zone.
+        val heightPx = with(density) { zoneDp.dp.roundToPx() }
+        fun measures(style: TextStyle) = !measurer.measure(
             text = AnnotatedString(label),
-            style = stil,
+            style = style,
             maxLines = 2,
-            constraints = Constraints(maxWidth = breite, maxHeight = hoehe),
+            constraints = Constraints(maxWidth = widthPx, maxHeight = heightPx),
         ).hasVisualOverflow
-        val treffer = stufen.firstOrNull { misst(it.second) }
+        val hit = steps.firstOrNull { measures(it.second) }
         Triple(
-            treffer?.first ?: stufen.last().first,
-            treffer?.second ?: stufen.last().second,
-            treffer != null,
+            hit?.first ?: steps.last().first,
+            hit?.second ?: steps.last().second,
+            hit != null,
         )
     }
     val zeigeLabel = labelPosition != LabelPosition.HIDDEN &&
-        (!LocalHideCutLabels.current || passt)
+        (!LocalHideCutLabels.current || fits)
     val labelZone = if (zeigeLabel) zoneDp.dp else 0.dp
-    val iconGewuenscht = iconSizeDp(cellWidth.value, cellHeight.value, LocalIconPercent.current)
+    val iconWish = iconSizeDp(cellWidth.value, cellHeight.value, LocalIconPercent.current)
     val iconDp = iconSizeDp(
         cellWidth.value,
         cellHeight.value,
@@ -214,20 +196,18 @@ fun BigTile(
         labelZone.value,
     )
     val iconSize = iconDp.dp
-    // Musste das Symbol fuer die Beschriftung gequetscht werden, bekommt das Wort den
-    // ganzen Platz - siehe IconRoom.
-    val zeigeIcon = IconRoom.show(LocalIconVisibility.current, iconGewuenscht, iconDp)
+    // if the icon had to be squeezed for the label, the word gets the whole room.
+    val zeigeIcon = IconRoom.show(LocalIconVisibility.current, iconWish, iconDp)
     val pad = (cellHeight.value * 0.06f).coerceIn(6f, 16f).dp
     val staticBorder = borderOverride ?: palette.tileBorder()
 
-    // PLAN.md 3.1, Leitsatz 3: "Druck = Farbe + Haptik". Da war nur das Schrumpfen um drei
-    // Prozent - und das verdeckt im Moment des Druecken der Finger. Die Flaeche wird
-    // dunkler, nie heller: heller hiesse weniger Abstand zur Beschriftung, und die
-    // Kontrastschwelle gilt auch waehrend eines Drucks. Im Hochkontrast-Thema ist die
-    // Flaeche schon schwarz, deshalb wird dort zusaetzlich der Rand dicker.
-    val gedrueckt = if (pressed) darken(background) else background
-    // Der Fokus geht vor dem Blinken. Beide setzen den Rand, und die Kachel unter dem Fokus
-    // ist die, die gleich startet; welche Neues hat, sagt die Zahl in der Ecke weiter.
+    // `PLAN.md` 3.1, principle 3: press is colour plus haptics. shrinking by three percent
+    // alone is covered by the finger at the moment of pressing. darker, never lighter:
+    // lighter would mean less distance to the label, and the threshold holds during a press
+    // too. in the contrast theme the surface is already black, so the border thickens there.
+    val pressedColour = if (pressed) darken(background) else background
+    // focus wins over blinking: both set the border, and the focused tile is the one about
+    // to start. what has something new is still said by the number in the corner.
     val border = if (focused || badgeCount > 0) palette.onTile else staticBorder
     val borderWidth = when {
         focused -> FOCUS_BORDER_DP.dp
@@ -240,7 +220,7 @@ fun BigTile(
         modifier = modifier
             .scale(scale)
             .clip(RoundedCornerShape(cornerRadius))
-            .background(gedrueckt)
+            .background(pressedColour)
             .then(
                 if (border != null) {
                     Modifier.border(borderWidth, border, RoundedCornerShape(cornerRadius))
@@ -252,8 +232,8 @@ fun BigTile(
             .combinedClickable(
                 interactionSource = interaction,
                 indication = null,
-                onClick = { haptik.tap(haptikStaerke); onClick() },
-                onLongClick = onLongClick?.let { echt -> { haptik.longPress(haptikStaerke); echt() } },
+                onClick = { haptics.tap(hapticStrength); onClick() },
+                onLongClick = onLongClick?.let { handler -> { haptics.longPress(hapticStrength); handler() } },
             )
             .semantics { this.contentDescription = gesprochen },
     ) {
@@ -264,8 +244,8 @@ fun BigTile(
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize(),
             )
-            // Der einzige erlaubte Verlauf der ganzen App: er macht die Beschriftung auf
-            // einem beliebigen Foto lesbar. Das ist eine Lesbarkeitsmassnahme, keine Optik.
+            // the only gradient allowed in the whole app: it makes the label readable on an
+            // arbitrary photo. a readability measure, not a look.
             Box(
                 Modifier
                     .fillMaxSize()
@@ -344,7 +324,7 @@ fun BigTile(
                     Text(
                         text = label,
                         color = palette.onTile,
-                        style = labelStil,
+                        style = labelStyle,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
                     )
@@ -355,12 +335,11 @@ fun BigTile(
 }
 
 /**
- * Die Kachelfarbe unter dem Finger: knapp ein Drittel dunkler.
+ * the tile colour under the finger: nearly a third darker.
  *
- * Dunkler und nicht heller, damit der Abstand zur Beschriftung waehrend des Drucks nicht
- * kleiner wird - die Schwelle aus `PLAN.md` 3.3 gilt auch in diesem Moment. Nachgerechnet:
- * mit 0,68 liegt der Unterschied zur ungedrueckten Kachel ueber allen zwoelf Kacheltoenen
- * bei 1,5 bis 1,7 zu 1 und ist damit zu sehen; die Beschriftung kommt dabei nie unter 9 zu 1.
+ * darker and not lighter, so the distance to the label does not shrink during a press. at
+ * 0.68 the difference across all twelve tile hues is 1.5 to 1.7 to one and therefore
+ * visible; the label never drops under 9 to 1.
  */
 fun darken(color: Color): Color = Color(
     red = color.red * 0.68f,

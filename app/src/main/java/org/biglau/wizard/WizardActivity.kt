@@ -54,11 +54,11 @@ import org.biglau.ui.theme.BigLauTheme
 import org.biglau.ui.theme.LocalBigPalette
 
 /**
- * Der Erststart-Assistent.
+ * the first-start wizard.
  *
- * Er stellt genau die Fragen, die man am Anfang beantworten muss, und ueberspringt, was schon
- * erledigt ist. Bei der Textgroesse und beim Aussehen wirkt die Wahl sofort auf den Assistenten
- * selbst - man sieht also, was man waehlt, statt es sich vorzustellen.
+ * it asks exactly the questions that must be answered at the beginning and skips what is
+ * done. text size and appearance take effect on the wizard itself at once, so one sees the
+ * choice instead of imagining it.
  */
 class WizardActivity : BigLauActivity() {
 
@@ -70,21 +70,17 @@ class WizardActivity : BigLauActivity() {
         setContent {
             val config by store.config.collectAsStateWithLifecycle()
             var step by remember { mutableStateOf(WizardStep.WELCOME) }
-            // **Bei jeder Rueckkehr neu nachgesehen.** Der Zustand kam bisher nur von den
-            // beiden Dialogen zurueck. Wer aber „Spaeter" tippte, die Berechtigung dann in
-            // den Systemeinstellungen erteilte und zurueckkam, sah den erledigten Schritt
-            // weiter stehen - und dasselbe gilt fuer den Rueckfallweg bei der
-            // Startbildschirm-Rolle, der ueber `startActivity` geht und gar kein Ergebnis
-            // liefert. Siehe `BigLauActivity.resumes` und `SystemzustandTest`.
+            // read again on every return: the state used to come back only from the two
+            // dialogs, so granting a permission in the system settings after tapping later
+            // left the finished step standing. see `BigLauActivity.resumes`.
             var state by remember(resumes.intValue) { mutableStateOf(readState()) }
 
             val askPermissions = rememberLauncherForActivityResult(
                 ActivityResultContracts.RequestMultiplePermissions(),
             ) { state = readState() }
 
-            // Der Rollendialog braucht einen Aufrufer, sonst bricht er ab, bevor er zu sehen
-            // ist - siehe Intents.dialerRoleIntent. Und nach der Rueckkehr muss der Zustand
-            // neu gelesen werden, sonst steht der Schritt noch da, den man gerade erledigt hat.
+            // the role dialog needs a caller or it aborts before it is seen; see
+            // Intents.dialerRoleIntent.
             val askHomeRole = rememberLauncherForActivityResult(
                 ActivityResultContracts.StartActivityForResult(),
             ) { state = readState() }
@@ -106,18 +102,16 @@ class WizardActivity : BigLauActivity() {
                 cornerRadiusDp = config.appearance.cornerRadiusDp,
             ) {
                 val palette = LocalBigPalette.current
-                // Zurueck geht einen Schritt zurueck - und aus dem ersten Schritt heraus.
-                // Vorher verschluckte der Assistent die Zurueck-Taste ganz: wer ihn aus den
-                // Einstellungen noch einmal aufrief und wieder heraus wollte, kam nur ueber
-                // die Heim-Taste oder durch alle vier Schritte. Ueberall sonst in der App
-                // fuehrt Zurueck zurueck; eine Ausnahme davon merkt sich niemand.
+                // back goes one step back, and out of the first step. the wizard used to
+                // swallow the back key entirely, so anyone opening it again from the
+                // settings got out only by the home key or through all four steps.
                 //
-                // Beim allerersten Start ist das Schliessen kein Verlust: `wizardDone`
-                // bleibt falsch, der Assistent kommt beim naechsten Start wieder, und der
-                // Startbildschirm laedt derweil mit "Antippen zum Belegen" zum Belegen ein.
+                // closing on the very first start loses nothing: `wizardDone` stays false,
+                // the wizard returns on the next start, and the home screen meanwhile
+                // invites with tap to assign.
                 BackHandler(enabled = true) {
-                    val zurueck = WizardSteps.previous(step, state)
-                    if (zurueck != null) step = zurueck else finish()
+                    val back = WizardSteps.previous(step, state)
+                    if (back != null) step = back else finish()
                 }
 
                 val (position, total) = WizardSteps.position(step, state)
@@ -138,10 +132,9 @@ class WizardActivity : BigLauActivity() {
                         )
 
                         when (step) {
-                            // Wer hier landet, weil seine gespeicherte Einrichtung nicht
-                            // mehr zu lesen war, sieht sonst einen Willkommensgruss - und
-                            // haelt sein Telefon fuer zurueckgesetzt, ohne zu erfahren,
-                            // dass die alte Datei noch daneben liegt.
+                            // whoever lands here because their stored setup could not be
+                            // read would otherwise see a welcome and think the phone was
+                            // reset, without learning that the old file still lies beside it.
                             WizardStep.WELCOME -> Simple(
                                 title = stringResource(R.string.wizard_welcome_title),
                                 body = if (store.startedFromBrokenFile) {
@@ -203,9 +196,9 @@ class WizardActivity : BigLauActivity() {
                                 body = stringResource(R.string.wizard_home_body),
                                 action = stringResource(R.string.set_as_home),
                                 onAction = {
-                                    val absicht = Intents.homeRoleIntent(this@WizardActivity)
-                                    if (absicht != null) {
-                                        askHomeRole.launch(absicht)
+                                    val intent = Intents.homeRoleIntent(this@WizardActivity)
+                                    if (intent != null) {
+                                        askHomeRole.launch(intent)
                                     } else {
                                         Intents.chooseHomeApp(this@WizardActivity)
                                     }
@@ -216,13 +209,10 @@ class WizardActivity : BigLauActivity() {
 
                             WizardStep.DONE -> Simple(
                                 title = stringResource(R.string.wizard_done_title),
-                                // Der letzte Satz des Assistenten ist der, den man behaelt -
-                                // und er stimmt nicht immer. Wer sich das Vorlesen oder das
-                                // Popup beim Langdruck einschaltet (also genau die
-                                // Zielgruppe dieser App), erreicht den Editor so nicht
-                                // mehr; `LongPress.needsEditModeEntry` sagt das, und die
-                                // Einstellungen bieten dann den anderen Weg an. Der
-                                // Assistent versprach trotzdem den Langdruck.
+                                // the wizard's last sentence is the one that sticks, and it
+                                // is not always true: with speech or the long-press popup on
+                                // (exactly this app's audience) the long press no longer
+                                // reaches the editor. `LongPress.needsEditModeEntry` knows.
                                 body = stringResource(
                                     if (LongPress.needsEditModeEntry(
                                             config.behaviour.accessibility,
@@ -246,7 +236,7 @@ class WizardActivity : BigLauActivity() {
 
     override fun onResume() {
         super.onResume()
-        // Nach einem Ausflug in die Systemeinstellungen kann sich der Zustand geaendert haben.
+        // a trip into the system settings can have changed the state.
         recreateIfNeeded()
     }
 
@@ -285,10 +275,9 @@ private fun Simple(
     val palette = LocalBigPalette.current
     Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxSize()) {
         BigHeading(title)
-        // Der Text waechst mit der eingestellten Groesse - hier stellt der Nutzer sie ja
-        // gerade ein, und ein Satz, der die Aenderung nicht mitmacht, zeigt sie auch nicht.
-        // Damit er die Knoepfe nie hinausschiebt, blaettert er in seinem eigenen Feld; die
-        // Knoepfe stehen darunter fest. Dieselbe Aufteilung wie bei der Auswahl darunter.
+        // the text grows with the chosen size, since that is what is being chosen here; a
+        // sentence that ignores the change does not show it. it scrolls in a field of its
+        // own so it never pushes the buttons out.
         Box(
             modifier = Modifier
                 .weight(1f, fill = false)
@@ -318,9 +307,8 @@ private fun <T> Choice(
     onNext: () -> Unit,
 ) {
     val palette = LocalBigPalette.current
-    // "Weiter" steht fest am unteren Rand, nicht am Ende der Liste. Bei fuenf Auswahlzeilen
-    // und grosser Schrift war der Knopf sonst unterhalb der Falz - und wer ihn nicht findet,
-    // kommt aus dem Assistenten nicht heraus.
+    // next stands fixed at the bottom, not at the end of the list: with five rows and a
+    // large font it sat below the fold, and whoever cannot find it cannot leave the wizard.
     Column(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         BigHeading(title)
         Text(
@@ -343,21 +331,18 @@ private fun <T> Choice(
                 )
             }
         }
-        // Passt nicht alles auf den Schirm - und bei 200 % Schrift passt es nie -, kommen
-        // zwei Blaetterknoepfe neben "Weiter". Sonst haengt die groesste Schriftgroesse
-        // unter der Falz, ausgerechnet fuer den, der sie sucht. Nicht in eine eigene Zeile:
-        // die kostete wieder eine Auswahlzeile.
+        // when not everything fits - and at 200 % it never does - two paging buttons join
+        // next. otherwise the largest font size hangs below the fold, for exactly the person
+        // looking for it. not in a row of its own, which would cost another choice row.
         val scrollable = listState.canScrollForward || listState.canScrollBackward
         Row(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             if (scrollable) {
-                // Nur die Hoehe. Die Breite kommt aus der Untergrenze in `PageButton`
-                // (48 dp, das Mindestmass fuer einen Fingertipp) - hier eine groessere zu
-                // setzen war ein Fehlversuch: mit 72 dp blieb fuer "Weiter" bei 200 %
-                // Schrift so wenig Platz, dass das Wort mitten durchbrach ("Weite/r").
-                // Am Emulator gesehen, beide Male.
+                // height only. the width comes from the floor in `PageButton` (48 dp, the
+                // minimum for a fingertip): setting a larger one left so little room for
+                // next at 200 % that the word broke mid-way.
                 ScrollButtonPair(listState) { up, down ->
                     up(Modifier.height(72.dp))
                     down(Modifier.height(72.dp))

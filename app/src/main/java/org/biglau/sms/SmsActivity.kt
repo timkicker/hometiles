@@ -87,11 +87,11 @@ import java.util.Date
 import java.util.Locale
 
 /**
- * Nachrichten: Liste der Gespraeche, eine Unterhaltung, und das Schreiben.
+ * messages: the list of conversations, one conversation, and writing.
  *
- * Lesen geht mit READ_SMS auch ohne die Standard-SMS-Rolle. Senden geht ebenfalls, aber die
- * gesendete Nachricht landet dann nicht in der Datenbank - das kann nur die Standard-App.
- * Die Oberflaeche sagt das, statt eine Nachricht zu zeigen, die nach dem Neustart weg ist.
+ * reading works with READ_SMS without the default sms role. sending does too, but the sent
+ * message then never reaches the database, which only the default app can write. the screen
+ * says so instead of showing a message that is gone after a restart.
  */
 class SmsActivity : BigLauActivity() {
 
@@ -103,12 +103,11 @@ class SmsActivity : BigLauActivity() {
         val contacts = ContactRepository.get(this)
 
         val prefilledAddress = intent?.data?.schemeSpecificPart?.let(PhoneNumbers::clean)
-        // Aus der Meldung ueber eine neue Nachricht: dann soll genau diese Unterhaltung
-        // aufgehen und nicht die Liste, in der man sie erst suchen muss.
-        val gemeldeteNummer = intent?.getStringExtra(EXTRA_ADDRESS)
-        // Nur wenn die Meldung selbst den Bildschirm genommen hat. Fest im Manifest waere
-        // es eine andere Zusage: dann laege jede Unterhaltung ueber dem Sperrbildschirm,
-        // auch die, die jemand von Hand geoeffnet und liegen gelassen hat.
+        // from the notice about a new message: that conversation should open, not the list
+        // in which it would have to be found first.
+        val announcedNumber = intent?.getStringExtra(EXTRA_ADDRESS)
+        // only when the notice itself took the screen. fixed in the manifest it would be a
+        // different promise: then every conversation would lie over the lock screen.
         if (intent?.getBooleanExtra(EXTRA_FULL_SCREEN, false) == true) {
             setShowWhenLocked(true)
             setTurnScreenOn(true)
@@ -117,47 +116,37 @@ class SmsActivity : BigLauActivity() {
         setContent {
             val config by store.config.collectAsStateWithLifecycle()
             val changes by SmsRepository.changes.collectAsStateWithLifecycle()
-            // **Auf die Datenbank horchen, nicht nur auf sich selbst.**
-            //
-            // `changes` tickte nur, wenn BigLau schrieb. Wurde eine Nachricht von woanders
-            // geloescht - eine andere App, ein Aufraeumen -, stand sie hier weiter in der
-            // Liste, bis jemand die App neu startete. Am 03.09.2026 genau so gesehen: zwei
-            // Probenachrichten waren aus der Datenbank weg und standen noch da.
+            // listen to the database, not only to ourselves: `changes` ticked only when
+            // BigLau wrote, so a message deleted elsewhere stayed in this list until the app
+            // was restarted.
             DisposableEffect(Unit) {
-                val beobachter = object : ContentObserver(Handler(Looper.getMainLooper())) {
+                val observer = object : ContentObserver(Handler(Looper.getMainLooper())) {
                     override fun onChange(selfChange: Boolean) = SmsRepository.notifyChanged()
                 }
-                contentResolver.registerContentObserver(Telephony.Sms.CONTENT_URI, true, beobachter)
-                onDispose { contentResolver.unregisterContentObserver(beobachter) }
+                contentResolver.registerContentObserver(Telephony.Sms.CONTENT_URI, true, observer)
+                onDispose { contentResolver.unregisterContentObserver(observer) }
             }
-            // Die SMS-Rolle vergibt das **System**, und von dort kommt kein Ergebnis
-            // zurueck. Einmal beim Zeichnen gelesen bliebe der Hinweis „BigLau ist nicht
-            // deine Nachrichten-App" stehen, nachdem man sie gerade erteilt hat. Siehe
-            // `BigLauActivity.resumes`.
-            val istStandardApp = remember(resumes.intValue) { repository.isDefaultSmsApp() }
+            // the *system* grants the sms role and sends no result back. read once while
+            // drawing, the hint would keep saying BigLau is not your messaging app right
+            // after it was made one. see `BigLauActivity.resumes`.
+            val holdsSmsRole = remember(resumes.intValue) { repository.isDefaultSmsApp() }
             var messages by remember { mutableStateOf<List<SmsMessage>>(emptyList()) }
             var names by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
             var openThread by remember { mutableStateOf<Long?>(null) }
-            // An wen gerade die erste Nachricht ging. Siehe den Effekt weiter unten.
-            var geradeGesendetAn by remember { mutableStateOf<String?>(null) }
-            // Eine Unterhaltung mit jemandem, mit dem es noch keine gibt. Vorher fuehrte
-            // dieser Fall nirgendwohin: die Zeile "Neue Nachricht an ..." hatte gar keine
-            // Handlung, und wer BigLau ueber einen smsto:-Verweis oeffnete, stand vor der
-            // Liste.
+            // who the first message just went to. see the effect further down.
+            var justSentTo by remember { mutableStateOf<String?>(null) }
+            // a conversation with someone there is none with yet. this case used to lead
+            // nowhere: the row had no action at all, and an smsto: link landed on the list.
             var openAddress by remember { mutableStateOf<String?>(null) }
-            // Vorbelegt, wenn eine andere App uns eine Nachricht zum Senden gegeben hat
-            // ("Anruf mit Nachricht ablehnen") - siehe RespondViaMessageService.
+            // prefilled when another app handed us a message to send (reject a call with a
+            // message). see RespondViaMessageService.
             var draft by remember { mutableStateOf(intent?.getStringExtra(EXTRA_BODY).orEmpty()) }
-                        // `resumes` als Schluessel: dieser Bildschirm schickt den Nutzer bei
-            // dauerhaft verweigerter Berechtigung in die **App-Einstellungen**, und von dort
-            // kommt kein Ergebnis zurueck. Ohne das Neulesen beim Wiederkommen stuende hier
-            // weiter „keine Berechtigung" - auf einem Bildschirm, der einen selbst dorthin
-            // geschickt hat. Siehe `BigLauActivity.resumes`.
+            // `resumes` as the key: on a permanently refused permission this screen sends
+            // people into the app settings, and nothing comes back from there.
 var granted by remember(resumes.intValue) { mutableStateOf(repository.hasReadPermission()) }
 
-            // Ohne Rueckfrage-Oberflaeche: sagt jemand nein, bleibt die Liste die Stelle,
-            // an der er nachsieht. Ein zweiter Sackgassen-Bildschirm dafuer waere zu viel.
-            val fragenWegenMeldungen = rememberLauncherForActivityResult(
+            // no explainer screen: after a no, the list stays the place one looks.
+            val askForNotices = rememberLauncherForActivityResult(
                 ActivityResultContracts.RequestPermission(),
             ) { }
 
@@ -173,17 +162,15 @@ var granted by remember(resumes.intValue) { mutableStateOf(repository.hasReadPer
                 }
             }
 
-            // Beim ersten Oeffnen fragt das System von selbst - das erwartet man so. Nach
-            // einer Ablehnung nicht mehr: dann steht der Knopf da und der Nutzer entscheidet,
-            // wann er es noch einmal versucht.
+            // the system asks by itself on the first open, as expected. not after a refusal:
+            // then the button stands there and the moment is the user's.
             LaunchedEffect(Unit) {
                 if (!granted && !deniedOnce) ask.launch(Manifest.permission.READ_SMS)
             }
 
-            // Ab Android 13 darf ohne diese Zusage keine Meldung erscheinen - eine neue
-            // Nachricht kaeme dann still an. Das Zielgeraet laeuft auf Android 11, wo das
-            // System sie beim Installieren erteilt; gefragt wird trotzdem, weil die App
-            // auch auf neueren Geraeten laufen soll.
+            // from android 13 on no notice may appear without this, and a new message would
+            // arrive silently. the device runs 11, where installing grants it; asked anyway,
+            // because the app should run on newer ones too.
             LaunchedEffect(Unit) {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
                     ContextCompat.checkSelfPermission(
@@ -191,24 +178,20 @@ var granted by remember(resumes.intValue) { mutableStateOf(repository.hasReadPer
                         Manifest.permission.POST_NOTIFICATIONS,
                     ) != PackageManager.PERMISSION_GRANTED
                 ) {
-                    fragenWegenMeldungen.launch(Manifest.permission.POST_NOTIFICATIONS)
+                    askForNotices.launch(Manifest.permission.POST_NOTIFICATIONS)
                 }
             }
 
-            // Solange gelesen wird, sagt die Liste nicht „noch keine Nachrichten".
-            //
-            // Der Ladevorgang unten holt die Nachrichten **und alle Kontakte** - auf einem
-            // Telefon mit 338 Kontakten dauert das sichtbar lange. Bis zum 3.9.2026 stand
-            // in dieser Zeit „Noch keine Nachrichten. Hier erscheinen, was du bekommst."
-            // da, und danach sprang die volle Liste hinein. Ein wahrer Satz zum falschen
-            // Zeitpunkt ist eine Falschaussage.
-            var laedt by remember { mutableStateOf(true) }
+            // while reading, the list does not say no messages yet: the load below fetches
+            // the messages *and* all contacts, which takes visibly long at 338 contacts. a
+            // true sentence at the wrong moment is a false statement.
+            var loading by remember { mutableStateOf(true) }
             LaunchedEffect(granted, changes) {
                 if (!granted) {
-                    laedt = false
+                    loading = false
                     return@LaunchedEffect
                 }
-                // Gefiltertes gar nicht erst in die Liste lassen - PLAN.md 4.7.
+                // filtered messages never reach the list. `PLAN.md` 4.7.
                 messages = SmsFilter.apply(
                     repository.load(),
                     config.sms.hiddenNumbers,
@@ -217,16 +200,15 @@ var granted by remember(resumes.intValue) { mutableStateOf(repository.hasReadPer
                 names = contacts.load(resources).flatMap { contact ->
                     contact.numbers.map { PhoneNumbers.clean(it.number) to contact.name }
                 }.toMap()
-                laedt = false
+                loading = false
             }
 
             val threads = remember(messages, names) {
                 SmsThreads.group(messages) { names[PhoneNumbers.clean(it)] }
             }
 
-            // Gelesen ist gelesen: sonst stuende die Zahl neben dem Namen fuer immer da.
-            // Die Meldung dazu geht mit weg - wer die Unterhaltung offen hat, hat sie
-            // gesehen.
+            // read is read, or the count beside the name would stand forever. the notice
+            // goes with it: an open conversation has been seen.
             LaunchedEffect(openThread) {
                 val offen = openThread ?: return@LaunchedEffect
                 if (repository.markRead(offen)) SmsRepository.notifyChanged()
@@ -235,40 +217,38 @@ var granted by remember(resumes.intValue) { mutableStateOf(repository.hasReadPer
                 }
             }
 
-            // Erst wenn die Nachrichten da sind, laesst sich die gemeldete Nummer einer
-            // Unterhaltung zuordnen. Die Meldung selbst geht dabei weg - gesehen ist gesehen.
+            // only once the messages are there can the announced number be matched to a
+            // conversation.
             /**
-             * Nach der ersten Nachricht ist die neue Unterhaltung eine richtige.
+             * after the first message the new conversation is a real one.
              *
-             * Am 03.09.2026 am Geraet gesehen: erste Nachricht an eine Nummer geschickt,
-             * das Feld leerte sich, eine kurze Meldung kam - und der Bildschirm blieb
-             * **leer**. Die Nachricht stand da, aber in einer Unterhaltung, die dieser
-             * Bildschirm nicht kannte: er hing noch an der Nummer und nicht an der
-             * Unterhaltung, die es jetzt gibt. Wer gerade etwas abgeschickt hat und danach
-             * vor einem leeren Bildschirm steht, schickt es noch einmal.
+             * sending the first message to a number emptied the field and left the screen
+             * *blank*: the message existed, but in a conversation this screen did not know,
+             * because it still hung on the number. someone facing a blank screen after
+             * sending sends it again.
              */
-            LaunchedEffect(threads, geradeGesendetAn) {
-                val nummer = geradeGesendetAn ?: return@LaunchedEffect
+            LaunchedEffect(threads, justSentTo) {
+                val number = justSentTo ?: return@LaunchedEffect
                 val passend = threads.firstOrNull {
-                    PhoneNumbers.clean(it.address) == PhoneNumbers.clean(nummer)
+                    PhoneNumbers.clean(it.address) == PhoneNumbers.clean(number)
                 } ?: return@LaunchedEffect
                 openThread = passend.threadId
                 openAddress = null
-                geradeGesendetAn = null
+                justSentTo = null
             }
 
-            LaunchedEffect(threads, gemeldeteNummer) {
-                val nummer = gemeldeteNummer ?: return@LaunchedEffect
+            LaunchedEffect(threads, announcedNumber) {
+                val number = announcedNumber ?: return@LaunchedEffect
                 if (openThread != null) return@LaunchedEffect
                 val passend = threads.firstOrNull {
-                    PhoneNumbers.clean(it.address) == PhoneNumbers.clean(nummer)
+                    PhoneNumbers.clean(it.address) == PhoneNumbers.clean(number)
                 }
                 if (passend != null) {
                     openThread = passend.threadId
-                    SmsNotifications.clear(this@SmsActivity, nummer)
+                    SmsNotifications.clear(this@SmsActivity, number)
                 } else {
-                    // Noch keine Unterhaltung mit dieser Nummer - dann eine neue.
-                    openAddress = nummer
+                    // no conversation with this number yet, so a new one.
+                    openAddress = number
                 }
             }
 
@@ -284,8 +264,8 @@ var granted by remember(resumes.intValue) { mutableStateOf(repository.hasReadPer
                 cornerRadiusDp = config.appearance.cornerRadiusDp,
             ) {
                 val palette = LocalBigPalette.current
-                // Zurueck schliesst auch die neue Unterhaltung - sonst fuehrte die
-                // Ruecktaste aus der App heraus, obwohl sichtbar noch etwas offen ist.
+                // back closes the new conversation too, or it would lead out of the app
+                // while something is visibly open.
                 BackHandler(enabled = openThread != null || openAddress != null) {
                     openThread = null
                     openAddress = null
@@ -299,7 +279,7 @@ var granted by remember(resumes.intValue) { mutableStateOf(repository.hasReadPer
                         .padding(horizontal = 8.dp),
                 ) {
                     val thread = openThread
-                    val neueNummer = openAddress
+                    val newNumber = openAddress
                     when {
                         !granted -> PermissionGate(
                             title = stringResource(R.string.messages),
@@ -315,7 +295,7 @@ var granted by remember(resumes.intValue) { mutableStateOf(repository.hasReadPer
                                 ?.titleOr(stringResource(R.string.call_unknown))
                                 .orEmpty(),
                             draft = draft,
-                            isDefaultApp = istStandardApp,
+                            isDefaultApp = holdsSmsRole,
                             onDraft = { draft = it },
                             onSend = {
                                 val address = messages.firstOrNull { it.threadId == thread }?.address
@@ -327,17 +307,17 @@ var granted by remember(resumes.intValue) { mutableStateOf(repository.hasReadPer
                             sendButtonLarge = config.sms.sendButtonLarge,
                         )
 
-                        neueNummer != null -> Conversation(
+                        newNumber != null -> Conversation(
                             messages = emptyList(),
-                            title = PhoneNumbers.forDisplay(neueNummer)
+                            title = PhoneNumbers.forDisplay(newNumber)
                                 .ifBlank { stringResource(R.string.call_unknown) },
                             draft = draft,
-                            isDefaultApp = istStandardApp,
+                            isDefaultApp = holdsSmsRole,
                             onDraft = { draft = it },
                             onSend = {
-                                send(neueNummer, draft) {
+                                send(newNumber, draft) {
                                     draft = ""
-                                    geradeGesendetAn = neueNummer
+                                    justSentTo = newNumber
                                 }
                             },
                             conversationScale = config.sms.conversationScale,
@@ -347,24 +327,22 @@ var granted by remember(resumes.intValue) { mutableStateOf(repository.hasReadPer
                         )
 
                         else -> ThreadList(
-                            laedt = laedt,
+                            loading = loading,
                             threads = threads,
-                            // Sobald es die Unterhaltung gibt, ist diese Zeile ein
-                            // zweiter Eintrag fuer dieselbe Person - und der eine traegt
-                            // den Namen aus den Kontakten, der andere die Nummer. Am
-                            // 03.09.2026 genau so dagestanden: „New message to +43 650
-                            // 7654321" ueber „Tim Kicker".
-                            prefilled = prefilledAddress?.takeIf { nummer ->
-                                threads.none { PhoneNumbers.clean(it.address) == PhoneNumbers.clean(nummer) }
+                            // once the conversation exists, this row is a second entry for
+                            // the same person, one carrying the contact name and the other
+                            // the number.
+                            prefilled = prefilledAddress?.takeIf { number ->
+                                threads.none { PhoneNumbers.clean(it.address) == PhoneNumbers.clean(number) }
                             },
                             scrollButtons = config.behaviour.accessibility.scrollButtons,
                             onOpen = { openThread = it },
-                            onCompose = { nummer ->
+                            onCompose = { number ->
                                 val passend = threads.firstOrNull {
-                                    PhoneNumbers.clean(it.address) == PhoneNumbers.clean(nummer)
+                                    PhoneNumbers.clean(it.address) == PhoneNumbers.clean(number)
                                 }
                                 if (passend != null) openThread = passend.threadId
-                                else openAddress = nummer
+                                else openAddress = number
                             },
                         )
                     }
@@ -374,13 +352,13 @@ var granted by remember(resumes.intValue) { mutableStateOf(repository.hasReadPer
     }
 
     companion object {
-        /** Die Nummer, deren Unterhaltung aufgehen soll. Siehe [org.biglau.notify.SmsNotifications]. */
+        /** the number whose conversation should open. see [org.biglau.notify.SmsNotifications]. */
         const val EXTRA_ADDRESS = "biglau.sms.address"
 
-        /** Kommt die Nachricht als Vollbild-Meldung, darf sie ueber den Sperrbildschirm. */
+        /** as a full-screen notice the message may show over the lock screen. */
         const val EXTRA_FULL_SCREEN = "biglau.sms.fullscreen"
 
-        /** Vorbelegter Text im Eingabefeld. Siehe [org.biglau.sms.RespondViaMessageService]. */
+        /** prefilled text in the field. see [org.biglau.sms.RespondViaMessageService]. */
         const val EXTRA_BODY = "biglau.sms.body"
     }
 
@@ -389,16 +367,14 @@ var granted by remember(resumes.intValue) { mutableStateOf(repository.hasReadPer
         val manager = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
             getSystemService(SmsManager::class.java)
         } else {
-            // Wie in `Sos.smsManager`: vor Android 12 gibt es nur `getDefault()`.
+            // as in `Sos.smsManager`: before android 12 there is only `getDefault()`.
             @Suppress("DEPRECATION")
             SmsManager.getDefault()
         }
-        // **Erst schreiben, dann senden.** Die Quittung des Netzes kommt Sekunden spaeter
-        // und muss sagen koennen, *welche* Nachricht nicht durchkam - dafuer braucht es die
-        // Zeile schon vorher. Mit der Rolle legt Android die gesendete Nachricht ohnehin
-        // nicht mehr selbst ab; ohne diese Zeilen zeigte die Unterhaltung nur noch die
-        // Gegenseite.
-        val zeile = if (SmsDelivery.mayWrite(Telephony.Sms.getDefaultSmsPackage(this), packageName)) {
+        // write first, then send: the network receipt arrives seconds later and must say
+        // *which* message failed, which needs the row to exist already. with the role,
+        // android no longer stores the sent message itself.
+        val row = if (SmsDelivery.mayWrite(Telephony.Sms.getDefaultSmsPackage(this), packageName)) {
             runCatching {
                 contentResolver.insert(
                     Telephony.Sms.Sent.CONTENT_URI,
@@ -418,9 +394,8 @@ var granted by remember(resumes.intValue) { mutableStateOf(repository.hasReadPer
             null
         }
 
-        // Die Quittung. Ohne sie hiess „gesendet" nur, dass der Aufruf nicht geworfen hat -
-        // siehe `SmsSentReceiver`.
-        val quittung = zeile?.let {
+        // the receipt: without it, sent only meant the call had not thrown.
+        val receipt = row?.let {
             PendingIntent.getBroadcast(
                 this,
                 it.hashCode(),
@@ -432,17 +407,16 @@ var granted by remember(resumes.intValue) { mutableStateOf(repository.hasReadPer
         val sent = runCatching {
             val parts = manager.divideMessage(body)
             if (parts.size > 1) {
-                // Eine Quittung je Teil - schon ein einzelner abgelehnter Teil macht die
-                // Nachricht unvollstaendig, und das ist ein Fehlschlag.
+                // one receipt per part: a single refused part makes the message incomplete.
                 manager.sendMultipartTextMessage(
                     address,
                     null,
                     parts,
-                    ArrayList(List(parts.size) { quittung }),
+                    ArrayList(List(parts.size) { receipt }),
                     null,
                 )
             } else {
-                manager.sendTextMessage(address, null, body, quittung, null)
+                manager.sendTextMessage(address, null, body, receipt, null)
             }
             true
         }.getOrDefault(false)
@@ -452,17 +426,16 @@ var granted by remember(resumes.intValue) { mutableStateOf(repository.hasReadPer
             onSent()
             Notice.show(this, R.string.sms_sent)
         } else {
-            // Der Aufruf selbst ist gescheitert - dann steht die Zeile umsonst da.
-            zeile?.let { runCatching { contentResolver.delete(it, null, null) } }
+            // the call itself failed, so the row stands there for nothing.
+            row?.let { runCatching { contentResolver.delete(it, null, null) } }
             SmsRepository.notifyChanged()
-            // `runCatching` schluckt jeden Grund. Der eine, den der Nutzer beheben kann,
-            // ist die fehlende Berechtigung - dann wirft `sendTextMessage` eine
-            // `SecurityException`. „Konnte nicht gesendet werden" waere hier die halbe
-            // Antwort: es sagt nicht, dass es an etwas liegt, das man erteilen kann.
+            // `runCatching` swallows every reason. the one that can be fixed is the missing
+            // permission, where `sendTextMessage` throws a `SecurityException`; could not be
+            // sent would be half an answer, since it does not say it hangs on something
+            // grantable.
             //
-            // **Bewusst kein Berechtigungsdialog von hier aus.** Diese Stelle sendet; sie
-            // soll nicht auch noch das Recht dazu beschaffen. Der Satz nennt den Ort, der
-            // Mensch entscheidet.
+            // no permission dialog from here: this place sends, it should not also procure
+            // the right to. the sentence names the place, the person decides.
             val darfSenden = ContextCompat.checkSelfPermission(
                 this,
                 Manifest.permission.SEND_SMS,
@@ -478,8 +451,8 @@ var granted by remember(resumes.intValue) { mutableStateOf(repository.hasReadPer
 @Composable
 private fun ThreadList(
     threads: List<SmsThread>,
-    /** Wird noch gelesen? Dann ist „noch keine Nachrichten" nicht wahr, nur noch nicht da. */
-    laedt: Boolean,
+    /** still reading? then no messages yet is not true, only not there yet. */
+    loading: Boolean,
     prefilled: String?,
     onCompose: (String) -> Unit,
     scrollButtons: Boolean,
@@ -488,11 +461,9 @@ private fun ThreadList(
     val palette = LocalBigPalette.current
     val locale = currentLocale()
     val format = remember(locale) {
-        // Bestandteile statt festem Muster - siehe bestDatePattern. Das "j" ist die
-        // Stunde **in der Schreibweise der Sprache**: ein "H" erzwaengt 24 Stunden, und
-        // genau das stand hier bis zum 03.09.2026. Auf diesem Telefon, das auf
-        // 12 Stunden steht, hiess dieselbe Minute in der Kopfzeile "5:39 PM" und in der
-        // Liste "17:39".
+        // parts instead of a fixed pattern; see bestDatePattern. "j" is the hour *in the
+        // language's own spelling*, while "H" forces 24 hours: the same minute read
+        // "5:39 PM" in the header and "17:39" in the list.
         SimpleDateFormat(bestDatePattern("EEEdMMMjmm", locale), locale)
     }
     val listState = rememberLazyListState()
@@ -516,7 +487,7 @@ private fun ThreadList(
             if (threads.isEmpty()) {
                 item {
                     Text(
-                        text = stringResource(if (laedt) R.string.sms_loading else R.string.sms_empty),
+                        text = stringResource(if (loading) R.string.sms_loading else R.string.sms_empty),
                         color = palette.onBackground,
                         fontSize = bigSp(17f),
                         modifier = Modifier.padding(horizontal = 4.dp, vertical = 16.dp),
@@ -527,15 +498,14 @@ private fun ThreadList(
                 BigRow(
                     label = thread.titleOr(stringResource(R.string.call_unknown)) +
                         if (thread.hasUnread) " (${thread.unreadCount})" else "",
-                    // Ohne Klammerzahl: sie steht als Satz schon im Zustand darunter.
+                    // without the bracketed count: it stands as a sentence in the state.
                     labelSpeech = thread.titleOr(stringResource(R.string.call_unknown)),
                     secondary = SmsThreads.preview(thread.lastMessage) + " · " +
                         format.format(Date(thread.lastMessage.timestamp)),
                     secondaryMaxLines = 1,
                     surface = if (thread.hasUnread) palette.surfaceAccent else palette.surfaceDefault,
-                    // Am Namen hing ein blosses "(2)". Vorgelesen ist das eine Zahl ohne
-                    // Sache; die Kachel auf dem Startbildschirm sagte laengst "2 sind
-                    // ungelesen" und nimmt denselben Text.
+                    // a bare (2) hung on the name, which read aloud is a number without a
+                    // thing. the home screen tile long said two are unread.
                     state = if (thread.hasUnread) {
                         pluralStringResource(
                             R.plurals.a11y_unread,
@@ -568,31 +538,27 @@ private fun Conversation(
     sendButtonAbove: Boolean,
     sendButtonLarge: Boolean,
 ) {
-    // Die Rueckfrage lebt hier und nicht in der Konfiguration: sie gilt fuer diesen einen
-    // Entwurf. Wer den Text aendert, faengt von vorn an.
-    var fragtNach by remember(draft) { mutableStateOf(false) }
+    // the confirmation lives here and not in the config: it holds for this one draft.
+    var asking by remember(draft) { mutableStateOf(false) }
     val skala = ConversationText.scale(conversationScale)
     val palette = LocalBigPalette.current
     val locale = currentLocale()
-    // Dieselbe Uhr wie oben in der Kopfzeile. Hier stand bis zum 03.09.2026 fest "HH:mm" -
-    // auf einem Telefon in 12-Stunden-Anzeige stand oben "2:30 PM" und hier "14:30".
+    // the same clock as in the header: a fixed "HH:mm" here put "2:30 PM" above and
+    // "14:30" below on a phone set to twelve hours.
     val zwoelfStunden = !android.text.format.DateFormat.is24HourFormat(LocalContext.current)
     val uhrFormat = remember(locale, zwoelfStunden) {
         SimpleDateFormat(ClockFormat.timePattern(!zwoelfStunden), locale)
     }
     val tagFormat = remember(locale) { SimpleDateFormat(bestDatePattern("EEEEdMMMM", locale), locale) }
-    // Bei offener Tastatur faellt die Ueberschrift weg.
-    //
-    // Am 04.09.2026 bei 200 % Systemschrift gemessen: Ueberschrift 63, Eingabefeld 92,
-    // Senden-Zeile 90 Bildpunkte - zusammen mehr, als ueber der Tastatur uebrig bleibt.
-    // Der Senden-Knopf war zur Haelfte verdeckt und das Wort nicht mehr zu lesen. Von den
-    // drei Zeilen ist die Ueberschrift die entbehrlichste: mit wem man schreibt, hat man
-    // gerade selbst ausgewaehlt, und die Nachrichten darueber stehen ohnehin da.
+    // the heading goes while the keyboard is open. measured at 200 % system font: heading
+    // 63, field 92, send row 90 pixels, together more than is left above the keyboard, and
+    // the send button was half covered. of the three the heading is the most dispensable:
+    // one has just chosen whom to write to.
     val tastaturOffen = WindowInsets.ime.getBottom(LocalDensity.current) > 0
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         if (!tastaturOffen) BigHeading(title)
-        // Eine Unterhaltung faengt unten an. Oeffnete sie oben, muesste man erst zur
-        // neuesten Nachricht scrollen - und die ist der Grund, aus dem man sie oeffnet.
+        // a conversation starts at the bottom: opening at the top would mean scrolling to
+        // the newest message, which is the reason for opening it.
         val listState = rememberLazyListState()
         LaunchedEffect(messages.size) {
             if (messages.isNotEmpty()) listState.scrollToItem(messages.lastIndex)
@@ -603,11 +569,9 @@ private fun Conversation(
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             if (!isDefaultApp) {
-                // Ehrlich sein statt eine Nachricht zu zeigen, die nach dem Neustart weg
-                // ist - **aber im Blaettern und nicht darueber**: fest gesetzt nahm der
-                // Hinweis bei 200 % Textgroesse fuenf Zeilen, und von der Unterhaltung
-                // blieb ein Streifen von zwei Bildpunkten. Am Emulator gesehen. Der
-                // Hinweis gehoert zur Unterhaltung, nicht vor sie.
+                // honest instead of showing a message that is gone after a restart, but
+                // *inside* the scroll and not above it: fixed, the hint took five lines at
+                // 200 % and left two pixels of the conversation.
                 item {
                     Text(
                         text = stringResource(R.string.sms_not_default),
@@ -618,7 +582,7 @@ private fun Conversation(
                 }
             }
             itemsIndexed(messages, key = { _, message -> message.id }) { index, message ->
-                // Der Tag ueber der ersten Nachricht des Tages - nicht an jeder Zeile.
+                // the day over the first message of the day, not on every row.
                 if (MessageStamps.startsNewDay(messages.getOrNull(index - 1)?.timestamp, message.timestamp)) {
                     Text(
                         text = tagFormat.format(Date(message.timestamp)),
@@ -628,10 +592,9 @@ private fun Conversation(
                         modifier = Modifier.fillMaxWidth().padding(top = 8.dp, bottom = 4.dp),
                     )
                 }
-                // Wer eine Nachricht geschrieben hat, steht in der Blase nirgends: sie
-                // haengt links oder rechts und hat die eine oder die andere Farbe. Beides
-                // ist beim Vorlesen nichts - man hoerte eine Reihe von Saetzen ohne
-                // Absender, und "bin unterwegs" ist ohne Absender das Gegenteil.
+                // who wrote a message stands nowhere in the bubble: it hangs left or right
+                // and carries one colour or the other, and read aloud both are nothing. "on
+                // my way" without a sender is the opposite of itself.
                 val wer = stringResource(
                     if (message.incoming) R.string.a11y_message_in else R.string.a11y_message_out,
                 )
@@ -653,10 +616,8 @@ private fun Conversation(
                         .clip(RoundedCornerShape(LocalCornerRadius.current))
                         .background(
                             when {
-                                // Eine nicht angekommene Nachricht darf nicht aussehen wie
-                                // eine angekommene. Sie steht in derselben Reihe, an
-                                // derselben Stelle - der einzige Unterschied waere sonst,
-                                // dass keine Antwort kommt.
+                                // a message that did not arrive must not look like one that
+                                // did: otherwise the only difference is that no answer comes.
                                 message.failed -> palette.surfaceDanger.fill
                                 message.incoming -> palette.emptyTile
                                 else -> palette.surfaceAccent.fill
@@ -674,10 +635,9 @@ private fun Conversation(
                             },
                             fontSize = dpSp(18f * skala),
                         )
-                        // Die Uhrzeit unter jeder Nachricht: ob sie von eben ist oder von
-                        // letzter Woche, ist bei "bin unterwegs" der ganze Unterschied.
-                        // Und bei einer, die nicht hinausging, steht das statt der Uhrzeit:
-                        // die Uhrzeit einer Nachricht, die es nie gab, sagt nichts.
+                        // the time under each message: just now or last week is the whole
+                        // difference for "on my way". for one that never went out, that
+                        // stands instead: the time of a message that never was says nothing.
                         Text(
                             text = if (message.failed) {
                                 stringResource(R.string.sms_not_sent)
@@ -705,13 +665,13 @@ private fun Conversation(
         }
         val knopf = @Composable {
             BigRow(
-                label = if (fragtNach) {
+                label = if (asking) {
                     stringResource(R.string.sms_send_confirm)
                 } else {
                     stringResource(R.string.sms_send)
                 },
                 secondary = when {
-                    fragtNach -> stringResource(R.string.sms_send_confirm_hint)
+                    asking -> stringResource(R.string.sms_send_confirm_hint)
                     draft.isNotBlank() -> pluralStringResource(
                         R.plurals.sms_parts,
                         SosMessage.partsNeeded(draft),
@@ -720,16 +680,13 @@ private fun Conversation(
                     else -> null
                 },
                 icon = Icons.AutoMirrored.Filled.Send,
-                // Solange nichts dasteht, ist der Knopf keiner.
+                // with nothing written, this is not a button.
                 //
-                // `send` weigert sich bei einer leeren Nachricht - richtig, aber bis zum
-                // 04.09.2026 sah man das nicht: der Knopf stand in voller Akzentfarbe da,
-                // man tippte, und es geschah **schweigend nichts**. Genau der Fall, den
-                // `LaunchFailureTest` fuer die Kacheln festhaelt. `BigRow` sagt es in
-                // seiner eigenen Beschreibung: eine Zeile mit leerer Handlung sieht aus wie
-                // ein Knopf, schluckt den Tipp und wird als Schaltflaeche angesagt.
+                // `send` refuses an empty message, which was right but invisible: the button
+                // stood in full accent colour, one tapped, and *nothing happened silently*.
+                // see `BigRow` on rows with an empty action.
                 surface = when {
-                    fragtNach -> palette.surfaceDanger
+                    asking -> palette.surfaceDanger
                     draft.isBlank() -> palette.surfaceDefault
                     else -> palette.surfaceAccent
                 },
@@ -738,13 +695,12 @@ private fun Conversation(
                     null
                 } else {
                     {
-                        // Erst fragen, dann senden. Eine Rueckfrage zu einer leeren
-                        // Nachricht waere eine Frage ohne Folge - die gibt es hier nicht
-                        // mehr, weil ohne Text gar nicht getippt werden kann.
-                        if (confirmBeforeSending && !fragtNach) {
-                            fragtNach = true
+                        // ask first, then send. a question about an empty message would be
+                        // one without a consequence, and cannot arise here.
+                        if (confirmBeforeSending && !asking) {
+                            asking = true
                         } else {
-                            fragtNach = false
+                            asking = false
                             onSend()
                         }
                     }

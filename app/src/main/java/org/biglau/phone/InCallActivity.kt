@@ -66,14 +66,14 @@ import org.biglau.ui.theme.BigLauTheme
 import org.biglau.ui.theme.LocalBigPalette
 
 /**
- * Die Gespraechsansicht.
+ * the call screen.
  *
- * Vollbild, ein Name so gross wie moeglich, und darunter Knoepfe, die eine ganze Zeile
- * einnehmen. Welche Knoepfe erscheinen, entscheidet [CallActions] - in dieser Datei steht
- * dazu keine einzige Bedingung, damit es geprueft bleibt.
+ * full screen, a name as large as possible, and buttons taking a whole row each. which
+ * buttons appear is decided by [CallActions]; not a single condition for it stands in this
+ * file, so it stays testable.
  *
- * Die Zurueck-Geste tut hier nichts: waehrend eines Anrufs versehentlich wegzuwischen und
- * dann das Auflegen nicht mehr zu finden, waere die schlimmste Art, diese App zu verlieren.
+ * the back gesture does nothing here: swiping away by accident during a call and then not
+ * finding hang up would be the worst way to lose this app.
  */
 class InCallActivity : BigLauActivity() {
 
@@ -86,7 +86,7 @@ class InCallActivity : BigLauActivity() {
             val config by store.config.collectAsStateWithLifecycle()
             val view by InCallRepository.call.collectAsStateWithLifecycle()
             var showKeypad by remember { mutableStateOf(false) }
-            // Nur mit Bluetooth erreichbar: sonst schaltet die Zeile direkt um.
+            // reachable only with bluetooth; otherwise the row toggles directly.
             var audioChoice by remember { mutableStateOf(false) }
             var now by remember { mutableStateOf(System.currentTimeMillis()) }
 
@@ -108,10 +108,9 @@ class InCallActivity : BigLauActivity() {
 
             BigLauTheme(
                 config.appearance.theme,
-                // Gedeckelt: dieser Bildschirm scrollt nicht, und die Knopfhoehe steht
-                // fest. Bei 200 % stand auf dem Knopf "Lautsprec…" - am Emulator gesehen.
-                // Die Ziffern der Tastatur und der Name des Anrufers sind ohnehin aus der
-                // Flaeche gerechnet und bleiben so gross, wie der Platz es zulaesst.
+                // capped: this screen does not scroll and the button height is fixed. at
+                // 200 % a button read "Lautsprec...". the keypad digits and the caller's
+                // name come from the area anyway.
                 cappedTextScale(config.appearance.textScale, INCALL_MAX_TEXT_SCALE),
                 haptics = config.behaviour.haptics,
                 font = config.appearance.font,
@@ -154,9 +153,9 @@ class InCallActivity : BigLauActivity() {
                         return@BigLauTheme
                     }
 
-                    // Bei geoeffneter Tastatur bleiben nur zwei Zeilen stehen, sonst
-                    // bleibt fuer die Ziffern nichts uebrig. Siehe CallActions.whileKeypad.
-                    val zeilen =
+                    // with the keypad open only two rows stay, or nothing is left for the
+                    // digits. see CallActions.whileKeypad.
+                    val rows =
                         if (showKeypad) CallActions.whileKeypad(current)
                         else CallActions.availableFor(current)
 
@@ -165,42 +164,40 @@ class InCallActivity : BigLauActivity() {
                             modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
                             horizontalAlignment = Alignment.CenterHorizontally,
                         ) {
-                            // Das Foto steht ueber dem Namen und nimmt nur, was uebrig
-                            // bleibt: CallerPhotoSize haelt fest, was Name, Zustand und
-                            // Knoepfe brauchen. Ein Foto, das den Annehmen-Knopf aus dem
-                            // Bild schiebt, waere auf genau diesem Bildschirm der
-                            // schlimmste Fehler.
-                            // Bei geoeffneter Tastatur gar kein Foto: den Platz braucht
-                            // die Tastatur, und ein Bild daneben hilft niemandem beim Tippen.
-                            val fotoHoehe =
+                            // the photo stands over the name and takes only what is left:
+                            // CallerPhotoSize holds what name, state and buttons need. a
+                            // photo that pushes the answer button off screen would be the
+                            // worst fault on exactly this screen. no photo with the keypad
+                            // open, where the room is needed for the digits.
+                            val photoHeight =
                                 if (showKeypad) 0f
                                 else CallerPhotoSize.heightDp(
                                     size = config.phone.callerPhoto,
                                     availableDp = LocalConfiguration.current.screenHeightDp
                                         .toFloat(),
-                                    buttons = zeilen.size,
+                                    buttons = rows.size,
                                     notice = current.otherName != null &&
                                         current.status == CallStatus.RINGING,
                                 )
-                            val foto = current.photoUri
+                            val photo = current.photoUri
                             val name = current.name?.takeIf { it.isNotBlank() }
-                            when (CallerPhotoSize.imageFor(fotoHoehe, foto, name)) {
+                            when (CallerPhotoSize.imageFor(photoHeight, photo, name)) {
                                 CallerPhotoSize.Image.NONE -> Unit
                                 CallerPhotoSize.Image.PHOTO -> AsyncImage(
-                                    model = foto,
+                                    model = photo,
                                     contentDescription = null,
                                     contentScale = ContentScale.Crop,
                                     modifier = Modifier
-                                        .height(fotoHoehe.dp)
+                                        .height(photoHeight.dp)
                                         .fillMaxWidth()
                                         .clip(RoundedCornerShape(LocalCornerRadius.current)),
                                 )
-                                // Kein Foto, aber ein Name: die Initialen, wie ueberall sonst
-                                // in der App. Begruendet in CallerPhotoSize.imageFor.
+                                // no photo but a name: the initials, as everywhere else.
+                                // reasoned in CallerPhotoSize.imageFor.
                                 CallerPhotoSize.Image.INITIALS -> ContactAvatar(
                                     name = name.orEmpty(),
                                     photoUri = null,
-                                    size = fotoHoehe.dp,
+                                    size = photoHeight.dp,
                                 )
                             }
                             Text(
@@ -217,17 +214,17 @@ class InCallActivity : BigLauActivity() {
                                     ?: stringResource(statusLabel(current.status)),
                                 color = palette.onBackground,
                                 fontSize = dpSp(20f),
-                                // Die Dauer laeuft im Sekundentakt - ohne Tabellenziffern
-                                // wackelt sie bei jeder Sekunde. PLAN.md 3.7.
+                                // the duration ticks every second and would wobble without
+                                // tabular figures. `PLAN.md` 3.7.
                                 style = tabularFigures(),
                             )
-                            // Waehrend eines Gespraechs klingelt es: ohne diese Zeile
-                            // stuende hier nur der neue Anrufer, und dass nebenan noch
-                            // jemand in der Leitung ist, waere nirgends zu sehen.
-                            val anderer = current.otherName
-                            if (anderer != null && current.status == CallStatus.RINGING) {
+                            // a second call while one is running: without this row only the
+                            // new caller would stand here and the one still on the line would
+                            // be nowhere to be seen.
+                            val other = current.otherName
+                            if (other != null && current.status == CallStatus.RINGING) {
                                 Text(
-                                    text = stringResource(R.string.incall_other_active, anderer),
+                                    text = stringResource(R.string.incall_other_active, other),
                                     color = palette.onBackground,
                                     fontSize = dpSp(18f),
                                     textAlign = TextAlign.Center,
@@ -244,12 +241,12 @@ class InCallActivity : BigLauActivity() {
                                 )
                             }
                         } else {
-                            // Leerraum ueber den Knoepfen: er verhindert, dass das Ohr
-                            // waehrend des Gespraechs etwas ausloest.
+                            // empty space over the buttons keeps the ear from triggering
+                            // something during the call.
                             Box(Modifier.weight(1f))
                         }
 
-                        zeilen.forEach { action ->
+                        rows.forEach { action ->
                             ActionRow(
                                 action = action,
                                 keypadOpen = showKeypad,
@@ -273,11 +270,10 @@ class InCallActivity : BigLauActivity() {
         toggleKeypad: () -> Unit,
         openAudio: () -> Unit = {},
     ) {
-        // Jede dieser Anweisungen kann fehlschlagen - der Anruf ist inzwischen weg, das
-        // Telefonsystem hat ihn uns entzogen. `InCallRepository` faengt das ab und gibt ein
-        // `Result` zurueck; wer es wegwirft, laesst einen toten Knopf stehen. Und zwar den
-        // Knopf „Annehmen", waehrend es klingelt.
-        val ausgang: Result<*>? = when (action) {
+        // any of these can fail: the call is gone by now, telecom took it from us.
+        // `InCallRepository` catches that and returns a `Result`; throwing it away leaves a
+        // dead button standing, and that button is answer, while it rings.
+        val outcome: Result<*>? = when (action) {
             CallAction.ANSWER -> InCallRepository.answer()
             CallAction.REJECT -> InCallRepository.reject()
             CallAction.HANG_UP -> InCallRepository.hangUp()
@@ -291,7 +287,7 @@ class InCallActivity : BigLauActivity() {
             CallAction.AUDIO -> { openAudio(); null }
             CallAction.KEYPAD -> { toggleKeypad(); null }
         }
-        if (ausgang?.isFailure == true) Notice.show(this, R.string.call_action_failed)
+        if (outcome?.isFailure == true) Notice.show(this, R.string.call_action_failed)
     }
 }
 
@@ -312,8 +308,8 @@ private fun ActionRow(
         label = stringResource(
             when {
                 action == CallAction.KEYPAD && keypadOpen -> R.string.incall_keypad_hide
-                // Die Tonzeile sagt, wohin der Ton gerade geht - sonst muesste man
-                // sie antippen, um es zu erfahren.
+                // the audio row says where the sound goes; otherwise one would have to tap
+                // it to find out.
                 action == CallAction.AUDIO -> audioLabel(route)
                 else -> actionLabel(action)
             },
@@ -341,7 +337,7 @@ private fun ActionRow(
     )
 }
 
-/** Bis hierher wirkt die eingestellte Textgroesse im Gespraech. Siehe cappedTextScale. */
+/** the text size setting acts on the call screen only up to here. see cappedTextScale. */
 const val INCALL_MAX_TEXT_SCALE = 1.25f
 
 private fun actionLabel(action: CallAction) = when (action) {
@@ -355,7 +351,7 @@ private fun actionLabel(action: CallAction) = when (action) {
     CallAction.HOLD -> R.string.incall_hold
     CallAction.UNHOLD -> R.string.incall_unhold
     CallAction.SWITCH -> R.string.incall_switch
-    // Die Beschriftung haengt am Weg, nicht an der Aktion - siehe audioLabel.
+    // the label hangs on the route, not on the action. see audioLabel.
     CallAction.AUDIO -> R.string.call_audio
     CallAction.KEYPAD -> R.string.incall_keypad
 }
@@ -369,11 +365,10 @@ private fun statusLabel(status: CallStatus) = when (status) {
 }
 
 /**
- * Wohin der Ton geht, als Beschriftung der Knopfzeile im Gespraech.
+ * where the sound goes, as the label of the button row.
  *
- * Mit "Ton: " davor, weil die Zeile zwischen "Stumm" und "Halten" steht und sonst nicht zu
- * erkennen waere, dass sie eine Auskunft ist und keine Handlung. In der Auswahl selbst
- * faellt das Praefix weg - dort steht die Frage schon in der Ueberschrift.
+ * prefixed, because the row sits between mute and hold and would otherwise not read as an
+ * answer rather than an action. inside the picker the prefix falls away.
  */
 private fun audioLabel(route: AudioRoute): Int = when (route) {
     AudioRoute.EARPIECE -> R.string.incall_audio_earpiece
@@ -382,11 +377,11 @@ private fun audioLabel(route: AudioRoute): Int = when (route) {
 }
 
 /**
- * Die Auswahl, wohin der Ton geht.
+ * the picker for where the sound goes.
  *
- * Erscheint nur, wenn ein Bluetooth-Geraet verbunden ist: mit drei Moeglichkeiten reicht
- * ein Umschalter nicht, und eine vierte Knopfzeile passt auf drei Zoll nicht mehr dazu.
- * Der derzeitige Weg ist farbig hervorgehoben, damit die Auswahl auch eine Auskunft ist.
+ * only with a bluetooth device connected: a toggle does not cover three choices, and a
+ * fourth button row does not fit three inches. the current route is highlighted, so the
+ * picker is also an answer.
  */
 @Composable
 private fun AudioChoice(

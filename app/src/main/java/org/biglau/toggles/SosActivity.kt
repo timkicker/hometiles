@@ -51,12 +51,10 @@ import org.biglau.ui.theme.BigLauTheme
 import org.biglau.ui.theme.LocalBigPalette
 
 /**
- * Der Notruf-Ablauf.
+ * the emergency sequence.
  *
- * Der Countdown ist kein Schmuck: eine Notruf-Kachel wird auch versehentlich getroffen, und
- * eine SMS an drei Menschen laesst sich nicht zurueckholen. Der Abbruch ist deshalb die
- * groesste Flaeche auf dem Bildschirm - im Ernstfall drueckt man nicht daneben, und im
- * Versehensfall trifft man ihn sofort.
+ * the countdown is not ornament: an sos tile gets hit by accident, and an sms to three
+ * people cannot be recalled. cancel is therefore the largest area on the screen.
  */
 class SosActivity : BigLauActivity() {
 
@@ -65,10 +63,9 @@ class SosActivity : BigLauActivity() {
         enableEdgeToEdge()
         val store = ConfigStore.get(this)
 
-        // Probe: derselbe Ablauf, aber am Ende geht nichts hinaus. Gedacht zum Zeigen -
-        // wer den Notruf einrichtet, will ihn dem Menschen erklaeren koennen, der ihn
-        // spaeter im Ernst drueckt. Und geprueft werden kann der Bildschirm damit auch.
-        val probe = intent?.getBooleanExtra(EXTRA_PREVIEW, false) == true
+        // preview: the same sequence, but nothing goes out at the end. for showing it to
+        // the person who will one day press it for real.
+        val preview = intent?.getBooleanExtra(EXTRA_PREVIEW, false) == true
 
         setContent {
             val config by store.config.collectAsStateWithLifecycle()
@@ -76,7 +73,7 @@ class SosActivity : BigLauActivity() {
             var startedAt by remember { mutableStateOf(System.currentTimeMillis()) }
             var remaining by remember { mutableStateOf(SosCountdown.clamp(sos.countdownSeconds)) }
             var result by remember { mutableStateOf<String?>(null) }
-            // Nur in der Probe: der Text, der hinausginge, und ob ein Standort drin steht.
+            // preview only: the text that would go out, and whether a location is in it.
             var previewText by remember { mutableStateOf<String?>(null) }
             var previewLocation by remember { mutableStateOf(false) }
 
@@ -86,52 +83,45 @@ class SosActivity : BigLauActivity() {
 
             val configured = SosCountdown.isConfigured(sos.numbers)
 
-            // Der Alarm hoert auf, sobald dieser Bildschirm zu ist. Ein Ton, den man nur
-            // durch Neustart losgeworden waere, macht aus dem Notruf ein Aergernis.
-            // Waehrend der Countdown laeuft, sucht das Telefon nach einer frischen
-            // Position - die zuletzt bekannte ist oft Stunden alt. Siehe SosLocation.
-            val ortung = remember { SosLocation(this@SosActivity) }
+            // the alarm stops as soon as this screen closes: a sound one could only lose by
+            // restarting turns the emergency call into a nuisance. while the countdown runs
+            // the phone looks for a fresh position; the last known one is often hours old.
+            val locator = remember { SosLocation(this@SosActivity) }
             DisposableEffect(Unit) {
-                if (sos.sendLocation) ortung.start()
+                if (sos.sendLocation) locator.start()
                 onDispose {
                     SosAlarm.stop(this@SosActivity)
-                    ortung.stop()
+                    locator.stop()
                 }
             }
 
-            LaunchedEffect(configured, probe) {
-                // In der Probe laeuft der Countdown auch ohne eingetragene Kontakte: sie
-                // soll den Ablauf zeigen, und wer sie startet, hat den Notruf gerade erst
-                // vor sich. Am Ende steht dann trotzdem, dass ohne Kontakte auch im
-                // Ernstfall nichts hinausginge.
-                if (!configured && !probe) return@LaunchedEffect
+            LaunchedEffect(configured, preview) {
+                // in the preview the countdown runs without contacts too: it is there to
+                // show the sequence. the end still says that nothing would go out.
+                if (!configured && !preview) return@LaunchedEffect
                 startedAt = System.currentTimeMillis()
                 while (true) {
                     remaining = SosCountdown.remaining(startedAt, System.currentTimeMillis(), sos.countdownSeconds)
                     if (remaining == 0) break
                     delay(200)
                 }
-                if (probe) {
-                    // Kein Sos.send: eine Probe, die sendet, ist keine. Gezeigt wird aber,
-                    // **was** hinausginge - sonst liesse sich der Text nur herausfinden,
-                    // indem man ihn abschickt.
-                    val (text, mitStandort) = Sos.compose(this@SosActivity, sos)
+                if (preview) {
+                    // no Sos.send: a preview that sends is none. what *would* go out is
+                    // shown, or the text could only be learnt by sending it.
+                    val (text, withLocation) = Sos.compose(this@SosActivity, sos)
                     result = listOfNotNull(
                         getString(R.string.sos_preview_done),
                         getString(R.string.sos_not_configured).takeIf { !configured },
                     ).joinToString(" ")
                     previewText = text
-                    previewLocation = mitStandort
+                    previewLocation = withLocation
                     return@LaunchedEffect
                 }
-                // Erst jetzt, nicht schon waehrend des Countdowns: ein abgebrochener
-                // Fehlalarm bleibt still. Siehe SosAlarm.
+                // only now, not during the countdown: a cancelled false alarm stays silent.
                 //
-                // Und **nach** der Probe, nicht davor: die Probe sagt von sich „derselbe
-                // Ablauf wie im Ernstfall, es geht nichts hinaus" - und startete dabei die
-                // Sirene, die lauteste Sache dieser App, an Bitte-nicht-stoeren vorbei. Wer
-                // den Alarm hoeren will, hat dafuer in den Einstellungen „Jetzt ausprobieren"
-                // samt Stopp-Knopf; eine Probe, die das Haus weckt, ist keine.
+                // and *after* the preview returns, not before: the preview promises nothing
+                // goes out and was starting the siren, the loudest thing in this app, past
+                // do-not-disturb. the settings have a try-it-now button with a stop.
                 SosAlarm.start(this@SosActivity, sos)
                 val outcome = Sos.send(this@SosActivity, sos)
                 result = when {
@@ -141,8 +131,8 @@ class SosActivity : BigLauActivity() {
                         resources.getQuantityString(R.plurals.sos_sent_plain_plural, outcome.sent, outcome.sent)
                     else -> getString(Sos.failureText(outcome.failure))
                 }
-                // Nur fragen, wenn die Erlaubnis wirklich fehlt. Nach einem Netzfehler
-                // danach zu fragen, schiebt die Schuld auf etwas, das gar nicht fehlte.
+                // ask only when the permission is really missing: asking after a network
+                // failure blames something that was not absent.
                 if (outcome.failure == SosFailure.NO_PERMISSION) {
                     askSms.launch(Manifest.permission.SEND_SMS)
                 }
@@ -168,13 +158,13 @@ class SosActivity : BigLauActivity() {
                         .padding(horizontal = 8.dp),
                 ) {
                     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        // In der Probe heisst der Bildschirm anders - sonst weiss niemand,
-                        // der ihn zufaellig sieht, ob es gerade ernst ist.
+                        // the preview carries another title, or nobody seeing the screen by
+                        // chance knows whether this is real.
                         BigHeading(
-                            stringResource(if (probe) R.string.sos_preview_title else R.string.sos),
+                            stringResource(if (preview) R.string.sos_preview_title else R.string.sos),
                         )
                         when {
-                            !configured && !probe -> {
+                            !configured && !preview -> {
                                 Text(
                                     text = stringResource(R.string.sos_not_configured),
                                     color = palette.onBackground,
@@ -193,10 +183,8 @@ class SosActivity : BigLauActivity() {
                                     fontWeight = FontWeight.Bold,
                                     modifier = Modifier.padding(horizontal = 4.dp),
                                 )
-                                // Der Text, der hinausginge - Wort fuer Wort, mit dem
-                                // Kartenlink, wenn ein Standort da ist. Wer den Notruf fuer
-                                // jemanden einrichtet, soll ihn lesen koennen, bevor er im
-                                // Ernstfall bei jemand anderem ankommt.
+                                // the text that would go out, word for word, with the map
+                                // link if there is a location.
                                 previewText?.let { text ->
                                     Text(
                                         text = stringResource(
@@ -218,26 +206,22 @@ class SosActivity : BigLauActivity() {
                                             .padding(horizontal = 4.dp),
                                     )
                                 }
-                                // Wer die Probe macht und noch keine Kontakte hat, liest
-                                // hier denselben Satz - und stand bis zum 3.9.2026 ohne Weg
-                                // dorthin da, ausgerechnet an der Stelle, an der jemand den
-                                // Notruf gerade einrichtet.
+                                // the preview without contacts reads the same sentence, at
+                                // exactly the moment someone is setting the sos up.
                                 if (!configured) NotrufEinrichtenZeile()
-                                // PLAN.md 4.8: "Danach ein Anruf-Knopf, kein automatischer
-                                // Anruf." Der Satz "Es konnte nichts gesendet werden" war
-                                // bis zum 03.09.2026 das Ende des Bildschirms - im
-                                // schlimmsten Fall der ganzen App. `Intents.dial` oeffnet
-                                // die Waehltastatur mit der Nummer und waehlt **nicht**:
-                                // ein Tipp entfernt, und nie von selbst. In der Probe steht
-                                // der Knopf nicht, dort ist nichts passiert.
-                                if (!probe && configured) {
-                                    sos.numbers.firstOrNull()?.let { nummer ->
+                                // `PLAN.md` 4.8: a call button afterwards, never an
+                                // automatic call. nothing could be sent used to be the end of
+                                // the screen. `Intents.dial` opens the keypad with the number
+                                // and does not dial: one tap away, never by itself. no button
+                                // in the preview, where nothing happened.
+                                if (!preview && configured) {
+                                    sos.numbers.firstOrNull()?.let { number ->
                                         BigRow(
-                                            label = stringResource(R.string.sos_call_now, PhoneNumbers.forDisplay(nummer)),
+                                            label = stringResource(R.string.sos_call_now, PhoneNumbers.forDisplay(number)),
                                             secondary = stringResource(R.string.sos_call_hint),
                                             icon = Icons.Filled.Call,
                                             surface = palette.surfaceAccent,
-                                            onClick = { Intents.dial(this@SosActivity, nummer) },
+                                            onClick = { Intents.dial(this@SosActivity, number) },
                                         )
                                     }
                                 }
@@ -246,10 +230,9 @@ class SosActivity : BigLauActivity() {
 
                             else -> {
                                 Text(
-                                    // In der Probe steht hier, dass nichts hinausgeht -
-                                    // "Wird an 0 Kontakte gesendet" waere sonst der Satz,
-                                    // und der ist weder wahr noch verstaendlich.
-                                    text = if (probe) {
+                                    // the preview says nothing goes out: sending to 0
+                                    // contacts is neither true nor understandable.
+                                    text = if (preview) {
                                         stringResource(R.string.sos_preview_hint)
                                     } else {
                                         pluralStringResource(
@@ -288,19 +271,16 @@ class SosActivity : BigLauActivity() {
     }
 
     companion object {
-        /** Probe: derselbe Ablauf, aber es geht nichts hinaus. */
+        /** preview: the same sequence, but nothing goes out. */
         const val EXTRA_PREVIEW = "biglau.sos.preview"
     }
 
     /**
-     * Der Weg dorthin statt der Wegbeschreibung: wer den SOS-Knopf drueckt, will nicht
-     * lesen, wo etwas einzutragen waere. Dieselbe Regel wie bei der Anrufliste, die zu den
-     * Anrufarten fuehrt.
+     * the way there instead of directions to it: whoever pressed the sos button does not
+     * want to read where something would have to be entered.
      *
-     * Steht als eigene Funktion da, weil beide Zweige sie brauchen - der Ernstfall ohne
-     * Kontakte und die Probe ohne Kontakte. Zweimal hingeschrieben waere es zweimal zu
-     * pflegen, und `SlopRulesTest` haette es ohnehin gemeldet: zwei gleiche Symbole in
-     * einer Funktion.
+     * a function of its own because both branches need it, the real case without contacts
+     * and the preview without contacts.
      */
     @Composable
     private fun NotrufEinrichtenZeile() {

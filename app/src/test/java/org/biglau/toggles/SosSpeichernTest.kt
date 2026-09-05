@@ -31,8 +31,8 @@ class SosSpeichernTest {
     @Test
     fun `ohne aenderung sind beide knoepfe still`() {
         listOf(
-            "geaendert" to "die Nummern",
-            "nachrichtGeaendert" to "die Nachricht",
+            "changed" to "die Nummern",
+            "messageChanged" to "die Nachricht",
         ).forEach { (kennzeichen, was) ->
             assertTrue(
                 "Der Knopf fuer $was traegt die Akzentfarbe auch ohne Aenderung",
@@ -49,13 +49,13 @@ class SosSpeichernTest {
     fun `die rueckmeldung unterscheidet den leeren fall`() {
         val speichern = Quelltext.ausschnitt(
             quelle,
-            von = "val genommen = SosNumbers.parse(numbersText)",
+            von = "val taken = SosNumbers.parse(numbersText)",
             bis = "\n                    }",
         )
         assertTrue(
             "Die Meldung nach dem Speichern zaehlt nicht nach, was uebernommen wurde:\n" +
                 speichern,
-            "genommen.isEmpty()" in speichern && "sos_numbers_cleared" in speichern,
+            "taken.isEmpty()" in speichern && "sos_numbers_cleared" in speichern,
         )
         assertTrue(
             "Bei uebernommenen Nummern fehlt die Mehrzahlform",

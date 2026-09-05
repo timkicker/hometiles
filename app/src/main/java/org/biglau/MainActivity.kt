@@ -131,40 +131,34 @@ class MainActivity : BigLauActivity() {
     }
 
     /**
-     * Der Launcher laeuft als singleTask - wer ihn aus den Einstellungen heraus startet, landet
-     * in onNewIntent statt in onCreate. Der Wunsch muss deshalb hier liegen und nicht im Intent,
-     * sonst kaeme man ueber die Einstellungen nie in den Bearbeitungsmodus.
+     * the launcher runs as singleTask, so starting it from the settings lands in onNewIntent
+     * and not in onCreate. the wish has to live here and not in the intent, or the settings
+     * would never reach edit mode.
      */
     private val editModeRequest = mutableStateOf(false)
 
     /**
-     * Welcher Screen gerade zu sehen ist - `null` heisst "der Startbildschirm, wie er in der
-     * Konfiguration steht".
+     * which screen is showing; `null` means the home screen as the config has it.
      *
-     * Bewusst hier und nicht als `rememberSaveable` in der Komposition: die Activity laeuft
-     * als singleTask und wird nicht neu gebaut. Ein gemerkter Anfangswert blieb deshalb
-     * stehen, wenn der Nutzer in den Einstellungen einen anderen Startbildschirm waehlte -
-     * er tippte "Zum Startbildschirm machen", ging heim und sah den alten. Und die
-     * Heim-Geste soll aus einem Nebenscreen herausfuehren, nicht nur die App wiederholen.
+     * here and not as a `rememberSaveable`: the activity runs as singleTask and is not
+     * rebuilt, so a remembered initial value stayed put when another home screen was chosen.
+     * and the home gesture should lead out of a side screen.
      */
     private val currentScreen = mutableStateOf<String?>(null)
 
-    /** Steht die Erklaerung zur Leseberechtigung gerade offen? */
+    /** is the explainer for the read permission open right now? */
     private val phoneStateAsked = mutableStateOf(false)
 
     /**
-     * Hat der Nutzer die Empfangs-Berechtigung schon einmal abgelehnt, und fragt Android
-     * noch?
+     * has the signal permission been refused once, and does android still ask?
      *
-     * Nach der **zweiten** Ablehnung fragt es nicht mehr: der Aufruf kehrt sofort back,
-     * ohne dass etwas zu sehen waere. Am 04.09.2026 am Emulator nachgestellt - "Jetzt
-     * fragen" angetippt, und der Bildschirm schloss sich einfach. Die Kachel sagte weiter
-     * "Antippen zum Erlauben", und so ging es endlos.
+     * after the *second* refusal it does not: the call returns at once with nothing to see,
+     * the screen simply closed, and the tile kept saying tap to allow. endlessly.
      */
     private val phoneStateDeniedOnce = mutableStateOf(false)
     private val phoneStateCanAskAgain = mutableStateOf(true)
 
-    /** Holt die Leseerlaubnis fuer die Empfangskachel - mehr nicht. */
+    /** fetches the read permission for the signal tile, nothing more. */
     private val askPhoneState =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { erteilt ->
             if (!erteilt) {
@@ -174,39 +168,26 @@ class MainActivity : BigLauActivity() {
             }
         }
 
-    /** Der Kontakt, bei dem gerade "anrufen oder schreiben?" offen steht. */
+    /** the contact whose call-or-write question is open. */
     private val contactChoice = mutableStateOf<ButtonAction.Contact?>(null)
 
-    /** Der gerade geoeffnete Ordner, oder `null`. */
+    /** the folder currently open, or `null`. */
     private val openFolder = mutableStateOf<String?>(null)
 
-    /**
-     * Die gross angezeigte Kachelbeschriftung, oder `null`.
-     *
-     * Auf der Activity und nicht in der Komposition, aus demselben Grund wie [lockedApp]:
-     * [ueberlagerungenSchliessen] muss sie von aussen wegraeumen koennen.
-     */
+    /** the enlarged tile label, or `null`. on the activity so [closeOverlays] can clear it. */
     private val popupLabelState = mutableStateOf<String?>(null)
 
-    /**
-     * Die Liste der Menuetaste: Screen und Platz der Kachel, zu der sie offen steht.
-     *
-     * Auf der Activity aus demselben Grund wie die anderen Ueberlagerungen: die Heim-Taste
-     * muss sie wegraeumen koennen. Siehe [ueberlagerungenSchliessen].
-     */
+    /** the menu-key list: screen and slot of the tile it is open for. see [closeOverlays]. */
     private val kachelMenue = mutableStateOf<Triple<String, Int, Int>?>(null)
 
     /**
-     * Die gesperrte App **und die Kachel, von der sie kam**.
+     * the locked app *and the tile it came from*.
      *
-     * Die Kachel muss mit: ist die App nach dem Entsperren verschwunden, sagt die Meldung
-     * „Kachel neu belegen" - und dann soll der Editor auch aufgehen, genau wie beim Tipp
-     * ohne Sperre. Bis zum 3.9.2026 stand hier nur die App, und der Rat blieb an dieser
-     * einen Stelle im Raum stehen.
+     * the tile has to come along: if the app is gone after unlocking, the notice says to
+     * reassign the tile, and then the editor should open too.
      *
-     * Seit dem 03.09.2026 steht hier die Aktion und nicht mehr die App: eine
-     * **Verknuepfung** startete bis dahin ganz ohne Frage, und damit war die Sperre zu
-     * umgehen, indem man die App als Verknuepfung auf eine Kachel legte.
+     * the *action* and not the app, because a shortcut used to start without any question,
+     * so the lock could be walked around by putting the app on a tile as a shortcut.
      */
     private data class GesperrterTipp(
         val action: ButtonAction,
@@ -216,22 +197,20 @@ class MainActivity : BigLauActivity() {
     )
 
     /**
-     * Eine App, die auf die PIN wartet. PLAN.md 4.5 - siehe [org.biglau.apps.AppLock].
-     * Auf der Activity und nicht in der Komposition, damit die Frage einen Wechsel in eine
-     * andere App und back ueberlebt.
+     * an app waiting for the pin. `PLAN.md` 4.5, see [org.biglau.apps.AppLock]. on the
+     * activity so the question survives a trip into another app and back.
      */
     private val lockedApp = mutableStateOf<GesperrterTipp?>(null)
 
     /**
-     * Zaehlt jede Rueckkehr auf diesen Bildschirm. Womit etwas ausserhalb der App
-     * beantwortet wird - die Standard-Launcher-Frage etwa -, muss danach neu gelesen
-     * werden; sonst zeigt der Startbildschirm einen Zustand, den es nicht mehr gibt.
+     * counts every return to this screen. whatever is answered outside the app, such as the
+     * default launcher question, has to be read again afterwards.
      */
     private val resumeTick = mutableStateOf(0)
 
     override fun onDestroy() {
-        // Die Sprachausgabe haelt eine Verbindung zum System-Dienst; ohne dieses Aufraeumen
-        // bliebe sie ueber die Lebenszeit der Activity hinaus offen.
+        // speech holds a connection to the system service; without this it would outlive
+        // the activity.
         Speaker.shutdown()
         super.onDestroy()
     }
@@ -247,12 +226,10 @@ class MainActivity : BigLauActivity() {
         if (intent.getBooleanExtra(EXTRA_EDIT_MODE, false)) {
             editModeRequest.value = true
         } else if (Intent.ACTION_MAIN == intent.action) {
-            // Wer heim tippt, will den Startbildschirm - nicht das, was zufaellig darueber
-            // liegt.
-            ueberlagerungenSchliessen()
-            // Der Screenwechsel dagegen ist eine Einstellung. Sie stand bisher im Modell
-            // und wurde nirgends gelesen - ein Schalter, der nichts tut, ist schlimmer als
-            // einer, den es nicht gibt.
+            // tapping home means the home screen, not whatever happens to lie over it.
+            closeOverlays()
+            // the screen change is a setting: it sat in the model and was read nowhere, and
+            // a switch that does nothing is worse than one that does not exist.
             if (ConfigStore.get(this).current.behaviour.homeKeyReturnsToStart) {
                 currentScreen.value = null
             }
@@ -261,21 +238,16 @@ class MainActivity : BigLauActivity() {
 
 
     /**
-     * Raeumt alles weg, was ueber dem Startbildschirm liegt.
+     * clears everything lying over the home screen.
      *
-     * Fuenf Ueberlagerungen gibt es: der offene Ordner, die grosse Beschriftung, die Frage
-     * "anrufen oder schreiben?", die PIN-Sperre vor einer gesperrten App und die Erklaerung
-     * zur Empfangs-Berechtigung. Bis zum 04.09.2026 raeumte die Heim-Taste **nur** den
-     * Ordner; am Emulator nachgestellt: Kachel "anrufen oder schreiben?" geoeffnet, Heim
-     * gedrueckt - die Frage stand weiter da. Dasselbe mit der grossen Beschriftung.
+     * there are five overlays: the open folder, the enlarged label, the call-or-write
+     * question, the pin lock and the signal permission explainer. home used to clear *only*
+     * the folder, and a question that survives the home key is a bolt.
      *
-     * Der Grund, der beim Ordner schon dastand, gilt fuer alle fuenf: wer heim tippt, will
-     * den Startbildschirm. Eine Frage, die eine Heim-Taste ueberlebt, ist ein Riegel.
-     *
-     * Auch fuer die PIN-Sperre richtig: sie faellt weg, ohne dass die App startet. Wer die
-     * Sperre umgehen will, kommt so nur auf den Startbildschirm.
+     * right for the pin lock too: it falls away without the app starting, so walking around
+     * the lock this way only reaches the home screen.
      */
-    private fun ueberlagerungenSchliessen() {
+    private fun closeOverlays() {
         openFolder.value = null
         popupLabelState.value = null
         kachelMenue.value = null
@@ -288,8 +260,7 @@ class MainActivity : BigLauActivity() {
 
     override fun onStart() {
         super.onStart()
-        // Ohne Zuhoeren aktualisiert sich kein Widget; ohne Aufhoeren laufen sie im
-        // Hintergrund weiter und kosten Akku.
+        // without listening no widget updates; without stopping they keep running.
         widgetHost.startListening()
     }
 
@@ -317,11 +288,9 @@ class MainActivity : BigLauActivity() {
                     onSettings = { startActivity(Intent(this, SettingsActivity::class.java)) },
                     onChooseOtherLauncher = { Intents.chooseHomeApp(this) },
                     onResetConfig = {
-                        // Erst die Widget-Kennungen freigeben, dann wegwerfen - genau wie
-                        // beim Zuruecksetzen in den Einstellungen. Ohne diesen Schritt
-                        // hielte der Widget-Host sie fuer immer, und die Anbieter-App
-                        // haelt ein Widget am Leben, das niemand mehr sieht. Dass es hier
-                        // fehlte, faellt nicht auf: man sieht ja gerade gar nichts.
+                        // free the widget ids first, then throw them away, as the reset in
+                        // the settings does. without it the host keeps them forever and the
+                        // provider app keeps a widget alive that nobody sees.
                         val store = ConfigStore.get(this)
                         val host = WidgetHostController.get(this)
                         Reset.widgetIds(store.current).forEach { host.release(it) }
@@ -331,7 +300,7 @@ class MainActivity : BigLauActivity() {
                     },
                 )
             }
-            // Auch der Notmodus zaehlt als erfolgreicher Start - sonst kaeme man nie heraus.
+            // safe mode counts as a successful start too, or there is no way out.
             crashes.noteRendered()
             return
         }
@@ -346,9 +315,8 @@ class MainActivity : BigLauActivity() {
         setContent {
             val config by store.config.collectAsStateWithLifecycle()
             SystemBarsEffect(config.appearance.fullScreen)
-            // Nach der Startbildschirm-Frage neu aufbauen: ob wir die Rolle halten,
-            // beantwortet Android im laufenden Prozess aus dem Zwischenspeicher, und der
-            // Balken staende sonst weiter da, obwohl es geklappt hat.
+            // rebuild after the home question: android answers whether we hold the role
+            // from a cache within the running process.
             val homeRoleAsk = rememberLauncherForActivityResult(
                 ActivityResultContracts.StartActivityForResult(),
             ) { recreate() }
@@ -358,32 +326,31 @@ class MainActivity : BigLauActivity() {
             var popupLabel by popupLabelState
             val screen = config.screenById(screenId) ?: config.homeScreen
             val counts by NotificationRepository.counts.collectAsStateWithLifecycle()
-            // Ungesehene verpasste Anrufe, bei jeder Rueckkehr neu gezaehlt: wer die Liste
-            // gerade gelesen hat, soll die Zahl nicht weiter auf der Kachel stehen sehen.
+            // unseen missed calls, counted again on every return: having just read the list
+            // should not leave the number on the tile.
             var verpasst by remember { mutableStateOf(0) }
-            // Ungelesene Nachrichten aus dem Anbieter; null heisst "darf nicht lesen",
-            // dann bleiben die Meldungen die Auskunft.
+            // unread messages from the provider; null means may not read, and then the
+            // notices stay the answer.
             var ungelesen by remember { mutableStateOf<Int?>(null) }
             LaunchedEffect(resumeTick.value, counts) {
                 verpasst = CallLogRepository.get(context).newMissedCount(config.phone.lastSeenMissedAt)
                 val sms = SmsRepository.get(context)
                 ungelesen = if (sms.hasReadPermission()) sms.unreadCount() else null
             }
-            // Bei jeder Rueckkehr neu lesen: der Nutzer kann die Standard-App
-            // zwischendurch in den Systemeinstellungen gewechselt haben.
+            // read again on every return: the default app can have changed meanwhile.
             val systemPackages = remember(counts) { SystemPackagesReader.read(context) }
             val battery by remember { BatteryRepository.readings(context) }
                 .collectAsStateWithLifecycle(initialValue = null)
-            // Rein lesend: der Fluss hoert dem Telefoniedienst zu und meldet nichts an.
+            // read only: the flow listens to telephony and registers nothing.
             val signal by remember { SignalRepository.readings(context) }
                 .collectAsStateWithLifecycle(initialValue = null)
 
-            // Ein Launcher darf die Zurueck-Geste nicht wie eine gewoehnliche App behandeln:
-            // auf dem Startscreen tut sie nichts. Auf einem Nebenscreen fuehrt sie heim,
-            // sonst waere ein Screen ohne Heim-Kachel eine Sackgasse.
+            // a launcher must not treat back like an ordinary app: on the home screen it
+            // does nothing, on a side screen it leads home, or a screen without a home tile
+            // would be a dead end.
             //
-            // Bewusst immer aktiv statt onBackPressed zu ueberschreiben - ein solcher
-            // Override schluckt das Ereignis, bevor dieser Handler es ueberhaupt sieht.
+            // always enabled rather than overriding onBackPressed, which would swallow the
+            // event before this handler sees it.
             BackHandler(enabled = true) {
                 when {
                     phoneStateAsked.value -> phoneStateAsked.value = false
@@ -395,27 +362,26 @@ class MainActivity : BigLauActivity() {
                 }
             }
 
-            // Wir sind bis hierher gekommen: der Start gilt als geglueckt.
+            // we got this far: the start counts as successful.
             LaunchedEffect(Unit) { crashes.noteRendered() }
 
-            // Der lange Druck und die Liste der Menuetaste fuehren dieselben Aktionen aus.
-            // Sie entscheiden nur verschieden, welche: der lange Druck ueber
-            // LongPress.decide, also nach den Einstellungen, die Liste ueber TileMenu,
-            // die alle drei zeigt. Deshalb steht die Ausfuehrung einmal hier.
+            // the long press and the menu-key list carry out the same actions and only
+            // decide differently which: the long press through LongPress.decide, the list
+            // through TileMenu, which shows all three. so the doing stands here once.
             val fuehreAus: (org.biglau.data.Screen, Int, Int, List<LongPressAction>) -> Unit =
                 { gezeigt, x, y, aktionen ->
                     val zelle = gezeigt.cellAt(x, y)
                     aktionen.forEach { action ->
                         when (action) {
-                            // Der lange Druck startet die Kachel - fuer Haende, die beim
-                            // Streifen sonst etwas ausloesen wuerden.
+                            // the long press starts the tile, for hands that would
+                            // otherwise trigger something by brushing.
                             LongPressAction.ACTIVATE -> zelle?.let { treffer ->
                                 activate(treffer, gezeigt.id, apps) { ziel ->
                                     currentScreen.value = ziel
                                 }
                             }
-                            // Die Zweitbelegung: dieselbe Ausfuehrung wie beim Kurzdruck,
-                            // nur mit der anderen Aktion.
+                            // the second assignment: the same doing as a short press, with
+                            // the other action.
                             LongPressAction.SECOND_ACTION -> zelle?.button?.longPress?.let { zweite ->
                                 activate(
                                     zelle.copy(button = zelle.button.copy(action = zweite)),
@@ -429,8 +395,8 @@ class MainActivity : BigLauActivity() {
                             LongPressAction.SPEAK -> Speaker.say(
                                 context,
                                 labelAt(config, gezeigt.id, x, y, apps),
-                                // Die Sprache kommt von hier: der Speaker soll sie nicht
-                                // selbst suchen muessen. Siehe Speaker.
+                                // the language comes from here; the speaker should not have
+                                // to look for it. see Speaker.
                                 AppLocale.localeFor(config.appearance.language)
                                     ?: Locale.getDefault(),
                             )
@@ -441,9 +407,8 @@ class MainActivity : BigLauActivity() {
                     }
                 }
 
-            // Einmal beschrieben, zweimal benutzt: fuer den Screen und fuer den Ordner
-            // darueber. Ein zweiter, abgeschriebener Aufruf waere die Stelle, an der die
-            // beiden nach der naechsten Aenderung auseinanderlaufen.
+            // written once, used twice: for the screen and for the folder over it. a second
+            // copied call is where the two would drift apart on the next change.
             val zeigeKachel: @Composable (
                 org.biglau.data.Screen, Modifier, Boolean, FocusRequester?, FocusRequester?,
             ) -> Unit =
@@ -473,16 +438,16 @@ class MainActivity : BigLauActivity() {
                         systemPackages = systemPackages,
                         battery = battery,
                         signal = signal,
-                        // Im Bearbeitungsmodus oeffnet schon der kurze Tipp den Editor. Ein
-                        // langer Druck bleibt dann keine Voraussetzung - wer ihn nicht schafft,
-                        // koennte seine Kacheln sonst nie aendern.
+                        // in edit mode a short tap already opens the editor: a long press
+                        // must not be a precondition, or whoever cannot manage one could
+                        // never change their tiles.
                         onActivate = { cell ->
                             when {
                                 editMode -> context.startActivity(
                                     TileEditorActivity.intent(context, gezeigt.id, cell.x, cell.y),
                                 )
-                                // Wer den langen Druck gewaehlt hat, will vom kurzen nichts
-                                // ausgeloest bekommen - sonst waere die Einstellung wirkungslos.
+                                // having chosen the long press means wanting nothing from a
+                                // short one, or the setting would have no effect.
                                 config.behaviour.pressMode == PressMode.LONG -> Unit
                                 else -> activate(cell, gezeigt.id, apps) { currentScreen.value = it }
                             }
@@ -499,10 +464,9 @@ class MainActivity : BigLauActivity() {
                                 ),
                             )
                         },
-                        // PLAN.md 10.3.4: die Menuetaste oeffnet die Liste, statt gleich
-                        // etwas zu tun. Der lange Druck kann nur eines von dreien, und
-                        // welches, entscheiden die Einstellungen; mit Tasten kaeme man an die
-                        // anderen beiden nicht heran.
+                        // `PLAN.md` 10.3.4: the menu key opens the list instead of doing
+                        // something at once. the long press can do only one of three, and the
+                        // settings decide which; by key the other two would be out of reach.
                         onMenu = { x, y -> kachelMenue.value = Triple(gezeigt.id, x, y) },
                     )
                 }
@@ -521,25 +485,18 @@ class MainActivity : BigLauActivity() {
                 val ordner = openFolder.value?.let { id ->
                     config.screens.firstOrNull { it.id == id && it.isFolder }
                 }
-                // Was verdeckt ist, gibt es auch fuer die Vorlesefunktion nicht.
+                // what is covered does not exist for the screen reader either.
                 //
-                // Die Ueberlagerungen liegen als Geschwister ueber dem Startbildschirm, und
-                // die Kacheln darunter blieben in der Bedienungshilfen-Sicht stehen: am
-                // 04.09.2026 im Knotenabzug nachgemessen, auch im komprimierten - bei
-                // offenem Ordner standen WhatsApp, Maps, HSL, Spotify, Apps und AnkiDroid
-                // weiter darin. Wer sich vorlesen laesst, wandert also durch Kacheln, die
-                // er nicht sieht, und startet mit einem Doppeltipp eine App, die gar nicht
-                // dasteht. `clearAndSetSemantics` nimmt den ganzen Teilbaum heraus.
+                // the overlays lie as siblings over the home screen, and the tiles beneath
+                // stayed in the accessibility tree: with a folder open, six app tiles were
+                // still in the node dump. someone listening would walk through tiles they
+                // cannot see and open an app that is not there.
                 val label = popupLabel
                 val wartend = lockedApp.value
                 val asking = contactChoice.value
-                // Die Liste der Ueberlagerungen, an einer Stelle. Sie beantwortet zwei
-                // Fragen auf einmal: was die Vorlesefunktion nicht mehr sehen darf, und wer
-                // die Tasten bekommt. Am 04.09.2026 kam heraus, dass das dieselbe Liste ist.
-                //
-                // `kachelMenue` fehlte hier und ist am selben Tag dazugekommen: bei offener
-                // Liste standen `Nachrichten`, `Telefon` und `Kontakte` weiter im
-                // Knotenabzug, obwohl nichts davon zu sehen war.
+                // the list of overlays, in one place. it answers two questions at once:
+                // what the screen reader may no longer see, and who gets the keys. those
+                // turned out to be the same list.
                 val verdeckt = ordner != null ||
                     label != null ||
                     phoneStateAsked.value ||
@@ -553,9 +510,9 @@ class MainActivity : BigLauActivity() {
                         .safeDrawingPadding()
                         .then(if (verdeckt) Modifier.clearAndSetSemantics {} else Modifier),
                 ) {
-                    // Bei jeder Rueckkehr neu fragen. Wer den Balken antippt, waehlt
-                    // BigLau im Systemdialog und kommt back - stand der Balken dann
-                    // immer noch da, haelt er es fuer gescheitert und tippt wieder.
+                    // ask again on every return: tapping the banner picks BigLau in the
+                    // system dialog and comes back, and a banner still standing there reads
+                    // as a failure.
                     if (!remember(resumeTick.value) { isDefaultHome() }) {
                         HomeRolePrompt {
                             val absicht = Intents.homeRoleIntent(this@MainActivity)
@@ -582,8 +539,8 @@ class MainActivity : BigLauActivity() {
                             ),
                         )
                     }
-                    // Wischen ist eine Einstellung und standardmaessig aus - siehe
-                    // PLAN.md 3.2. Die Kantenstreifen bleiben der Zurueck-Geste.
+                    // swiping is a setting and off by default (`PLAN.md` 3.2). the edge
+                    // strips stay with the back gesture.
                     val dichte = LocalDensity.current
                     val wischen = if (!config.behaviour.swipeBetweenScreens) {
                         Modifier
@@ -611,11 +568,9 @@ class MainActivity : BigLauActivity() {
                             }
                         }
                     }
-                    // Der Startbildschirm bekommt die Tasten nur, solange nichts darueber
-                    // liegt - dieselbe Liste wie fuer die Vorlesefunktion. Sonst liefe der
-                    // Fokus unter einer Ueberlagerung weiter.
-                    // Unter dem Startbildschirm steht kein Streifen; dort ist unten
-                    // wirklich Schluss.
+                    // the home screen gets the keys only while nothing lies over it, the
+                    // same list as for the screen reader. no strip under the home screen:
+                    // there the bottom really is the end.
                     zeigeKachel(
                         screen, Modifier.fillMaxSize().then(wischen), !verdeckt, null, null,
                     )
@@ -629,12 +584,10 @@ class MainActivity : BigLauActivity() {
                     FolderOverlay(
                         name = ordner.name,
                         onClose = { openFolder.value = null },
-                        // Der Streifen liegt sonst in der verdeckten Spalte darunter: am
-                        // 04.09.2026 am Jelly 2 nachgestellt - aus einem offenen Ordner in
-                        // die Einstellungen, dort "Kacheln aendern", back in den Ordner,
-                        // und nichts sagte, dass der naechste Tipp den Editor aufmacht. Er
-                        // tat es (die richtige Kachel sogar), nur wusste es niemand - und
-                        // der Weg hinaus steht auf demselben verdeckten Streifen.
+                        // otherwise the strip lies in the covered column below: from an
+                        // open folder into the settings, tap change tiles, back into the
+                        // folder, and nothing said the next tap opens the editor. it did,
+                        // and the way out sits on that same hidden strip.
                         banner = if (editMode) {
                             { EditModeBanner { editMode = false } }
                         } else {
@@ -656,13 +609,9 @@ class MainActivity : BigLauActivity() {
                             onClose = { kachelMenue.value = null },
                             schliessen = R.string.dialog_close,
                         ) { strip, back ->
-                            // PLAN.md 10.3.5: solange die Liste offen ist, liegt der Fokus
-                            // in ihr. Ohne das hier lief er mit dem D-Pad in den
-                            // Startbildschirm darunter, unsichtbar unter der Liste; am
-                            // 04.09.2026 am Emulator gemessen, bei genau dieser
-                            // Ueberlagerung. Der Rasterrahmen darunter faengt die Tasten ab,
-                            // solange er den Fokus hat, und er hat ihn, bis ihn jemand
-                            // wegnimmt.
+                            // `PLAN.md` 10.3.5: while the list is open the focus lies in
+                            // it. without this the d-pad walked it into the home screen
+                            // underneath, invisible below the list.
                             val punkte = TileMenu.items(
                                 hasSecondAction = zelle?.button?.longPress != null,
                             )
@@ -674,11 +623,9 @@ class MainActivity : BigLauActivity() {
                             Column(
                                 Modifier
                                     .fillMaxSize()
-                                    // Jede Richtungstaste wird verbraucht, auch wenn sich
-                                    // nichts bewegt. Ohne das lief der Fokus nach vier Tasten
-                                    // in den Startbildschirm darunter: Compose sucht sich
-                                    // sonst selbst ein Ziel, und das naechste liegt unter der
-                                    // Liste. Am 04.09.2026 am Emulator gemessen.
+                                    // every direction key is consumed, even when nothing
+                                    // moves: otherwise compose picks a target itself, and the
+                                    // next one lies under the list.
                                     .onPreviewKeyEvent { taste ->
                                         if (taste.type != KeyEventType.KeyDown) {
                                             false
@@ -689,8 +636,8 @@ class MainActivity : BigLauActivity() {
                                                         at += 1
                                                         anchors[at].requestFocus()
                                                     } else {
-                                                        // Unter dem letzten Punkt steht der
-                                                        // Streifen, der die Liste schliesst.
+                                                        // under the last entry sits the
+                                                        // strip that closes the list.
                                                         runCatching { strip.requestFocus() }
                                                     }
                                                     true
@@ -782,7 +729,7 @@ class MainActivity : BigLauActivity() {
                         },
                         acceptOnComplete = true,
                     )
-                    // Zurueck schliesst die Frage, statt aus dem Startbildschirm zu fallen.
+                    // back closes the question instead of falling out of the home screen.
                     BackHandler { lockedApp.value = null }
                     return@BigLauTheme
                 }
@@ -805,7 +752,7 @@ class MainActivity : BigLauActivity() {
         }
     }
 
-    /** Was auf der Kachel steht - fuer Vorlesen und Popup dieselbe Quelle wie fuer die Anzeige. */
+    /** what stands on the tile: the same source for speech, popup and display. */
     private fun labelAt(
         config: org.biglau.data.LauncherConfig,
         screenId: String,
@@ -830,16 +777,15 @@ class MainActivity : BigLauActivity() {
         widget = getString(R.string.editor_pick_widget),
     )
 
-    /** Welcher Screen gerade zu sehen ist - fuer "naechster" und "voriger". */
+    /** which screen is showing, for next and previous. */
     private fun currentScreenId(): String =
         currentScreen.value ?: ConfigStore.get(this).current.homeScreenId
 
     /**
-     * Braucht diese Aktion die PIN?
+     * does this action need the pin?
      *
-     * App und Verknuepfung fragen dieselbe Sperre - eine Verknuepfung fuehrt in dieselbe
-     * App. Der Schluessel unterscheidet sich nur darin, wie genau er zeigt: die App nennt
-     * ihre Activity mit, die Verknuepfung hat keine.
+     * an app and a shortcut ask the same lock, since a shortcut leads into the same app.
+     * only the key differs in precision: the app names its activity, the shortcut has none.
      */
     private fun gesperrt(action: ButtonAction): Boolean {
         val (paket, schluessel) = when (action) {
@@ -851,19 +797,16 @@ class MainActivity : BigLauActivity() {
     }
 
     /**
-     * Startet App oder Verknuepfung - und sagt es, wenn nichts mehr da ist.
+     * starts an app or a shortcut, and says so when there is nothing left.
      *
-     * Die Meldung sagt „Kachel neu belegen", also steht der Editor gleich dahinter: der
-     * Weg statt der Wegbeschreibung. Wer das nicht will, kommt mit der Zurueck-Geste
-     * heraus. Ohne die Meldung tippt man auf eine Kachel, die einfach nichts tut - und
-     * haelt das Telefon fuer kaputt.
+     * the notice says to reassign the tile, so the editor stands right behind it: the way
+     * instead of directions to it. without the notice one taps a tile that simply does
+     * nothing and thinks the phone is broken.
      *
-     * **[screenId] muss der gezeigte Screen sein, nicht [currentScreenId].** Ein Ordner
-     * legt sich ueber den Startbildschirm, ohne den Screen zu wechseln; bis zum 04.09.2026
-     * stand hier `currentScreenId()`, und eine tote Kachel im Ordner Mehr auf (1,2)
-     * oeffnete den Editor auf Feld (1,2) des **Startbildschirms** - also auf der Kachel,
-     * die den Ordner aufmacht. Am Geraet nachgestellt: der Editor sagte "Belegt mit: Mehr".
-     * Wer der Einladung folgte, ueberschrieb seinen Ordner statt der kaputten Kachel.
+     * [screenId] must be the *shown* screen, not [currentScreenId]: a folder lies over the
+     * home screen without changing it, so a dead tile at (1,2) inside a folder opened the
+     * editor on (1,2) of the home screen, which is the tile that opens the folder. anyone
+     * following the invitation overwrote their folder instead of the broken tile.
      */
     private fun starten(
         action: ButtonAction,
@@ -892,11 +835,9 @@ class MainActivity : BigLauActivity() {
         apps: AppRepository,
         goToScreen: (String) -> Unit,
     ) {
-        // Jeder Screenwechsel schliesst zuerst den Ordner. Sonst wechselt der Bildschirm
-        // **hinter** der Ueberlagerung, und der Nutzer sieht nichts: am 04.09.2026 am Jelly 2
-        // nachgestellt - eine Kachel "zu Screen 2" im Ordner "Mehr" angetippt, der Ordner
-        // blieb offen, nichts ruehrte sich. Erst nach dem Schliessen stand man woanders.
-        // Betrifft auch die eingebauten "Startbildschirm", "naechster" und "voriger".
+        // every screen change closes the folder first, or the screen changes *behind* the
+        // overlay and nothing is seen: a go-to-screen tile inside a folder left the folder
+        // open and looked inert. holds for home, next and previous too.
         val wechseln: (String) -> Unit = { ziel ->
             openFolder.value = null
             goToScreen(ziel)
@@ -912,15 +853,13 @@ class MainActivity : BigLauActivity() {
             is ButtonAction.Contact -> when (action.mode) {
                 ContactMode.CALL -> Intents.call(this, action.number)
                 ContactMode.SMS -> Intents.sms(this, action.number)
-                // Nicht ACTION_DIAL: das reichte die Frage nur ans System weiter, und das
-                // fragte etwas ganz anderes - naemlich welche App den Wahlvorgang uebernimmt.
-                // "Jedes Mal fragen" verspricht, dass BigLau fragt: anrufen oder schreiben.
+                // not ACTION_DIAL: that passed the question to the system, which asks
+                // something else entirely, namely which app takes over dialling.
                 ContactMode.ASK -> contactChoice.value = action
             }
 
             is ButtonAction.GoToScreen -> wechseln(action.screenId)
-            // Ein Ordner wechselt den Screen nicht, er legt sich darueber - deshalb ein
-            // eigener Zustand und nicht currentScreen. Zurueck schliesst ihn wieder.
+            // a folder does not change the screen, it lies over it, so a state of its own.
             is ButtonAction.Folder -> openFolder.value = action.screenId
             is ButtonAction.Link -> Intents.openLink(this, action.url)
 
@@ -936,11 +875,11 @@ class MainActivity : BigLauActivity() {
                 Builtin.CLOCK -> Intents.openClock(this)
                 Builtin.CALCULATOR -> Intents.openCalculator(this)
                 Builtin.BATTERY -> Unit
-                // Nur die Leseerlaubnis holen. Die Kachel zeigt danach den Empfang; sie
-                // waehlt nichts und meldet sich nirgends an.
-                // Erst erklaeren, dann fragen. Android stellt diese Leseberechtigung unter
-                // der Ueberschrift "Anrufe taetigen und verwalten" - das klingt nach etwas
-                // ganz anderem, als es ist, und wer das liest, lehnt zu Recht erst einmal ab.
+                // fetch the read permission only: the tile then shows the signal, it dials
+                // nothing and registers nowhere.
+                //
+                // explain first, then ask: android files this read permission under making
+                // and managing calls, which sounds like something else entirely.
                 Builtin.SIGNAL -> if (!SignalRepository.hasPermission(this)) {
                     phoneStateAsked.value = true
                 }
@@ -969,16 +908,15 @@ class MainActivity : BigLauActivity() {
                     Intent(this, DialerActivity::class.java)
                         .putExtra(DialerActivity.EXTRA_LOG, true),
                 )
-                // Kein else: ein neuer Eintrag soll den Übersetzer zwingen, sich zu
-                // entscheiden. Im else standen bisher stillschweigend "nächster Screen"
-                // und "voriger Screen" und meldeten "demnächst".
+                // no else: a new entry must force a decision. next and previous screen sat
+                // silently in the else branch and reported coming soon.
                 Builtin.NEXT_SCREEN -> ScreenOrder.next(ConfigStore.get(this).current, currentScreenId())
                     ?.let { wechseln(it) }
                 Builtin.PREV_SCREEN -> ScreenOrder.previous(ConfigStore.get(this).current, currentScreenId())
                     ?.let { wechseln(it) }
             }
 
-            // Ein Widget bedient sich selbst - ein Antippen der Zelle tut hier nichts.
+            // a widget serves itself; tapping the cell does nothing here.
             is ButtonAction.Widget -> Unit
 
             ButtonAction.None -> Unit
@@ -986,11 +924,11 @@ class MainActivity : BigLauActivity() {
     }
 
     /**
-     * Ein Launcher ist erst nuetzlich, wenn er die Home-Taste bekommt.
+     * a launcher is only useful once it gets the home key.
      *
-     * PackageManager.resolveActivity taugt dafuer nicht: ohne gesetzte Praeferenz liefert es
-     * auf dem Jelly 2 die aufrufende App selbst back, obwohl die Home-Taste woanders landet.
-     * Verlaesslich ist die Rollenabfrage; darunter bleibt der Abgleich der bevorzugten Aktivitaeten.
+     * `PackageManager.resolveActivity` is no good for this: without a preference set, it
+     * returns the calling app itself on the jelly 2 while the home key lands elsewhere. the
+     * role query is reliable; below it the preferred-activity comparison stays.
      */
     private fun isDefaultHome(): Boolean {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
@@ -1025,7 +963,7 @@ private fun HomeRolePrompt(onClick: () -> Unit) {
     )
 }
 
-/** Sichtbarer Hinweis, dass gerade bearbeitet wird - sonst wundert man sich ueber die Tipps. */
+/** a visible sign that editing is on, or the taps are a surprise. */
 @Composable
 private fun EditModeBanner(onLeave: () -> Unit) {
     val palette = LocalBigPalette.current
@@ -1042,18 +980,14 @@ private fun EditModeBanner(onLeave: () -> Unit) {
     )
 }
 
-/** Die Beschriftung gross ueber dem ganzen Bildschirm - ein Tipp schliesst sie wieder. */
+/** the label, large over the whole screen; a tap closes it again. */
 @Composable
 private fun LabelPopup(label: String, onDismiss: () -> Unit) {
     val palette = LocalBigPalette.current
-    // Diese Flaeche hat genau eine Handlung: weg. Deshalb schliesst sie **jede** Taste, und
-    // der Hinweis sagt es auch so.
-    //
-    // Am 04.09.2026 von `tools/unerreichbar.py` gemeldet: eine anklickbare Flaeche, null
-    // erreicht. Von Hand bestaetigt - `mInTouchMode=false`, und trotzdem hatte nichts den
-    // Fokus. Die Zurueck-Taste schloss zwar, aber sie stand nirgends angeschrieben, und
-    // dastand `Zum Schliessen tippen`. Ausgerechnet hier: dieser Bildschirm ist fuer den
-    // da, der die Beschriftung sonst nicht liest.
+    // this surface has exactly one action: go away. so *every* key closes it, and the hint
+    // says so. `tools/unerreichbar.py` reported one clickable area and none reached; back
+    // did close it, but nothing said so, and the text offered a tap. on the very screen made
+    // for someone who cannot read the label otherwise.
     val anchors = remember { FocusRequester() }
     LaunchedEffect(label) { runCatching { anchors.requestFocus() } }
     Box(
@@ -1095,12 +1029,11 @@ private fun LabelPopup(label: String, onDismiss: () -> Unit) {
 }
 
 /**
- * "Anrufen oder schreiben?" - die Frage, die eine Kontaktkachel im Modus "Jedes Mal fragen"
- * stellt.
+ * call or write? the question a contact tile asks in the ask-every-time mode.
  *
- * Bewusst zwei ganze Zeilen und kein System-Dialog: der Systemdialog fragt etwas anderes
- * (welche App das ueberhaupt macht), seine Knoepfe sind klein, und er sieht auf jedem
- * Telefon anders aus. Ein Tipp daneben schliesst, damit die Frage kein Riegel ist.
+ * two whole rows and not a system dialog: that one asks something else (which app does it
+ * at all), its buttons are small, and it looks different on every phone. a tap beside it
+ * closes, so the question is not a bolt.
  */
 @Composable
 private fun ContactChoice(
@@ -1110,16 +1043,12 @@ private fun ContactChoice(
     onDismiss: () -> Unit,
 ) {
     val palette = LocalBigPalette.current
-    // Zwei Zeilen, und mit Tasten war keine davon zu erreichen. Am 04.09.2026 von
-    // `tools/unerreichbar.py` gemeldet: drei anklickbare Flaechen, **null** erreicht. Der
-    // Grund ist derselbe wie beim Ordner und bei der grossen Beschriftung - eine Flaeche,
-    // die spaeter onTop kommt, bekommt den Fokus nicht von selbst, und ohne Fokus laeuft
-    // kein Tastenhandler an.
+    // two rows, and neither was reachable by key: three clickable areas, *none* reached.
+    // the same reason as the folder and the enlarged label - a surface that comes on top
+    // later does not take the focus by itself, and without focus no key handler runs.
     //
-    // Anders als die grosse Beschriftung schliesst hier **nicht** jede Taste: das ist eine
-    // Frage mit zwei Antworten, und wer sie mit Tasten liest, muss zwischen ihnen waehlen
-    // koennen. Also hoch und runter zwischen den beiden Zeilen, links und rechts verbraucht,
-    // und die Zurueck-Taste schliesst wie bisher.
+    // unlike the enlarged label, *not* every key closes here: this is a question with two
+    // answers, and reading it by key means being able to choose between them.
     val anchors = remember { List(2) { FocusRequester() } }
     var at by remember(name) { mutableStateOf(0) }
     LaunchedEffect(name) { runCatching { anchors.first().requestFocus() } }
@@ -1148,21 +1077,16 @@ private fun ContactChoice(
                             true
                         }
                         Key.DirectionLeft, Key.DirectionRight -> true
-                        // Der Ausweg, und er muss hier stehen.
+                        // the way out, and it has to stand here.
                         //
-                        // Der `BackHandler` des Startbildschirms raeumt diese Frage seit
-                        // jeher weg, und bis zum 04.09.2026 war das der einzige Ausweg mit
-                        // Tasten. Sobald aber etwas hier drinnen den Fokus hat, kommt die
-                        // Zurueck-Taste dort nicht mehr an: am Emulator dreimal
-                        // nachgestellt, ohne Fokusanforderung schloss sie, mit ihr blieb
-                        // die Frage stehen. Ein eigener `BackHandler` half auch nicht - die
-                        // Taste wird schon im Fokusbaum verbraucht und erreicht den
-                        // Verteiler nie.
+                        // the home screen's `BackHandler` clears this question, and that was
+                        // the only way out by key. but once something in here has the focus,
+                        // back no longer arrives there: without the focus request it closed,
+                        // with it the question stayed. a `BackHandler` of its own did not
+                        // help either, the key being consumed in the focus tree.
                         //
-                        // Das ist die Kehrseite davon, eine Ueberlagerung ueberhaupt
-                        // bedienbar zu machen: wer den Fokus nimmt, uebernimmt auch den
-                        // Ausweg. Fuer den Ordner gilt es nicht, dort wird der Fokus im
-                        // Rasterrahmen gehalten und die Taste laeuft weiter durch.
+                        // that is the other side of making an overlay usable at all: whoever
+                        // takes the focus takes over the exit.
                         Key.Back -> {
                             onDismiss()
                             true
@@ -1214,13 +1138,11 @@ private fun ContactChoice(
 }
 
 /**
- * Ein geöffneter Ordner: der Name oben, darunter sein Kachelraster, und ein Streifen unten
- * zum Schließen.
+ * an open folder: the name above, its tile grid below, and a strip at the bottom to close.
  *
- * Bewusst deckend und bildschirmfüllend statt als schwebendes Fenster: auf drei Zoll wäre ein
- * Fenster mit Rand entweder winzig oder ohne Rand, und dann ist es kein Fenster mehr. So
- * bekommen die Kacheln darin genau dieselbe Fläche wie auf dem Startbildschirm - und dieselbe
- * Trefferfläche.
+ * opaque and filling the screen rather than a floating window: on three inches a window with
+ * a margin is either tiny or has no margin, and then it is no window. this way the tiles
+ * inside get exactly the same area, and the same target, as on the home screen.
  */
 @Composable
 private fun FolderOverlay(
@@ -1228,18 +1150,15 @@ private fun FolderOverlay(
     onClose: () -> Unit,
     banner: (@Composable () -> Unit)? = null,
     /**
-     * Was auf dem Streifen unten steht.
-     *
-     * Vorgabe ist "Ordner schliessen", denn dafuer ist der Rahmen gebaut. Die Liste der
-     * Menuetaste benutzt denselben Rahmen und ist kein Ordner; am 04.09.2026 stand dort
-     * einmal "Ordner schliessen" unter drei Kachelbefehlen, am Emulator gesehen.
+     * what stands on the strip below. close folder by default, since that is what the frame
+     * is built for; the menu-key list uses the same frame and is no folder.
      */
     schliessen: Int = R.string.folder_close,
     content: @Composable (FocusRequester, FocusRequester) -> Unit,
 ) {
     val palette = LocalBigPalette.current
-    // Die beiden Wege zwischen dem Inhalt und dem Streifen. Der Inhalt schickt den Fokus
-    // nach unten hierher, der Streifen schickt ihn nach oben back.
+    // the two ways between the content and the strip: the content sends the focus down to
+    // here, the strip sends it back up.
     val belowAnchor = remember { FocusRequester() }
     val backAnchor = remember { FocusRequester() }
     Column(
@@ -1261,21 +1180,17 @@ private fun FolderOverlay(
         )
         banner?.invoke()
         Box(Modifier.weight(1f)) { content(belowAnchor, backAnchor) }
-        // Die Zurueck-Geste schliesst ihn auch. Der Streifen ist fuer alle da, die sie nicht
-        // benutzen - und er sagt, was er tut, statt nur ein Kreuz zu zeigen. Mit Tasten war
-        // er bis zum 04.09.2026 unerreichbar, obwohl er dastand.
+        // the back gesture closes it too. the strip is for everyone who does not use it,
+        // and it says what it does instead of showing a cross.
         BigRow(
             label = stringResource(schliessen),
             icon = Icons.Filled.Close,
             modifier = Modifier
                 .focusRequester(belowAnchor)
-                // Der Streifen verbraucht die Richtungstasten wie das Raster darueber, und
-                // aus demselben Grund. Am 04.09.2026 gemessen, an dem Tag, an dem er
-                // ueberhaupt erreichbar wurde: ein Druck nach rechts, und der Fokus war
-                // **weg** - Compose sucht dann selbst und findet nichts, weil die Zeile die
-                // ganze Breite hat. Danach half keine Taste mehr, denn ohne Fokus laeuft
-                // kein Tastenhandler an. Genau der Fehler, der vorher im ganzen Ordner
-                // steckte, nur eine Zeile kleiner.
+                // the strip consumes the direction keys like the grid above it, for the
+                // same reason: one press to the right and the focus was *gone*, since compose
+                // then searches and finds nothing, the row spanning the full width. the same
+                // fault the whole folder had, one row smaller.
                 .onPreviewKeyEvent { taste ->
                     if (taste.type != KeyEventType.KeyDown) {
                         false
@@ -1296,12 +1211,11 @@ private fun FolderOverlay(
 }
 
 /**
- * Erklärt die Leseberechtigung, bevor Android sie erfragt.
+ * explains the read permission before android asks for it.
  *
- * Android führt `READ_PHONE_STATE` unter „Anrufe tätigen und verwalten". Das ist die
- * Überschrift einer ganzen Gruppe und klingt nach weit mehr, als hier gebraucht wird:
- * BigLau will die Anzahl der Balken wissen und sonst nichts. Wer den Systemdialog ohne
- * Vorwarnung sieht, lehnt zu Recht ab - und hat dann eine Kachel, die nie etwas anzeigt.
+ * android files `READ_PHONE_STATE` under making and managing calls, the heading of a whole
+ * group, which sounds like far more than is needed here: BigLau wants the number of bars
+ * and nothing else. seeing the system dialog unwarned, one rightly refuses.
  */
 @Composable
 private fun SignalPermissionExplainer(
@@ -1311,17 +1225,13 @@ private fun SignalPermissionExplainer(
     onDismiss: () -> Unit,
 ) {
     val palette = LocalBigPalette.current
-    // Am 04.09.2026 gemessen: zwei anklickbare Zeilen, **null** erreicht. Mit Tasten war
-    // weder `Jetzt fragen` noch `Jetzt nicht` anzuwaehlen - eine Frage ohne Antwort.
+    // two clickable rows, *none* reached: neither answer could be selected by key, a
+    // question without an answer.
     //
-    // `focusGroup` und ein Anker darauf: der Fokus geht in die Gruppe, also auf die erste
-    // Zeile. Und `Key.Back` steht hier, weil die Zurueck-Taste den Verteiler der Activity
-    // nicht mehr erreicht, sobald hier drinnen etwas den Fokus hat. Wer den Fokus nimmt,
-    // uebernimmt auch den Ausweg.
-    // Zwei Zeilen, und beide muessen erreichbar sein. `focusGroup` allein reichte nicht:
-    // der Fokus sass auf der ersten und ruehrte sich nicht, weil die Suche nach dem
-    // naechsten Ziel unter die Ueberlagerung lief. Also benannte Anker und eine eigene
-    // Rechnung, wie in der Kachelliste und in der Kontaktwahl.
+    // `focusGroup` alone was not enough - the focus sat on the first row and did not move,
+    // because the search for the next target ran under the overlay. so named anchors and an
+    // arithmetic of its own, as in the tile list and the contact choice. `Key.Back` stands
+    // here because whoever takes the focus takes over the exit.
     val anchors = remember { List(2) { FocusRequester() } }
     var at by remember(blocked) { mutableStateOf(0) }
     LaunchedEffect(blocked) { runCatching { anchors.first().requestFocus() } }
@@ -1370,10 +1280,9 @@ private fun SignalPermissionExplainer(
             modifier = Modifier.padding(horizontal = 4.dp, vertical = 8.dp),
         )
         Text(
-            // Der Satz "kann es auch nicht: die Berechtigung dafuer hat es nicht" ist eine
-            // Zusage ueber dieses Geraet - also wird nachgesehen. Haelt die App die
-            // Telefon-Rolle, hat sie CALL_PHONE, und die starke Fassung waere falsch. Am
-            // Emulator aufgefallen, at genau das der Fall ist.
+            // the stronger sentence promises something about *this* device, so it is
+            // checked: holding the phone role means holding CALL_PHONE, and the promise
+            // would be false.
             text = if (
                 ContextCompat.checkSelfPermission(LocalContext.current, Manifest.permission.CALL_PHONE) ==
                 PackageManager.PERMISSION_GRANTED
@@ -1386,11 +1295,9 @@ private fun SignalPermissionExplainer(
             fontSize = org.biglau.ui.dpSp(16f),
             modifier = Modifier.padding(horizontal = 4.dp, vertical = 8.dp),
         )
-        // Fragt Android nicht mehr, fuehrt der Knopf in die Systemeinstellungen - nur
-        // dort laesst sich die Entscheidung noch aendern. Denselben Griff hat `PermissionGate`
-        // seit jeher, und sein Kommentar nennt genau diese Falle: "Genau dieser stumme Knopf
-        // ist die Falle, die hier vermieden wird." Dieser Bildschirm war der eine, der ihn
-        // nicht benutzt hat.
+        // once android stops asking, the button leads into the system settings, the only
+        // place left to change the decision. `PermissionGate` has had the same grip all
+        // along; this screen was the one that did not use it.
         if (blocked) {
             Text(
                 text = stringResource(org.biglau.core.ui.R.string.permission_blocked),

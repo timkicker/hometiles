@@ -31,12 +31,12 @@ class DeviceClaimsTest {
             .let { Quelltext.ausschnitt(it, "sms_filter_numbers_heading", "OutlinedTextField") }
         // Am 3.9.2026 wanderte der Aufruf aus der Seite heraus: die SMS-Rolle vergibt das
         // System, und wer sie erteilt und zurueckkommt, soll nicht denselben Satz noch
-        // einmal lesen - der Wert kommt jetzt als `istStandardApp` von der Activity. Die
+        // einmal lesen - der Wert kommt jetzt als `holdsSmsRole` von der Activity. Die
         // Regel prueft weiter dasselbe: der Satz haengt an der Rolle. Nur eben nicht mehr
         // an einer bestimmten Schreibweise.
         assertTrue(
             "sieht nicht nach der Rolle: $stelle",
-            "isDefaultSmsApp()" in stelle || "istStandardApp" in stelle,
+            "isDefaultSmsApp()" in stelle || "holdsSmsRole" in stelle,
         )
         assertTrue("zweite Fassung fehlt: $stelle", "sms_filter_hint_default" in stelle)
     }

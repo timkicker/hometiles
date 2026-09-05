@@ -142,8 +142,8 @@ import org.biglau.ui.theme.LocalBigPalette
 private enum class Mode { MENU, MOVE, EDIT_LINK, PICK_LONG_PRESS, PICK_BUILTIN, PICK_APP, PICK_CONTACT, PICK_NUMBER, PICK_MODE, EDIT_LABEL, PICK_COLOR, PICK_HUE, PICK_ICON, RESIZE, PICK_SCREEN, EDIT_NUMBER, PICK_SHORTCUT_APP, PICK_SHORTCUT, PICK_WIDGET }
 
 /**
- * Belegt eine einzelne Kachel. Schreibt direkt in den ConfigStore - der Homescreen
- * beobachtet denselben Fluss und zeichnet sich neu, sobald hier etwas passiert.
+ * assigns a single tile. writes straight into the ConfigStore; the home screen watches the
+ * same flow and redraws as soon as something happens here.
  */
 class TileEditorActivity : BigLauActivity() {
 
@@ -163,13 +163,13 @@ class TileEditorActivity : BigLauActivity() {
         setContent {
             val config by store.config.collectAsStateWithLifecycle()
             val screen = config.screenById(screenId) ?: return@setContent finish()
-            // Beim Verkleinern nach oben oder links wandert die Ecke der Zelle - der Anker
-            // muss mitwandern, sonst zeigt der Editor plaetzlich auf einen leeren Platz.
+            // shrinking up or left moves the cell's corner, so the anchor has to move with
+            // it or the editor suddenly points at an empty slot.
             var x by rememberSaveable { mutableStateOf(startX) }
             var y by rememberSaveable { mutableStateOf(startY) }
             val cell = screen.cellAt(x, y)
-            // Die echten Zellmasse dieses Screens - vorher standen hier die Werte des
-            // Standardrasters fest verdrahtet, was bei jedem anderen Raster falsch war.
+            // the real cell size of this screen; hard-wired default grid values were wrong
+            // for every other grid.
             val configuration = LocalConfiguration.current
             val metrics = remember(configuration, screen.cols, screen.rows, config.appearance) {
                 gridMetrics(
@@ -183,17 +183,16 @@ class TileEditorActivity : BigLauActivity() {
             }
             val button = cell?.button ?: Button()
             var mode by remember { mutableStateOf(Mode.MENU) }
-            // Wohin die naechste Wahl geht. PLAN.md 4.3 sagt zu, dass *jede* Aktion auch
-            // auf Langdruck liegen darf; vorher gab es dafuer zwei eigene Auswahllisten
-            // (App und Funktion), und Kontakte, Verknuepfungen, Screens und Webseiten
-            // fehlten. Dieselben Listen fuer beide Wege statt acht weiterer Betriebsarten.
+            // where the next choice goes. `PLAN.md` 4.3 promises that *every* action may
+            // sit on the long press too; two separate lists covered only apps and functions.
+            // the same lists for both ways instead of eight more modes.
             var aufLangdruck by remember { mutableStateOf(false) }
             var chosenContact by remember { mutableStateOf<PhoneContact?>(null) }
             var chosenNumber by remember { mutableStateOf<String?>(null) }
             var shortcutApp by remember { mutableStateOf<LaunchableApp?>(null) }
             var clearing by remember { mutableStateOf<ButtonAction.Folder?>(null) }
-            // Vor dem Editor eine PIN, wenn eine gesetzt und der Schutz eingeschaltet ist.
-            // Ein langer Druck passiert schneller, als man denkt.
+            // a pin before the editor when one is set: a long press happens faster than
+            // one thinks.
             var locked by remember {
                 mutableStateOf(
                     Pin.protectsEditor(config.security.pin, config.security.pinProtectsEditor),
@@ -201,9 +200,8 @@ class TileEditorActivity : BigLauActivity() {
             }
             val widgets = remember { WidgetHostController.get(this@TileEditorActivity) }
             /**
-             * Vor jeder Neubelegung: eine bisher hier liegende Widget-Kennung zurueckgeben.
-             * Sonst bleibt sie beim AppWidgetHost fuer immer belegt, obwohl niemand sie
-             * mehr benutzt - ein Leck, das man nirgends sieht.
+             * give back a widget id that was lying here before reassigning, or the host keeps
+             * it forever: a leak nobody can see.
              */
             fun releaseWidgetIfAny(current: Button) {
                 (current.action as? ButtonAction.Widget)?.let {
@@ -211,25 +209,16 @@ class TileEditorActivity : BigLauActivity() {
                 }
             }
 
-            // Eine Kachel neu zu belegen, auf der ein Ordner liegt, liess den Ordner samt
-            // Inhalt zurueck: kein Weg fuehrte mehr hin, in der Screen-Liste steht er nicht
-            // ("Ordner gehoeren ihrer Kachel"), und geloescht werden konnte er auch nicht
-            // mehr. "Kachel leeren" fragte laengst nach - jeder andere Weg auf dieselbe
-            // Kachel nicht.
+            // reassigning a tile that carries a folder left the folder and its contents
+            // behind, with no way to it: it is not in the screen list, and it could not be
+            // deleted either. emptying the tile had long asked; every other way had not.
             var replacingFolder by remember { mutableStateOf<Pair<ButtonAction.Folder, Button>?>(null) }
 
             fun writeNow(next: Button) {
                 if (next.action !is ButtonAction.Widget) releaseWidgetIfAny(button)
-                // **Der Ordner entsteht hier, nicht vorher.**
-                //
-                // Bis zum 04.09.2026 legte `onNewFolder` den Ordner-Screen an, *bevor* die
-                // Rueckfrage kam. Wer auf einer Ordnerkachel "Ordner anlegen" waehlte und
-                // die Frage ("Mehr loeschen?") mit "Behalten" beantwortete, liess einen
-                // leeren Ordner zurueck, den niemand mehr oeffnen kann. Am Geraet erzeugt
-                // und in `config.json` gesehen: `folder4`, null Kacheln, kein Weg hin.
-                //
-                // Jetzt haengt das Anlegen an derselben Bedingung wie das Schreiben: wird
-                // nicht geschrieben, entsteht auch nichts.
+                // the folder is created here, not before: creating it ahead of the question
+                // left an unopenable empty folder behind whenever the answer was keep.
+                // creating now hangs on the same condition as writing.
                 val neuerOrdner = next.action as? ButtonAction.Folder
                 if (neuerOrdner != null && store.current.screens.none { it.id == neuerOrdner.screenId }) {
                     store.update {
@@ -255,7 +244,7 @@ class TileEditorActivity : BigLauActivity() {
                 }
             }
 
-            /** Legt die gewaehlte Aktion auf den Kurz- oder den Langdruck - je nachdem, woher der Weg kam. */
+            /** puts the chosen action on the short or the long press, by the way one came. */
             fun belege(action: ButtonAction) {
                 if (aufLangdruck) {
                     write(TileEdits.withLongPress(button, action))
@@ -265,8 +254,8 @@ class TileEditorActivity : BigLauActivity() {
                 mode = Mode.MENU
             }
 
-            // Zurueck im Menue gilt wieder der Kurzdruck - auch nach der Zurueck-Taste,
-            // sonst legte die naechste Wahl stillschweigend wieder auf den Langdruck.
+            // back in the menu the short press holds again, also after the back key, or the
+            // next choice would silently land on the long press.
             LaunchedEffect(mode) { if (mode == Mode.MENU) aufLangdruck = false }
 
             var pendingWidget by remember { mutableStateOf<Pair<Int, WidgetProviderRow>?>(null) }
@@ -278,9 +267,8 @@ class TileEditorActivity : BigLauActivity() {
                 )
                 write(next)
 
-                // Die Zelle gleich auf die noetige Groesse bringen. Ein zu grosses Widget
-                // wird sonst gestaucht und sieht kaputt aus - und der Nutzer muesste selbst
-                // darauf kommen, dass er die Kachel vergroessern muss.
+                // size the cell right away: an oversized widget is squeezed and looks
+                // broken, and one would have to work out that the tile needs enlarging.
                 val (needX, needY) = WidgetFit.requirement(
                     provider,
                     metrics.cellWidth,
@@ -316,7 +304,7 @@ class TileEditorActivity : BigLauActivity() {
                 if (result.resultCode == RESULT_OK) {
                     finishWidget(pending.first, pending.second)
                 } else {
-                    // Abgebrochen: die vergebene Kennung wieder freigeben, sonst bleibt sie belegt.
+                    // cancelled: give the id back, or it stays taken.
                     widgets.release(pending.first)
                     pendingWidget = null
                     mode = Mode.MENU
@@ -369,11 +357,8 @@ class TileEditorActivity : BigLauActivity() {
                     }
                 }
             }
-                        // `resumes` als Schluessel: dieser Bildschirm schickt den Nutzer bei
-            // dauerhaft verweigerter Berechtigung in die **App-Einstellungen**, und von dort
-            // kommt kein Ergebnis zurueck. Ohne das Neulesen beim Wiederkommen stuende hier
-            // weiter „keine Berechtigung" - auf einem Bildschirm, der einen selbst dorthin
-            // geschickt hat. Siehe `BigLauActivity.resumes`.
+            // `resumes` as the key: on a permanently refused permission this screen sends
+            // people into the app settings, and nothing comes back from there.
 var contactsGranted by remember(resumes.intValue) { mutableStateOf(contacts.hasPermission()) }
             val askForContacts = rememberLauncherForActivityResult(
                 ActivityResultContracts.RequestPermission(),
@@ -394,19 +379,15 @@ var contactsGranted by remember(resumes.intValue) { mutableStateOf(contacts.hasP
                 hideCutLabels = config.appearance.hideCutLabels,
                 cornerRadiusDp = config.appearance.cornerRadiusDp,
             ) {
-                // Die Zurueck-Taste tut, was der Knopf daneben tut.
+                // the back key does what the button beside it does.
                 //
-                // Die beiden Loeschfragen sind Vollbild-Tafeln: sie biegen mit `return@Box`
-                // ab, bevor der Modus ueberhaupt drankommt, und sie werden aus dem Menue
-                // heraus gesetzt. `mode != Mode.MENU` war dort also false, und ein Druck auf
-                // Zurueck beendete den ganzen Editor statt die Frage. Am 04.09.2026 am
-                // Emulator nachgemessen: aus der Frage nach dem Ordner heraus stand man
-                // wieder auf dem Startbildschirm. Zerstoert wurde nichts - aber wer mit
-                // Tasten arbeitet, verliert damit seinen Platz, ohne dass etwas es ansagt.
+                // both delete questions are full-screen panels that branch out with
+                // `return@Box` before the mode is reached, and they are set from the menu, so
+                // back ended the whole editor instead of the question. nothing was destroyed,
+                // but anyone working by key lost their place unannounced.
                 //
-                // Die Reihenfolge ist die, in der die Tafeln uebereinanderliegen: von oben
-                // nach unten wieder weg. Die Sperre bleibt aussen vor; dort fuehrt die Taste
-                // hinaus und darf nicht hineinfuehren.
+                // the order is the order the panels lie in. the lock stays out of it: there
+                // the key leads out and must not lead in.
                 BackHandler(
                     enabled = mode != Mode.MENU || replacingFolder != null || clearing != null,
                 ) {
@@ -446,9 +427,8 @@ var contactsGranted by remember(resumes.intValue) { mutableStateOf(contacts.hasP
                             replacing = true,
                             onKeep = { replacingFolder = null },
                             onDelete = {
-                                // Erst den Ordner weg, dann die neue Belegung schreiben.
-                                // FolderEdits.delete raeumt auch diese Kachel ab; setButton
-                                // legt sie danach neu an.
+                                // folder first, then the new assignment: FolderEdits.delete
+                                // clears this tile too, and setButton lays it out again.
                                 store.update { FolderEdits.delete(it, ordner.screenId) }
                                 writeNow(neu)
                                 replacingFolder = null
@@ -472,10 +452,9 @@ var contactsGranted by remember(resumes.intValue) { mutableStateOf(contacts.hasP
                         return@Box
                     }
 
-                    // Ein Band statt sechs zusaetzlicher Ueberschriften: dieselben Listen
-                    // belegen jetzt beide Druckarten. Ohne den Hinweis waere "App waehlen"
-                    // auf dem Langdruckweg nicht von der Hauptbelegung zu unterscheiden -
-                    // und wer sich vertut, ueberschreibt, was die Kachel bisher tat.
+                    // one banner instead of six more headings: the same lists now serve both
+                    // press kinds, and without it the long-press way would look like the main
+                    // assignment. getting that wrong overwrites what the tile did.
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     if (aufLangdruck && mode != Mode.MENU) {
                         Text(
@@ -515,8 +494,8 @@ var contactsGranted by remember(resumes.intValue) { mutableStateOf(contacts.hasP
                             onClearLongPress = { write(TileEdits.withLongPress(button, null)) },
                             mayAddFolder = FolderEdits.mayContainFolder(screen),
                             onNewFolder = {
-                                // Nur die Kennung wird hier gewaehlt; den Ordner legt
-                                // `writeNow` an, wenn die Kachel wirklich geschrieben wird.
+                                // only the id is chosen here; `writeNow` creates the folder
+                                // when the tile is really written.
                                 val id = ScreenEdits.freeId(store.current, base = "folder")
                                 write(TileEdits.withAction(button, ButtonAction.Folder(id)))
                                 mode = Mode.MENU
@@ -531,9 +510,8 @@ var contactsGranted by remember(resumes.intValue) { mutableStateOf(contacts.hasP
                                     store.clearButton(screenId, x, y)
                                     finish()
                                 } else {
-                                    // Erst fragen. Die Kachel zu leeren wuerde den Ordner
-                                    // zurueckliegen lassen, ohne dass noch ein Weg hinfuehrt -
-                                    // samt allem, was darin liegt.
+                                    // ask first: emptying the tile would leave the folder
+                                    // behind with no way to it, contents and all.
                                     clearing = ordner
                                 }
                             },
@@ -556,8 +534,8 @@ var contactsGranted by remember(resumes.intValue) { mutableStateOf(contacts.hasP
                             chosenContact = contact
                             when {
                                 contact.hasChoice -> mode = Mode.PICK_NUMBER
-                                // Ohne Nummer waere die Kachel eine, die nie etwas tut.
-                                // Lieber gar nicht erst anlegen als still nichts belegen.
+                                // without a number the tile would never do anything: better
+                                // not created than silently assigned to nothing.
                                 !contact.isCallable -> {
                                     Notice.show(
                                         this@TileEditorActivity,
@@ -594,10 +572,9 @@ var contactsGranted by remember(resumes.intValue) { mutableStateOf(contacts.hasP
                         }
 
                         Mode.EDIT_LABEL -> {
-                            // Ein Ordner hat genau einen Namen. Er steht auf der Kachel und
-                            // als Ueberschrift im geoeffneten Ordner; ein zweiter Name nur
-                            // fuer die Kachel hiesse, dass dasselbe Ding zweimal anders
-                            // heisst - je nachdem, ob man davor steht oder darin.
+                            // a folder has exactly one name, on the tile and as the heading
+                            // inside: a second name for the tile alone would call the same
+                            // thing differently depending on where one stands.
                             val ordner = button.action as? ButtonAction.Folder
                             LabelEditor(
                                 initial = if (ordner != null) {
@@ -693,8 +670,8 @@ var contactsGranted by remember(resumes.intValue) { mutableStateOf(contacts.hasP
                             }
                         }
 
-                        // Erst die Art, dann die Sache. Eine Liste, die Apps und Funktionen
-                        // vermischt, waere auf diesem Schirm zu lang zum Durchsehen.
+                        // the kind first, then the thing: a list mixing apps and functions
+                        // would be too long to scan on this screen.
                         Mode.PICK_LONG_PRESS -> LongPressKindList(
                             onPick = { gewaehlt ->
                                 aufLangdruck = true
@@ -724,8 +701,8 @@ var contactsGranted by remember(resumes.intValue) { mutableStateOf(contacts.hasP
                                     TileMove.moveWithin(store.current, screenId, x, y, platz.x, platz.y)
                                 if (gerueckt != null) {
                                     store.update { gerueckt }
-                                    // Der Anker wandert mit, sonst bearbeitete der Editor
-                                    // danach den leeren Platz, von dem die Kachel kam.
+                                    // the anchor moves along, or the editor would then edit
+                                    // the empty slot the tile came from.
                                     x = platz.x
                                     y = platz.y
                                 }
@@ -840,12 +817,9 @@ private fun MenuList(
     val palette = LocalBigPalette.current
     LazyColumn(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         item { BigHeading(stringResource(R.string.editor_title)) }
-        // **Welche** Kachel, nicht nur "eine Kachel".
-        //
-        // Bis zum 04.09.2026 stand hier nur die Ueberschrift. Wer eine von zwei leeren
-        // Kacheln antippte, sah nirgends, welche er erwischt hat - und der Fehler vom
-        // Vormittag (der Editor ging auf dem Startbildschirm statt im Ordner auf) waere
-        // sofort dagestanden, wenn der Name des Screens hier gestanden haette.
+        // *which* tile, not just a tile: with only the heading, tapping one of two empty
+        // tiles showed nowhere which one was caught, and the editor opening on the wrong
+        // screen would have been visible at once had the screen's name stood here.
         item {
             Text(
                 text = platz,
@@ -867,8 +841,8 @@ private fun MenuList(
         item { BigRow(stringResource(R.string.editor_pick_shortcut), icon = Icons.Filled.Bolt, onClick = onPickShortcut) }
         item { BigRow(stringResource(R.string.editor_pick_widget), icon = Icons.Filled.Widgets, onClick = onPickWidget) }
         item { BigRow(stringResource(R.string.editor_pick_screen), icon = Icons.AutoMirrored.Filled.ArrowForward, onClick = onPickScreen) }
-        // In einem Ordner nicht: zwei Ebenen zerstoeren den Ueberblick, den grosse Kacheln
-        // herstellen sollen. Siehe PLAN.md 4.9.
+        // not inside a folder: two levels destroy the overview large tiles are meant to
+        // create. see `PLAN.md` 4.9.
         item {
             BigRow(
                 stringResource(R.string.editor_pick_message),
@@ -901,8 +875,8 @@ private fun MenuList(
                 onClick = onEditLabel,
             )
         }
-        // Nur wenn es ueberhaupt ein Ziel gibt. Eine Zeile anzubieten, die dann sagt "geht
-        // nicht", ist schlechter als sie wegzulassen.
+        // only when there is a target at all: offering a row that then says it cannot is
+        // worse than leaving it out.
         if (button.action != ButtonAction.None && moveTargets > 0) {
             item {
                 BigRow(
@@ -912,8 +886,8 @@ private fun MenuList(
                 )
             }
         }
-        // Nur wo Blinken ueberhaupt etwas bedeutet: eine Uhr und eine leere Kachel haben
-        // keine Benachrichtigungen, und ein Schalter dafuer waere eine Zusage ohne Deckung.
+        // only where blinking means anything: a clock and an empty tile have no
+        // notifications, and a switch for them would be a promise without cover.
         if (TileNotifications.canBlink(button.action)) {
             item {
                 BigRow(
@@ -927,8 +901,8 @@ private fun MenuList(
                 )
             }
         }
-        // Zweitbelegung: PLAN.md 4.3 sagt sie zu. Nur wo die Kachel ueberhaupt etwas tut -
-        // eine leere Kachel mit Zweitbelegung waere ein Raetsel.
+        // the second assignment (`PLAN.md` 4.3), only where the tile does anything at all:
+        // an empty tile with one would be a riddle.
         if (button.action != ButtonAction.None) {
             item {
                 BigRow(
@@ -956,10 +930,9 @@ private fun MenuList(
                         onClick = onClearLongPress,
                     )
                 }
-                // Eine Zweitbelegung geht dem Editor vor (siehe LongPress.decide) - fuer
-                // **diese** Kachel fuehrt der Langdruck also nicht mehr hierher. Dasselbe
-                // sagt `a11y_editor_moved`, wenn eine Einstellung den Langdruck nimmt; hier
-                // nimmt ihn die Kachel selbst, und bis zum 04.09.2026 sagte es niemand.
+                // a second assignment comes before the editor (see LongPress.decide), so
+                // for *this* tile the long press no longer leads here. `a11y_editor_moved`
+                // says the same when a setting takes the long press; here the tile takes it.
                 item {
                     Text(
                         text = stringResource(R.string.editor_long_press_takes_editor),
@@ -973,9 +946,8 @@ private fun MenuList(
         item {
             BigRow(
                 label = stringResource(R.string.editor_pick_icon),
-                // Sind die Symbole global aus, waere die Wahl sonst eine Einstellung ohne
-                // sichtbare Wirkung - der Nutzer waehlt und nichts passiert. Die Zeile
-                // bleibt trotzdem: die Wahl gilt, sobald die Symbole wieder an sind.
+                // with icons globally off the choice would have no visible effect. the row
+                // stays anyway: it holds as soon as the icons are back on.
                 secondary = if (LocalIconVisibility.current == IconVisibility.NEVER) {
                     stringResource(R.string.editor_pick_icon_off)
                 } else {
@@ -989,8 +961,8 @@ private fun MenuList(
         if (onResize != null) {
             item { BigRow(stringResource(R.string.editor_resize), icon = Icons.Filled.OpenInFull, onClick = onResize) }
         }
-        // Nur, wenn es etwas zu leeren gibt - siehe TileEdits.clearable. Bei einer frischen
-        // Kachel stand hier ein roter Knopf ohne Wirkung.
+        // only when there is something to empty (see TileEdits.clearable): a fresh tile had
+        // a red button here that did nothing.
         if (TileEdits.clearable(button)) {
             item {
                 BigRow(
@@ -1012,9 +984,8 @@ private fun MenuList(
 }
 
 /**
- * Dieselbe Ableitung wie auf dem Startbildschirm - siehe [TileLabel]. Der Editor hatte
- * frueher seine eigene und nannte einen Ordner nur "Ordner", wo der Startbildschirm den
- * Namen zeigte.
+ * the same derivation as on the home screen, see [TileLabel]. the editor once had its own
+ * and called a folder just folder where the home screen showed the name.
  */
 @Composable
 private fun describe(
@@ -1038,12 +1009,11 @@ private fun describe(
 }
 
 /**
- * Was das Halten tun soll.
+ * what holding should do.
  *
- * `PLAN.md` 4.3 sagt zu: "Jede Aktion zusaetzlich auf Langdruck belegbar, unabhaengig vom
- * Kurzdruck." Zur Wahl standen aber nur Apps und eingebaute Funktionen - Kontakte,
- * Verknuepfungen, Screens und Webseiten fehlten, obwohl das Modell sie laengst tragen kann.
- * Kein Widget und kein Ordner: beide sind kein Griff, sondern der Inhalt einer Zelle.
+ * `PLAN.md` 4.3 promises every action on the long press, independent of the short one, but
+ * only apps and built-in functions were offered. no widget and no folder: neither is a
+ * handle, both are the content of a cell.
  */
 @Composable
 private fun LongPressKindList(onPick: (Mode) -> Unit) {
@@ -1129,9 +1099,8 @@ private fun AppList(
     val palette = LocalBigPalette.current
 
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        // Sobald gesucht wird, weicht die Ueberschrift: mit offener Tastatur bleiben auf
-        // 581 dp sonst nur ein bis zwei Trefferzeilen uebrig, und die Ueberschrift sagt
-        // an dieser Stelle nichts mehr, was das Suchfeld nicht schon zeigt.
+        // the heading gives way once searching starts: with the keyboard open only one or
+        // two result rows are left of 581 dp, and the heading says nothing the field does not.
         if (query.isEmpty()) {
             BigHeading(stringResource(headingRes))
         }
@@ -1178,13 +1147,13 @@ private fun LabelEditor(
             onValueChange = { text = it },
             singleLine = true,
             textStyle = TextStyle(fontSize = bigSp(26f), fontWeight = FontWeight.Bold),
-            // Der automatische Name steht blass im leeren Feld. Sonst sieht man nur einen
-            // leeren Kasten und weiss nicht, was man da eigentlich ersetzt.
+            // the automatic name stands pale in the empty field, or one sees an empty box
+            // and does not know what is being replaced.
             placeholder = {
                 Text(automatic, fontSize = bigSp(22f), fontWeight = FontWeight.Bold)
             },
-            // Die Haken-Taste der Tastatur uebernimmt. Auf drei Zoll verdeckt die Tastatur
-            // den "Fertig"-Knopf vollstaendig - wer tippt, kommt sonst nicht an ihn heran.
+            // the keyboard's tick key takes over: on three inches the keyboard covers the
+            // done button entirely.
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
             keyboardActions = KeyboardActions(onDone = { onDone(text) }),
             modifier = Modifier.fillMaxWidth(),
@@ -1208,16 +1177,15 @@ private fun ColorPicker(selected: Int, hue: Float?, onPick: (Int?) -> Unit, onFr
     val palette = LocalBigPalette.current
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         BigHeading(stringResource(R.string.editor_color))
-        // Die Farbnamen stehen in derselben Reihenfolge wie die Farben selbst. Ohne sie
-        // waeren die Felder fuer einen Screenreader sechs namenlose Schaltflaechen.
+        // the colour names run in the same order as the colours: without them the swatches
+        // are six nameless buttons to a screen reader.
         val names = stringArrayResource(R.array.tile_colors)
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
             palette.tiles.forEachIndexed { index, color ->
                 val chosen = index == selected
                 val plain = names.getOrElse(index) { "" }
-                // Der Zustand gehoert in den Namen. Die reine selected-Eigenschaft kommt in
-                // der Bedienungshilfen-Schnittstelle nicht an - geprueft im Knotenabzug des
-                // Geraets -, und eine Auswahl, die nur zu sehen ist, hilft beim Vorlesen nicht.
+                // the state belongs in the name: the bare selected property does not reach
+                // the accessibility interface, checked in the device's node dump.
                 val name = if (chosen) stringResource(UiR.string.a11y_chosen, plain) else plain
                 Box(
                     modifier = Modifier
@@ -1239,8 +1207,8 @@ private fun ColorPicker(selected: Int, hue: Float?, onPick: (Int?) -> Unit, onFr
                         },
                     contentAlignment = Alignment.Center,
                 ) {
-                    // Der Rahmen allein traegt die Auswahl nicht: auf einem farbigen Feld
-                    // sieht ein Rahmen schnell nach Zierrat aus. Das Haekchen ist eindeutig.
+                    // a border alone does not carry the choice: on a coloured swatch it
+                    // reads as decoration. the tick is unambiguous.
                     if (chosen) {
                         Icon(
                             Icons.Filled.Check,
@@ -1258,10 +1226,9 @@ private fun ColorPicker(selected: Int, hue: Float?, onPick: (Int?) -> Unit, onFr
             onClick = { onPick(null) },
         )
 
-        // PLAN.md 4.2 nennt drei Arten: Auto, Palette, frei. Die freie steht hier, und sie
-        // fragt nur nach dem Farbton - die Helligkeit dazu rechnet FreeTileColor so aus,
-        // dass beide Schwellen aus 3.3 halten. Ein Farbwaehler, der zu blasse Farben
-        // annimmt, waere schlimmer als keiner.
+        // `PLAN.md` 4.2 names three kinds: automatic, palette, free. the free one asks only
+        // for the hue; FreeTileColor computes the lightness so both thresholds from 3.3
+        // hold. a picker that accepts unreadable colours is worse than none.
         BigRow(
             label = stringResource(R.string.editor_color_free),
             secondary = stringResource(R.string.editor_color_free_hint),
@@ -1273,11 +1240,11 @@ private fun ColorPicker(selected: Int, hue: Float?, onPick: (Int?) -> Unit, onFr
 }
 
 /**
- * Die Symbolauswahl. `PLAN.md` 2.2 und 3.4.
+ * the icon picker. `PLAN.md` 2.2 and 3.4.
  *
- * Vier nebeneinander, in Gruppen mit Ueberschrift - dieselbe Aufteilung wie bei den Farben.
- * Ganz oben "Automatisch", denn das ist der Zustand, in dem jede Kachel anfaengt, und der
- * Weg zurueck muss so gross sein wie der Weg hin.
+ * four side by side, in headed groups, the same layout as the colours. automatic at the very
+ * top, because that is where every tile starts, and the way back must be as large as the
+ * way there.
  */
 @Composable
 private fun IconPicker(selected: String?, onPick: (String?) -> Unit) {
@@ -1294,9 +1261,8 @@ private fun IconPicker(selected: String?, onPick: (String?) -> Unit) {
         }
         IconCatalogue.GROUPS.forEach { gruppe ->
             item { BigHeading(stringResource(gruppe.titleRes)) }
-            // Drei nebeneinander, nicht vier: bei vier bricht das Wort mitten im Wort
-            // ("Nachrich/t"), und ein zerbrochenes Wort ist schlechter als eine Zeile mehr.
-            // Am Bildschirm nachgesehen.
+            // three side by side, not four: at four the word breaks mid-word, and a broken
+            // word is worse than one more row.
             items(gruppe.names.chunked(3)) { reihe ->
                 Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     reihe.forEach { name ->
@@ -1305,8 +1271,7 @@ private fun IconPicker(selected: String?, onPick: (String?) -> Unit) {
                         val flaeche =
                             if (gewaehlt) palette.surfaceAccent else palette.surfaceDefault
                         val wort = IconCatalogue.labelFor(name)?.let { stringResource(it) } ?: name
-                        // Der Zustand gehoert in den Namen - siehe die Messung im
-                        // Farbwaehler daneben.
+                        // the state belongs in the name, see the colour picker beside it.
                         val ansage =
                             if (gewaehlt) stringResource(UiR.string.a11y_chosen, wort) else wort
                         Column(
@@ -1339,8 +1304,8 @@ private fun IconPicker(selected: String?, onPick: (String?) -> Unit) {
                             if (bild != null) {
                                 Icon(
                                     imageVector = bild,
-                                    // Das Wort steht darunter; eine zweite Ansage waere
-                                    // dieselbe Auskunft zweimal.
+                                    // the word stands below; a second announcement would be
+                                    // the same answer twice.
                                     contentDescription = null,
                                     tint = flaeche.ink,
                                     modifier = Modifier.size(32.dp),
@@ -1356,8 +1321,7 @@ private fun IconPicker(selected: String?, onPick: (String?) -> Unit) {
                             )
                         }
                     }
-                    // Die letzte Reihe fuellt sich auf, sonst waeren ihre Felder breiter
-                    // als die darueber.
+                    // the last row fills up, or its swatches would be wider than the rest.
                     repeat(3 - reihe.size) { Box(Modifier.weight(1f)) }
                 }
             }
@@ -1366,11 +1330,10 @@ private fun IconPicker(selected: String?, onPick: (String?) -> Unit) {
 }
 
 /**
- * Die freie Farbwahl: vierundzwanzig Farbtöne, jeder in der Fassung, die in diesem Thema
- * lesbar ist.
+ * the free colour choice: twenty-four hues, each in the shade readable in this theme.
  *
- * Gewählt wird der Ton, nicht die Helligkeit — die hängt am Thema und an zwei Schwellen,
- * und das ist nichts, wonach man jemanden mit einem Schieberegler fragt.
+ * the hue is chosen, not the lightness, which hangs on the theme and on two thresholds and
+ * is nothing to ask anyone with a slider.
  */
 @Composable
 private fun HuePicker(selected: Float?, onPick: (Float) -> Unit) {
@@ -1387,8 +1350,7 @@ private fun HuePicker(selected: Float?, onPick: (Float) -> Unit) {
                         val farbe = Color(FreeTileColor.forHue(ton, grund, schrift, gewicht).toInt())
                         val chosen = selected != null && abs(selected - ton) < 0.5f
                         val schlicht = hueName(ton)
-                        // Der Zustand gehoert in den Namen - dieselbe Ueberlegung wie bei
-                        // den sechs Palettenfeldern darueber.
+                        // the state belongs in the name, as with the six palette swatches.
                         val name = if (chosen) stringResource(UiR.string.a11y_chosen, schlicht) else schlicht
                         Box(
                             modifier = Modifier
@@ -1432,10 +1394,7 @@ private fun HuePicker(selected: Float?, onPick: (Float) -> Unit) {
     }
 }
 
-/**
- * Ein Name für den Farbton, damit die Felder für einen Screenreader nicht
- * vierundzwanzig namenlose Schaltflächen sind.
- */
+/** a name for the hue, so the swatches are not twenty-four nameless buttons. */
 private fun hueName(hue: Float): String = "${hue.toInt()}°"
 
 @Composable
@@ -1560,9 +1519,8 @@ private fun ContactModeList(onPick: (ContactMode) -> Unit) {
 }
 
 /**
- * Zeigt ausschliesslich die Schritte, die gerade moeglich sind. Ausgegraute Knoepfe
- * muesste der Nutzer erst antippen, um zu erfahren, dass sie nichts tun - auf drei
- * Zoll ist das verschwendeter Platz.
+ * shows only the steps that are possible right now: greyed-out buttons would have to be
+ * tapped to learn they do nothing, and on three inches that is wasted room.
  */
 @Composable
 private fun ResizePanel(
@@ -1601,8 +1559,8 @@ private fun ResizePanel(
                 onClick = { onApply { board, live -> CellLayout.shrink(board, live, direction) } },
             )
         }
-        // Ohne diesen Satz stuenden hier nur "Aktuell 1 x 1" und "Fertig" - das sieht aus,
-        // als waere die Seite kaputt, dabei ist rundherum schlicht kein Platz frei.
+        // without this sentence only the current size and done would stand here, which
+        // looks broken when in fact there is simply no room around it.
         if (grow.isEmpty() && shrink.isEmpty()) {
             item {
                 Text(
@@ -1652,15 +1610,12 @@ private fun ScreenPicker(
     onCreate: () -> Unit,
 ) {
     val palette = LocalBigPalette.current
-    // **Ordner sind keine Sprungziele.** Ein Ordner gehoert seiner Kachel und legt sich als
-    // Ueberlagerung darueber; als Sprungziel wuerde er zum gewoehnlichen Screen - ohne die
-    // Zeile "Ordner schliessen", ohne Eintrag in der Screen-Liste, und daneben stuende
-    // weiter die Kachel, die ihn als Ueberlagerung oeffnet. Zwei Wege zu derselben Sache,
-    // die verschieden aussehen.
+    // folders are no jump targets: a folder belongs to its tile and lies over it as an
+    // overlay. as a target it becomes an ordinary screen, without the closing row and
+    // without an entry in the screen list, while the tile that opens it as an overlay still
+    // stands beside it - two ways to the same thing that look different.
     //
-    // Am 04.09.2026 am Emulator erzeugt: eine Sprungkachel auf einen Ordner, angetippt, und
-    // der Ordner stand als Screen da. `SwipeChain` filtert Ordner seit jeher heraus; diese
-    // Liste war die einzige, die es nicht tat.
+    // `SwipeChain` has always filtered folders out; this list was the only one that did not.
     val others = config.screens.filter { it.id != currentScreenId && !it.isFolder }
 
     LazyColumn(verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -1684,7 +1639,7 @@ private fun ScreenPicker(
     }
 }
 
-/** Verknuepfungen gibt Android nur an den Standard-Launcher heraus - das muss dastehen. */
+/** android hands shortcuts only to the default launcher, and that has to be said. */
 @Composable
 private fun NeedsHomeRole(onChoose: () -> Unit) {
     val palette = LocalBigPalette.current
@@ -1716,8 +1671,8 @@ private fun ShortcutList(
     LazyColumn(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         item { BigHeading(app?.label ?: stringResource(R.string.editor_pick_shortcut)) }
         if (rows.isEmpty()) {
-            // Zwei verschiedene Saetze fuer zwei verschiedene Zustaende: die App hat keine,
-            // oder wir konnten nicht nachsehen. Der Ausweg darunter ist derselbe.
+            // two sentences for two states: the app has none, or we could not look. the way
+            // out below is the same.
             item {
                 Text(
                     text = stringResource(
@@ -1732,9 +1687,8 @@ private fun ShortcutList(
                     modifier = Modifier.padding(horizontal = 4.dp, vertical = 8.dp),
                 )
             }
-            // Die meisten Apps bieten keine Verknuepfungen an, und welche das sind, sieht man
-            // der Liste nicht an. Ohne diesen Knopf steht man vor einem Satz und muesste die
-            // Zurueck-Geste kennen, um eine andere App zu probieren.
+            // most apps offer no shortcuts, and the list does not say which. without this
+            // button one stands before a sentence and needs the back gesture to try another.
             item {
                 BigRow(
                     label = stringResource(R.string.shortcut_other_app),
@@ -1754,8 +1708,8 @@ private fun ShortcutList(
 }
 
 /**
- * Widget-Auswahl. Neben dem Namen steht, wie viele Felder das Widget braucht - sonst legt
- * der Nutzer ein zu grosses auf eine kleine Kachel und bekommt ein gestauchtes Ergebnis.
+ * the widget picker. beside the name stands how many slots the widget needs, or an oversized
+ * one lands on a small tile and comes out squeezed.
  */
 @Composable
 private fun WidgetPicker(
@@ -1768,12 +1722,9 @@ private fun WidgetPicker(
     val palette = LocalBigPalette.current
     LazyColumn(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         item { BigHeading(stringResource(R.string.editor_pick_widget)) }
-        // Der Hinweis steht **vor** der Wahl, nicht danach. Am 04.09.2026 am Emulator
-        // nachgestellt: Widget auf eine Kachel gelegt, langer Druck darauf - und die
-        // Weckerapp ging auf. Das Widget bekommt die Beruehrung zuerst, und damit ist der
-        // uebliche Weg zum Editor fuer diese eine Kachel zu. Es gibt einen anderen
-        // (Einstellungen, "Kacheln aendern"), aber wer ihn nicht kennt, haelt die Kachel
-        // fuer festgewachsen.
+        // the hint stands *before* the choice: a widget takes the touch first, so the usual
+        // way to the editor is closed for that tile. there is another one through the
+        // settings, but without knowing it the tile seems grown fast.
         if (rows.isNotEmpty()) {
             item {
                 Text(
@@ -1813,11 +1764,11 @@ private fun WidgetPicker(
 }
 
 /**
- * Rückfrage vor dem Löschen eines Ordners.
+ * the question before deleting a folder.
  *
- * Ein Ordner wegzuwerfen wirft alles mit weg, was darin liegt - und anders als bei einer
- * einzelnen Kachel sieht man das nicht, weil der Inhalt zugeklappt ist. Deshalb steht die
- * Zahl hier, und deshalb heißen die Knöpfe nach ihrer Handlung und nicht „Ja"/„Nein".
+ * throwing a folder away throws away everything in it, and unlike a single tile that is not
+ * visible, the contents being folded up. hence the count here, and hence buttons named after
+ * their action rather than yes and no.
  */
 @Composable
 private fun FolderDeletePanel(
@@ -1825,7 +1776,7 @@ private fun FolderDeletePanel(
     count: Int,
     onKeep: () -> Unit,
     onDelete: () -> Unit,
-    /** Wird die Kachel neu belegt statt geleert? Dann heisst der Knopf anders. */
+    /** is the tile being reassigned rather than emptied? then the button reads differently. */
     replacing: Boolean = false,
 ) {
     val palette = LocalBigPalette.current
@@ -1854,15 +1805,14 @@ private fun FolderDeletePanel(
 }
 
 /**
- * Wohin die Kachel soll.
+ * where the tile should go.
  *
- * Angeboten wird nur, wo tatsächlich Platz ist - ein Ziel, das dann ablehnt, wäre ein
- * Knopf, der nichts tut. Neben dem Namen steht, ob es ein Ordner ist und wie viel dort
- * noch frei ist.
+ * only places with actual room are offered: a target that then refuses would be a button
+ * that does nothing. beside the name stands whether it is a folder and how much is free.
  */
 @Composable
 private fun MoveTargetList(
-    /** Welche Kachel hier verschoben wird, und wo sie gerade liegt. */
+    /** which tile is being moved, and where it lies now. */
     welche: String,
     spots: List<TileMove.Spot>,
     targets: List<Screen>,
@@ -1875,9 +1825,8 @@ private fun MoveTargetList(
     val palette = LocalBigPalette.current
     LazyColumn(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         item { BigHeading(stringResource(R.string.editor_move)) }
-        // Welche Kachel eigentlich? Jedes Ziel unten heisst "Zeile x, Spalte y" - ohne
-        // diese Zeile ist der ganze Bildschirm eine Liste abstrakter Plaetze, und wer
-        // zwischendurch weggeschaut hat, weiss nicht mehr, was er da bewegt.
+        // which tile, though? every target below is a row and column, so without this line
+        // the whole screen is a list of abstract slots.
         item {
             Text(
                 text = welche,
@@ -1886,9 +1835,8 @@ private fun MoveTargetList(
                 modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp),
             )
         }
-        // Der eigene Bildschirm zuerst: wer eine Kachel verschiebt, ordnet meistens den
-        // Bildschirm um, auf dem er gerade steht. Zeile und Spalte werden ab 1 gezaehlt -
-        // "Zeile 0" liest sich wie ein Fehler.
+        // the own screen first: moving a tile usually means rearranging the screen one is
+        // standing on. rows and columns count from 1, since row 0 reads like a fault.
         if (spots.isNotEmpty()) {
             item { BigHeading(stringResource(R.string.move_on_this_screen)) }
             items(spots, key = { "platz-${it.x}-${it.y}" }) { platz ->
@@ -1907,9 +1855,9 @@ private fun MoveTargetList(
         }
         if (targets.isNotEmpty()) {
             item { BigHeading(stringResource(R.string.move_other_screens)) }
-            // Eine grosse Kachel kommt woanders einfeldrig an ([TileMove.move]) - sonst
-            // ragte sie ueber den Rand. Das steht hier, bevor es passiert; hinterher
-            // sieht es aus, als haette das Verschieben die Kachel kaputtgemacht.
+            // a large tile arrives elsewhere as a single slot ([TileMove.move]), or it
+            // would hang over the edge. said before it happens; afterwards it looks as if
+            // moving had broken the tile.
             if (shrinks) {
                 item {
                     Text(
@@ -1937,12 +1885,11 @@ private fun MoveTargetList(
 }
 
 /**
- * Die Nummer eintippen, an die diese Kachel eine Nachricht beginnt.
+ * type the number this tile starts a message to.
  *
- * Die Zifferntastatur statt der vollen: der Empfänger ist eine Nummer, kein Name. Die
- * Haken-Taste übernimmt, denn mit offener Tastatur ist „Fertig" verdeckt - derselbe Fall
- * wie beim Webseiten-Feld darunter. Was hier steht, wird nicht verschickt; die Kachel
- * öffnet später den Schreiben-Bildschirm, siehe [MessageTile].
+ * the digit keypad and not the full one: the recipient is a number, not a name. the tick key
+ * takes over, since done is covered with the keyboard open. nothing here is sent; the tile
+ * opens the writing screen later, see [MessageTile].
  */
 @Composable
 private fun NumberEditor(initial: String, onDone: (String) -> Unit) {

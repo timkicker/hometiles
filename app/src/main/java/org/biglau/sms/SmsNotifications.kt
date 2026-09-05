@@ -12,75 +12,61 @@ import org.biglau.phone.PhoneNumbers
 import org.biglau.ui.AppLocale
 
 /**
- * Die Meldung über eine neue Nachricht.
+ * the notice about a new message.
  *
- * Sie hängt an der SMS-Rolle: wer die Standard-App ist, ist auch die Stelle, die es sagt.
- * Vorher sagte es niemand - am Emulator kam eine Nachricht an, wurde gespeichert und blieb
- * unsichtbar, bis jemand von sich aus die Liste öffnete. Für ein Telefon, das in der Tasche
- * liegt, ist das dasselbe wie verloren.
+ * it hangs on the sms role: whoever is the default app is also the one that says so.
  *
- * Die Vibrationsdauer aus `PLAN.md` 4.7 steht im **Kanal**, nicht in einem eigenen
- * Vibrationsaufruf: nur so hält sich die Meldung an „Bitte nicht stören" und an den
- * Lautlos-Schalter. Ein Kanal lässt sich nachträglich nicht ändern, deshalb trägt seine
- * Kennung die Dauer - eine andere Einstellung ergibt einen neuen Kanal, und der alte wird
- * weggeräumt.
+ * the vibration length from `PLAN.md` 4.7 sits in the *channel* and not in a vibrate call
+ * of our own, because only then does the notice honour do-not-disturb and the silent
+ * switch. a channel cannot be changed afterwards, so its id carries the length: another
+ * setting gives a new channel and the old one is cleared away.
  */
 object SmsNotifications {
 
-    /** Vibrationsdauern zur Wahl, in Millisekunden. Null heisst: nicht vibrieren. */
+    /** vibration lengths to choose from, in milliseconds. zero means no vibration. */
     val VIBRATION_CHOICES = listOf(0, 200, 500, 1000)
 
     /**
-     * Das Praefix, an dem die alten Kanaele erkannt werden.
-     *
-     * Es steht hier **einmal** und wird beim Aufraeumen wiederverwendet. Stuende es dort als
-     * Zeichenkette, wuerden die beiden Stellen eines Tages auseinanderlaufen: die Kennung
-     * hiesse anders, das Aufraeumen fande nichts mehr, und in den Systemeinstellungen des
-     * Nutzers sammelten sich stumme Kanaele, die keiner mehr benutzt. Niemand bekaeme davon
-     * etwas mit - `SmsChannelTest` haelt beide Seiten zusammen.
+     * the prefix by which old channels are recognised, written once and reused when clearing
+     * up: as a literal in both places they would drift apart, and silent unused channels
+     * would pile up in the settings with nobody noticing. `SmsChannelTest` holds both sides.
      */
     const val CHANNEL_PREFIX = "sms-"
 
     fun channelId(vibrationMs: Int): String = "$CHANNEL_PREFIX$vibrationMs"
 
-    /**
-     * Wird über diese Nachricht überhaupt gemeldet?
-     *
-     * Was ausgefiltert ist, meldet sich auch nicht - sonst hätte das Ausblenden nur die
-     * halbe Wirkung und die Werbenachricht klingelte weiter.
-     */
+    /** what is filtered out does not announce itself, or hiding would only half work. */
     fun shouldNotify(message: SmsMessage, config: SmsConfig): Boolean =
         message.incoming && !SmsFilter.hidden(message, config.hiddenNumbers, config.hiddenWords)
 
-    /** Eine Kennung je Absender: die zweite Nachricht ersetzt die erste, statt sich zu stapeln. */
+    /** one id per sender: the second message replaces the first instead of stacking. */
     fun notificationId(address: String): Int =
         PhoneNumbers.clean(address).ifEmpty { address }.hashCode()
 
     fun show(context: Context, message: SmsMessage, name: String?, config: SmsConfig) {
         if (!shouldNotify(message, config)) return
         val manager = context.getSystemService(NotificationManager::class.java) ?: return
-        // Texte in der Sprache der App, nicht der des Telefons. Siehe AppLocale.forApp.
-        val texte = AppLocale.forApp(context)
-        val kanal = channelId(config.vibrationMs)
+        // texts in the app's language, not the phone's. see AppLocale.forApp.
+        val texts = AppLocale.forApp(context)
+        val channel = channelId(config.vibrationMs)
         manager.notificationChannels
-            .filter { it.id.startsWith(CHANNEL_PREFIX) && it.id != kanal }
+            .filter { it.id.startsWith(CHANNEL_PREFIX) && it.id != channel }
             .forEach { manager.deleteNotificationChannel(it.id) }
         manager.createNotificationChannel(
-            NotificationChannel(kanal, texte.getString(R.string.messages), NotificationManager.IMPORTANCE_HIGH).apply {
+            NotificationChannel(channel, texts.getString(R.string.messages), NotificationManager.IMPORTANCE_HIGH).apply {
                 enableVibration(config.vibrationMs > 0)
                 if (config.vibrationMs > 0) vibrationPattern = longArrayOf(0, config.vibrationMs.toLong())
             },
         )
-        val oeffnen = Intent(context, SmsActivity::class.java)
+        val open = Intent(context, SmsActivity::class.java)
             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
             .putExtra(SmsActivity.EXTRA_ADDRESS, message.address)
-        val vollbild = Intent(oeffnen).putExtra(SmsActivity.EXTRA_FULL_SCREEN, true)
-        val notification = Notification.Builder(context, kanal)
+        val fullScreen = Intent(open).putExtra(SmsActivity.EXTRA_FULL_SCREEN, true)
+        val notification = Notification.Builder(context, channel)
             .setSmallIcon(R.drawable.ic_stat_message)
             .setContentTitle(name ?: PhoneNumbers.forDisplay(message.address))
             .setContentText(message.body)
-            // Der ganze Text, nicht eine Zeile davon: auf drei Zoll passt sonst der halbe
-            // Satz, und man muss die App oeffnen, um das Ende zu lesen.
+            // the whole text, not one line of it: on three inches half a sentence fits.
             .setStyle(Notification.BigTextStyle().bigText(message.body))
             .setCategory(Notification.CATEGORY_MESSAGE)
             .setAutoCancel(true)
@@ -88,20 +74,19 @@ object SmsNotifications {
                 PendingIntent.getActivity(
                     context,
                     notificationId(message.address),
-                    oeffnen,
+                    open,
                     PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
                 ),
             )
-            // PLAN.md 4.7: Vollbild bei neuer Nachricht. Es fuehrt auf denselben
-            // Bildschirm wie das Antippen - eine eigene Vollbild-Ansicht daneben waere
-            // ein zweiter Weg zur selben Nachricht.
-            .also { bauer ->
+            // `PLAN.md` 4.7: full screen on a new message. it leads to the same screen as
+            // tapping does; a full-screen view of its own would be a second way there.
+            .also { builder ->
                 if (config.fullScreenAlert) {
-                    bauer.setFullScreenIntent(
+                    builder.setFullScreenIntent(
                         PendingIntent.getActivity(
                             context,
                             notificationId(message.address) + 1,
-                            vollbild,
+                            fullScreen,
                             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
                         ),
                         true,
@@ -110,88 +95,75 @@ object SmsNotifications {
             }
             .build()
         manager.notify(notificationId(message.address), notification)
-        // PLAN.md 4.7: alle n Minuten noch einmal, solange sie ungelesen ist. Bei "nicht
-        // erinnern" raeumt derselbe Aufruf einen alten Wecker weg.
+        // `PLAN.md` 4.7: again every n minutes while unread. at no reminder the same call
+        // clears an old alarm away.
         MessageReminderReceiver.schedule(context, config.repeatMinutes)
     }
 
     /**
-     * Eigener Kanal fuer den MMS-Hinweis - und einer je Vibrationsstaerke.
+     * own channel for the mms hint, one per vibration length.
      *
-     * **Ein Kanal ist nach dem Anlegen unveraenderlich.** `createNotificationChannel` auf
-     * einen vorhandenen Kanal aendert nichts als Name und Beschreibung; Ton und Vibration
-     * bleiben, wie sie beim ersten Mal waren. Am 03.09.2026 am Geraet gesehen: die
-     * Einstellung stand auf 500 ms, der Kanal meldete `mVibrationEnabled=false`, weil er
-     * aus einer frueheren Probe stammte.
-     *
-     * Der SMS-Weg loest das seit jeher, indem die Einstellung **in der Kennung** steckt und
-     * alte Kanaele weggeraeumt werden. Der MMS-Hinweis macht es jetzt genauso. Der Praefix
-     * ist ein anderer als [CHANNEL_PREFIX], sonst nimmt ihn die dortige Aufraeumschleife mit.
+     * a channel is immutable once created: `createNotificationChannel` on an existing one
+     * changes nothing but name and description, so a channel from an earlier try reported
+     * `mVibrationEnabled=false` while the setting said 500 ms. the setting therefore sits in
+     * the id. a different prefix from [CHANNEL_PREFIX], or that clean-up loop takes it too.
      */
     const val MMS_CHANNEL_PREFIX = "mms-hinweis-"
 
     fun mmsChannelId(vibrationMs: Int): String = "$MMS_CHANNEL_PREFIX$vibrationMs"
 
-    /** Wie [MMS_CHANNEL_PREFIX]: eigener Kanal, damit keine Aufraeumschleife ihn mitnimmt. */
-    const val FEHLER_CHANNEL = "sendefehler"
+    /** like [MMS_CHANNEL_PREFIX]: own channel, so no clean-up loop takes it along. */
+    const val ERROR_CHANNEL = "sendefehler"
 
-    /** Feste Kennung: ein zweites Bild soll den Hinweis ersetzen, nicht daneben legen. */
+    /** fixed id: a second picture replaces the hint instead of lying beside it. */
     const val MMS_NOTIFICATION_ID = 424242
 
-    /** Eigene Nummer, damit ein Sendefehler den MMS-Hinweis nicht ueberschreibt. */
-    const val FEHLER_NOTIFICATION_ID = 424243
+    /** a number of its own, so a send failure does not overwrite the mms hint. */
+    const val ERROR_NOTIFICATION_ID = 424243
 
     /**
-     * Sagt Bescheid, dass eine Bildnachricht angekommen ist, die BigLau nicht zeigen kann.
+     * says that a picture message arrived which BigLau cannot show.
      *
-     * `PLAN.md` 6 verlangt es fuer MMS ausdruecklich: „bei Fehlschlag sichtbar an den Nutzer
-     * melden statt still schlucken". Genau das tat der Empfaenger bisher - er merkte sich,
-     * dass sich etwas geaendert hat, und schwieg. Wer ein Bild erwartet, wartet dann auf
-     * etwas, das nie kommt, und haelt das Telefon fuer kaputt.
+     * `PLAN.md` 6 asks for it explicitly: report a failure visibly instead of swallowing it.
+     * the hint names the reason (no network access) and the way out (the phone's messaging
+     * app), because naming a problem without a way is only half of it.
      *
-     * Der Hinweis nennt auch den Grund (kein Netzzugang) und den Ausweg (die
-     * Nachrichten-App des Telefons). Eine Meldung, die ein Problem nennt, ohne einen Weg zu
-     * zeigen, ist nur die Haelfte.
-     *
-     * Der Kanal ist ein eigener und faengt **nicht** mit [CHANNEL_PREFIX] an: sonst raeumte
-     * ihn die Aufraeumschleife in [show] beim naechsten SMS-Hinweis weg.
+     * own channel, not starting with [CHANNEL_PREFIX], or [show] would clear it away.
      */
     fun showMmsHint(context: Context, config: SmsConfig) {
         val manager = context.getSystemService(NotificationManager::class.java) ?: return
-        val texte = AppLocale.forApp(context)
-        val kanal = mmsChannelId(config.vibrationMs)
-        // Der Kanal hiess bis zum 03.09.2026 schlicht `mms-hinweis`, ohne die Staerke. Der
-        // passt auf keinen Praefix und bliebe sonst fuer immer in den Systemeinstellungen
-        // liegen - unter demselben Namen wie der neue.
+        val texts = AppLocale.forApp(context)
+        val channel = mmsChannelId(config.vibrationMs)
+        // the channel was once called plainly `mms-hinweis`, without the length. it matches
+        // no prefix and would lie in the settings forever, under the same name as the new one.
         manager.notificationChannels
-            .filter { (it.id.startsWith(MMS_CHANNEL_PREFIX) || it.id == "mms-hinweis") && it.id != kanal }
+            .filter { (it.id.startsWith(MMS_CHANNEL_PREFIX) || it.id == "mms-hinweis") && it.id != channel }
             .forEach { manager.deleteNotificationChannel(it.id) }
         manager.createNotificationChannel(
             NotificationChannel(
-                kanal,
-                texte.getString(R.string.mms_arrived_title),
+                channel,
+                texts.getString(R.string.mms_arrived_title),
                 NotificationManager.IMPORTANCE_DEFAULT,
             ).apply {
-                // Dieselbe Vibrationseinstellung wie bei einer SMS. Bis zum 03.09.2026 hing
-                // dieser Kanal an keiner - wer die Vibration fuer Nachrichten ausgeschaltet
-                // hatte, bekam sie bei einer Bildnachricht trotzdem. Eine Einstellung, die
-                // nur fuer einen Teil der Nachrichten gilt, ist keine.
+                // the same vibration setting as for an sms: hanging on none, this channel
+                // vibrated for a picture message even with vibration switched off, and a
+                // setting that holds for only some messages is none.
                 enableVibration(config.vibrationMs > 0)
                 if (config.vibrationMs > 0) {
                     vibrationPattern = longArrayOf(0, config.vibrationMs.toLong())
                 }
             },
         )
-        val oeffnen = Intent(context, SmsActivity::class.java)
+        val open = Intent(context, SmsActivity::class.java)
             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
         manager.notify(
             MMS_NOTIFICATION_ID,
-            Notification.Builder(context, kanal)
+            Notification.Builder(context, channel)
                 .setSmallIcon(R.drawable.ic_stat_message)
-                .setContentTitle(texte.getString(R.string.mms_arrived_title))
-                .setContentText(texte.getString(R.string.mms_arrived_body))
+                .setContentTitle(texts.getString(R.string.mms_arrived_title))
+                .setContentText(texts.getString(R.string.mms_arrived_body))
                 .setStyle(
-                    Notification.BigTextStyle().bigText(texte.getString(R.string.mms_arrived_body)),
+                    Notification.BigTextStyle().bigText(texts.getString(R.string.mms_arrived_body)),
                 )
                 .setCategory(Notification.CATEGORY_MESSAGE)
                 .setAutoCancel(true)
@@ -199,7 +171,7 @@ object SmsNotifications {
                     PendingIntent.getActivity(
                         context,
                         MMS_NOTIFICATION_ID,
-                        oeffnen,
+                        open,
                         PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
                     ),
                 )
@@ -208,41 +180,39 @@ object SmsNotifications {
     }
 
     /**
-     * Die Nachricht ist **nicht** hinausgegangen.
+     * the message did *not* go out.
      *
-     * Sie muss von selbst auffallen, denn niemand sieht nach: wer auf „Senden" getippt hat,
-     * hat den Bildschirm meist schon verlassen. Eine Meldung im Gespraech waere nur zu
-     * sehen, wenn man ohnehin hinschaut - und dann waere sie ueberfluessig.
+     * it has to catch the eye by itself: whoever tapped send has usually left the screen,
+     * and a notice inside the conversation would be seen only by someone already looking.
      *
-     * Eigener Kanal wie beim MMS-Hinweis und ohne [CHANNEL_PREFIX], damit die
-     * Aufraeumschleife in [show] ihn nicht mitnimmt.
+     * own channel like the mms hint and without [CHANNEL_PREFIX], so [show] leaves it alone.
      */
-    fun showSendFailed(context: Context, grund: String) {
+    fun showSendFailed(context: Context, reason: String) {
         val manager = context.getSystemService(NotificationManager::class.java) ?: return
-        val texte = AppLocale.forApp(context)
+        val texts = AppLocale.forApp(context)
         manager.createNotificationChannel(
             NotificationChannel(
-                FEHLER_CHANNEL,
-                texte.getString(R.string.sms_send_failed),
+                ERROR_CHANNEL,
+                texts.getString(R.string.sms_send_failed),
                 NotificationManager.IMPORTANCE_DEFAULT,
             ),
         )
-        val oeffnen = Intent(context, SmsActivity::class.java)
+        val open = Intent(context, SmsActivity::class.java)
             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
         manager.notify(
-            FEHLER_NOTIFICATION_ID,
-            Notification.Builder(context, FEHLER_CHANNEL)
+            ERROR_NOTIFICATION_ID,
+            Notification.Builder(context, ERROR_CHANNEL)
                 .setSmallIcon(R.drawable.ic_stat_message)
-                .setContentTitle(texte.getString(R.string.sms_send_failed))
-                .setContentText(grund)
-                .setStyle(Notification.BigTextStyle().bigText(grund))
+                .setContentTitle(texts.getString(R.string.sms_send_failed))
+                .setContentText(reason)
+                .setStyle(Notification.BigTextStyle().bigText(reason))
                 .setCategory(Notification.CATEGORY_ERROR)
                 .setAutoCancel(true)
                 .setContentIntent(
                     PendingIntent.getActivity(
                         context,
-                        FEHLER_NOTIFICATION_ID,
-                        oeffnen,
+                        ERROR_NOTIFICATION_ID,
+                        open,
                         PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
                     ),
                 )
@@ -250,7 +220,7 @@ object SmsNotifications {
         )
     }
 
-    /** Weggeräumt, sobald der Nutzer die Unterhaltung offen hat - er hat sie ja gesehen. */
+    /** cleared once the conversation is open: it has been seen. */
     fun clear(context: Context, address: String) {
         context.getSystemService(NotificationManager::class.java)
             ?.cancel(notificationId(address))

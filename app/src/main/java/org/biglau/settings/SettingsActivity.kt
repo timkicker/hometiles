@@ -176,59 +176,55 @@ import androidx.compose.material.icons.filled.Check
 class SettingsActivity : BigLauActivity() {
 
     /** Die zuletzt angeforderte Unterseite. Siehe [onNewIntent]. */
-    private val zielAnfrage = mutableStateOf<Page?>(null)
+    private val pageRequest = mutableStateOf<Page?>(null)
 
     private fun readTarget(intent: Intent?): Page? =
         SettingsDeepLink.target(intent?.getStringExtra(EXTRA_PAGE))
 
     /**
-     * Kommt die Anfrage, waehrend die Einstellungen schon offen sind, aendert Android
-     * `intent` nicht von selbst. Ohne das hier bliebe die Seite von vorhin stehen.
+     * android does not change `intent` by itself when the request arrives while the settings
+     * are already open, and the earlier page would stay.
      */
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
-        readTarget(intent)?.let { zielAnfrage.value = it }
+        readTarget(intent)?.let { pageRequest.value = it }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        zielAnfrage.value = readTarget(intent)
+        pageRequest.value = readTarget(intent)
         val store = ConfigStore.get(this)
 
         setContent {
-            // Fuer Arbeit, die nicht in den Hauptthread gehoert - siehe HauptfadenTest.
+            // for work that does not belong on the main thread. see HauptfadenTest.
             val fadenBereich = rememberCoroutineScope()
             val config by store.config.collectAsStateWithLifecycle()
             val locked = Pin.usable(config.security.pin)
-            // rememberSaveable, damit der Sprachwechsel nicht an den Anfang zurueckwirft:
-            // er baut die Activity neu auf, und wer gerade eine Sprache gewaehlt hat, will
-            // sehen, dass das Haekchen umgesprungen ist - nicht die oberste Seite.
-            // Eine Unterseite laesst sich von aussen ansteuern - die Anrufliste schickt
-            // hierher, wenn jede Anrufart ausgeblendet ist. Die PIN kommt trotzdem zuerst;
-            // ein Ziel im Intent darf kein Schloss aufmachen.
+            // rememberSaveable so a language change does not throw one back to the top: it
+            // rebuilds the activity, and whoever just picked a language wants to see the tick
+            // move.
             //
-            // Gelesen wird aus [zielAnfrage] und nicht direkt aus `intent`: die Activity
-            // steht oft schon im Stapel, und dann bringt `startActivity` sie nur nach vorn,
-            // ohne dass sich `intent` aendert. Wer die Einstellungen vorher offen hatte,
-            // landete auf der Seite von damals - am Emulator nachgestellt: erst Diagnose
-            // aufgerufen, dann die Anrufarten angefordert, und es blieb die Diagnose.
-            val target = zielAnfrage.value
+            // a subpage can be addressed from outside, but the pin comes first: a target in
+            // the intent must not open a lock.
+            //
+            // read from [pageRequest] and not from `intent` directly: the activity is often
+            // already in the stack, and then `startActivity` only brings it forward without
+            // changing `intent`.
+            val target = pageRequest.value
             var page by rememberSaveable { mutableStateOf(SettingsDeepLink.start(locked, target)) }
-            // Die Probe des Notruf-Alarms steht seit dem 03.09.2026 in `SosSettings`
-            // selbst, samt ihrem `onDispose`. Das ist strenger, nicht lockerer: die Seite
-            // liegt **innerhalb** dieser Komposition, ihr Aufraeumen kommt also immer zuerst -
-            // und zusaetzlich schon dann, wenn man nur die Unterseite verlaesst.
+            // trying out the sos alarm lives in `SosSettings` itself, with its own
+            // `onDispose`. that is stricter, not looser: the page lies *inside* this
+            // composition, so its clean-up always runs first.
             LaunchedEffect(target) {
                 SettingsDeepLink.jump(page, target)?.let { page = it }
             }
             var renaming by remember { mutableStateOf<Screen?>(null) }
             var switching by remember { mutableStateOf<Screen?>(null) }
 
-            // Verdoppeln sagt hinterher, was es getan und was es ausgelassen hat. Ein
-            // stiller Sprung auf einen fast gleichen Screen laesst einen raten, ob es
-            // geklappt hat - und ob die Widgets nun weg sind oder nur unsichtbar.
+            // duplicating says afterwards what it did and what it left out: a silent jump
+            // to an almost identical screen leaves one guessing whether it worked.
             fun duplicate(screen: Screen) {
                 val kopieName = getString(R.string.screen_copy_name, screen.name)
                 when (val ergebnis = ScreenCopy.duplicate(store.current, screen.id, kopieName)) {
@@ -263,11 +259,12 @@ class SettingsActivity : BigLauActivity() {
                 }
             }
 
-            // Der Notruf verspricht "mit Standort", pruefte das Recht dafuer - und niemand
-            // hat es je erfragt. Die Nachricht ging still ohne Koordinaten hinaus, und
-            // gemerkt haette man es erst in dem Fall, fuer den der Notruf da ist.
-            // Gefragt wird hier beim Einrichten, nicht im Notfall: ein Systemdialog vor
-            // dem Absenden waere genau die Sekunde, die dann fehlt.
+            // the sos promises with location and checked the right for it, which nobody ever
+            // asked for: the message went out without coordinates silently, and that would
+            // have been noticed in exactly the case the sos exists for.
+            //
+            // asked here while setting up, not in an emergency, where a system dialog before
+            // sending would cost the second that is missing.
             var locationGranted by remember {
                 mutableStateOf(
                     ContextCompat.checkSelfPermission(
@@ -282,8 +279,8 @@ class SettingsActivity : BigLauActivity() {
             }
             var locationDeniedOnce by remember { mutableStateOf(false) }
             var locationCanAskAgain by remember { mutableStateOf(true) }
-            // Ein Rollendialog braucht einen Aufrufer - also ueber einen Launcher und nicht
-            // ueber startActivity. Ohne das bricht er ab, bevor er zu sehen ist.
+            // a role dialog needs a caller, so through a launcher and not `startActivity`,
+            // or it aborts before it is seen.
             val askDialerRole = rememberLauncherForActivityResult(
                 ActivityResultContracts.StartActivityForResult(),
             ) { }
@@ -303,8 +300,8 @@ class SettingsActivity : BigLauActivity() {
                 ActivityResultContracts.CreateDocument("application/json"),
             ) { uri ->
                 if (uri == null) return@rememberLauncherForActivityResult
-                // Nicht im Hauptthread: das Ziel kann eine Cloud-App sein, und dann geht
-                // das Schreiben ins Netz. Siehe HauptfadenTest.
+                // not on the main thread: the target can be a cloud app, and then the write
+                // goes over the network.
                 fadenBereich.launch {
                     val ok = withContext(Dispatchers.IO) {
                         runCatching {
@@ -324,18 +321,12 @@ class SettingsActivity : BigLauActivity() {
                 ActivityResultContracts.OpenDocument(),
             ) { uri ->
                 if (uri == null) return@rememberLauncherForActivityResult
-                // Weiter an `ImportActivity` statt hier einzulesen.
+                // handed to `ImportActivity` instead of read here.
                 //
-                // Bis zum 04.09.2026 tat diese Stelle es selbst - und dabei weniger: sie
-                // ersetzte die ganze Einrichtung, sobald eine Datei gewaehlt war, ohne zu
-                // zeigen, was darin steht. `ImportActivity`, die den Weg von aussen
-                // bedient (Datei antippen), zeigt genau das und fragt dann. Zwei Wege in
-                // dieselbe Sache, zwei verschiedene Antworten auf die Frage, ob gefragt
-                // wird - und der haeufigere Weg war der unvorsichtigere.
-                //
-                // Nebenbei fiel noch etwas weg: hier hiess eine Datei, die sich gar nicht
-                // **oeffnen** liess, "Das ist keine BigLau-Sicherung". Drueben stehen
-                // dafuer zwei verschiedene Saetze.
+                // this place used to do it itself and did less: it replaced the whole setup as
+                // soon as a file was picked, without showing what was in it. two ways into the
+                // same thing with two different answers to whether one is asked, and the more
+                // common way was the less careful one.
                 startActivity(
                     Intent(this@SettingsActivity, ImportActivity::class.java)
                         .setData(uri)
@@ -366,10 +357,9 @@ class SettingsActivity : BigLauActivity() {
                     when (page) {
                         Page.GATE -> PinGate(
                             title = stringResource(R.string.settings_locked),
-                            // Auf dem Schloss steht nur der Ausweg, nicht die Begruendung:
-                            // der lange Text passte dort nicht in die drei Zeilen und wurde
-                            // ausgerechnet an der Stelle abgeschnitten, an der der Ausweg
-                            // stand ("Wenn Sie sie ..."). Am Bildschirm gesehen.
+                            // the lock carries only the way out, not the reasoning: the long
+                            // text did not fit three lines and was cut exactly where the way
+                            // out stood.
                             explainer = stringResource(R.string.security_forgot),
                             wrongText = stringResource(R.string.security_wrong_pin),
                             confirmLabel = stringResource(R.string.editor_done),
@@ -397,10 +387,8 @@ class SettingsActivity : BigLauActivity() {
                             onSos = { page = Page.SOS },
                             onTransfer = { page = Page.TRANSFER },
                             onWizard = {
-                                // Bewusst ohne wizardDone zurueckzusetzen: wer den Assistenten
-                                // abbricht, stuende sonst bei jedem Start wieder darin - der
-                                // eigene Startbildschirm waere hinter einer Frage verschwunden,
-                                // die er gar nicht beantworten wollte.
+                                // deliberately without resetting wizardDone: cancelling the
+                                // wizard would otherwise put one back in it on every start.
                                 startActivity(Intent(this@SettingsActivity, WizardActivity::class.java))
                             },
                             onDiagnostics = { page = Page.DIAGNOSTICS },
@@ -426,8 +414,8 @@ class SettingsActivity : BigLauActivity() {
                                 }
                             },
                             onSmsApp = {
-                                // Wie beim Telefon: haelt BigLau die Rolle schon, fuehrt der
-                                // Rollendialog nirgendwohin.
+                                // as with the phone: holding the role already, the role
+                                // dialog leads nowhere.
                                 val absicht = if (
                                     SmsRepository.get(this@SettingsActivity).isDefaultSmsApp()
                                 ) {
@@ -442,9 +430,8 @@ class SettingsActivity : BigLauActivity() {
                                 }
                             },
                             onDialerApp = {
-                                // Haelt BigLau die Rolle schon, fuehrt der Rollendialog
-                                // nirgendwohin - er schliesst sich sofort wieder. Dann in
-                                // die Systemeinstellungen, wo sie sich zurueckgeben laesst.
+                                // holding the role already, the dialog closes at once. then
+                                // into the system settings, where it can be given back.
                                 val absicht = if (DialerRole.held(this@SettingsActivity)) {
                                     null
                                 } else {
@@ -487,10 +474,9 @@ class SettingsActivity : BigLauActivity() {
                             jumpTilePossible = { target ->
                                 ScreenEdits.withJumpTile(config, target.id) != null
                             },
-                            // Ordner stehen sonst nicht in dieser Liste ("Ordner gehoeren
-                            // ihrer Kachel"). Einer ohne Kachel gehoert niemandem mehr -
-                            // dann ist das hier die einzige Stelle, an der er noch
-                            // auftauchen kann.
+                            // folders are otherwise not in this list, belonging to their
+                            // tile. one without a tile belongs to nobody, and then this is the
+                            // only place it can still appear.
                             orphanedFolders = FolderEdits.orphaned(config),
                             lossesFor = { screen -> ScreenEdits.deletionLosses(config, screen.id) },
                             onDeleteFolder = { folder ->
@@ -775,7 +761,7 @@ class SettingsActivity : BigLauActivity() {
                         Page.MESSAGES -> MessagesSettingsList(
                             sms = config.sms,
                             onChange = { neu -> store.update { it.copy(sms = neu) } },
-                            istStandardApp = remember(resumes.intValue) {
+                            holdsSmsRole = remember(resumes.intValue) {
                                 SmsRepository.get(this@SettingsActivity).isDefaultSmsApp()
                             },
                         )

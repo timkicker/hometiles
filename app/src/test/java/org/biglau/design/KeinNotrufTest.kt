@@ -71,7 +71,7 @@ class KeinNotrufTest {
         // erste Fassung dieser Regel las ihn als Aufruf. Ein Kommentar, der den Namen
         // nur nennt, ist kein Aufruf.
         val quelle = Quelltext.ohneKommentare("org/biglau/toggles/SosActivity.kt")
-        val ab = quelle.indexOf("if (probe) {")
+        val ab = quelle.indexOf("if (preview) {")
         assertTrue("Den Probe-Zweig gibt es nicht mehr", ab > 0)
         val zweig = quelle.substring(ab, quelle.indexOf("return@LaunchedEffect", ab))
         assertTrue(

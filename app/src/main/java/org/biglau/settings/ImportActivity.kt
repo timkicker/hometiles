@@ -38,15 +38,10 @@ import org.biglau.ui.theme.BigLauTheme
 import org.biglau.ui.theme.LocalBigPalette
 
 /**
- * Nimmt eine Sicherungsdatei entgegen, die von aussen geoeffnet wird - aus einem
- * Dateimanager, einer Cloud-App oder einem Mailanhang.
+ * takes a backup file opened from outside: a file manager, a cloud app, a mail attachment.
  *
- * Das ist der Weg beim Wechsel auf ein neues Telefon: Datei drauf, antippen, fertig.
- * Ueber den Dateidialog in den Einstellungen geht es auch, aber diesen Weg geht man
- * genau einmal - und dann soll er offensichtlich sein.
- *
- * Importiert wird erst nach ausdruecklicher Bestaetigung: das Einlesen ersetzt die
- * gesamte bestehende Einrichtung.
+ * this is the path when moving to a new phone, and one walks it exactly once, so it should
+ * be obvious. imported only after an explicit confirmation: it replaces the whole setup.
  */
 class ImportActivity : BigLauActivity() {
 
@@ -61,28 +56,23 @@ class ImportActivity : BigLauActivity() {
             val config by store.config.collectAsStateWithLifecycle()
             var done by remember { mutableStateOf(false) }
 
-            // **Die Datei wird nicht im Hauptthread gelesen.**
-            //
-            // Bis zum 04.09.2026 stand `read(uri)` in `onCreate`, direkt und blockierend.
-            // Bei einer Datei auf dem Geraet faellt das nicht auf; der Weg, den der
-            // Klassenkopf beschreibt - Sicherung aus einer Cloud-App oder einem
-            // Mailanhang - geht aber ueber einen fremden Anbieter, und der holt sie unter
-            // Umstaenden erst aus dem Netz. Dann steht der Bildschirm, bis Android die App
-            // fuer haengend erklaert. Jede andere Stelle im Programm liest ueber
-            // `withContext(Dispatchers.IO)`; diese war die Ausnahme.
-            var inhalt by remember { mutableStateOf<String?>(null) }
-            var laedt by remember { mutableStateOf(uri != null) }
+            // not read on the main thread: a file on the device would not show it, but the
+            // path the class doc describes goes through a foreign provider that may fetch
+            // it from the network first, and then the screen stands until android calls the
+            // app hung.
+            var content by remember { mutableStateOf<String?>(null) }
+            var loading by remember { mutableStateOf(uri != null) }
             LaunchedEffect(uri) {
                 if (uri == null) {
-                    laedt = false
+                    loading = false
                     return@LaunchedEffect
                 }
-                inhalt = read(uri)
-                laedt = false
+                content = read(uri)
+                loading = false
             }
-            val loaded: LauncherConfig? = remember(inhalt) { inhalt?.let(ConfigTransfer::import) }
-            val vonNeuerer = remember(inhalt) {
-                inhalt?.let { ConfigTransfer.isFromNewerVersion(it) } == true
+            val loaded: LauncherConfig? = remember(content) { content?.let(ConfigTransfer::import) }
+            val fromNewer = remember(content) {
+                content?.let { ConfigTransfer.isFromNewerVersion(it) } == true
             }
 
             BigLauTheme(
@@ -108,38 +98,34 @@ class ImportActivity : BigLauActivity() {
                         BigHeading(stringResource(R.string.settings_transfer))
                         Text(
                             text = when {
-                                // Zwei verschiedene Fehler, zwei verschiedene Saetze: eine
-                                // Datei, die sich nicht oeffnen laesst, ist nicht dasselbe
-                                // wie eine, die keine Sicherung ist. Vorher stand beides
-                                // unter "Das ist keine BigLau-Sicherung" - und wer die Datei
-                                // gerade selbst geschrieben hatte, suchte den Fehler bei ihr.
-                                laedt -> stringResource(R.string.transfer_reading)
-                                inhalt == null -> stringResource(R.string.transfer_unreadable)
+                                // two different faults, two different sentences: a file
+                                // that cannot be opened is not the same as one that is no
+                                // backup, and both under one sentence sent people looking
+                                // for a mistake in a file they had just written themselves.
+                                loading -> stringResource(R.string.transfer_reading)
+                                content == null -> stringResource(R.string.transfer_unreadable)
                                 loaded == null -> stringResource(R.string.transfer_bad_file)
-                                done && vonNeuerer -> stringResource(R.string.transfer_imported_older)
+                                done && fromNewer -> stringResource(R.string.transfer_imported_older)
                                 done -> stringResource(R.string.transfer_imported)
-                                // Dieselbe Zaehlung wie beim Zuruecksetzen, und zwar aus
-                                // demselben Grund: hier stand "3 Screens mit 14 Kacheln",
-                                // dort "2 Screens mit 14 Kacheln und 1 Ordner" - dieselbe
-                                // Einrichtung, zwei Zahlen. Fuer den Nutzer ist ein Ordner
-                                // kein Screen, und eine leere Zelle keine Kachel.
+                                // the same count as the reset, for the same reason: a folder
+                                // is no screen to the user, and an empty cell no tile.
                                 else -> {
-                                    val verlust = Reset.losses(loaded)
-                                    val bildschirme = pluralStringResource(
-                                        R.plurals.reset_screens, verlust.screens, verlust.screens,
+                                    val loss = Reset.losses(loaded)
+                                    val screens = pluralStringResource(
+                                        R.plurals.reset_screens, loss.screens, loss.screens,
                                     )
-                                    val kacheln = pluralStringResource(
-                                        R.plurals.reset_tiles, verlust.tiles, verlust.tiles,
+                                    val tiles = pluralStringResource(
+                                        R.plurals.reset_tiles, loss.tiles, loss.tiles,
                                     )
-                                    if (verlust.folders == 0) {
-                                        stringResource(R.string.transfer_confirm_plain, bildschirme, kacheln)
+                                    if (loss.folders == 0) {
+                                        stringResource(R.string.transfer_confirm_plain, screens, tiles)
                                     } else {
                                         stringResource(
                                             R.string.transfer_confirm_folders,
-                                            bildschirme,
-                                            kacheln,
+                                            screens,
+                                            tiles,
                                             pluralStringResource(
-                                                R.plurals.reset_folders, verlust.folders, verlust.folders,
+                                                R.plurals.reset_folders, loss.folders, loss.folders,
                                             ),
                                         )
                                     }
@@ -149,16 +135,10 @@ class ImportActivity : BigLauActivity() {
                             fontSize = bigSp(17f),
                             modifier = Modifier.padding(horizontal = 4.dp, vertical = 8.dp),
                         )
-                        // Die Warnung gehoert **vor** die Entscheidung.
-                        //
-                        // `transfer_imported_older` gab es schon, aber erst danach: erst
-                        // war die ganze Einrichtung ersetzt, dann stand da, dass etwas
-                        // fehlt. Am 04.09.2026 am Emulator nachgestellt, mit einer
-                        // Sicherung, die `"version": 99` trug - die Rueckfrage sagte nur
-                        // "2 Bildschirme mit 12 Kacheln", geladen, und **danach** kam der
-                        // Satz. Wer sie danach liest, kann nichts mehr entscheiden; seine
-                        // alte Belegung ist weg.
-                        if (loaded != null && !done && vonNeuerer) {
+                        // the warning belongs *before* the decision: it existed already,
+                        // but only afterwards, when the whole setup was replaced and the
+                        // old arrangement gone.
+                        if (loaded != null && !done && fromNewer) {
                             Text(
                                 text = stringResource(R.string.transfer_confirm_newer),
                                 color = palette.dangerText,
@@ -187,11 +167,8 @@ class ImportActivity : BigLauActivity() {
     }
 
     /**
-     * Liest die Datei - und wechselt den Faden selbst.
-     *
-     * Nicht am Aufrufer, sondern hier: eine Funktion, die von der Platte liest und das dem
-     * Aufrufer ueberlaesst, wird irgendwann aus dem Hauptthread gerufen. Als `suspend` mit
-     * eigenem `withContext` kann sie es gar nicht.
+     * reads the file and switches threads itself: a function that reads from disk and leaves
+     * that to the caller is called from the main thread sooner or later.
      */
     private suspend fun read(uri: Uri): String? = withContext(Dispatchers.IO) {
         runCatching {

@@ -29,16 +29,16 @@ class NeueUnterhaltungTest {
         // Gefragt ist nicht, ob der Name irgendwo steht, sondern ob er **beim Senden**
         // gesetzt wird. Die erste Fassung dieser Regel liess sich nicht brechen: sie blieb
         // gruen, als genau diese Zuweisung entfernt wurde.
-        val beimSenden = quelle.indexOf("send(neueNummer")
+        val beimSenden = quelle.indexOf("send(newNumber")
         assertTrue("Das Senden in eine neue Unterhaltung gibt es nicht mehr", beimSenden > 0)
         val block = quelle.substring(beimSenden, minOf(quelle.length, beimSenden + 260))
         assertTrue(
             "Das Senden in eine neue Unterhaltung merkt sich die Nummer nicht - dann " +
                 "bleibt der Bildschirm leer stehen, obwohl die Nachricht heraus ist: " +
                 block,
-            "geradeGesendetAn" in block,
+            "justSentTo" in block,
         )
-        val ab = quelle.indexOf("LaunchedEffect(threads, geradeGesendetAn)")
+        val ab = quelle.indexOf("LaunchedEffect(threads, justSentTo)")
         assertTrue(
             "Niemand loest die gemerkte Nummer in eine Unterhaltung auf.",
             ab > 0,

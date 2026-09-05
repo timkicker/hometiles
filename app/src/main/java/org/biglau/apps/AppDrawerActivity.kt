@@ -52,13 +52,13 @@ import org.biglau.ui.theme.BigLauTheme
 import org.biglau.ui.theme.LocalBigPalette
 
 /**
- * Die vollstaendige App-Liste. Grosse Zeilen, Suche oben, zuletzt Benutztes davor.
- * Langdruck blendet eine App aus - der Weg zurueck fuehrt ueber die Einstellungen.
+ * the full app list: large rows, search on top, recently used in front. a long press hides
+ * an app; the way back leads through the settings.
  */
 class AppDrawerActivity : BigLauActivity() {
 
     companion object {
-        /** Mit der Liste der zuletzt benutzten Apps oeffnen. */
+        /** open showing the recently used apps. */
         const val EXTRA_RECENT = "recentOnly"
     }
 
@@ -72,16 +72,16 @@ class AppDrawerActivity : BigLauActivity() {
             val config by store.config.collectAsStateWithLifecycle()
             var all by remember { mutableStateOf<List<LaunchableApp>>(emptyList()) }
             var query by rememberSaveable { mutableStateOf("") }
-            // Der Name der Einstellungszeile - hier geholt, weil er in der Liste selbst
-            // nicht mehr zu holen ist, und weil er dort auch **gesucht** wird.
+            // the settings row's name, fetched here because the list itself cannot, and
+            // because it is *searched* there too.
             val einstellungen = stringResource(R.string.apps_open_settings)
-            // Von der Kachel "Zuletzt benutzt" aus: erst nur die letzten, aber jederzeit
-            // umschaltbar - eine Liste ohne Weg zur vollstaendigen waere eine Sackgasse.
+            // from the recently used tile: the recent ones first, switchable at any time.
+            // a list without a way to the full one would be a dead end.
             var recentOnly by rememberSaveable {
                 mutableStateOf(intent?.getBooleanExtra(EXTRA_RECENT, false) == true)
             }
-            // Die App-Liste ist der Weg zu jeder App, die auf keiner Kachel liegt. Wer
-            // eine PIN setzt und diesen Schutz einschaltet, will genau diesen Weg zu.
+            // the app list is the way to every app that sits on no tile. setting a pin and
+            // turning this on means wanting exactly that way closed.
             var locked by remember {
                 mutableStateOf(
                     Pin.protects(config.security.pin, config.security.pinProtectsAppList),
@@ -107,19 +107,18 @@ class AppDrawerActivity : BigLauActivity() {
                     )
                 }
                 if (!repository.launch(app.packageName, app.activityName)) {
-                    // Zwischen dem Aufbau der Liste und dem Tippen kann die App verschwinden.
+                    // an app can vanish between building the list and the tap.
                     //
-                    // **Eigener Text und nicht `app_gone`:** der sagt „Kachel neu belegen",
-                    // und hier gibt es keine Kachel - der Rat waere ins Leere gesprochen.
-                    // Stattdessen wird die Liste neu geladen, damit der tote Eintrag
-                    // verschwindet, statt beim naechsten Tipp wieder nichts zu tun.
+                    // a text of its own and not `app_gone`, which advises reassigning a tile
+                    // where there is none. the list reloads instead, so the dead entry goes
+                    // rather than doing nothing again on the next tap.
                     Notice.show(this@AppDrawerActivity, R.string.app_gone_list)
                     all = repository.loadApps()
                 }
             }
 
-            // Die Sperre gilt auch hier, nicht nur auf den Kacheln - sonst waere sie ueber
-            // die Liste in einem Tipp zu umgehen.
+            // the lock holds here too, not only on the tiles, or one tap through the list
+            // would walk around it.
             var lockedApp by remember { mutableStateOf<LaunchableApp?>(null) }
             fun open(app: LaunchableApp) {
                 if (AppLock.needsPin(config, AppDrawer.keyOf(app), app.packageName)) {
@@ -129,13 +128,12 @@ class AppDrawerActivity : BigLauActivity() {
                 }
             }
 
-            // Die Einstellungszeile ist ein Treffer wie jeder andere - sie steht mit in der
-            // Liste, also zaehlt sie mit. Bis zum 03.09.2026 zaehlte nur `shown`: bei „big"
-            // standen zwei Zeilen da und darueber „1 Treffer", und die Lupentaste oeffnete
-            // die eine, ohne dass zu sehen war, welche.
+            // the settings row is a match like any other and stands in the list, so it
+            // counts: with only `shown` counted, two rows stood under a count of one, and
+            // the search key opened one of them without showing which.
             val einstellungTrifft = TextSearch.rank(einstellungen, query.trim()) != null
-            // Was die Suche nicht zeigen darf, weil es ausgeblendet ist - aber sehr wohl
-            // nennen muss. Siehe AppDrawer.hiddenMatches.
+            // what the search may not show because it is hidden, but must still name. see
+            // AppDrawer.hiddenMatches.
             val versteckteTreffer = remember(all, hidden, query) {
                 AppDrawer.hiddenMatches(all, hidden, query)
             }
@@ -208,17 +206,15 @@ class AppDrawerActivity : BigLauActivity() {
                             } else {
                                 pluralStringResource(R.plurals.search_matches, treffer, treffer)
                             },
-                            // Genau ein Treffer: die Lupentaste startet ihn direkt. Bei drei
-                            // Zoll ist das oft der ganze Weg - man sieht die Liste nie.
+                            // exactly one match: the search key starts it. on three inches
+                            // that is often the whole way, and the list is never seen.
                             //
-                            // Sie geht durch `open`, nicht an ihm vorbei: bis zum 03.09.2026
-                            // stand hier `launch`, und damit war die App-Sperre ueber das
-                            // Suchfeld in einem Tastendruck zu umgehen.
+                            // it goes through `open` and not past it: a `launch` here let one
+                            // key press walk around the app lock.
                             onSearch = { einzigerTreffer?.invoke() },
                         )
-                        // Nicht, wenn eine ausgeblendete App passt: dann steht die Zeile
-                        // darunter und sagt etwas Genaueres. „Keine App passt dazu" waere
-                        // daneben ein Widerspruch.
+                        // not when a hidden app matches: the row below then says something
+                        // more precise, and no app matches beside it would contradict it.
                         if (all.isNotEmpty() && shown.isEmpty() && versteckteTreffer.isEmpty()) {
                             Text(
                                 text = stringResource(R.string.search_no_match),
@@ -250,9 +246,8 @@ class AppDrawerActivity : BigLauActivity() {
                             modifier = Modifier.weight(1f, fill = false),
                         ) {
                             if (recents.isNotEmpty()) {
-                                // In der Ansicht "Zuletzt benutzt" waere die Ueberschrift
-                                // dieselbe wie der Seitentitel - zweimal dasselbe Wort
-                                // untereinander sagt beim zweiten Mal nichts mehr.
+                                // in the recently used view the heading would repeat the
+                                // page title, which says nothing the second time.
                                 if (!recentOnly || query.isNotEmpty()) {
                                     item { BigHeading(stringResource(R.string.apps_recent)) }
                                 }
@@ -275,7 +270,7 @@ class AppDrawerActivity : BigLauActivity() {
                                         store.update {
                                             it.copy(apps = it.apps.copy(hidden = AppDrawer.toggleHidden(it.apps.hidden, app)))
                                         }
-                                        // Ohne diesen Hinweis waere die App einfach verschwunden.
+                                        // without this the app would simply have vanished.
                                         Notice.show(
                                             this@AppDrawerActivity,
                                             getString(R.string.apps_hidden_hint, app.label),
@@ -283,26 +278,16 @@ class AppDrawerActivity : BigLauActivity() {
                                     },
                                 )
                             }
-                            // Der Weg zurueck zu den ausgeblendeten Apps, und zwar dort, wo
-                            // man sie sucht. Vorher nannte eine Einblendung nur den Pfad
-                            // ("Einstellungen -> Ausgeblendete Apps"), und die war nach zwei
-                            // Sekunden weg. Die Zeile steht nur da, wenn wirklich etwas
-                            // ausgeblendet ist - sonst waere sie eine Zeile ueber nichts.
-                            // Der Weg in die Einstellungen, und zwar immer.
+                            // the way into the settings, and always.
                             //
-                            // Am 03.09.2026 am Geraet des Nutzers nachgesehen: acht belegte
-                            // Kacheln, keine davon die Einstellungen, Wischen zwischen den
-                            // Screens aus, kein freies Feld zum Langdruecken. Damit fuehrte
-                            // kein Weg mehr dorthin ausser: eine vorhandene Kachel lange
-                            // druecken und umbelegen - also eine App aufgeben, und man muss
-                            // erst darauf kommen. Das Original hat die Einstellungen in der
-                            // App-Liste; hier fehlten sie.
+                            // measured on the user's device: eight assigned tiles, none of
+                            // them the settings, swiping off, no free slot to long press. no
+                            // way there was left except giving up an app by reassigning its
+                            // tile, and one has to think of that first.
                             //
-                            // Und sie steht auch da, wenn jemand **sucht**. Bis zum
-                            // 03.09.2026 verschwand die Zeile, sobald ein Buchstabe im
-                            // Suchfeld stand - dabei ist der Suchende genau der, der etwas
-                            // sucht. Wer „einstell" tippt, findet jetzt die Einstellungen
-                            // von BigLau und nicht nur die von Android.
+                            // and it stands there while someone *searches* too: the row used
+                            // to vanish at the first letter, though searching is exactly what
+                            // the searcher does.
                             if (einstellungTrifft) {
                                 item {
                                     BigRow(
@@ -314,16 +299,12 @@ class AppDrawerActivity : BigLauActivity() {
                                     )
                                 }
                             }
-                            // Eine Zeile, zwei Faelle: ohne Suche zaehlt sie alle
-                            // ausgeblendeten Apps, mit Suche die, die dazu passen. Sie hing
-                            // vorher an `query.isEmpty()` - also war sie genau dann weg,
-                            // wenn sie gebraucht wird: wer eine ausgeblendete App sucht, las
-                            // "Keine App passt dazu" und hatte keinen Anhaltspunkt mehr.
-                            // Dieselbe Sache wie bei der Einstellungszeile darueber.
+                            // one row, two cases: without a search it counts all hidden
+                            // apps, with one those that match. hanging on `query.isEmpty()`
+                            // it was gone exactly when needed.
                             //
-                            // Und **eine** Zeile, nicht zwei: zwei Zeilen mit demselben
-                            // Symbol in einer Liste sind zwei, die man verwechselt -
-                            // SlopRulesTest hat genau das gemeldet.
+                            // and *one* row, not two: two rows with the same icon in a list
+                            // are two that get confused.
                             val versteckteZeile = when {
                                 query.isNotEmpty() -> versteckteTreffer.size.takeIf { it > 0 }
                                 else -> config.apps.hidden.size.takeIf { it > 0 }

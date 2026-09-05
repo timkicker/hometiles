@@ -37,14 +37,10 @@ import org.biglau.ui.BigHeading
 import org.biglau.ui.BigRow
 
 /**
- * Was zu sehen ist, wenn BigLau zweimal hintereinander nicht bis zum Zeichnen kam.
+ * what is shown when BigLau failed to reach drawing twice in a row.
  *
- * Bewusst ohne die Konfiguration: die koennte ja gerade das Problem sein. Deshalb feste
- * Farben statt der Palette und nur die Wege, die zurueckfuehren.
- *
- * Die Texte kommen aus den Ressourcen wie ueberall sonst. Sie standen hier einmal fest
- * auf Deutsch - ausgerechnet auf dem Bildschirm, den jemand sieht, dessen Telefon gerade
- * nicht mehr startet, und der die Sprache dann am wenigsten raten kann.
+ * without the config, which could be the problem itself: fixed colours instead of the
+ * palette, and only the ways that lead back.
  */
 @Composable
 fun EmergencyScreen(
@@ -59,12 +55,10 @@ fun EmergencyScreen(
     val ground = Color(0xFF0A0A0A)
     val surface = Color(0xFF161616)
     val danger = Color(0xFFC62828)
-    // Der einzige Knopf hier, der etwas wegnimmt - und er nahm es mit einem einzigen Tipp,
-    // waehrend dasselbe Zuruecksetzen in den Einstellungen aufzaehlt, was verlorengeht, und
-    // vorher eine Sicherung anbietet. Wer auf diesem Bildschirm landet, tippt herum, weil
-    // sein Telefon gerade nicht geht; genau dort darf ein Tipp nicht die ganze Einrichtung
-    // kosten. Zweistufig wie ueberall sonst: der erste Tipp sagt, was es kostet.
-    var scharf by remember { mutableStateOf(false) }
+    // the only button here that takes something away, and it used to take it on one tap.
+    // whoever lands on this screen taps around because their phone is not working; a tap
+    // must not cost the whole setup. two steps, and the first says what it costs.
+    var armed by remember { mutableStateOf(false) }
 
     Box(
         Modifier
@@ -84,14 +78,11 @@ fun EmergencyScreen(
                 fontSize = 16.sp,
                 modifier = Modifier.padding(horizontal = 4.dp),
             )
-            // Ganz oben das, wofuer ein Telefon da ist. Wessen Startbildschirm zweimal
-            // hintereinander nicht hochkam, will vielleicht gerade jetzt jemanden anrufen -
-            // und nicht erst lernen, wie man einen anderen Startbildschirm waehlt.
+            // at the very top, what a phone is for: someone whose home screen failed twice
+            // may want to call now, not learn how to pick another launcher.
             //
-            // Bewusst die Apps des **Systems** und nicht die eigenen: BigLau ist hier
-            // gerade zweimal abgestuerzt, und die eigene Wähltastatur ist genau das, worauf
-            // man sich in diesem Moment nicht verlassen sollte. `ACTION_DIAL` waehlt von
-            // sich aus nie - es oeffnet nur.
+            // the *system's* apps and not our own, since BigLau has just crashed twice.
+            // `ACTION_DIAL` never dials by itself, it only opens.
             BigRow(
                 label = stringResource(R.string.emergency_phone),
                 icon = Icons.Filled.Call,
@@ -102,9 +93,8 @@ fun EmergencyScreen(
                 icon = Icons.Filled.Person,
                 onClick = { Intents.openContacts(context) },
             )
-            // Danach der harmloseste Weg zurueck. Der naechste Start zaehlt ohnehin wieder
-            // als normal, also kostet ein zweiter Versuch nichts - und wer das nicht weiss,
-            // greift sonst gleich zum Zuruecksetzen und verliert seine Belegung.
+            // then the most harmless way back: the next start counts as normal anyway, so
+            // a second try costs nothing, and without knowing that one reaches for the reset.
             BigRow(
                 label = stringResource(R.string.emergency_retry),
                 icon = Icons.Filled.Refresh,
@@ -122,14 +112,14 @@ fun EmergencyScreen(
             )
             BigRow(
                 label = stringResource(
-                    if (scharf) R.string.emergency_reset_now else R.string.emergency_reset,
+                    if (armed) R.string.emergency_reset_now else R.string.emergency_reset,
                 ),
                 secondary = stringResource(
-                    if (scharf) R.string.emergency_reset_warning else R.string.emergency_reset_hint,
+                    if (armed) R.string.emergency_reset_warning else R.string.emergency_reset_hint,
                 ),
                 icon = Icons.Filled.RestartAlt,
-                surface = BigSurface(if (scharf) danger else surface, ink),
-                onClick = { if (scharf) onResetConfig() else scharf = true },
+                surface = BigSurface(if (armed) danger else surface, ink),
+                onClick = { if (armed) onResetConfig() else armed = true },
             )
             if (lastCrash != null) {
                 Text(

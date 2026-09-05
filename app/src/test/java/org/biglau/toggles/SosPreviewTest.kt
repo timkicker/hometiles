@@ -28,7 +28,7 @@ class SosPreviewTest {
         val vorProbe = Quelltext.ausschnitt(quelle, "", "Sos.send(")
         assertTrue(
             "Vor dem Senden steht keine Abfrage auf die Probe",
-            "if (probe)" in vorProbe,
+            "if (preview)" in vorProbe,
         )
         assertTrue("Die Probe kehrt nicht zurueck, bevor gesendet wird", "return@LaunchedEffect" in vorProbe)
     }
@@ -44,7 +44,7 @@ class SosPreviewTest {
     fun `die Probe laeuft auch ohne eingetragene Kontakte`() {
         // Sonst muesste man erst eine Nummer eintragen, um den Ablauf zu sehen - genau die
         // Reihenfolge, die den Fehler oben moeglich gemacht hat.
-        assertTrue("if (!configured && !probe) return@LaunchedEffect" in quelle)
+        assertTrue("if (!configured && !preview) return@LaunchedEffect" in quelle)
     }
 
     /**
@@ -76,7 +76,7 @@ class SosPreviewTest {
      */
     @Test
     fun `in der Probe faengt kein Alarm an`() {
-        val probeStelle = quelle.indexOf("if (probe)")
+        val probeStelle = quelle.indexOf("if (preview)")
         val alarmStelle = quelle.indexOf("SosAlarm.start(")
         assertTrue("SosAlarm.start fehlt ganz", alarmStelle > 0)
         assertTrue(

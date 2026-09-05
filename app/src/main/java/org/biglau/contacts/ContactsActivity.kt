@@ -68,13 +68,13 @@ import org.biglau.ui.theme.BigLauTheme
 import org.biglau.ui.theme.LocalBigPalette
 
 /**
- * Eigene Kontaktliste. Grosse Zeilen mit Foto, Suche, und eine Detailansicht, in der
- * Anrufen und Schreiben je eine ganze Zeile bekommen statt eines kleinen Symbols.
+ * our own contact list: large rows with a photo, a search, and a detail view where calling
+ * and writing each get a whole row instead of a small icon.
  */
 class ContactsActivity : BigLauActivity() {
 
     companion object {
-        /** Nur die Favoriten zeigen - von der Favoritenkachel aus. */
+        /** show only the favourites, from the favourites tile. */
         const val EXTRA_FAVOURITES = "favouritesOnly"
     }
 
@@ -86,15 +86,13 @@ class ContactsActivity : BigLauActivity() {
 
         setContent {
             val config by store.config.collectAsStateWithLifecycle()
-                        // `resumes` als Schluessel: dieser Bildschirm schickt den Nutzer bei
-            // dauerhaft verweigerter Berechtigung in die **App-Einstellungen**, und von dort
-            // kommt kein Ergebnis zurueck. Ohne das Neulesen beim Wiederkommen stuende hier
-            // weiter „keine Berechtigung" - auf einem Bildschirm, der einen selbst dorthin
-            // geschickt hat. Siehe `BigLauActivity.resumes`.
+            // `resumes` as the key: on a permanently refused permission this screen sends
+            // people into the app settings, and nothing comes back from there. see
+            // `BigLauActivity.resumes`.
 var granted by remember(resumes.intValue) { mutableStateOf(repository.hasPermission()) }
             var all by remember { mutableStateOf<List<PhoneContact>>(emptyList()) }
             var query by rememberSaveable { mutableStateOf("") }
-            // Von der Favoritenkachel aus: nur die mit Stern, ohne Suche davor.
+            // from the favourites tile: only the starred ones, with no search in front.
             var favouritesOnly by rememberSaveable {
                 mutableStateOf(intent?.getBooleanExtra(EXTRA_FAVOURITES, false) == true)
             }
@@ -117,27 +115,24 @@ var granted by remember(resumes.intValue) { mutableStateOf(repository.hasPermiss
                 }
             }
 
-            // Beim ersten Oeffnen fragt das System von selbst. Nach einer Ablehnung schloss
-            // sich der Bildschirm frueher wortlos - man hatte etwas angetippt, und es
-            // verschwand einfach wieder. Jetzt bleibt er stehen und erklaert sich.
+            // the system asks by itself on the first open. after a refusal the screen used
+            // to close without a word: something had been tapped and simply vanished.
             LaunchedEffect(Unit) {
                 if (!granted && !deniedOnce) ask.launch(Manifest.permission.READ_CONTACTS)
             }
 
-            // Auch bei jeder Rueckkehr, nicht nur beim ersten Mal: von hier fuehrt eine
-            // Zeile in den Editor des Adressbuchs, und von dort kommt kein Ergebnis
-            // zurueck. Wer die Nummer aendert und zurueckkommt, sah bis zum 04.09.2026
-            // weiter die alte - und "Sofort anrufen" waehlte sie auch.
+            // on every return, not only the first time: a row leads into the phone book's
+            // editor, which sends no result back, and a changed number stayed old here -
+            // call straight away dialled it too.
             LaunchedEffect(granted, resumes.intValue) {
                 if (granted) {
-                    // Beim Wiederkommen steht die Liste schon da; ein zweites "wird
-                    // geladen" sieht aus, als finge der Bildschirm von vorn an.
+                    // on returning the list already stands there; a second loading would
+                    // look as if the screen started over.
                     if (all.isEmpty()) loading = true
                     all = repository.load(resources)
                     loading = false
-                    // Der offene Kontakt kommt aus derselben Liste. Ist er im Adressbuch
-                    // geloescht worden, gibt es nichts mehr zu zeigen - dann zurueck zur
-                    // Liste statt einer Ansicht, die es nicht mehr gibt.
+                    // the open contact comes from the same list: deleted in the phone book,
+                    // there is nothing left to show, so back to the list.
                     selected = selected?.let { offen -> all.firstOrNull { it.id == offen.id } }
                 }
             }
@@ -178,13 +173,10 @@ var granted by remember(resumes.intValue) { mutableStateOf(repository.hasPermiss
                     if (!granted) {
                         PermissionGate(
                             title = stringResource(R.string.contacts),
-                            // Nicht `contacts_permission`: der Satz dort nennt den
-                            // Grund des Kachel-Editors ("um einen auf eine Kachel zu
-                            // legen"). Hier kommt der Nutzer von der Kontakte-Kachel und
-                            // will anrufen oder schreiben. Am 04.09.2026 am Emulator
-                            // gesehen - ein wahrer Satz am falschen Bildschirm laesst die
-                            // Frage unnoetig aussehen, und wer sie fuer unnoetig haelt,
-                            // lehnt ab.
+                            // not `contacts_permission`: that sentence gives the tile
+                            // editor's reason. here one arrives from the contacts tile
+                            // wanting to call or write, and a true sentence on the wrong
+                            // screen makes the question look unnecessary.
                             explanation = stringResource(R.string.contacts_permission_list),
                             blocked = PermissionState.blocked(deniedOnce, canAskAgain),
                             onAsk = { ask.launch(Manifest.permission.READ_CONTACTS) },
@@ -215,8 +207,8 @@ var granted by remember(resumes.intValue) { mutableStateOf(repository.hasPermiss
                     } else {
                         ContactList(
                             contacts = shown,
-                            // `all` und nicht `shown`: ob es ueberhaupt Kontakte gibt,
-                            // entscheidet ueber den Satz bei leerer Liste.
+                            // `all` and not `shown`: whether there are contacts at all
+                            // decides the sentence for an empty list.
                             hatKontakte = all.isNotEmpty(),
                             loading = loading,
                             query = query,
@@ -269,11 +261,10 @@ private fun ContactList(
     searchNumbers: Boolean,
     onSearchSettings: () -> Unit,
     /**
-     * Steht im Adressbuch ueberhaupt etwas?
+     * is there anything in the phone book at all?
      *
-     * Getrennt von [contacts], das schon gefiltert ist. Sonst sagt eine leere Liste immer
-     * „kein Kontakt passt dazu" - auch wenn niemand gesucht hat und das Telefon schlicht
-     * keine Kontakte kennt. Wer das liest, sucht den Fehler bei sich oder bei der App.
+     * apart from [contacts], which is already filtered. otherwise an empty list always says
+     * no contact matches, even when nobody searched and the phone simply has none.
      */
     hatKontakte: Boolean,
 ) {
@@ -288,8 +279,8 @@ private fun ContactList(
                     stringResource(if (favouritesOnly) R.string.favourites else R.string.contacts),
                     modifier = Modifier.weight(1f),
                 )
-                // Sortierung ist eine Nebensache und darf ein Symbol sein; einen Kontakt
-                // anzulegen ist eine Handlung und behaelt sein Wort.
+                // sorting is a side matter and may be an icon; adding a contact is an
+                // action and keeps its word.
                 BigIconButton(
                     icon = Icons.Filled.SortByAlpha,
                     description = stringResource(
@@ -305,13 +296,11 @@ private fun ContactList(
             hint = stringResource(R.string.search_contacts),
         )
         if (query.isEmpty() && favouritesOnly) {
-            // Ohne diesen Weg waere eine leere Favoritenliste eine Sackgasse - und auch
-            // eine gefuellte laesst sonst niemanden zu den uebrigen Kontakten.
+            // without this way an empty favourites list is a dead end, and a full one lets
+            // nobody reach the remaining contacts.
             //
-            // **Und nicht, solange gelesen wird.** Der Satz stand ueber der Ladepruefung
-            // weiter unten; wer die Liste auf Favoriten gestellt hatte, las beim Oeffnen
-            // erst „noch keine Favoriten" und dann sprangen sie hinein. Dritte Stelle
-            // derselben Sorte an einem Tag - siehe LadenTest.
+            // and not while reading: above the loading check, the screen first said no
+            // favourites yet and then they jumped in. see LadenTest.
             if (contacts.isEmpty() && !loading) {
                 Text(
                     text = stringResource(R.string.favourites_none),
@@ -327,8 +316,8 @@ private fun ContactList(
                 onClick = onShowAll,
             )
         } else if (query.isEmpty()) {
-            // Bewusst hier und nicht am Listenende: bei 338 Kontakten waere er dort
-            // nach unten gescrollt und praktisch unerreichbar.
+            // here and not at the end of the list: at 338 contacts it would have scrolled
+            // out of reach.
             BigRow(
                 label = stringResource(R.string.contacts_new),
                 icon = Icons.Filled.PersonAdd,
@@ -344,8 +333,8 @@ private fun ContactList(
             )
         } else if (contacts.isEmpty()) {
             Text(
-                // „Kein Treffer" nur, wenn es etwas zu treffen gab. Genau so macht es die
-                // App-Liste (`all.isNotEmpty() && shown.isEmpty()`); hier fehlte es.
+                // no match only when there was something to match, as the app list does
+                // with `all.isNotEmpty() && shown.isEmpty()`.
                 text = stringResource(
                     if (hatKontakte) R.string.contacts_no_match else R.string.contacts_none,
                 ),
@@ -353,8 +342,8 @@ private fun ContactList(
                 fontSize = bigSp(18f),
                 modifier = Modifier.padding(horizontal = 4.dp, vertical = 16.dp),
             )
-            // Wer eine Nummer eintippt, waehrend nur Namen durchsucht werden, bekommt
-            // sonst eine wahre Auskunft ohne ihren Grund - und sucht den Fehler bei sich.
+            // typing a number while only names are searched otherwise gives a true answer
+            // without its reason.
             if (!searchNumbers && ContactSort.looksLikeNumber(query)) {
                 Text(
                     text = stringResource(R.string.contacts_numbers_not_searched),
@@ -379,8 +368,8 @@ private fun ContactList(
             items(contacts, key = { it.id }) { contact ->
                 BigRow(
                     label = contact.name,
-                    // In Bloecken, wie in der Anrufliste und in den Nachrichten.
-                    // Dieselbe Nummer sah an drei Stellen verschieden aus.
+                    // in blocks, as in the call log and the messages: the same number used
+                    // to look different in three places.
                     secondary = contact.numbers.firstOrNull()?.number
                         ?.let(PhoneNumbers::forDisplay),
                     secondaryMaxLines = 1,
@@ -396,9 +385,8 @@ private fun ContactList(
 }
 
 /**
- * Detailansicht. Jede Nummer bekommt zwei ganze Zeilen - Anrufen und Schreiben - statt
- * zweier kleiner Symbole nebeneinander. Auf drei Zoll ist das der Unterschied zwischen
- * treffen und danebentippen.
+ * the detail view. each number gets two whole rows, call and write, instead of two small
+ * icons side by side: on three inches that is the difference between hitting and missing.
  */
 @Composable
 private fun ContactDetail(

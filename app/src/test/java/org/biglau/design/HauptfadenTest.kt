@@ -65,7 +65,7 @@ class HauptfadenTest {
         assertTrue(
             "Der Import liest ohne Ladezustand - dann steht der Bildschirm leer da, und " +
                 "wer nichts sieht, tippt noch einmal.",
-            "R.string.transfer_reading" in quelle && "laedt" in quelle,
+            "R.string.transfer_reading" in quelle && "loading" in quelle,
         )
     }
 }

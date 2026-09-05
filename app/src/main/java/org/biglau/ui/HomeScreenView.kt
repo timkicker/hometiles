@@ -73,8 +73,8 @@ import org.biglau.ui.theme.toArgbLong
 import org.biglau.ui.theme.LocalBigPalette
 
 /**
- * Zeichnet einen Screen als Raster. Zellen koennen mehrere Rasterplaetze ueberspannen;
- * freie Plaetze bekommen eine gedaempfte Platzhalterkachel, die den Editor oeffnet.
+ * draws a screen as a grid. cells may span several slots; free slots get a muted
+ * placeholder tile that opens the editor.
  */
 @Composable
 fun HomeScreenView(
@@ -84,57 +84,54 @@ fun HomeScreenView(
     appIcon: (String, String) -> ImageBitmap? = { _, _ -> null },
     appLabel: (String, String) -> String? = { _, _ -> null },
     shortcutIcon: (String, String) -> ImageBitmap? = { _, _ -> null },
-    /** Der Ordner zu einer Kennung - fuer die Vorschau auf der Ordnerkachel. */
+    /** the folder behind an id, for the preview on the folder tile. */
     folderOf: (String) -> Screen? = { null },
     notificationCounts: Map<String, Int> = emptyMap(),
-    /** Ungesehene verpasste Anrufe - die Kachel dafuer zaehlt die Anrufliste, nicht Meldungen. */
+    /** unseen missed calls; that tile counts the call log, not notices. */
     missedCalls: Int = 0,
-    /** Ungelesene Nachrichten, oder null, wenn BigLau sie nicht lesen darf. */
+    /** unread messages, or null when BigLau may not read them. */
     unreadMessages: Int? = null,
     battery: BatteryReading? = null,
     signal: SignalReading? = null,
     systemPackages: SystemPackages = SystemPackages(),
     onActivate: (Cell) -> Unit = {},
-    /** Im Bearbeitungsmodus gehoert jede Beruehrung der App, auch auf einem Widget. */
+    /** in edit mode every touch belongs to the app, even on a widget. */
     editMode: Boolean = false,
     onEdit: (x: Int, y: Int) -> Unit = { _, _ -> },
     /**
-     * Die linke Softkey-Taste. PLAN.md 10.3.3.
+     * the left softkey. `PLAN.md` 10.3.3.
      *
-     * Sie traegt, was am langen Druck haengt. Eigener Weg und nicht [onEdit], weil die
-     * Einstellung "erst bei langem Druck ausloesen" fuer eine Taste nicht gilt: sie schuetzt
-     * vor dem Streifen mit dem Finger, und eine Taste wird nicht gestreift.
+     * it carries what hangs on the long press. a way of its own and not [onEdit], because
+     * the trigger-on-long-press setting guards against brushing with a finger, and a key
+     * is not brushed.
      */
     onMenu: (x: Int, y: Int) -> Unit = { _, _ -> },
     /**
-     * Liegt dieser Rahmen gerade obenauf?
+     * is this frame on top right now?
      *
-     * Der Startbildschirm und ein offener Ordner benutzen denselben Rahmen und sind
-     * gleichzeitig komponiert; der Ordner liegt im selben Fenster darueber. Wer from beiden
-     * die Tasten bekommen soll, kann der Rahmen nicht selbst wissen.
+     * the home screen and an open folder use the same frame and are composed at the same
+     * time, the folder lying over it in the same window. which of the two should get the
+     * keys is not something the frame can know by itself.
      */
     active: Boolean = true,
     /**
-     * Der Streifen unter dem Raster, falls es einen gibt.
+     * the strip under the grid, if there is one.
      *
-     * In einem Ordner und in der Liste der Menuetaste steht unter dem Raster eine Zeile, die
-     * es schliesst. Sie ist ein Geschwister des Rahmens, nicht sein Kind, und der Rahmen
-     * verbraucht jede Richtungstaste - also kam der Fokus nie zu ihr. Am 04.09.2026 from
-     * `tools/unerreichbar.py` gemeldet: neun anklickbare Flaechen im Ordner, acht erreicht,
-     * und die neunte war der Streifen.
+     * a folder and the menu-key list carry a closing row under the grid. it is a sibling of
+     * the frame, not its child, and the frame consumes every direction key, so the focus
+     * never reached it: `tools/unerreichbar.py` reported nine clickable areas in a folder
+     * and eight reached.
      *
-     * Ein blindes `moveFocus(Down)` waere hier falsch. Es nimmt den naechsten fokussierbaren
-     * Knoten, und der kann eine Kachel des Startbildschirms unter der Ueberlagerung sein.
-     * Deshalb ein benannter Anker: der Rahmen weiss, wohin, oder er tut nichts.
+     * a blind `moveFocus(Down)` would be wrong here, taking the next focusable node, which
+     * can be a home screen tile under the overlay. a named anchor instead: the frame knows
+     * where, or it does nothing.
      */
     below: FocusRequester? = null,
     /**
-     * Der Weg zurueck ins Raster, fuer den Streifen darunter.
+     * the way back into the grid, for the strip below.
      *
-     * Er haengt immer an der Zelle, auf der der Fokus zuletzt sass, damit man dort
-     * herauskommt, wo man hineingegangen ist. Ein blindes `moveFocus(Up)` waere auch hier
-     * falsch: unter der Ueberlagerung liegen die Kacheln des Startbildschirms an denselben
-     * Stellen.
+     * it always hangs on the cell the focus last sat on, so one comes out where one went
+     * in. a blind `moveFocus(Up)` would be wrong here too.
      */
     gridAnchor: FocusRequester? = null,
 ) {
@@ -146,8 +143,8 @@ fun HomeScreenView(
         modifier = modifier
             .fillMaxSize()
             .background(
-                // Erschoepfend: ein else-Zweig hatte hier jahrelang den Bild-Fall
-                // verschluckt, und niemand sah, dass er nie gemalt wurde.
+                // exhaustive: an else branch swallowed the image case, and nobody saw
+                // that it was never drawn.
                 when (val bg = screen.background) {
                     is Background.Solid -> Color(bg.argb.toInt())
                     Background.Theme -> palette.background
@@ -166,72 +163,55 @@ fun HomeScreenView(
         val cellW = metrics.cellWidth.dp
         val cellH = metrics.cellHeight.dp
 
-        // PLAN.md 10.3.2: die Reihenfolge folgt dem Raster, nicht der Liste in der Datei.
-        // Die Tasten faengt der Rahmen ab und nicht die einzelne Kachel: nur hier ist
-        // bekannt, welche Zelle den Fokus hat und aus welcher Spalte er kam. Und nur wer
-        // die Taste verbraucht, kann am Rand nichts passieren lassen; sonst sucht Compose
-        // sich selbst ein Ziel, zur Not in der Kopfzeile.
-        // Die leeren Plaetze gehoeren dazu: sie sind anklickbar, also muessen sie
-        // erreichbar sein.
+        // `PLAN.md` 10.3.2: the order follows the grid, not the list in the file.
+        //
+        // the frame catches the keys, not the single tile: only here is it known which cell
+        // has the focus and which column it came from. and only whoever consumes the key can
+        // let nothing happen at an edge; otherwise compose picks a target itself.
+        //
+        // the empty slots belong to it: they are clickable, so they must be reachable.
         val targets = remember(screen) { FocusOrder.targets(screen) }
         val anchors = remember(targets) { targets.associateWith { FocusRequester() } }
         var focusedCell by remember(screen.id) { mutableStateOf(FocusOrder.first(targets)) }
         var rememberedColumn by remember(screen.id) { mutableStateOf<Int?>(null) }
 
-        // PLAN.md 10.3.1: **beim Start** ist der Fokus from selbst da, aber nicht, wenn
-        // dieser Rahmen spaeter obenauf kommt.
+        // `PLAN.md` 10.3.1: at *start* the focus is there by itself, but not when this
+        // frame comes on top later.
         //
-        // Beim Start stimmt es ohne Zutun: das Fenster bekommt den Fokus, Compose sucht sich
-        // das erste Ziel. Ein Versuch, das selbst zu setzen, hat lange nichts getan, und am
-        // 04.09.2026 kam heraus, warum: Android hat einen Beruehrungsmodus. Solange die
-        // letzte Eingabe ein Tipp war, nimmt kein Element den Fokus, und `requestFocus` wird
-        // still ignoriert. Mit `dumpsys window` nachgestellt: nach einem Tipp
-        // `mInTouchMode=true` und kein Fokus, nach einer Taste `mInTouchMode=false` und der
-        // Fokus sitzt sofort auf der Kachel oben links.
+        // android has a touch mode: while the last input was a tap, no element takes the
+        // focus and `requestFocus` is silently ignored. measured with `dumpsys window` -
+        // after a tap `mInTouchMode=true` and no focus, after a key press
+        // `mInTouchMode=false` and the focus sits on the top left tile at once.
         //
-        // Der Ordner ist der andere Fall, und er war kaputt. Am 04.09.2026 gefunden, vom
-        // ersten Lauf from `tools/unerreichbar.py` ueber einen echten Bildschirm: neun
-        // anklickbare Flaechen, **null** davon je fokussiert. Von Hand bestaetigt - Kachel
-        // mit der Auswahltaste geoeffnet, also `mInTouchMode=false`, davor sass der Fokus
-        // auf der Ordnerkachel, danach auf **gar nichts**, und vier Tastendruecke aenderten
-        // daran nichts.
+        // the folder is the other case, and it was broken: nine clickable areas, *none* ever
+        // focused. `onPreviewKeyEvent` only walks from the focused node to the root, so
+        // without a focus the frame never runs, nothing moves, and the focus never comes
+        // back. a screen without focus is a frozen one on a key phone.
         //
-        // Und sie konnten es nicht: `onPreviewKeyEvent` laeuft nur den Weg vom fokussierten
-        // Knoten zur Wurzel. Ohne Fokus laeuft der Rahmen gar nicht erst an, also bewegt
-        // sich nichts, also kommt der Fokus nie zurueck. Der Ordner war mit Tasten
-        // ueberhaupt nicht zu bedienen, und ein Bildschirm ohne Fokus ist an einem
-        // Tastentelefon dasselbe wie ein eingefrorener.
-        //
-        // Deshalb holt der Rahmen ihn sich, sobald er obenauf kommt. Im Beruehrungsmodus
-        // wird das weiter still verworfen, und das ist richtig: wer tippt, will keinen
-        // Rahmen um eine Kachel.
+        // so the frame fetches it as soon as it is on top. in touch mode that stays silently
+        // discarded, which is right: whoever taps wants no frame around a tile.
         LaunchedEffect(active, targets) {
             if (active) {
                 val target = focusedCell ?: FocusOrder.first(targets)
-                // `requestFocus` wirft, solange der Knoten noch nicht haengt. Das ist kein
-                // Fehler, sondern eine Reihenfolge: dann sitzt der Fokus ohnehin schon da,
-                // wo Compose ihn beim Aufbau hingelegt hat.
+                // `requestFocus` throws while the node is not attached yet. that is an
+                // order, not a fault: the focus then sits where compose put it.
                 runCatching { target?.let { anchors[it]?.requestFocus() } }
             }
         }
 
-        // PLAN.md 10.3.3: eine Ziffer waehlt den Platz mit dieser Nummer und loest ihn aus.
+        // `PLAN.md` 10.3.3: a digit picks the slot with that number and triggers it.
         //
-        // Ausloesen und nicht nur hinspringen: wer die Vier drueckt, will die Apotheke, nicht
-        // den Fokus auf der Apotheke. Ein zweiter Druck waere ein Umweg, den man sich merken
-        // muesste.
+        // triggers and not merely jumps: pressing four means the pharmacy, not the focus on
+        // the pharmacy. a second press would be a detour one has to remember.
         //
-        // Ziffern duerfen das nur, wo sie sonst nichts bedeuten. Hier ist das from selbst so:
-        // auf dem Startbildschirm und in einem Ordner gibt es kein Eingabefeld. Die
-        // Waehltastatur und der Nachrichtentext liegen in eigenen Bildschirmen, die diesen
-        // Rahmen nicht benutzen.
+        // digits may do this only where they mean nothing else, which holds here: neither
+        // the home screen nor a folder has an input field.
         fun select(digit: Int): Boolean {
             val target = FocusOrder.numbered(targets, digit) ?: return true
             if (target in screen.cells) {
                 onActivate(target)
             } else {
-                // Ein leerer Platz hat nichts zu starten; er fuehrt dorthin, wo man ihn
-                // fuellt, genau wie ein Tipp darauf.
+                // an empty slot has nothing to start; it leads where one fills it.
                 onEdit(target.x, target.y)
             }
             return true
@@ -241,13 +221,13 @@ fun HomeScreenView(
             val from = focusedCell ?: FocusOrder.first(targets) ?: return true
             val target = FocusOrder.neighbour(targets, from, direction, rememberedColumn)
             if (target == null && direction == PadDirection.DOWN && below != null) {
-                // Unter der letzten Zeile steht der Streifen, der die Ueberlagerung
-                // schliesst. Nur nach below, und nur wenn es ihn gibt.
+                // under the last row sits the strip that closes the overlay: downwards
+                // only, and only when there is one.
                 runCatching { below.requestFocus() }
                 return true
             }
             if (target != null) {
-                // Waagerecht setzt die gemerkte Spalte neu, senkrecht laesst sie stehen.
+                // horizontal sets the remembered column, vertical leaves it.
                 if (direction == PadDirection.LEFT || direction == PadDirection.RIGHT) {
                     rememberedColumn = target.x
                 }
@@ -278,8 +258,8 @@ fun HomeScreenView(
                             Key.Seven -> select(7)
                             Key.Eight -> select(8)
                             Key.Nine -> select(9)
-                            // Die linke Softkey-Taste. Die rechte ist die Zurueck-Taste, die
-                            // Android schon selbst an die Activity gibt.
+                            // the left softkey; the right one is back, which android
+                            // already hands to the activity.
                             Key.Menu -> {
                                 focusedCell?.let { onMenu(it.x, it.y) }
                                 true
@@ -401,8 +381,8 @@ private fun TileFor(
     when (val action = button.action) {
         is ButtonAction.Action -> BigTile(
             label = button.label ?: stringResource(action.builtin.labelRes()),
-            // Balken und Ladebalken sind gezeichnet; ohne diesen Zusatz hoerte ein
-            // Screenreader nur "Empfang" und nicht, wie gut er ist. Siehe TileSpeech.
+            // the bars are drawn: without this a screen reader hears only signal and not
+            // how good it is. see TileSpeech.
             contentDescription = TileSpeech.describe(
                 label = button.label ?: stringResource(action.builtin.labelRes()),
                 state = when (action.builtin) {
@@ -439,9 +419,9 @@ private fun TileFor(
                 }
                 else -> null
             },
-            // Hier faellt nur die harte Entscheidung "gar keine Symbole". Ob eines auf
-            // diese eine Kachel passt, weiss erst BigTile - dort stehen die Zellmasse.
-            // Selbst gewaehltes Symbol schlaegt das abgeleitete. PLAN.md 2.2.
+            // only the hard decision no icons at all falls here; whether one fits this tile
+            // is known in BigTile, where the cell size is. a chosen icon beats a derived
+            // one. `PLAN.md` 2.2.
             icon = if (appearance.icons != IconVisibility.NEVER) {
                 IconCatalogue.vectorFor(button.iconName) ?: action.builtin.icon()
             } else {
@@ -459,8 +439,7 @@ private fun TileFor(
             background = color,
             cellHeight = cellHeight,
             cellWidth = cellWidth,
-            // Ein selbst gewaehltes Symbol schlaegt auch das App-Bild - wer eines waehlt,
-            // hat sich das ueberlegt.
+            // a chosen icon beats the app's own image too: choosing one was deliberate.
             icon = if (appearance.icons != IconVisibility.NEVER) {
                 IconCatalogue.vectorFor(button.iconName)
             } else {
@@ -485,9 +464,8 @@ private fun TileFor(
             cellHeight = cellHeight,
             cellWidth = cellWidth,
             photoUri = action.photoUri,
-            // PLAN.md 3.4: ohne Foto die Initialen. Vorher stand auf jeder Kontaktkachel
-            // dasselbe Personensymbol - drei Kontakte nebeneinander sahen gleich aus, und
-            // das Symbol sagte nichts, was die Beschriftung nicht schon sagte.
+            // `PLAN.md` 3.4: initials without a photo. the same person icon on every
+            // contact tile made three contacts side by side look alike.
             initials = if (action.photoUri == null && button.iconName == null) {
                 tileInitials(button.label ?: action.name)
             } else {
@@ -542,12 +520,11 @@ private fun TileFor(
             onLongClick = onLongClick,
         )
 
-        // Der Ordner zeigt, was drin ist: bis zu vier verkleinerte Symbole seines Inhalts.
-        // Ein Pfeil wie beim Screenwechsel waere hier gelogen - man wechselt nicht, man
-        // schaut hinein.
+        // the folder shows what is in it: an arrow like the screen change would lie, since
+        // one does not change, one looks inside.
         is ButtonAction.Folder -> FolderTile(
-            // Bewusst nicht button.label: der Ordner hat genau einen Namen, und der steht
-            // am Ordner selbst - sonst hiesse dasselbe Ding auf der Kachel anders als darin.
+            // not button.label: the folder has exactly one name, and it lives on the folder
+            // itself, or the same thing would be called differently outside and inside.
             label = folderOf(action.screenId)?.name ?: stringResource(R.string.folder),
             iconName = button.iconName,
             preview = folderOf(action.screenId)?.let { FolderEdits.preview(it) }.orEmpty(),
@@ -592,10 +569,8 @@ private fun TileFor(
 }
 
 /**
- * Wie gut der Empfang ist, in Worten.
- *
- * Die Balken tragen keinen Text - fuer einen Screenreader waere die Kachel sonst so
- * aussagekraeftig wie eine leere Flaeche mit dem Wort "Empfang" darauf.
+ * how good the signal is, in words: the bars carry no text, so to a screen reader the tile
+ * would otherwise say as much as an empty area labelled signal.
  */
 @Composable
 private fun signalSpeech(reading: SignalReading?): String? {
@@ -604,9 +579,8 @@ private fun signalSpeech(reading: SignalReading?): String? {
         SignalInfo.State.NO_PERMISSION -> stringResource(R.string.signal_no_permission)
         SignalInfo.State.NO_SIM -> stringResource(R.string.signal_no_sim)
         SignalInfo.State.NO_SERVICE -> stringResource(R.string.signal_no_service)
-        // Schwach steht als Wort da, nicht als Farbe: die Warnfarbe kommt auf jedem
-        // Kachelton auf unter 2 zu 1 und ist damit ausgerechnet in der Lage unlesbar,
-        // in der sie etwas sagen soll. Siehe TileDangerTest.
+        // weak stands as a word, not a colour: the danger colour reaches under 2 to one on
+        // every tile hue and is unreadable in exactly the situation it should speak in.
         else -> TileSpeech.describe(
             label = if (zustand == SignalInfo.State.WEAK) stringResource(R.string.signal_weak) else "",
             state = stringResource(R.string.a11y_signal_bars, SignalInfo.bars(reading), SignalInfo.MAX_LEVEL),
@@ -616,8 +590,8 @@ private fun signalSpeech(reading: SignalReading?): String? {
 }
 
 /**
- * Ladestand in Worten. Der Blitz neben der Zahl ist ein Symbol ohne Text; am Kabel oder
- * nicht ist aber genau die Frage, wegen der man auf die Kachel sieht.
+ * the battery in words. the bolt beside the number is an icon without text, and on the
+ * cable or not is exactly the question one looks at the tile for.
  */
 @Composable
 private fun batterySpeech(reading: BatteryReading?): String? {
@@ -629,9 +603,9 @@ private fun batterySpeech(reading: BatteryReading?): String? {
 }
 
 /**
- * Ein leerer Platz. Es gibt zwei Wege hierher - ein Rasterplatz ohne Zelle und eine Zelle
- * ohne Aktion - und beide muessen gleich aussehen, sonst wirkt der Homescreen kaputt.
- * Die Fuellung bleibt still, der Rahmen macht den Platz auffindbar.
+ * an empty slot. two ways lead here, a grid slot without a cell and a cell without an
+ * action, and both must look alike or the home screen looks broken. the fill stays quiet,
+ * the border makes the slot findable.
  */
 @Composable
 private fun EmptyTile(
@@ -639,7 +613,7 @@ private fun EmptyTile(
     cellWidth: androidx.compose.ui.unit.Dp,
     cellHeight: androidx.compose.ui.unit.Dp,
     modifier: Modifier,
-    /** Platz im Raster, nullbasiert - fuer die Ansage. */
+    /** slot in the grid, zero based, for the announcement. */
     column: Int,
     row: Int,
     label: String? = null,
@@ -648,15 +622,12 @@ private fun EmptyTile(
     val palette = LocalBigPalette.current
     val einladung = label ?: stringResource(R.string.empty_tile_invite)
     BigTile(
-        // Ein leerer Zustand ist eine Aufforderung, kein Trauerfall: die Kachel sagt, was
-        // sie anbietet, statt was ihr fehlt. In der Beschreibung im Editor bleibt es
-        // "Leer" - dort ist es eine Zustandsangabe und keine Einladung.
+        // an empty state is an invitation, not a loss: the tile says what it offers rather
+        // than what it lacks. in the editor it stays empty, a statement of state.
         label = einladung,
-        // Wo der Platz ist, steht nur im Bild. Zwei leere Kacheln heissen beide
-        // "Antippen", und wer sie nicht sieht, hat zweimal dasselbe Angebot vor sich -
-        // am 04.09.2026 mit `tools/gleiche-namen.py` auf dem Startbildschirm gefunden.
-        // Danach sagt auch der Editor nicht, welche Zelle er bearbeitet; die Kette
-        // schweigt also durchgehend. Dieselben Worte wie in der Verschieben-Ansicht.
+        // where the slot is stands only in the picture: two empty tiles were both called
+        // tap, so anyone not seeing them had the same offer twice. found with
+        // `tools/gleiche-namen.py`. the same words as in the move view.
         contentDescription = TileSpeech.describe(
             label = einladung,
             state = stringResource(R.string.move_spot, row + 1, column + 1),
@@ -673,14 +644,13 @@ private fun EmptyTile(
     )
 }
 
-/** Auto-Farbe aus der Position, damit ein frisch angelegter Screen sofort sortiert wirkt. */
+/** automatic colour from the position, so a fresh screen looks ordered at once. */
 @Composable
 private fun tileColor(button: Button, x: Int, y: Int, cols: Int): Color {
     val palette = LocalBigPalette.current
-    // Der freie Ton kommt nach der Palette und vor der Automatik - und nur, wenn das Thema
-    // ueberhaupt Kachelfarben kennt. Im Kontrast-Thema sind alle Palettenplaetze die
-    // Hintergrundfarbe (PLAN.md 3.3: dort zaehlt nur Schwarz/Gelb); eine freie Farbe
-    // dorthin durchzureichen waere genau der Fehler, den der Vorlaeufer gemacht haette.
+    // the free hue comes after the palette and before the automatic one, and only where the
+    // theme knows tile colours at all: in the contrast theme every palette slot is the
+    // background colour (`PLAN.md` 3.3).
     val themaKenntFarben = FreeTileColor.themeUsesTileColours(palette.tiles.map { it.toArgbLong() })
     if (themaKenntFarben) {
         button.colorHue?.let { ton ->
@@ -703,17 +673,17 @@ private fun tileColor(button: Button, x: Int, y: Int, cols: Int): Color {
 }
 
 /**
- * Die Kachel eines Ordners: bis zu vier verkleinerte Symbole seines Inhalts, darunter der
- * Name in derselben Zone wie bei jeder anderen Kachel.
+ * a folder's tile: up to four shrunken icons of its contents, the name below in the same
+ * zone as on any other tile.
  *
- * Warum keine eigene Form, kein Stapel, kein Kreis: die Kachel muss sich in die Reihe fügen,
- * sonst bricht die Grundlinie über die Rasterzeile. Dass es ein Ordner ist, sagen die vier
- * kleinen Symbole - das ist Information, keine Verzierung.
+ * no shape of its own, no stack, no circle: the tile has to fall in line or the baseline of
+ * the grid row breaks. that it is a folder is said by the four small icons, which is
+ * information, not decoration.
  */
 @Composable
 private fun FolderTile(
     label: String,
-    /** Selbst gewaehltes Symbol, siehe [org.biglau.ui.IconCatalogue]. */
+    /** a hand-picked icon, see [org.biglau.ui.IconCatalogue]. */
     iconName: String?,
     preview: List<Cell>,
     appIcon: (String, String) -> ImageBitmap?,
@@ -732,19 +702,18 @@ private fun FolderTile(
         cellHeight = cellHeight,
         labelPosition = appearance.labelPosition,
         cornerRadius = appearance.cornerRadiusDp.dp,
-        // Leer: das Ordnersymbol. Gefuellt: der Inhalt selbst - das ist die Auskunft, die
-        // man vor dem Oeffnen braucht.
+        // empty: the folder icon. filled: the contents, which is the answer one needs
+        // before opening it.
         icon = when {
             appearance.icons == IconVisibility.NEVER -> null
-            // Ein gewaehltes Symbol geht der Vorschau vor: wer der Bank-Kachel eine Karte
-            // gibt, will die Karte sehen und nicht vier winzige App-Symbole.
+            // a chosen icon beats the preview: giving the banking tile a card means wanting
+            // to see the card, not four tiny app icons.
             iconName != null -> IconCatalogue.vectorFor(iconName)
             preview.isEmpty() -> Icons.Filled.Folder
             else -> null
         },
-        // "Keine Symbole" gilt auch hier. Die Vorschau besteht aus Symbolen; sie stehen zu
-        // lassen, waehrend ueberall sonst keine mehr sind, sieht nach einem Fehler aus.
-        // Der Ordnername allein sagt dann, was drin ist.
+        // no icons holds here too: the preview is made of icons, and leaving them while
+        // there are none anywhere else looks like a fault.
         iconContent = if (preview.isEmpty() || appearance.icons == IconVisibility.NEVER) {
             null
         } else {
@@ -752,8 +721,7 @@ private fun FolderTile(
                 FolderPreview(
                     cells = preview,
                     cellWidth = cellWidth,
-                    // Was nach der Beschriftung uebrig bleibt - dieselbe Rechnung wie in
-                    // BigTile, damit die Vorschau nicht mehr beansprucht, als da ist.
+                    // what is left after the label, the same arithmetic as in BigTile.
                     availableHeight = (cellHeight.value - vorschauZone(cellWidth, cellHeight)).dp,
                     appIcon = appIcon,
                 )
@@ -766,11 +734,10 @@ private fun FolderTile(
 }
 
 /**
- * Bis zu vier verkleinerte Symbole des Ordnerinhalts, in zwei Reihen.
+ * up to four shrunken icons of the folder's contents, in two rows.
  *
- * Bewusst Symbole und keine Miniaturkacheln: eine Kachel im Kleinen ist ein grauer Fleck,
- * ein Symbol bleibt erkennbar. Und bewusst oben links, wo bei jeder anderen Kachel auch das
- * Symbol sitzt - die Ordnerkachel soll sich in die Reihe fuegen, nicht auffallen.
+ * icons and not miniature tiles: a tile in small is a grey smudge, an icon stays
+ * recognisable. and top left, where every other tile carries its icon.
  */
 @Composable
 private fun FolderPreview(
@@ -833,7 +800,7 @@ private fun FolderPreview(
     }
 }
 
-/** Die Hoehe, die die Beschriftung der Ordnerkachel beansprucht. */
+/** the height the folder tile's label claims. */
 @Composable
 private fun vorschauZone(
     cellWidth: androidx.compose.ui.unit.Dp,

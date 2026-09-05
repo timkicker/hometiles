@@ -35,7 +35,7 @@ class RolleImTextTest {
         val ab = seite.indexOf("R.string.sms_no_mms_default")
         assertTrue(
             "Die Wahl haengt nicht an der Rolle.",
-            "istStandardApp" in seite.substring(maxOf(0, ab - 120), ab),
+            "holdsSmsRole" in seite.substring(maxOf(0, ab - 120), ab),
         )
     }
 

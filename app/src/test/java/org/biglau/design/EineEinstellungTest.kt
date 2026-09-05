@@ -41,7 +41,7 @@ class EineEinstellungTest {
             // schob die Begruendung des Fixes den Fix selbst aus dem Fenster, und die Regel
             // meldete genau das, was sie gerade bekommen hatte.
             val block = quelle.substring(ab, minOf(quelle.length, ab + 900))
-            "FEHLER_CHANNEL" in block.take(80) || "enableVibration" in block
+            "ERROR_CHANNEL" in block.take(80) || "enableVibration" in block
         }
         assertEquals(
             "Hier steht ein Nachrichtenkanal, der die Vibrationseinstellung nicht kennt. " +

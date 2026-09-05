@@ -38,7 +38,7 @@ class HeimRaeumtAufTest {
 
     private val raeumen = Quelltext.ausschnitt(
         haupt,
-        von = "private fun ueberlagerungenSchliessen() {",
+        von = "private fun closeOverlays() {",
         bis = "\n    }",
     )
 
@@ -46,7 +46,7 @@ class HeimRaeumtAufTest {
     fun `heim raeumt jede ueberlagerung weg`() {
         val vergessen = ueberlagerungen.filterKeys { it !in raeumen }
         assertEquals(
-            "ueberlagerungenSchliessen() laesst etwas stehen: " +
+            "closeOverlays() laesst etwas stehen: " +
                 vergessen.values.joinToString(", ") +
                 ". Wer heim tippt, will den Startbildschirm.",
             emptyMap<String, String>(),
@@ -63,7 +63,7 @@ class HeimRaeumtAufTest {
         )
         assertTrue(
             "onNewIntent raeumt die Ueberlagerungen nicht: $neuerIntent",
-            "ueberlagerungenSchliessen()" in neuerIntent,
+            "closeOverlays()" in neuerIntent,
         )
     }
 
@@ -74,7 +74,7 @@ class HeimRaeumtAufTest {
         // Am 04.09.2026 hat sie genau das getan, als die Menuetaste die sechste brachte.
         val zeilen = raeumen.lines().count { it.contains(".value") }
         assertEquals(
-            "ueberlagerungenSchliessen() raeumt $zeilen Zustaende weg, erwartet werden " +
+            "closeOverlays() raeumt $zeilen Zustaende weg, erwartet werden " +
                 "${ueberlagerungen.size}: ${ueberlagerungen.values.joinToString(", ")}",
             ueberlagerungen.size,
             zeilen,

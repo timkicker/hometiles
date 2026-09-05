@@ -92,10 +92,10 @@ import java.util.Locale
 private enum class Tab { KEYPAD, LOG, ASSIGN }
 
 /**
- * Waehltastatur und Anrufliste.
+ * keypad and call log.
  *
- * Gewaehlt wird ueber ACTION_CALL, die Gespraechsansicht bleibt vorerst die des Systems.
- * Notrufnummern gehen ausdruecklich *nicht* diesen Weg, siehe [dial].
+ * dialling goes through ACTION_CALL. emergency numbers explicitly do *not* take this way,
+ * see [dial].
  */
 class DialerActivity : BigLauActivity() {
 
@@ -108,45 +108,37 @@ class DialerActivity : BigLauActivity() {
         setContent {
             val config by store.config.collectAsStateWithLifecycle()
             var tab by rememberSaveable { mutableStateOf(Tab.KEYPAD) }
-            // Kommt die App ueber tel:… herein, steht die Nummer schon da.
+            // arriving through a tel: link, the number is already there.
             var typed by rememberSaveable {
                 mutableStateOf(intent?.data?.schemeSpecificPart?.let(PhoneNumbers::clean).orEmpty())
             }
             var groups by remember { mutableStateOf<List<CallGroup>>(emptyList()) }
-                        // `resumes` als Schluessel: dieser Bildschirm schickt den Nutzer bei
-            // dauerhaft verweigerter Berechtigung in die **App-Einstellungen**, und von dort
-            // kommt kein Ergebnis zurueck. Ohne das Neulesen beim Wiederkommen stuende hier
-            // weiter „keine Berechtigung" - auf einem Bildschirm, der einen selbst dorthin
-            // geschickt hat. Siehe `BigLauActivity.resumes`.
+            // `resumes` as the key: on a permanently refused permission this screen sends
+            // people into the app settings, and nothing comes back from there.
 var logGranted by remember(resumes.intValue) { mutableStateOf(callLog.hasPermission()) }
             var assigningKey by remember { mutableStateOf<Char?>(null) }
             var missedOnly by rememberSaveable { mutableStateOf(intent?.getBooleanExtra(EXTRA_MISSED, false) == true) }
             var pendingDelete by remember { mutableStateOf<Pair<String, List<Long>>?>(null) }
-            // Die Rueckfrage vor einem Anruf aus dem Verlauf. PLAN.md 3.1, Leitsatz 5.
+            // the confirmation before a call from the log. `PLAN.md` 3.1, principle 5.
             var pendingCall by remember { mutableStateOf<Pair<String, String>?>(null) }
-            // Erst die Rueckfrage - sie sagt, was verschwindet -, dann die PIN. So steht
-            // das Schloss unmittelbar vor dem Schritt, der nicht rueckgaengig zu machen ist,
-            // und man weiss beim Eintippen, wofuer.
+            // the question first, which says what disappears, then the pin: the lock then
+            // stands directly before the irreversible step, and one knows what for.
             var pinFor by remember { mutableStateOf<Pair<String, List<Long>>?>(null) }
             val scope = rememberCoroutineScope()
             var contacts by remember { mutableStateOf<List<PhoneContact>>(emptyList()) }
             val contactRepo = remember { ContactRepository.get(this@DialerActivity) }
 
-            // Das Recht, die Anrufliste zu *aendern*, ist ein zweites neben dem Lesen, und
-            // niemand hat es je erfragt: am 03.09.2026 stand es auf dem Geraet des Nutzers
-            // auf granted=false. Wer dort einen Eintrag loeschte, bestaetigte die
-            // Rueckfrage und sah die Zeile danach unveraendert stehen - eine Sackgasse ohne
-            // Ausweg, denn nichts fragte.
-            //
-            // **Nachtrag 04.09.2026:** seit BigLau die Telefon-Rolle haelt, erteilt Android
-            // das Recht mit. Der Weg hier bleibt trotzdem: er darf an keiner Rolle haengen.
+            // the right to *change* the call log is a second one beside reading, and it was
+            // never asked for: deleting an entry confirmed the question and left the row
+            // standing, a dead end with no way out. the phone role grants it along, but this
+            // way must not hang on a role.
             var writeDeniedOnce by remember { mutableStateOf(false) }
             var writeCanAskAgain by remember { mutableStateOf(true) }
-            // Wenn Android nicht mehr fragt, bleibt nur der Weg ueber die Systemeinstellungen.
+            // once android stops asking, only the system settings are left.
             var writeGate by remember { mutableStateOf(false) }
             var wartetAufSchreibrecht by remember { mutableStateOf<Pair<String, List<Long>>?>(null) }
 
-            /** Das eigentliche Loeschen - hinter Rueckfrage, Schreibrecht und, wenn gesetzt, PIN. */
+            /** the deletion itself, behind the question, the write right and, if set, the pin. */
             fun deleteNow(pending: Pair<String, List<Long>>) {
                 scope.launch {
                     val removed = if (pending.second.isEmpty()) {
@@ -154,8 +146,7 @@ var logGranted by remember(resumes.intValue) { mutableStateOf(callLog.hasPermiss
                     } else {
                         callLog.delete(pending.second)
                     }
-                    // Die Liste in jedem Fall neu lesen: sie ist die Wahrheit, nicht die
-                    // Zahl, die der Anbieter zurueckgibt.
+                    // reload the list in any case: it is the truth, not the provider's count.
                     groups = callLog.load(mode = config.phone.callGrouping)
                     if (removed > 0) {
                         Notice.show(
@@ -188,10 +179,8 @@ var logGranted by remember(resumes.intValue) { mutableStateOf(callLog.hasPermiss
             }
 
             /**
-             * Erst fragen, dann loeschen.
-             *
-             * Gefragt wird hier und nicht beim Oeffnen der Liste: wer nur nachsieht, wer
-             * angerufen hat, soll nicht gefragt werden, ob BigLau die Liste aendern darf.
+             * ask first, then delete. asked here and not when opening the list: looking up
+             * who called should not raise a question about changing it.
              */
             fun deleteAfterPermission(pending: Pair<String, List<Long>>) {
                 when (
@@ -238,28 +227,24 @@ var logGranted by remember(resumes.intValue) { mutableStateOf(callLog.hasPermiss
                 }
             }
 
-            // Beim ersten Blick in die Anrufliste fragt das System von selbst. Nach einer
-            // Ablehnung nicht mehr - sonst stuende dort nur ein Satz und kein Knopf.
-            // **Solange gelesen wird, sagt die Liste nicht, sie sei leer.**
+            // the system asks by itself on the first look. not after a refusal, or a
+            // sentence would stand there without a button.
             //
-            // `groups` faengt leer an, und `CallLogEmpty.reason` macht daraus „Noch keine
-            // Anrufe." - eine Falschaussage, solange der Anbieter noch liest. Auf diesem
-            // Telefon ist das kurz; auf einem mit tausend Eintraegen und eingeschalteter
-            // Gruppierung ist es zu sehen. Dieselbe Luecke wie in der Nachrichtenliste,
-            // dieselbe Loesung. Siehe LadenTest.
-            var laedt by remember { mutableStateOf(true) }
+            // and while reading, the list does not say it is empty: `groups` starts empty and
+            // `CallLogEmpty.reason` would turn that into no calls yet, which is false while
+            // the provider is still reading. see LadenTest.
+            var loading by remember { mutableStateOf(true) }
             LaunchedEffect(tab, logGranted) {
                 if (tab != Tab.LOG) return@LaunchedEffect
                 if (logGranted) {
                     groups = callLog.load(mode = config.phone.callGrouping)
-                    laedt = false
-                    // Gesehen ist gesehen: sonst stuende die Zahl weiter auf der Kachel,
-                    // obwohl der Nutzer die Liste gerade gelesen hat.
+                    loading = false
+                    // seen is seen, or the count stays on the tile although the list was
+                    // just read.
                     //
-                    // Zweimal, weil das eine ohne Schreibrecht nichts tut: `markMissedSeen`
-                    // raeumt das Kennzeichen des Systems auf, wenn wir duerfen - und der
-                    // gemerkte Zeitpunkt sorgt dafuer, dass die Zahl auch dann erlischt,
-                    // wenn wir nicht duerfen. Siehe MissedCalls.
+                    // twice, because one of them does nothing without the write right:
+                    // `markMissedSeen` clears the system's flag when we may, and the
+                    // remembered moment makes the count go out when we may not.
                     callLog.markMissedSeen()
                     val gesehen = MissedCalls.seenUpTo(
                         config.phone.lastSeenMissedAt,
@@ -269,9 +254,9 @@ var logGranted by remember(resumes.intValue) { mutableStateOf(callLog.hasPermiss
                         store.update { it.copy(phone = it.phone.copy(lastSeenMissedAt = gesehen)) }
                     }
                 } else {
-                    // Ohne Recht wird nicht gelesen - dann ist die Liste nicht am Laden,
-                    // sondern gesperrt, und darueber steht ohnehin ein eigener Bildschirm.
-                    laedt = false
+                    // without the right nothing is read: the list is not loading then but
+                    // locked, and a screen of its own says so.
+                    loading = false
                     if (!logDeniedOnce) askLog.launch(Manifest.permission.READ_CALL_LOG)
                 }
             }
@@ -287,9 +272,8 @@ var logGranted by remember(resumes.intValue) { mutableStateOf(callLog.hasPermiss
                 hideCutLabels = config.appearance.hideCutLabels,
                 cornerRadiusDp = config.appearance.cornerRadiusDp,
             ) {
-                // In Stufen zurueck, wie auf dem Startbildschirm: erst die Rueckfrage weg,
-                // dann die Liste. Vorher sprang Zurueck aus der Rueckfrage gleich zur
-                // Waehltastatur - man landete zwei Schritte weiter weg, als man wollte.
+                // back in steps, as on the home screen: first the question, then the list.
+                // back used to jump from the question straight to the keypad.
                 BackHandler(enabled = tab != Tab.KEYPAD || pendingCall != null || pendingDelete != null) {
                     when {
                         pendingCall != null -> pendingCall = null
@@ -325,8 +309,8 @@ var logGranted by remember(resumes.intValue) { mutableStateOf(callLog.hasPermiss
                         Tab.KEYPAD -> Keypad(
                             typed = typed,
                             hintFor = { key ->
-                                // Nur solange nichts getippt ist: sonst ueberlagert der
-                                // Kurzwahlname die Nummer, die gerade entsteht.
+                                // only while nothing is typed, or the speed-dial name lies
+                                // over the number being entered.
                                 if (typed.isEmpty()) SpeedDial.targetFor(config.phone, key)?.name else null
                             },
                             kurzwahlBelegt = SpeedDial.anyAssigned(config.phone),
@@ -375,10 +359,10 @@ var logGranted by remember(resumes.intValue) { mutableStateOf(callLog.hasPermiss
                         )
 
                         Tab.LOG -> CallList(
-                            laedt = laedt,
+                            loading = loading,
                             scrollButtons = config.behaviour.accessibility.scrollButtons,
-                            // Ungefiltert hinein: die Liste muss unterscheiden koennen, ob
-                            // sie leer ist oder leer gefiltert wurde.
+                            // unfiltered in: the list must tell being empty from being
+                            // filtered empty.
                             alle = groups,
                             allowed = CallLogGrouping.allowedFrom(config.phone.hiddenCallTypes),
                             granted = logGranted,
@@ -438,14 +422,14 @@ var logGranted by remember(resumes.intValue) { mutableStateOf(callLog.hasPermiss
     }
 
     /**
-     * Waehlt - ausser bei Notrufnummern.
+     * dials, except for emergency numbers.
      *
-     * Die gehen an den System-Dialer, vorbelegt, mit einem Tastendruck des Nutzers. Manche
-     * Geraete lassen einen Notruf aus einer Fremd-App gar nicht erst zu und wuerden ihn
-     * still verschlucken. Ein Tastendruck mehr ist der richtige Preis dafuer.
+     * those go to the system dialer, prefilled, and wait for one key press. some devices
+     * refuse an emergency call from a third-party app outright and would swallow it
+     * silently; one more press is the right price for that.
      */
     companion object {
-        /** Anrufliste zeigen, alle Eintraege - anders als EXTRA_MISSED, das filtert. */
+        /** show the call log, every entry, unlike EXTRA_MISSED which filters. */
         const val EXTRA_LOG = "showLog"
         const val EXTRA_MISSED = "missedOnly"
     }
@@ -453,10 +437,8 @@ var logGranted by remember(resumes.intValue) { mutableStateOf(callLog.hasPermiss
     private fun dial(number: String, onMissingPermission: () -> Unit) {
         if (!PhoneNumbers.isDialable(number)) return
         val platformSaysEmergency = runCatching {
-            // `isEmergencyNumber` ist seit Android 12 zugunsten von
-            // `TelephonyManager.isEmergencyNumber` abgelöst - das braucht READ_PHONE_STATE
-            // und gibt es auf Android 11 noch nicht. Das Ergebnis ist ohnehin nur ein
-            // Hinweis, siehe `PhoneNumbers.looksLikeEmergency`.
+            // the replacement needs READ_PHONE_STATE and does not exist on android 11. the
+            // result is a hint anyway, see `PhoneNumbers.looksLikeEmergency`.
             @Suppress("DEPRECATION")
             PhoneNumberUtils.isEmergencyNumber(PhoneNumbers.clean(number))
         }.getOrDefault(false)
@@ -470,7 +452,7 @@ var logGranted by remember(resumes.intValue) { mutableStateOf(callLog.hasPermiss
             return
         }
 
-        // Erst nach dem Notruf-Zweig: eine gesperrte Nummer haelt niemanden vom Notruf ab.
+        // after the emergency branch: a blocked number keeps nobody from an emergency call.
         if (CallBlocking.isBlocked(number, ConfigStore.get(this).current.phone.blockedNumbers)) {
             Notice.show(this, R.string.blocked_outgoing)
             return
@@ -503,29 +485,24 @@ private fun Keypad(
             modifier = Modifier.fillMaxWidth().height(64.dp).padding(horizontal = 4.dp),
             contentAlignment = Alignment.CenterStart,
         ) {
-            // Die Zeile ist auf eine Rufnummer bemessen. Ein ganzer Hinweissatz in
-            // derselben Groesse lief rechts aus dem Bild - er steht deshalb klein darunter
-            // und nicht mehr an der Stelle der Nummer.
+            // the row is measured for a phone number: a whole sentence in the same size ran
+            // off the right edge, so it stands small below instead.
             if (typed.isEmpty()) {
                 Column {
                     Text(
                         text = stringResource(R.string.dialer_hint),
                         color = palette.onBackground,
-                        // Bewusst **ohne** die eingestellte Textgroesse: dieser Kopf sitzt
-                        // in einem festen Aufbau ueber der Tastatur, seine 28 dp sind aus
-                        // der Flaeche gerechnet. Mit 200 % ausprobiert - dann stand dort
-                        // "Nummer" und der Rest lag ausserhalb des Bildes, und der Hinweis
-                        // darunter war ganz verschwunden.
+                        // deliberately without the text size setting: this head sits in a
+                        // fixed layout over the keypad and its 28 dp come from the area. at
+                        // 200 % only the first word was on screen.
                         fontSize = dpSp(28f),
                         fontWeight = FontWeight.Bold,
                         maxLines = 1,
                     )
                     Text(
-                        // Was das Halten **jetzt** tut, nicht was die Funktion heisst: auf
-                        // einer leeren Taste fuehrt es ins Belegen, auf einer belegten
-                        // waehlt es sofort. Bis zum 04.09.2026 stand in beiden Faellen
-                        // derselbe Satz - im harmlosen Zustand derselbe wie im
-                        // gefaehrlichen.
+                        // what holding does *now*, not what the feature is called: on an
+                        // empty key it leads to assigning, on an assigned one it dials at
+                        // once. one sentence covered both, the harmless and the dangerous.
                         text = stringResource(
                             if (kurzwahlBelegt) {
                                 R.string.dialer_speeddial_hint_call
@@ -540,10 +517,9 @@ private fun Keypad(
                     )
                 }
             } else {
-                // Gemessen wird der Text, der auch dasteht: gerechnet wurde bisher mit
-                // `typed`, gezeichnet aber die gruppierte Fassung - die ist um jede Luecke
-                // laenger. Dazu eine feste Breite von 330 dp statt der wirklichen. Beides
-                // schnitt die Nummer ab, ohne ein Zeichen dafuer zu setzen.
+                // measure the text that is actually drawn: the computation used `typed`
+                // while the grouped version was drawn, longer by every gap, against a fixed
+                // 330 dp instead of the real width. both cut the number without a mark.
                 val gezeigt = PhoneNumbers.forDisplay(typed)
                 val nummerStil = tabularFigures().copy(fontWeight = FontWeight.Bold)
                 BoxWithConstraints(Modifier.fillMaxWidth()) {
@@ -558,7 +534,7 @@ private fun Keypad(
                         fontSize = dpSp(
                             fittedSingleLineDp(gezeigt, nummerStil, 40f, maxWidth),
                         ),
-                        // Beim Tippen soll die Zahl nicht bei jeder Ziffer springen. PLAN.md 3.7.
+                        // the number must not jump on every digit. `PLAN.md` 3.7.
                         style = nummerStil,
                         maxLines = 1,
                         softWrap = false,
@@ -579,22 +555,18 @@ private fun Keypad(
             BigRow(
                 label = stringResource(R.string.dialer_call),
                 icon = Icons.Filled.Call,
-                // Ohne Nummer ist der Knopf keiner.
+                // without a number this is not a button.
                 //
-                // `dial` weigert sich bei etwas, das keine Nummer ist
-                // (`isDialable`) - richtig, aber bis zum 04.09.2026 sah man das nicht: die
-                // Zeile stand in voller Akzentfarbe da, man tippte, und es geschah
-                // schweigend nichts. Auf der Waehltastatur ist das die Zeile, auf die man
-                // sich am meisten verlaesst. Derselbe Fall wie beim Senden-Knopf in den
-                // Nachrichten.
+                // `dial` refuses anything that is not one (`isDialable`), which was right but
+                // invisible: the row stood in full accent colour, one tapped, and nothing
+                // happened silently. on a keypad that is the row one relies on most.
                 surface = if (waehlbar) palette.surfaceAccent else palette.surfaceDefault,
                 modifier = Modifier.weight(1f),
                 onClick = if (waehlbar) onCall else null,
             )
-            // Ein Symbol statt eines Wortes: "Anrufliste" brach hier mitten im Wort um,
-            // sobald eine Kurzwahl die Tastatur hoeher macht. Zwei beschriftete Knoepfe
-            // passen auf drei Zoll nicht nebeneinander - genau der Fall, fuer den es
-            // BigIconButton gibt. Das Wort steht in der Vorlese-Beschreibung.
+            // an icon instead of a word: the label broke mid-word as soon as a speed dial
+            // made the keypad taller. two labelled buttons do not fit side by side on three
+            // inches, which is what BigIconButton is for; the word is in the description.
             BigIconButton(
                 icon = Icons.Filled.History,
                 description = stringResource(R.string.calllog),
@@ -626,15 +598,15 @@ private fun CallList(
     onWriteSettings: () -> Unit,
     onCloseWriteGate: () -> Unit,
     onCallTypeSettings: () -> Unit,
-    /** Angetippt wurde ein Eintrag ohne waehlbare Nummer - eine unterdrueckte etwa. */
+    /** an entry without a dialable number was tapped, a withheld one for instance. */
     onNotCallable: () -> Unit,
     scrollButtons: Boolean,
-    laedt: Boolean,
+    loading: Boolean,
 ) {
-    // Steht in der Zeile, wenn die Nummer unterdrueckt war - vorher ein festes "?".
+    // stands in the row for a withheld number; a fixed "?" used to.
     val unbekannt = stringResource(R.string.call_unknown)
-    // Erst die dauerhafte Auswahl der Arten, dann der schnelle Filter "nur verpasste" -
-    // der ist eine Ansicht, keine Einstellung, und darf die andere nicht ueberschreiben.
+    // the lasting choice of kinds first, then the quick missed-only filter: that one is a
+    // view, not a setting, and must not overwrite the other.
     val groups = CallLogGrouping.visible(
         if (missedOnly) CallLogGrouping.onlyMissed(alle) else alle,
         allowed,
@@ -643,16 +615,14 @@ private fun CallList(
     val palette = LocalBigPalette.current
     val locale = currentLocale()
     val format = remember(locale) {
-        // Bestandteile statt festem Muster - siehe bestDatePattern. Das "j" ist die
-        // Stunde **in der Schreibweise der Sprache**: ein "H" erzwaengt 24 Stunden, und
-        // genau das stand hier bis zum 03.09.2026. Auf diesem Telefon, das auf
-        // 12 Stunden steht, hiess dieselbe Minute in der Kopfzeile "5:39 PM" und in der
-        // Liste "17:39".
+        // parts instead of a fixed pattern; see bestDatePattern. "j" is the hour *in the
+        // language's own spelling*, while "H" forces 24 hours: the same minute read
+        // "5:39 PM" in the header and "17:39" in the list.
         SimpleDateFormat(bestDatePattern("EEEdMMMjmm", locale), locale)
     }
 
-    // Android fragt nicht mehr nach dem Schreibrecht. Ohne diesen Bildschirm bliebe es
-    // dabei, dass Loeschen bestaetigt wird und nichts geschieht.
+    // android no longer asks for the write right. without this screen it would stay at
+    // deleting being confirmed and nothing happening.
     if (writeGate) {
         LazyColumn(verticalArrangement = Arrangement.spacedBy(4.dp)) {
             item {
@@ -674,8 +644,8 @@ private fun CallList(
         return
     }
 
-    // Loeschen ist nicht rueckgaengig zu machen, also wird gefragt - und zwar so, dass
-    // die Frage die Liste verdeckt: wer bestaetigt, soll nicht nebenbei auf eine Zeile tippen.
+    // deleting cannot be undone, so it is asked, and the question covers the list: nobody
+    // confirming should hit a row in passing.
     if (pendingDelete != null) {
         LazyColumn(verticalArrangement = Arrangement.spacedBy(4.dp)) {
             item { BigHeading(stringResource(R.string.calllog)) }
@@ -703,8 +673,7 @@ private fun CallList(
         return
     }
 
-    // Dieselbe Form wie beim Loeschen: die Frage verdeckt die Liste, damit niemand
-    // nebenbei auf eine andere Zeile tippt.
+    // the same shape as for deleting: the question covers the list.
     if (pendingCall != null) {
         LazyColumn(verticalArrangement = Arrangement.spacedBy(4.dp)) {
             item { BigHeading(stringResource(R.string.calllog)) }
@@ -758,9 +727,8 @@ private fun CallList(
                     )
                 }
             } else if (groups.isNotEmpty()) {
-                // Einen einzelnen Anruf loeschte man bisher nur durch langes Halten, und
-                // das stand nirgends. Der Hinweis sitzt an derselben Stelle wie der fuer
-                // die Kurzwahl auf der Wähltastatur.
+                // deleting a single call worked only by holding, and that stood nowhere.
+                // the hint sits where the speed-dial hint sits on the keypad.
                 item {
                     Text(
                         text = stringResource(R.string.calllog_delete_hint),
@@ -773,10 +741,9 @@ private fun CallList(
             if (granted && leerWeil != null) {
                 item {
                     Text(
-                        // Solange gelesen wird, ist die Liste nicht leer, sondern noch
-                        // nicht da. Der Grund kommt danach.
+                        // while reading, the list is not empty but not there yet.
                         text = stringResource(
-                            if (laedt) {
+                            if (loading) {
                                 R.string.calllog_loading
                             } else {
                                 when (leerWeil) {
@@ -791,8 +758,8 @@ private fun CallList(
                         modifier = Modifier.padding(horizontal = 4.dp, vertical = 8.dp),
                     )
                 }
-                // Der Weg zurueck gehoert an die Stelle, an der man merkt, dass man ihn
-                // braucht - nicht in eine Einstellung, die man erst finden muss.
+                // the way back belongs where one notices needing it, not in a setting that
+                // has to be found first.
                 if (leerWeil == EmptyCallLog.HIDDEN_BY_TYPE) {
                     item {
                         BigRow(
@@ -810,10 +777,9 @@ private fun CallList(
                         append(group.name ?: PhoneNumbers.forDisplay(group.number).ifBlank { unbekannt })
                         if (group.count > 1) append(" (${group.count})")
                     },
-                    // Steht statt eines Namens eine **Nummer** da, wird sie ziffernweise
-                    // gelesen: sonst macht ein Vorleseprogramm aus "222222" eine Zahl,
-                    // und wer vor dem Rueckruf nachhoeren will, wen er da anruft, erfaehrt
-                    // es nicht. Ein Name bleibt ein Name. Am 04.09.2026 am Emulator gesehen.
+                    // a *number* in place of a name is read digit by digit: otherwise a
+                    // screen reader turns 222222 into one number, and someone checking whom
+                    // they are about to call back learns nothing. a name stays a name.
                     labelSpeech = if (group.name == null) {
                         PhoneNumbers.forSpeech(group.number).ifBlank { unbekannt }
                     } else {
@@ -821,11 +787,10 @@ private fun CallList(
                     },
                     secondary = format.format(Date(group.latest.timestamp)),
                     secondaryMaxLines = 1,
-                    // Erschoepfend, und zwar aus einem handfesten Grund: der else-Zweig
-                    // gab abgewiesenen und blockierten Anrufen den Pfeil fuer ausgehende.
-                    // Ein Anruf, den man weggedrueckt hat, stand da als einer, den man
-                    // selbst gefuehrt hat - in der einen Liste, in der die Richtung alles
-                    // ist. Aufgefallen erst am Emulator mit einer echten Anrufliste.
+                    // exhaustive for a solid reason: an else branch gave rejected and
+                    // blocked calls the outgoing arrow, so a call one had pushed away stood
+                    // there as one made oneself, in the one list where direction is
+                    // everything.
                     icon = when (group.latest.direction) {
                         CallDirection.MISSED -> Icons.Filled.CallMissed
                         CallDirection.INCOMING -> Icons.Filled.CallReceived
@@ -835,18 +800,15 @@ private fun CallList(
                         CallDirection.OTHER -> Icons.Filled.QuestionMark
                     },
                     surface = if (group.hasMissed) palette.surfaceDanger else palette.surfaceDefault,
-                    // Der Pfeil sagt die Richtung, aber nur dem Auge. Vorgelesen hiess die
-                    // Zeile bis zum 04.09.2026 nur "Mama (3), 02:31" - in der einen Liste,
-                    // in der die Richtung alles ist.
+                    // the arrow says the direction to the eye only: read aloud the row was
+                    // just a name, a count and a time.
                     state = stringResource(callDirectionSpeech(group.latest.direction)),
-                    // Nicht sofort waehlen: PLAN.md 3.1, Leitsatz 5 nennt "Anrufen aus dem
-                    // Verlauf" ausdruecklich unter dem, was eine Rueckfrage braucht. In
-                    // einer Liste, die man mit zittriger Hand durchsieht, ist ein Tipp
-                    // daneben sonst ein Anruf bei jemandem.
+                    // no immediate dialling: `PLAN.md` 3.1, principle 5 names calling from
+                    // the log among what needs a question. in a list scanned with an unsteady
+                    // hand a missed tap would otherwise be a call to somebody.
                     onClick = {
-                        // Eine unterdrueckte Nummer laesst sich nicht zurueckrufen. Vorher
-                        // stand hier die Rueckfrage `„" jetzt anrufen?` - mit leeren
-                        // Anfuehrungszeichen, und ein Ja haette nichts gewaehlt.
+                        // a withheld number cannot be called back: the question used to
+                        // name an empty pair of quotes, and a yes would have dialled nothing.
                         if (!PhoneNumbers.isDialable(group.number)) {
                             onNotCallable()
                         } else {
@@ -870,7 +832,7 @@ private fun CallList(
                         label = stringResource(R.string.calllog_delete_all),
                         icon = Icons.Filled.Delete,
                         surface = palette.surfaceDanger,
-                        // Leere Kennungsliste heisst "alles" - der Bestaetigungstext unterscheidet.
+                        // an empty id list means everything; the confirmation text tells them apart.
                         onClick = { onAskDelete("", emptyList()) },
                     )
                 }
@@ -882,7 +844,7 @@ private fun CallList(
     }
 }
 
-/** Kurzwahl belegen: Kontakt waehlen, oder die Taste wieder frei machen. */
+/** assign a speed dial: pick a contact, or free the key again. */
 @Composable
 private fun AssignList(
     key: Char?,
@@ -895,12 +857,10 @@ private fun AssignList(
     val palette = LocalBigPalette.current
     LazyColumn(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         item { BigHeading(stringResource(R.string.speeddial_assign, key.toString())) }
-        // Derselbe Satz wie auf dem Tastenfeld - aber **hier**, wo entschieden wird. Auf dem
-        // Tastenfeld steht er erst, wenn schon eine Kurzwahl belegt ist; wer die erste
-        // einrichtet, erfuhr also erst hinterher, worauf er sich einlaesst. Und ausgerechnet
-        // hier weicht BigLau von seiner eigenen Regel ab: ueberall sonst wird vor dem
-        // Anrufen gefragt (`PLAN.md` 3.1, Leitsatz 5), beim Langdruck auf eine Kurzwahl
-        // nicht.
+        // the same sentence as on the keypad, but *here*, where the decision is made: on
+        // the keypad it appears only once a speed dial exists, so whoever sets up the first
+        // one learnt afterwards what they were in for. and here BigLau departs from its own
+        // rule, since a long press on a speed dial dials without asking.
         item {
             Text(
                 text = stringResource(R.string.dialer_speeddial_hint_call),

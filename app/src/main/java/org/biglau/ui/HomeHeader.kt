@@ -48,15 +48,11 @@ import java.util.Date
 import java.util.Locale
 
 /**
- * Ein Balken ueber dem Raster mit Uhrzeit, Datum und Ladestand.
+ * a bar over the grid with time, date and battery.
  *
- * Der Sinn: diese Angaben will man dauerhaft sehen, aber zwei ganze Kacheln dafuer zu
- * verbrauchen ist auf einem 2x3-Raster ein Drittel des Homescreens. Als Zeile kosten sie
- * rund 70 dp - die Kacheln darunter schrumpfen entsprechend, bleiben aber Kacheln.
- *
- * Links die Zeit gross mit dem Datum darunter, rechts der Ladestand mit Balken. Beide
- * Bloecke sind in sich linksbuendig, damit die Zeile dieselbe Lesekante hat wie die
- * Kacheln darunter (PLAN.md 3.0).
+ * one wants these permanently, but two whole tiles for them is a third of a 2x3 home
+ * screen; as a row they cost about 70 dp. both blocks are left-aligned inside themselves,
+ * so the row has the same reading edge as the tiles below (`PLAN.md` 3.0).
  */
 @Composable
 fun HomeHeader(
@@ -92,9 +88,9 @@ fun HomeHeader(
     val fraction = BatteryInfo.fraction(percent)
     val low = BatteryInfo.isLow(percent)
 
-    // Was der linken Spalte wirklich bleibt: Bildschirm minus Aussen- und Innenabstand
-    // minus die Ladestandsanzeige rechts.
-    val breiteLinks = (
+    // what the left column really keeps: screen minus outer and inner padding minus the
+    // battery display on the right.
+    val leftWidth = (
         LocalConfiguration.current.screenWidthDp - 2 * 8f - 2 * 12f -
             ClockFormat.batteryWidthDp(scale)
         ).coerceAtLeast(40f)
@@ -102,8 +98,8 @@ fun HomeHeader(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            // Die Hoehe waechst mit beidem mit: der Textgroesse und der eigenen Groesse
-            // der Uhr. Sonst schneidet die Kopfzeile ihre eigene Zeile ab.
+            // the height grows with both the text size and the clock's own scale, or the
+            // header cuts off its own line.
             .height(
                 ClockFormat.headerHeightDp(
                     hasDate = ClockFormat.dateSkeleton(clock, onTile = false) != null,
@@ -118,30 +114,29 @@ fun HomeHeader(
     ) {
         Column(modifier = Modifier.weight(1f)) {
             if (ClockFormat.showsTime(clock, onTile = false)) {
-                val uhrzeit = timeFormat.format(Date(now))
-                // Der Wunsch kommt aus der Rechnung, das letzte Wort hat die Messung:
-                // `clockSizeSp` schaetzt mit einer mittleren Zeichenbreite, und genau diese
-                // Schaetzung hat auf der Uhr-Kachel bei 200 % das „AM" abgeschnitten. Hier
-                // stuende die Uhr sonst ueber dem Ladestand.
-                val uhrStil = tabularFigures().copy(fontWeight = FontWeight.Bold)
+                val time = timeFormat.format(Date(now))
+                // the wish comes from the arithmetic, the measurement has the last word:
+                // `clockSizeSp` estimates with an average character width, and that estimate
+                // cut off the AM on the clock tile at 200 %.
+                val clockStyle = tabularFigures().copy(fontWeight = FontWeight.Bold)
                 Text(
-                    text = uhrzeit,
+                    text = time,
                     color = palette.onBackground,
                     fontSize = dpSp(
                         fittedSingleLineDp(
-                            text = uhrzeit,
-                            style = uhrStil,
+                            text = time,
+                            style = clockStyle,
                             desiredDp = ClockFormat.clockSizeSp(
-                                text = uhrzeit,
-                                availableDp = breiteLinks,
+                                text = time,
+                                availableDp = leftWidth,
                                 textScale = scale,
                                 clockScale = clockScale,
                             ),
-                            maxWidth = breiteLinks.dp,
+                            maxWidth = leftWidth.dp,
                             minDp = 14f,
                         ),
                     ),
-                    style = uhrStil,
+                    style = clockStyle,
                     maxLines = 1,
                     softWrap = false,
                 )
@@ -159,30 +154,28 @@ fun HomeHeader(
 
         Column(horizontalAlignment = Alignment.End) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                // Auch hier gemessen: der Platz rechts ist mit derselben mittleren
-                // Zeichenbreite reserviert wie ueberall sonst (`batteryWidthDp`), und
-                // „100 %" ist der laengste Fall. Passt es nicht, wird die Zahl kleiner -
-                // abgeschnitten waere sie keine Zahl mehr.
-                val standText = if (percent == null) "?" else "$percent %"
-                val standStil = tabularFigures().copy(fontWeight = FontWeight.Bold)
+                // measured here too: the space on the right is reserved with the same
+                // average character width as everywhere (`batteryWidthDp`), and 100 % is the
+                // longest case. cut off, a number is no longer a number.
+                val levelText = if (percent == null) "?" else "$percent %"
+                val levelStyle = tabularFigures().copy(fontWeight = FontWeight.Bold)
                 Text(
-                    text = standText,
+                    text = levelText,
                     color = if (low) palette.dangerText else palette.onBackground,
                     fontSize = dpSp(
                         fittedSingleLineDp(
-                            text = standText,
-                            style = standStil,
+                            text = levelText,
+                            style = levelStyle,
                             desiredDp = 20f * scale,
                             maxWidth = (ClockFormat.batteryWidthDp(scale) - 20f * scale - 8f).dp,
                         ),
                     ),
-                    style = standStil,
+                    style = levelStyle,
                     maxLines = 1,
                     softWrap = false,
                 )
-                // Das Blitzzeichen war ein Emoji und kam damit aus der Emoji-Schrift des
-                // Systems - eine zweite Schriftart mitten in der Kopfzeile, in fremder Farbe.
-                // Jetzt dasselbe Symbol-Set wie ueberall sonst, in unserer Tinte.
+                // the bolt used to be an emoji and came from the system emoji font: a second
+                // typeface in the middle of the header, in a colour of its own.
                 if (charging) {
                     Icon(
                         imageVector = Icons.Filled.Bolt,
@@ -199,8 +192,8 @@ fun HomeHeader(
                         .width(72.dp)
                         .height(8.dp)
                         .clip(RoundedCornerShape(50))
-                        // Aus dem Token-System abgeleitet statt aus einem festen Schwarz:
-                        // im hellen Thema waere ein schwarzer Balken ein Fremdkoerper.
+                        // from the tokens and not a fixed black, which would be a foreign
+                        // body in the light theme.
                         .background(palette.onBackground.copy(alpha = 0.25f)),
                 ) {
                     Box(

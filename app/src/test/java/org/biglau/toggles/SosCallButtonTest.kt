@@ -49,9 +49,9 @@ class SosCallButtonTest {
         val stelle = quelle.indexOf("R.string.sos_call_now")
         val davor = quelle.substring(maxOf(0, stelle - 300), stelle)
         assertTrue(
-            "der Knopf muss an !probe hängen - eine Probe hat niemanden angerufen und " +
+            "der Knopf muss an !preview hängen - eine Probe hat niemanden angerufen und " +
                 "soll auch nicht dazu einladen",
-            "!probe" in davor,
+            "!preview" in davor,
         )
     }
 }

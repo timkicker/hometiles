@@ -26,7 +26,7 @@ class WarnungVorDemLadenTest {
 
     @Test
     fun `die herkunft steht vor der bestaetigung`() {
-        val vorher = Regex("""!done && vonNeuerer|vonNeuerer && !done""").containsMatchIn(importieren)
+        val vorher = Regex("""!done && fromNewer|fromNewer && !done""").containsMatchIn(importieren)
         assertTrue(
             "ImportActivity nennt die neuere Herkunft nur nach dem Laden. Dann ist die " +
                 "bestehende Einrichtung schon ersetzt, und die Auskunft kommt zu spaet.",

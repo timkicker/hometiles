@@ -37,15 +37,14 @@ import org.biglau.ui.bigSp
 import org.biglau.ui.theme.LocalBigPalette
 
 /**
- * Notruf einrichten. Die Nummern stehen in einer Zeile, weil das auf drei Zoll schneller
- * geht als eine Liste mit Plus-Knopf - und weil [SosNumbers] beim Einlesen streng aussortiert,
- * kostet die Bequemlichkeit nichts.
+ * setting up the emergency call. the numbers stand in one field because that is faster on
+ * three inches than a list with a plus button, and [SosNumbers] sorts strictly on reading.
  */
 @Composable
 internal fun SosSettings(
     config: SosConfig,
     onChange: (SosConfig) -> Unit,
-    /** Wird gerufen, wenn der Standort **eingeschaltet** wird und die Erlaubnis fehlt. */
+    /** called when the location is switched *on* and the permission is missing. */
     onNeedLocation: () -> Unit,
     locationGranted: Boolean,
     locationBlocked: Boolean,
@@ -54,15 +53,14 @@ internal fun SosSettings(
 ) {
     val palette = LocalBigPalette.current
     val context = LocalContext.current
-    // Die Probe des Notruf-Alarms gehoert hierher, nicht in den Einstellungsbaum. Sie laeuft
-    // nur, solange **diese Seite** offen ist - vorher hoerte sie erst auf, wenn man die
-    // Einstellungen ganz verliess. Ein Alarm, der weiterlaeuft, waere schlimmer als keiner.
-    var probe by remember { mutableStateOf(false) }
+    // trying out the alarm belongs here and not in the settings tree: it runs only while
+    // *this page* is open. an alarm that keeps running would be worse than none.
+    var trying by remember { mutableStateOf(false) }
     DisposableEffect(Unit) { onDispose { SosAlarm.stop(context) } }
     val defaultMessage = stringResource(R.string.sos_message_default)
     var numbersText by remember(config.numbers) { mutableStateOf(SosNumbers.format(config.numbers)) }
-    // Beim ersten Oeffnen steht der Vorgabetext schon im Feld. So sieht der Nutzer, was
-    // verschickt wuerde, statt vor einem leeren Kasten zu raten.
+    // the default text stands in the field from the start: one sees what would be sent
+    // instead of guessing in front of an empty box.
     var messageText by remember(config.message) {
         mutableStateOf(config.message.ifBlank { defaultMessage })
     }
@@ -86,8 +84,8 @@ internal fun SosSettings(
                 onValueChange = { numbersText = it },
                 singleLine = false,
                 textStyle = TextStyle(fontSize = bigSp(20f), fontWeight = FontWeight.Bold),
-                // Der Hinweis gehoert ans Feld, nicht an den Knopf: am Knopf stand er in
-                // einer Zeile, die abgeschnitten wurde, und ein leerer Kasten sagt nichts.
+                // the hint belongs on the field, not the button, where it sat in a line
+                // that was cut off.
                 placeholder = { Text(stringResource(R.string.sos_numbers_placeholder), fontSize = bigSp(17f)) },
                 supportingText = {
                     Text(stringResource(R.string.sos_numbers_hint, SosNumbers.MAX), fontSize = bigSp(15f))
@@ -106,41 +104,33 @@ internal fun SosSettings(
             }
         }
         item {
-            // Zwei Dinge, die am 04.09.2026 am Emulator gefehlt haben.
-            //
-            // Erstens: der Knopf sah immer gleich aus. Wer nichts geaendert hat, konnte ihn
-            // druecken, und es geschah nichts - derselbe Fall wie beim Senden ohne Text und
-            // beim Anrufen ohne Nummer. Ohne Aenderung ist er kein Knopf.
-            //
-            // Zweitens: nach dem Speichern sah der Bildschirm genauso aus wie davor. Bei
-            // Nummern, die man einmal eintraegt und hoffentlich nie braucht, ist "hat es
-            // geklappt?" die einzige Frage, die zaehlt.
-            val geaendert = numbersText != SosNumbers.format(config.numbers)
-            val zusammenhang = LocalContext.current
+            // without a change this is not a button, the same as sending without text and
+            // calling without a number. and after saving the screen has to look different:
+            // for numbers one enters once and hopefully never needs, did it work is the only
+            // question that counts.
+            val changed = numbersText != SosNumbers.format(config.numbers)
+            val here = LocalContext.current
             BigRow(
                 label = stringResource(R.string.sos_numbers_save),
-                surface = if (geaendert) palette.surfaceAccent else palette.surfaceDefault,
-                onClick = if (geaendert) {
+                surface = if (changed) palette.surfaceAccent else palette.surfaceDefault,
+                onClick = if (changed) {
                     {
-                        // Sagen, was wirklich passiert ist. "Nummern gespeichert" nach einer
-                        // Eingabe, von der nichts brauchbar war, waere ein wahrer Satz an der
-                        // falschen Stelle - die rote Zeile darueber sagt ja schon, dass die
-                        // Eingabe nicht taugt. Am 04.09.2026 am Emulator mit einem "x"
-                        // ausprobiert und genau so gesehen.
-                        val genommen = SosNumbers.parse(numbersText)
-                        onChange(config.copy(numbers = genommen))
-                        // Ueber AppLocale, nicht ueber den rohen Context: BigLau hat eine
-                        // eigene Sprache, und die Meldung soll in ihr stehen.
-                        val texte = AppLocale.forApp(zusammenhang)
+                        // say what really happened: numbers saved after an entry with nothing
+                        // usable in it would be a true sentence in the wrong place.
+                        val taken = SosNumbers.parse(numbersText)
+                        onChange(config.copy(numbers = taken))
+                        // through AppLocale, not the raw context: the notice belongs in the
+                        // app's language.
+                        val texts = AppLocale.forApp(here)
                         Notice.show(
-                            zusammenhang,
-                            if (genommen.isEmpty()) {
-                                texte.getString(R.string.sos_numbers_cleared)
+                            here,
+                            if (taken.isEmpty()) {
+                                texts.getString(R.string.sos_numbers_cleared)
                             } else {
-                                texte.resources.getQuantityString(
+                                texts.resources.getQuantityString(
                                     R.plurals.sos_numbers_saved_n,
-                                    genommen.size,
-                                    genommen.size,
+                                    taken.size,
+                                    taken.size,
                                 )
                             },
                         )
@@ -162,37 +152,34 @@ internal fun SosSettings(
             )
         }
         item {
-            // Mit der laengsten Zeile gerechnet, die dazukommen kann: seit die Nachricht
-            // das Alter eines alten Standorts nennt, waere die Zahl sonst im schlechten
-            // Fall um eine SMS zu niedrig - und zu niedrig ist bei Kosten die falsche
-            // Richtung.
-            val laengstesAlter = pluralStringResource(R.plurals.sos_location_age_hours, 24, 24)
+            // computed with the longest line that can be added: too low is the wrong
+            // direction when it costs money.
+            val longestAge = pluralStringResource(R.plurals.sos_location_age_hours, 24, 24)
             val preview = SosMessage.compose(
                 text = messageText,
                 latitude = 48.20849,
                 longitude = 16.37208,
                 fallback = defaultMessage,
-                ageNote = laengstesAlter,
+                ageNote = longestAge,
             )
-            // Dieselbe Frage wie bei den Nummern - und dieselbe Antwort. Verglichen wird
-            // gegen das, was gespeichert **wuerde**: steht im Feld der Vorgabetext und in
-            // der Einrichtung nichts, ist das kein Unterschied.
-            val nachrichtGeaendert = messageText.trim() != config.message.ifBlank { defaultMessage }
-            val zusammenhang = LocalContext.current
+            // the same question as for the numbers, compared against what *would* be saved:
+            // the default text in the field against nothing stored is no difference.
+            val messageChanged = messageText.trim() != config.message.ifBlank { defaultMessage }
+            val here = LocalContext.current
             BigRow(
                 label = stringResource(R.string.sos_message_save),
-                // Vorschau mit Beispielkoordinaten: der Nutzer soll sehen, was ankommt,
-                // und wie viele SMS es kostet.
+                // preview with sample coordinates: one should see what arrives and how many
+                // messages it costs.
                 secondary = pluralStringResource(
                     R.plurals.sos_message_parts,
                     SosMessage.partsNeeded(preview),
                     SosMessage.partsNeeded(preview),
                 ),
-                surface = if (nachrichtGeaendert) palette.surfaceAccent else palette.surfaceDefault,
-                onClick = if (nachrichtGeaendert) {
+                surface = if (messageChanged) palette.surfaceAccent else palette.surfaceDefault,
+                onClick = if (messageChanged) {
                     {
                         onChange(config.copy(message = messageText.trim()))
-                        Notice.show(zusammenhang, R.string.sos_message_saved)
+                        Notice.show(here, R.string.sos_message_saved)
                     }
                 } else {
                     null
@@ -220,15 +207,15 @@ internal fun SosSettings(
                 ),
                 surface = if (config.sendLocation) palette.surfaceAccent else palette.surfaceDefault,
                 onClick = {
-                    val an = !config.sendLocation
-                    onChange(config.copy(sendLocation = an))
-                    if (an && !locationGranted) onNeedLocation()
+                    val on = !config.sendLocation
+                    onChange(config.copy(sendLocation = on))
+                    if (on && !locationGranted) onNeedLocation()
                 },
             )
         }
 
-        // PLAN.md 4.8: lauter Alarmton und blinkendes Licht. Sie wirken ohne Netz und
-        // erreichen den, der zwei Raeume weiter steht - die Nachricht erreicht den nicht.
+        // `PLAN.md` 4.8: loud alarm and blinking light. they work without a network and
+        // reach the person two rooms away, whom the message does not.
         item { BigHeading(stringResource(R.string.sos_alarm_heading)) }
         item {
             BigRow(
@@ -249,29 +236,27 @@ internal fun SosSettings(
                 onClick = { onChange(config.copy(alarmFlash = !config.alarmFlash)) },
             )
         }
-        // Ausprobieren, bevor es zaehlt: wer den Alarm im Notfall zum ersten Mal hoert,
-        // erschrickt und drueckt ihn weg. Der Knopf loest **keinen** Notruf aus, es geht
-        // dabei keine Nachricht hinaus.
+        // try it before it counts: hearing the alarm for the first time in an emergency
+        // startles and gets it pushed away. this button raises no emergency call.
         if (config.alarmSound || config.alarmFlash) {
             item {
                 BigRow(
                     label = stringResource(
-                        if (probe) R.string.sos_alarm_stop else R.string.sos_alarm_try,
+                        if (trying) R.string.sos_alarm_stop else R.string.sos_alarm_try,
                     ),
                     secondary = stringResource(R.string.sos_alarm_try_hint),
-                    icon = if (probe) Icons.Filled.StopCircle else Icons.Filled.PlayCircle,
-                    surface = if (probe) palette.surfaceAccent else palette.surfaceDefault,
+                    icon = if (trying) Icons.Filled.StopCircle else Icons.Filled.PlayCircle,
+                    surface = if (trying) palette.surfaceAccent else palette.surfaceDefault,
                     onClick = {
-                        if (probe) SosAlarm.stop(context) else SosAlarm.start(context, config)
-                        probe = !probe
+                        if (trying) SosAlarm.stop(context) else SosAlarm.start(context, config)
+                        trying = !trying
                     },
                 )
             }
         }
 
-        // Den Ablauf einmal ansehen, ohne dass etwas hinausgeht. Wer den Notruf einrichtet,
-        // will ihn dem Menschen erklaeren koennen, der ihn spaeter im Ernst drueckt - und
-        // eine Erklaerung, die man zeigen kann, ist besser als eine, die man liest.
+        // see the sequence once without anything going out: an explanation one can show
+        // beats one that has to be read.
         item {
             BigRow(
                 label = stringResource(R.string.sos_preview),
@@ -286,9 +271,8 @@ internal fun SosSettings(
             )
         }
 
-        // Der Schalter steht auf "mit Standort", das Recht fehlt: dann geht die Nachricht
-        // ohne Koordinaten hinaus. Das gehoert hier hingeschrieben, nicht erst im Notfall
-        // gemerkt.
+        // the switch says with location and the right is missing: then the message goes
+        // out without coordinates, and that belongs here, not noticed in an emergency.
         if (config.sendLocation && !locationGranted) {
             item {
                 Text(
@@ -302,9 +286,8 @@ internal fun SosSettings(
                 BigRow(
                     label = stringResource(
                         if (locationBlocked) {
-                            // Die beiden Texte gehören zum Zugriffs-Baustein und liegen
-                            // deshalb im Design-System; `nonTransitiveRClass` heisst,
-                            // dass man sie dort auch ansprechen muss.
+                            // both texts belong to the permission block and live in the
+                            // design system; `nonTransitiveRClass` means addressing them there.
                             UiR.string.permission_open_settings
                         } else {
                             UiR.string.permission_allow

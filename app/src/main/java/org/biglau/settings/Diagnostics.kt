@@ -15,24 +15,18 @@ import org.biglau.notify.SystemPackagesReader
 import org.biglau.safety.CrashRecorder
 
 /**
- * Was die App ueber ihre eigene Lage weiss. Beim Bauen kostete jede dieser Zahlen einen
- * adb-Aufruf; auf dem Geraet des Nutzers gibt es kein adb (Stand 31.08.2026), und "es geht nicht" ohne Zahlen
- * ist nicht zu beantworten.
+ * what the app knows about its own situation. there is no adb on the user's device, and
+ * "it does not work" without numbers cannot be answered.
  */
 object Diagnostics {
 
     /**
-     * Was nach den Systemleisten uebrig bleibt, in dp.
+     * what is left after the system bars, in dp.
      *
-     * **Die Falle steckt in der Ausgangszahl.** `resources.displayMetrics` liefert das
-     * Fenster *ohne* die Gestenleiste (am Jelly 2 480 x 832 statt 480 x 854). Zieht man
-     * davon die Einblendungen ab, geht die Gestenleiste **zweimal** weg, und die Seite
-     * meldet 565 dp, wo 581 nutzbar sind. Genau diese 565 standen deshalb auch in
-     * `PLAN.md` 3.2 - eine Zahl, die sich selbst bestaetigt hat, weil sie an beiden Stellen
-     * gleich falsch gerechnet war.
-     *
-     * Hier gehen deshalb die **ganzen** Bildschirmmasse hinein, und die Einblendungen
-     * genau einmal ab.
+     * the trap sits in the starting number: `resources.displayMetrics` gives the window
+     * *without* the gesture bar (480 x 832 instead of 480 x 854 on the jelly 2), so
+     * subtracting the insets from it removes that bar twice and reports 565 dp where 581
+     * are usable. the *full* screen size goes in here, and the insets come off once.
      */
     fun usableDp(
         fullWidthPx: Int,
@@ -44,17 +38,15 @@ object Diagnostics {
         density: Float,
     ): Pair<Int, Int>? {
         if (density <= 0f) return null
-        val breite = (fullWidthPx - left - right).coerceAtLeast(0)
-        val hoehe = (fullHeightPx - top - bottom).coerceAtLeast(0)
-        return (breite / density).toInt() to (hoehe / density).toInt()
+        val width = (fullWidthPx - left - right).coerceAtLeast(0)
+        val height = (fullHeightPx - top - bottom).coerceAtLeast(0)
+        return (width / density).toInt() to (height / density).toInt()
     }
 
     /**
-     * @param usableDp was nach Statusleiste und Gestenleiste uebrig bleibt - `null`, wenn
-     *   es nicht zu ermitteln war.
-     * @param text loest eine Zeichenkette auf. Die Beschriftungen standen hier einmal fest
-     *   auf Deutsch; auf einem englischen Geraet war ausgerechnet die Seite unlesbar, die
-     *   man aufschlaegt, wenn etwas nicht geht.
+     * @param usableDp what is left after the status and gesture bars, `null` if unknown.
+     * @param text resolves a string; hard-written labels made exactly the page one opens
+     *   when something is wrong unreadable on a phone in another language.
      */
     fun collect(
         context: Context,
@@ -62,8 +54,8 @@ object Diagnostics {
         text: (Int) -> String,
     ): List<Pair<String, String>> {
         val metrics: DisplayMetrics = context.resources.displayMetrics
-        val fensterBreiteDp = (metrics.widthPixels * 160f / metrics.densityDpi).toInt()
-        val fensterHoeheDp = (metrics.heightPixels * 160f / metrics.densityDpi).toInt()
+        val windowWidthDp = (metrics.widthPixels * 160f / metrics.densityDpi).toInt()
+        val windowHeightDp = (metrics.heightPixels * 160f / metrics.densityDpi).toInt()
 
         return buildList {
             add(text(R.string.diag_window) to "${metrics.widthPixels} × ${metrics.heightPixels} px")
@@ -71,40 +63,34 @@ object Diagnostics {
                 text(R.string.diag_density) to
                     "${metrics.densityDpi} dpi (${"%.3f".format(metrics.density)}×)",
             )
-            add(text(R.string.diag_window_dp) to "$fensterBreiteDp × $fensterHoeheDp dp")
-            // Die Zeile, auf die es beim Entwerfen ankommt: das Fenster ist nicht das,
-            // was eine Kachel bekommt. Statusleiste und Gestenleiste gehen noch ab.
-            usableDp?.let { (breite, hoehe) ->
-                add(text(R.string.diag_usable) to "$breite × $hoehe dp")
+            add(text(R.string.diag_window_dp) to "$windowWidthDp × $windowHeightDp dp")
+            // the line that matters when designing: the window is not what a tile gets.
+            usableDp?.let { (width, height) ->
+                add(text(R.string.diag_usable) to "$width × $height dp")
             }
             add(text(R.string.diag_font_scale) to "%.2f".format(context.resources.configuration.fontScale))
             add(text(R.string.diag_android) to "${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT})")
             add(text(R.string.diag_device) to "${Build.MANUFACTURER} ${Build.MODEL}")
-            // Ob die Systemschreibweise eingehaengt ist, sieht man einer Nummer nur an,
-            // wenn man ihr Land kennt: „+436 804 …" statt „+43 680 1234567" ist der
-            // Unterschied zwischen richtig und falsch abgeschrieben. Ohne diese Zeile ist
-            // das ein stiller Rueckschritt - siehe SystemNumbers.install.
+            // whether the system spelling is hooked up shows on a number only if its
+            // country is known: "+436 804 ..." against "+43 680 1234567" is the difference
+            // between copying it right and wrong. see SystemNumbers.install.
             add(
-                // Nicht die Landeskennung ("at"), sondern der Name des Landes: die Kennung
-                // beantwortet die Frage nicht, die jemand auf dieser Seite hat, und gross
-                // geschrieben waere sie schlecht zu lesen (PlainLanguageTest hat genau das
-                // abgefangen).
+                // the country's name, not its code: the code does not answer the question
+                // someone has on this page.
                 //
-                // **Ohne Land keine Schreibweise.** Ohne SIM ist `region` null; die
-                // Systemformatierung kann dann nichts ausrichten, und genau das steht dann
-                // auch da. Die erste Fassung haette in diesem Fall die Beispielnummer
-                // hingeschrieben, mit der hier geprueft wird - eine amerikanische, die mit
-                // dem Telefon nichts zu tun hat.
+                // without a country there is no spelling. `region` is null without a sim,
+                // and then that is what stands there rather than the sample number this
+                // check uses.
                 text(R.string.diag_number_format) to (
                     PhoneNumbers.region
                         ?.takeIf { PhoneNumbers.systemFormat("+15550100", it) != null }
-                        ?.let { kennung ->
-                            java.util.Locale("", kennung)
+                        ?.let { code ->
+                            java.util.Locale("", code)
                                 .getDisplayCountry(context.resources.configuration.locales[0])
                                 .takeIf { name -> name.isNotBlank() }
-                                ?: kennung
+                                ?: code
                         }
-                        ?.let { land -> String.format(text(R.string.diag_number_country), land) }
+                        ?.let { country -> String.format(text(R.string.diag_number_country), country) }
                         ?: text(R.string.diag_number_plain)
                     ),
             )
@@ -117,51 +103,38 @@ object Diagnostics {
             add(text(R.string.diag_calls) to yesNo(granted(context, Manifest.permission.CALL_PHONE), text))
             add(text(R.string.diag_send_sms) to yesNo(granted(context, Manifest.permission.SEND_SMS), text))
             add(text(R.string.diag_read_sms) to yesNo(granted(context, Manifest.permission.READ_SMS), text))
-            // Lesen und Schreiben getrennt: genau daran hing die Sackgasse vom 02.09.2026 -
-            // die Anrufliste war zu sehen, aber nichts daraus zu loeschen, weil das
-            // Schreibrecht fehlte. Wer diese Seite aufschlaegt, soll den Unterschied sehen.
+            // read and write apart: the call log was visible but nothing in it could be
+            // deleted, because only the write right was missing.
             add(text(R.string.diag_read_call_log) to yesNo(granted(context, Manifest.permission.READ_CALL_LOG), text))
             add(text(R.string.diag_write_call_log) to yesNo(granted(context, Manifest.permission.WRITE_CALL_LOG), text))
             add(text(R.string.diag_location) to yesNo(granted(context, Manifest.permission.ACCESS_FINE_LOCATION), text))
-            // Die Empfangsbalken haengen an READ_PHONE_STATE, und diese Zeile fehlte.
-            // `DiagnosticsCoverageTest` liess sie mit dem Grund aus, das Recht werde
-            // "bewusst nicht erteilt" - am 04.09.2026 am Jelly 2 nachgesehen: es **ist**
-            // erteilt, BigLau fragt sogar eigens danach (siehe SignalPermissionExplainer).
-            // Wer wissen will, warum die Empfangskachel leer bleibt, fand hier nichts.
+            // the signal bars hang on READ_PHONE_STATE, and this line was missing: anyone
+            // asking why the signal tile stays empty found nothing here.
             add(text(R.string.diag_signal) to yesNo(granted(context, Manifest.permission.READ_PHONE_STATE), text))
-            // Warum kommt die Erinnerung an ungelesene Nachrichten spät? Der Wecker läuft
-            // über `setAndAllowWhileIdle` und wird im Doze deshalb zwar geweckt, aber
-            // gedrosselt - bei kurzen Abständen sieht das nach einem Fehler aus und ist
-            // keiner. Siehe MessageReminderReceiver.
-            val sparen = runCatching {
+            // why does the unread reminder come late? the alarm runs over
+            // `setAndAllowWhileIdle` and is throttled in doze, which at short intervals
+            // looks like a fault and is none. see MessageReminderReceiver.
+            val saving = runCatching {
                 context.getSystemService(android.os.PowerManager::class.java)
                     ?.isIgnoringBatteryOptimizations(context.packageName)
             }.getOrNull()
             add(
-                text(R.string.diag_battery_saving) to when (sparen) {
+                text(R.string.diag_battery_saving) to when (saving) {
                     true -> text(R.string.diag_battery_saving_off)
                     false -> text(R.string.diag_battery_saving_on)
-                    // Nicht "keine": hier ist die Auskunft **ausgeblieben**, nicht die
-                    // Sache abwesend. Und grammatisch passte das Wort ohnehin nicht - es
-                    // ist fuer "Standard-App: keine" gemacht.
+                    // not none: here the answer failed to arrive, the thing is not absent.
                     null -> text(R.string.diag_unknown)
                 },
             )
-            // Gehört zu den Fehlerspuren: wenn eine unlesbare Einstellungsdatei beiseite
-            // gelegt wurde, sagt das der Assistent genau einmal - danach weiss niemand
-            // mehr davon, obwohl die alten Einstellungen noch da sind.
+            // a rescued config file is announced by the wizard exactly once; after that
+            // nobody knows about it although the old settings are still there.
             add(text(R.string.diag_rescued) to yesNo(ConfigStore.get(context).hasRescuedFile, text))
             val recorder = CrashRecorder.get(context)
-            // Haengt das Netz ueberhaupt noch? Am 3.9.2026 stand hier „letzter Absturz:
-            // keiner", obwohl es Stunden vorher einen gab. Ein Netz, von dem niemand weiss,
-            // ob es haengt, ist kein Netz - deshalb steht es jetzt daneben.
+            // is the net still hanging? a net nobody can tell is hanging is no net.
             add(text(R.string.diag_crash_net) to yesNo(recorder.armed(), text))
             add(text(R.string.diag_failed_starts) to recorder.failedStarts.toString())
             add(
                 text(R.string.diag_last_crash) to
-                    // "Letzter Absturz: keine" stand hier bis zum 04.09.2026 und war
-                    // schlicht falsches Deutsch - der Absturz ist maennlich. Ein Wort fuer
-                    // vier Zeilen passt in zweien.
                     (recorder.lastCrash()?.lineSequence()?.firstOrNull() ?: text(R.string.diag_crash_none)),
             )
         }
@@ -170,7 +143,7 @@ object Diagnostics {
     private fun granted(context: Context, permission: String): Boolean =
         ContextCompat.checkSelfPermission(context, permission) == PackageManager.PERMISSION_GRANTED
 
-    /** Haelt BigLau die Startbildschirm-Rolle? Auch die Einstellungen fragen danach. */
+    /** does BigLau hold the home role? the settings ask this too. */
     fun isDefaultHome(context: Context): Boolean = holdsHomeRole(context)
 
     private fun holdsHomeRole(context: Context): Boolean {

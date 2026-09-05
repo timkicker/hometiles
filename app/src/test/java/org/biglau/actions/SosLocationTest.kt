@@ -31,20 +31,20 @@ class SosLocationTest {
     @Test
     fun `waehrend des Countdowns wird gesucht`() {
         assertTrue("keine Ortung im Notrufbildschirm", "SosLocation(" in bildschirm)
-        assertTrue("die Suche beginnt nicht", "ortung.start()" in bildschirm)
+        assertTrue("die Suche beginnt nicht", "locator.start()" in bildschirm)
     }
 
     @Test
     fun `nur wenn der Standort ueberhaupt mitgeschickt werden soll`() {
         assertTrue(
             "es wird auch dann geortet, wenn niemand den Standort will",
-            "if (sos.sendLocation) ortung.start()" in bildschirm,
+            "if (sos.sendLocation) locator.start()" in bildschirm,
         )
     }
 
     @Test
     fun `die Suche hoert wieder auf`() {
         val aufraeumen = Quelltext.ausschnitt(bildschirm, "onDispose {", "}")
-        assertTrue("die Ortung laeuft weiter: $aufraeumen", "ortung.stop()" in aufraeumen)
+        assertTrue("die Ortung laeuft weiter: $aufraeumen", "locator.stop()" in aufraeumen)
     }
 }

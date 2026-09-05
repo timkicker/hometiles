@@ -95,16 +95,16 @@ class LadenTest {
         assertTrue(
             "Der Grund fuers Leersein wird gezeigt, ohne vorher zu fragen, ob ueberhaupt " +
                 "schon gelesen wurde. Dann steht dort waehrend des Lesens: keine Anrufe.",
-            "if (laedt)" in block,
+            "if (loading)" in block,
         )
     }
 
     /** Auch hier: der Ladezustand muss in **beiden** Ausgaengen enden. */
     @Test
     fun `der Ladezustand der Anrufliste endet auch ohne Berechtigung`() {
-        val treffer = Regex("""laedt = false""").findAll(anrufe).count()
+        val treffer = Regex("""loading = false""").findAll(anrufe).count()
         assertEquals(
-            "laedt wird nicht in beiden Ausgaengen zurueckgesetzt. Ein Ladezustand, der " +
+            "loading wird nicht in beiden Ausgaengen zurueckgesetzt. Ein Ladezustand, der " +
                 "nie endet, ist schlimmer als gar keiner.",
             2,
             treffer,
@@ -117,20 +117,20 @@ class LadenTest {
         assertTrue(
             "Der leere Zustand hängt an nichts - dann steht „noch keine Nachrichten\" auch " +
                 "während des Lesens da.",
-            "if (laedt) R.string.sms_loading else R.string.sms_empty" in sms,
+            "if (loading) R.string.sms_loading else R.string.sms_empty" in sms,
         )
     }
 
     /** Und der Ladezustand wird auch wieder abgeschaltet - in **beiden** Ausgängen. */
     @Test
     fun `der Ladezustand endet, auch ohne Berechtigung`() {
-        val ladevorgang = Quelltext.ausschnitt(sms, "var laedt by remember", "val threads")
+        val ladevorgang = Quelltext.ausschnitt(sms, "var loading by remember", "val threads")
         assertEquals(
-            "`laedt = false` kommt nicht zweimal vor: einmal nach dem Lesen und einmal im " +
+            "`loading = false` kommt nicht zweimal vor: einmal nach dem Lesen und einmal im " +
                 "Zweig ohne Leseberechtigung. Fehlt der zweite, steht dort für immer " +
                 "„Nachrichten werden gelesen…\".",
             2,
-            Regex("""laedt = false""").findAll(ladevorgang).count(),
+            Regex("""loading = false""").findAll(ladevorgang).count(),
         )
     }
 
