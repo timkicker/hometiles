@@ -79,11 +79,11 @@ internal fun MessagesSettingsList(
         // `PLAN.md` 4.7: the conversation font size is deliberately apart from the global
         // one. a message is read in one go and out of the hand.
         item { BigHeading(stringResource(R.string.sms_scale)) }
-        items(ConversationText.CHOICES) { wert ->
+        items(ConversationText.CHOICES) { value ->
             BigRow(
-                label = "${(wert * 100).toInt()} %",
-                selected = wert == sms.conversationScale,
-                onClick = { onChange(sms.copy(conversationScale = wert)) },
+                label = "${(value * 100).toInt()} %",
+                selected = value == sms.conversationScale,
+                onClick = { onChange(sms.copy(conversationScale = value)) },
             )
         }
         item {
@@ -99,32 +99,32 @@ internal fun MessagesSettingsList(
         // `PLAN.md` 4.7: the repeated reminder. a notice that comes once is missed by
         // anyone with the phone in a pocket.
         item { BigHeading(stringResource(R.string.sms_repeat)) }
-        items(SmsReminder.CHOICES) { minuten ->
+        items(SmsReminder.CHOICES) { minutes ->
             BigRow(
-                label = if (minuten == 0) {
+                label = if (minutes == 0) {
                     stringResource(R.string.sms_repeat_off)
                 } else {
-                    pluralStringResource(R.plurals.sms_repeat_minutes, minuten, minuten)
+                    pluralStringResource(R.plurals.sms_repeat_minutes, minutes, minutes)
                 },
-                selected = minuten == sms.repeatMinutes,
+                selected = minutes == sms.repeatMinutes,
                 onClick = {
-                    onChange(sms.copy(repeatMinutes = minuten))
+                    onChange(sms.copy(repeatMinutes = minutes))
                     // off means off now, not at the next message: an old alarm would keep
                     // reminding.
-                    MessageReminderReceiver.schedule(context, minuten)
+                    MessageReminderReceiver.schedule(context, minutes)
                 },
             )
         }
         // `PLAN.md` 4.7: vibration length. it sits in the notification channel so the
         // notice keeps honouring do-not-disturb. see SmsNotifications.
         item { BigHeading(stringResource(R.string.sms_vibration)) }
-        items(SmsNotifications.VIBRATION_CHOICES) { dauer ->
+        items(SmsNotifications.VIBRATION_CHOICES) { duration ->
             BigRow(
                 // short, medium, long instead of milliseconds: a number in ms tells nobody
                 // how it feels.
-                label = stringResource(vibrationLabel(dauer)),
-                selected = dauer == sms.vibrationMs,
-                onClick = { onChange(sms.copy(vibrationMs = dauer)) },
+                label = stringResource(vibrationLabel(duration)),
+                selected = duration == sms.vibrationMs,
+                onClick = { onChange(sms.copy(vibrationMs = duration)) },
             )
         }
         // `PLAN.md` 4.7: send button, its place, size and confirmation.

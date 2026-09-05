@@ -219,13 +219,13 @@ class TileEditorActivity : BigLauActivity() {
                 // the folder is created here, not before: creating it ahead of the question
                 // left an unopenable empty folder behind whenever the answer was keep.
                 // creating now hangs on the same condition as writing.
-                val neuerOrdner = next.action as? ButtonAction.Folder
-                if (neuerOrdner != null && store.current.screens.none { it.id == neuerOrdner.screenId }) {
+                val folderAction = next.action as? ButtonAction.Folder
+                if (folderAction != null && store.current.screens.none { it.id == folderAction.screenId }) {
                     store.update {
                         ScreenEdits.add(
                             it,
                             FolderEdits.newFolder(
-                                neuerOrdner.screenId,
+                                folderAction.screenId,
                                 getString(R.string.folder_default_name),
                                 screen,
                             ),
@@ -236,16 +236,16 @@ class TileEditorActivity : BigLauActivity() {
             }
 
             fun write(next: Button) {
-                val ordner = button.action as? ButtonAction.Folder
-                if (ordner != null && next.action != ordner) {
-                    replacingFolder = ordner to next
+                val folder = button.action as? ButtonAction.Folder
+                if (folder != null && next.action != folder) {
+                    replacingFolder = folder to next
                 } else {
                     writeNow(next)
                 }
             }
 
             /** puts the chosen action on the short or the long press, by the way one came. */
-            fun belege(action: ButtonAction) {
+            fun assignAction(action: ButtonAction) {
                 if (forLongPress) {
                     write(TileEdits.withLongPress(button, action))
                 } else {
@@ -411,25 +411,25 @@ var contactsGranted by remember(resumes.intValue) { mutableStateOf(contacts.hasP
                             explainer = stringResource(R.string.editor_locked_hint),
                             wrongText = stringResource(R.string.security_wrong_pin),
                             confirmLabel = stringResource(R.string.editor_done),
-                            onCheck = { eingabe -> Pin.verify(eingabe, config.security.pin) },
+                            onCheck = { entered -> Pin.verify(entered, config.security.pin) },
                             onAccept = { locked = false },
                             acceptOnComplete = true,
                         )
                         return@Box
                     }
 
-                    val zuErsetzen = replacingFolder
-                    if (zuErsetzen != null) {
-                        val (ordner, neu) = zuErsetzen
+                    val toReplace = replacingFolder
+                    if (toReplace != null) {
+                        val (folder, neu) = toReplace
                         FolderDeletePanel(
-                            name = FolderEdits.folderFor(config, ordner)?.name.orEmpty(),
-                            count = FolderEdits.contentCount(config, ordner.screenId),
+                            name = FolderEdits.folderFor(config, folder)?.name.orEmpty(),
+                            count = FolderEdits.contentCount(config, folder.screenId),
                             replacing = true,
                             onKeep = { replacingFolder = null },
                             onDelete = {
                                 // folder first, then the new assignment: FolderEdits.delete
                                 // clears this tile too, and setButton lays it out again.
-                                store.update { FolderEdits.delete(it, ordner.screenId) }
+                                store.update { FolderEdits.delete(it, folder.screenId) }
                                 writeNow(neu)
                                 replacingFolder = null
                                 finish()
@@ -438,14 +438,14 @@ var contactsGranted by remember(resumes.intValue) { mutableStateOf(contacts.hasP
                         return@Box
                     }
 
-                    val zuLoeschen = clearing
-                    if (zuLoeschen != null) {
+                    val toDelete = clearing
+                    if (toDelete != null) {
                         FolderDeletePanel(
-                            name = FolderEdits.folderFor(config, zuLoeschen)?.name.orEmpty(),
-                            count = FolderEdits.contentCount(config, zuLoeschen.screenId),
+                            name = FolderEdits.folderFor(config, toDelete)?.name.orEmpty(),
+                            count = FolderEdits.contentCount(config, toDelete.screenId),
                             onKeep = { clearing = null },
                             onDelete = {
-                                store.update { FolderEdits.delete(it, zuLoeschen.screenId) }
+                                store.update { FolderEdits.delete(it, toDelete.screenId) }
                                 finish()
                             },
                         )
@@ -467,7 +467,7 @@ var contactsGranted by remember(resumes.intValue) { mutableStateOf(contacts.hasP
                     when (mode) {
                         Mode.MENU -> MenuList(
                             button = button,
-                            platz = stringResource(R.string.editor_where, screen.name, y + 1, x + 1),
+                            spot = stringResource(R.string.editor_where, screen.name, y + 1, x + 1),
                             screenName = { id -> config.screenById(id)?.name },
                             appLabel = { a -> apps.labelFor(a.packageName, a.activityName) },
                             onPickBuiltin = { mode = Mode.PICK_BUILTIN },
@@ -504,26 +504,26 @@ var contactsGranted by remember(resumes.intValue) { mutableStateOf(contacts.hasP
                             onPickIcon = { mode = Mode.PICK_ICON },
                             onResize = if (cell != null) ({ mode = Mode.RESIZE }) else null,
                             onClear = {
-                                val ordner = button.action as? ButtonAction.Folder
-                                if (ordner == null) {
+                                val folder = button.action as? ButtonAction.Folder
+                                if (folder == null) {
                                     releaseWidgetIfAny(button)
                                     store.clearButton(screenId, x, y)
                                     finish()
                                 } else {
                                     // ask first: emptying the tile would leave the folder
                                     // behind with no way to it, contents and all.
-                                    clearing = ordner
+                                    clearing = folder
                                 }
                             },
                             onDone = { finish() },
                         )
 
                         Mode.PICK_BUILTIN -> BuiltinList { builtin ->
-                            belege(ButtonAction.Action(builtin))
+                            assignAction(ButtonAction.Action(builtin))
                         }
 
                         Mode.PICK_APP -> AppList(apps) { app ->
-                            belege(ButtonAction.App(app.packageName, app.activityName))
+                            assignAction(ButtonAction.App(app.packageName, app.activityName))
                         }
 
                         Mode.PICK_CONTACT -> ContactList(
@@ -558,7 +558,7 @@ var contactsGranted by remember(resumes.intValue) { mutableStateOf(contacts.hasP
                             val contact = chosenContact
                             val number = chosenNumber
                             if (contact != null && number != null) {
-                                belege(
+                                assignAction(
                                     ButtonAction.Contact(
                                         name = contact.name,
                                         number = number,
@@ -575,10 +575,10 @@ var contactsGranted by remember(resumes.intValue) { mutableStateOf(contacts.hasP
                             // a folder has exactly one name, on the tile and as the heading
                             // inside: a second name for the tile alone would call the same
                             // thing differently depending on where one stands.
-                            val ordner = button.action as? ButtonAction.Folder
+                            val folder = button.action as? ButtonAction.Folder
                             LabelEditor(
-                                initial = if (ordner != null) {
-                                    FolderEdits.folderFor(config, ordner)?.name.orEmpty()
+                                initial = if (folder != null) {
+                                    FolderEdits.folderFor(config, folder)?.name.orEmpty()
                                 } else {
                                     button.label.orEmpty()
                                 },
@@ -587,15 +587,15 @@ var contactsGranted by remember(resumes.intValue) { mutableStateOf(contacts.hasP
                                     screenName = { id -> config.screenById(id)?.name },
                                     appLabel = { a -> apps.labelFor(a.packageName, a.activityName) },
                                 ),
-                                titleRes = if (ordner != null) R.string.folder_rename else R.string.editor_label,
-                                hintRes = if (ordner != null) {
+                                titleRes = if (folder != null) R.string.folder_rename else R.string.editor_label,
+                                hintRes = if (folder != null) {
                                     R.string.folder_rename_hint
                                 } else {
                                     R.string.editor_label_hint
                                 },
                             ) { text ->
-                                if (ordner != null) {
-                                    store.update { ScreenEdits.rename(it, ordner.screenId, text) }
+                                if (folder != null) {
+                                    store.update { ScreenEdits.rename(it, folder.screenId, text) }
                                 } else {
                                     write(TileEdits.withLabel(button, text))
                                 }
@@ -624,7 +624,7 @@ var contactsGranted by remember(resumes.intValue) { mutableStateOf(contacts.hasP
                             },
                             onBack = { mode = Mode.PICK_SHORTCUT_APP },
                         ) { row ->
-                            belege(ButtonAction.Shortcut(row.packageName, row.id, Shortcuts.labelOf(row)))
+                            assignAction(ButtonAction.Shortcut(row.packageName, row.id, Shortcuts.labelOf(row)))
                         }
 
                         Mode.PICK_WIDGET -> WidgetPicker(
@@ -638,52 +638,52 @@ var contactsGranted by remember(resumes.intValue) { mutableStateOf(contacts.hasP
                         Mode.PICK_SCREEN -> ScreenPicker(
                             config = config,
                             currentScreenId = screenId,
-                            onPick = { targetId -> belege(ButtonAction.GoToScreen(targetId)) },
+                            onPick = { targetId -> assignAction(ButtonAction.GoToScreen(targetId)) },
                             onCreate = {
                                 val id = ScreenEdits.freeId(store.current)
                                 val name = getString(R.string.screen_default_name, store.current.screens.size + 1)
                                 store.update { ScreenEdits.add(it, ScreenEdits.newScreen(id, name, screen)) }
-                                belege(ButtonAction.GoToScreen(id))
+                                assignAction(ButtonAction.GoToScreen(id))
                             },
                         )
 
                         Mode.EDIT_NUMBER -> NumberEditor(
                             initial = (button.action as? ButtonAction.Contact)
                                 ?.takeIf { it.mode == ContactMode.SMS }?.number.orEmpty(),
-                        ) { eingabe ->
-                            val action = MessageTile.actionFor(eingabe)
+                        ) { entered ->
+                            val action = MessageTile.actionFor(entered)
                             if (action == null) {
                                 Notice.show(this@TileEditorActivity, R.string.message_number_invalid)
                             } else {
-                                belege(action)
+                                assignAction(action)
                             }
                         }
 
                         Mode.EDIT_LINK -> LinkEditor(
                             initial = (button.action as? ButtonAction.Link)?.url.orEmpty(),
-                        ) { eingabe ->
-                            val adresse = LinkTarget.normalise(eingabe)
-                            if (adresse == null) {
+                        ) { entered ->
+                            val address = LinkTarget.normalise(entered)
+                            if (address == null) {
                                 Notice.show(this@TileEditorActivity, R.string.link_invalid)
                             } else {
-                                belege(ButtonAction.Link(adresse))
+                                assignAction(ButtonAction.Link(address))
                             }
                         }
 
                         // the kind first, then the thing: a list mixing apps and functions
                         // would be too long to scan on this screen.
                         Mode.PICK_LONG_PRESS -> LongPressKindList(
-                            onPick = { gewaehlt ->
+                            onPick = { picked ->
                                 forLongPress = true
-                                mode = gewaehlt
-                                if (gewaehlt == Mode.PICK_CONTACT && !contactsGranted) {
+                                mode = picked
+                                if (picked == Mode.PICK_CONTACT && !contactsGranted) {
                                     askForContacts.launch(Manifest.permission.READ_CONTACTS)
                                 }
                             },
                         )
 
                         Mode.MOVE -> MoveTargetList(
-                            welche = stringResource(
+                            which = stringResource(
                                 R.string.move_which,
                                 describe(button, { id -> config.screenById(id)?.name }, { a ->
                                     apps.labelFor(a.packageName, a.activityName)
@@ -696,22 +696,22 @@ var contactsGranted by remember(resumes.intValue) { mutableStateOf(contacts.hasP
                             shrinks = cell?.let { it.w > 1 || it.h > 1 } ?: false,
                             screenName = { id -> config.screenById(id)?.name },
                             appLabel = { a -> apps.labelFor(a.packageName, a.activityName) },
-                            onSpot = { platz ->
-                                val gerueckt =
-                                    TileMove.moveWithin(store.current, screenId, x, y, platz.x, platz.y)
-                                if (gerueckt != null) {
-                                    store.update { gerueckt }
+                            onSpot = { spot ->
+                                val movedWithin =
+                                    TileMove.moveWithin(store.current, screenId, x, y, spot.x, spot.y)
+                                if (movedWithin != null) {
+                                    store.update { movedWithin }
                                     // the anchor moves along, or the editor would then edit
                                     // the empty slot the tile came from.
-                                    x = platz.x
-                                    y = platz.y
+                                    x = spot.x
+                                    y = spot.y
                                 }
                                 mode = Mode.MENU
                             },
-                            onPick = { ziel ->
-                                val verschoben = TileMove.move(store.current, screenId, x, y, ziel.id)
-                                if (verschoben != null) {
-                                    store.update { verschoben }
+                            onPick = { destination ->
+                                val movedOut = TileMove.move(store.current, screenId, x, y, destination.id)
+                                if (movedOut != null) {
+                                    store.update { movedOut }
                                     finish()
                                 } else {
                                     mode = Mode.MENU
@@ -760,8 +760,8 @@ var contactsGranted by remember(resumes.intValue) { mutableStateOf(contacts.hasP
 
                         Mode.PICK_HUE -> HuePicker(
                             selected = button.colorHue,
-                            onPick = { ton ->
-                                write(TileEdits.withColorHue(button, ton))
+                            onPick = { hue ->
+                                write(TileEdits.withColorHue(button, hue))
                                 mode = Mode.MENU
                             },
                         )
@@ -788,8 +788,8 @@ var contactsGranted by remember(resumes.intValue) { mutableStateOf(contacts.hasP
 @Composable
 private fun MenuList(
     button: Button,
-    /** Wo diese Kachel liegt - Screen und Platz, fertig zusammengesetzt. */
-    platz: String,
+    /** where this tile lies - screen and spot, already put together. */
+    spot: String,
     screenName: (String) -> String?,
     appLabel: (ButtonAction.App) -> String?,
     onPickBuiltin: () -> Unit,
@@ -822,7 +822,7 @@ private fun MenuList(
         // screen would have been visible at once had the screen's name stood here.
         item {
             Text(
-                text = platz,
+                text = spot,
                 color = palette.onBackground,
                 fontSize = bigSp(15f),
                 modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp),
@@ -1259,28 +1259,28 @@ private fun IconPicker(selected: String?, onPick: (String?) -> Unit) {
                 onClick = { onPick(null) },
             )
         }
-        IconCatalogue.GROUPS.forEach { gruppe ->
-            item { BigHeading(stringResource(gruppe.titleRes)) }
+        IconCatalogue.GROUPS.forEach { group ->
+            item { BigHeading(stringResource(group.titleRes)) }
             // three side by side, not four: at four the word breaks mid-word, and a broken
             // word is worse than one more row.
-            items(gruppe.names.chunked(3)) { reihe ->
+            items(group.names.chunked(3)) { chunk ->
                 Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    reihe.forEach { name ->
-                        val bild = IconCatalogue.vectorFor(name)
-                        val gewaehlt = name == selected
-                        val flaeche =
-                            if (gewaehlt) palette.surfaceAccent else palette.surfaceDefault
-                        val wort = IconCatalogue.labelFor(name)?.let { stringResource(it) } ?: name
+                    chunk.forEach { name ->
+                        val image = IconCatalogue.vectorFor(name)
+                        val picked = name == selected
+                        val surface =
+                            if (picked) palette.surfaceAccent else palette.surfaceDefault
+                        val word = IconCatalogue.labelFor(name)?.let { stringResource(it) } ?: name
                         // the state belongs in the name, see the colour picker beside it.
-                        val ansage =
-                            if (gewaehlt) stringResource(UiR.string.a11y_chosen, wort) else wort
+                        val speech =
+                            if (picked) stringResource(UiR.string.a11y_chosen, word) else word
                         Column(
                             modifier = Modifier
                                 .weight(1f)
                                 .clip(RoundedCornerShape(LocalCornerRadius.current))
-                                .background(flaeche.fill)
+                                .background(surface.fill)
                                 .then(
-                                    if (gewaehlt) {
+                                    if (picked) {
                                         Modifier.border(
                                             4.dp,
                                             palette.onBackground,
@@ -1292,28 +1292,28 @@ private fun IconPicker(selected: String?, onPick: (String?) -> Unit) {
                                 )
                                 .clickable { onPick(name) }
                                 .semantics {
-                                    if (gewaehlt) {
+                                    if (picked) {
                                         this.selected = true
-                                        contentDescription = ansage
+                                        contentDescription = speech
                                     }
                                 }
                                 .padding(vertical = 8.dp),
                             horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.spacedBy(4.dp),
                         ) {
-                            if (bild != null) {
+                            if (image != null) {
                                 Icon(
-                                    imageVector = bild,
+                                    imageVector = image,
                                     // the word stands below; a second announcement would be
                                     // the same answer twice.
                                     contentDescription = null,
-                                    tint = flaeche.ink,
+                                    tint = surface.ink,
                                     modifier = Modifier.size(32.dp),
                                 )
                             }
                             Text(
-                                text = wort,
-                                color = flaeche.ink,
+                                text = word,
+                                color = surface.ink,
                                 fontSize = bigSp(13f),
                                 textAlign = TextAlign.Center,
                                 maxLines = 2,
@@ -1322,7 +1322,7 @@ private fun IconPicker(selected: String?, onPick: (String?) -> Unit) {
                         }
                     }
                     // the last row fills up, or its swatches would be wider than the rest.
-                    repeat(3 - reihe.size) { Box(Modifier.weight(1f)) }
+                    repeat(3 - chunk.size) { Box(Modifier.weight(1f)) }
                 }
             }
         }
@@ -1338,26 +1338,26 @@ private fun IconPicker(selected: String?, onPick: (String?) -> Unit) {
 @Composable
 private fun HuePicker(selected: Float?, onPick: (Float) -> Unit) {
     val palette = LocalBigPalette.current
-    val grund = palette.background.toArgbLong()
-    val schrift = palette.onTile.toArgbLong()
-    val gewicht = FreeTileColor.targetLuminance(palette.tiles.map { it.toArgbLong() })
+    val ground = palette.background.toArgbLong()
+    val ink = palette.onTile.toArgbLong()
+    val luminance = FreeTileColor.targetLuminance(palette.tiles.map { it.toArgbLong() })
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         BigHeading(stringResource(R.string.editor_color_free))
         LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            items(FreeTileColor.hues.chunked(4)) { reihe ->
+            items(FreeTileColor.hues.chunked(4)) { chunk ->
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                    reihe.forEach { ton ->
-                        val farbe = Color(FreeTileColor.forHue(ton, grund, schrift, gewicht).toInt())
-                        val chosen = selected != null && abs(selected - ton) < 0.5f
-                        val schlicht = hueName(ton)
+                    chunk.forEach { hue ->
+                        val colour = Color(FreeTileColor.forHue(hue, ground, ink, luminance).toInt())
+                        val chosen = selected != null && abs(selected - hue) < 0.5f
+                        val plainName = hueName(hue)
                         // the state belongs in the name, as with the six palette swatches.
-                        val name = if (chosen) stringResource(UiR.string.a11y_chosen, schlicht) else schlicht
+                        val name = if (chosen) stringResource(UiR.string.a11y_chosen, plainName) else plainName
                         Box(
                             modifier = Modifier
                                 .weight(1f)
                                 .aspectRatio(1f)
                                 .clip(RoundedCornerShape(LocalCornerRadius.current))
-                                .background(farbe)
+                                .background(colour)
                                 .then(
                                     if (chosen) {
                                         Modifier.border(
@@ -1369,7 +1369,7 @@ private fun HuePicker(selected: Float?, onPick: (Float) -> Unit) {
                                         Modifier
                                     },
                                 )
-                                .clickable { onPick(ton) }
+                                .clickable { onPick(hue) }
                                 .semantics {
                                     contentDescription = name
                                     if (chosen) this.selected = true
@@ -1387,7 +1387,7 @@ private fun HuePicker(selected: Float?, onPick: (Float) -> Unit) {
                         }
                     }
                     // a started row must not make the slots wider.
-                    repeat(4 - reihe.size) { Box(Modifier.weight(1f)) }
+                    repeat(4 - chunk.size) { Box(Modifier.weight(1f)) }
                 }
             }
         }
@@ -1813,7 +1813,7 @@ private fun FolderDeletePanel(
 @Composable
 private fun MoveTargetList(
     /** which tile is being moved, and where it lies now. */
-    welche: String,
+    which: String,
     spots: List<TileMove.Spot>,
     targets: List<Screen>,
     shrinks: Boolean,
@@ -1829,7 +1829,7 @@ private fun MoveTargetList(
         // the whole screen is a list of abstract slots.
         item {
             Text(
-                text = welche,
+                text = which,
                 color = palette.onBackground,
                 fontSize = bigSp(15f),
                 modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp),
@@ -1839,17 +1839,17 @@ private fun MoveTargetList(
         // standing on. rows and columns count from 1, since row 0 reads like a fault.
         if (spots.isNotEmpty()) {
             item { BigHeading(stringResource(R.string.move_on_this_screen)) }
-            items(spots, key = { "platz-${it.x}-${it.y}" }) { platz ->
+            items(spots, key = { "spot-${it.x}-${it.y}" }) { spot ->
                 BigRow(
-                    label = stringResource(R.string.move_spot, platz.y + 1, platz.x + 1),
-                    secondary = platz.occupant?.let { belegt ->
+                    label = stringResource(R.string.move_spot, spot.y + 1, spot.x + 1),
+                    secondary = spot.occupant?.let { occupied ->
                         stringResource(
                             R.string.move_spot_swap,
-                            describe(belegt.button, screenName, appLabel),
+                            describe(occupied.button, screenName, appLabel),
                         )
                     } ?: stringResource(R.string.move_spot_free),
-                    icon = if (platz.occupant == null) Icons.Filled.CropFree else Icons.Filled.SwapHoriz,
-                    onClick = { onSpot(platz) },
+                    icon = if (spot.occupant == null) Icons.Filled.CropFree else Icons.Filled.SwapHoriz,
+                    onClick = { onSpot(spot) },
                 )
             }
         }
@@ -1868,16 +1868,16 @@ private fun MoveTargetList(
                     )
                 }
             }
-            items(targets, key = { it.id }) { ziel ->
+            items(targets, key = { it.id }) { destination ->
                 BigRow(
-                    label = ziel.name,
+                    label = destination.name,
                     secondary = pluralStringResource(
-                        if (ziel.isFolder) R.plurals.move_target_folder else R.plurals.move_target_screen,
-                        ziel.freeSlots().size,
-                        ziel.freeSlots().size,
+                        if (destination.isFolder) R.plurals.move_target_folder else R.plurals.move_target_screen,
+                        destination.freeSlots().size,
+                        destination.freeSlots().size,
                     ),
-                    icon = if (ziel.isFolder) Icons.Filled.Folder else Icons.Filled.ViewCarousel,
-                    onClick = { onPick(ziel) },
+                    icon = if (destination.isFolder) Icons.Filled.Folder else Icons.Filled.ViewCarousel,
+                    onClick = { onPick(destination) },
                 )
             }
         }

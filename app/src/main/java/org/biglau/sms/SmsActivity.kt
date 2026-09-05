@@ -210,9 +210,9 @@ var granted by remember(resumes.intValue) { mutableStateOf(repository.hasReadPer
             // read is read, or the count beside the name would stand forever. the notice
             // goes with it: an open conversation has been seen.
             LaunchedEffect(openThread) {
-                val offen = openThread ?: return@LaunchedEffect
-                if (repository.markRead(offen)) SmsRepository.notifyChanged()
-                threads.firstOrNull { it.threadId == offen }?.let {
+                val openId = openThread ?: return@LaunchedEffect
+                if (repository.markRead(openId)) SmsRepository.notifyChanged()
+                threads.firstOrNull { it.threadId == openId }?.let {
                     SmsNotifications.clear(this@SmsActivity, it.address)
                 }
             }
@@ -229,10 +229,10 @@ var granted by remember(resumes.intValue) { mutableStateOf(repository.hasReadPer
              */
             LaunchedEffect(threads, justSentTo) {
                 val number = justSentTo ?: return@LaunchedEffect
-                val passend = threads.firstOrNull {
+                val match = threads.firstOrNull {
                     PhoneNumbers.clean(it.address) == PhoneNumbers.clean(number)
                 } ?: return@LaunchedEffect
-                openThread = passend.threadId
+                openThread = match.threadId
                 openAddress = null
                 justSentTo = null
             }
@@ -240,11 +240,11 @@ var granted by remember(resumes.intValue) { mutableStateOf(repository.hasReadPer
             LaunchedEffect(threads, announcedNumber) {
                 val number = announcedNumber ?: return@LaunchedEffect
                 if (openThread != null) return@LaunchedEffect
-                val passend = threads.firstOrNull {
+                val match = threads.firstOrNull {
                     PhoneNumbers.clean(it.address) == PhoneNumbers.clean(number)
                 }
-                if (passend != null) {
-                    openThread = passend.threadId
+                if (match != null) {
+                    openThread = match.threadId
                     SmsNotifications.clear(this@SmsActivity, number)
                 } else {
                     // no conversation with this number yet, so a new one.
@@ -338,10 +338,10 @@ var granted by remember(resumes.intValue) { mutableStateOf(repository.hasReadPer
                             scrollButtons = config.behaviour.accessibility.scrollButtons,
                             onOpen = { openThread = it },
                             onCompose = { number ->
-                                val passend = threads.firstOrNull {
+                                val match = threads.firstOrNull {
                                     PhoneNumbers.clean(it.address) == PhoneNumbers.clean(number)
                                 }
-                                if (passend != null) openThread = passend.threadId
+                                if (match != null) openThread = match.threadId
                                 else openAddress = number
                             },
                         )
@@ -436,13 +436,13 @@ var granted by remember(resumes.intValue) { mutableStateOf(repository.hasReadPer
             //
             // no permission dialog from here: this place sends, it should not also procure
             // the right to. the sentence names the place, the person decides.
-            val darfSenden = ContextCompat.checkSelfPermission(
+            val maySend = ContextCompat.checkSelfPermission(
                 this,
                 Manifest.permission.SEND_SMS,
             ) == PackageManager.PERMISSION_GRANTED
             Notice.show(
                 this,
-                if (darfSenden) R.string.sms_send_failed else R.string.sms_send_no_permission,
+                if (maySend) R.string.sms_send_failed else R.string.sms_send_no_permission,
             )
         }
     }
@@ -540,14 +540,14 @@ private fun Conversation(
 ) {
     // the confirmation lives here and not in the config: it holds for this one draft.
     var asking by remember(draft) { mutableStateOf(false) }
-    val skala = ConversationText.scale(conversationScale)
+    val scale = ConversationText.scale(conversationScale)
     val palette = LocalBigPalette.current
     val locale = currentLocale()
     // the same clock as in the header: a fixed "HH:mm" here put "2:30 PM" above and
     // "14:30" below on a phone set to twelve hours.
-    val zwoelfStunden = !android.text.format.DateFormat.is24HourFormat(LocalContext.current)
-    val uhrFormat = remember(locale, zwoelfStunden) {
-        SimpleDateFormat(ClockFormat.timePattern(!zwoelfStunden), locale)
+    val twelveHour = !android.text.format.DateFormat.is24HourFormat(LocalContext.current)
+    val timeFormat = remember(locale, twelveHour) {
+        SimpleDateFormat(ClockFormat.timePattern(!twelveHour), locale)
     }
     val tagFormat = remember(locale) { SimpleDateFormat(bestDatePattern("EEEEdMMMM", locale), locale) }
     // the heading goes while the keyboard is open. measured at 200 % system font: heading
@@ -595,18 +595,18 @@ private fun Conversation(
                 // who wrote a message stands nowhere in the bubble: it hangs left or right
                 // and carries one colour or the other, and read aloud both are nothing. "on
                 // my way" without a sender is the opposite of itself.
-                val wer = stringResource(
+                val who = stringResource(
                     if (message.incoming) R.string.a11y_message_in else R.string.a11y_message_out,
                 )
-                val wann = if (message.failed) {
+                val stamp = if (message.failed) {
                     stringResource(R.string.sms_not_sent)
                 } else {
-                    uhrFormat.format(Date(message.timestamp))
+                    timeFormat.format(Date(message.timestamp))
                 }
                 Box(
                     modifier = Modifier
                         .semantics(mergeDescendants = true) {
-                            contentDescription = "$wer: ${message.body}. $wann"
+                            contentDescription = "$who: ${message.body}. $stamp"
                         }
                         .fillMaxWidth()
                         .padding(
@@ -633,7 +633,7 @@ private fun Conversation(
                                 message.incoming -> palette.onBackground
                                 else -> palette.surfaceAccent.ink
                             },
-                            fontSize = dpSp(18f * skala),
+                            fontSize = dpSp(18f * scale),
                         )
                         // the time under each message: just now or last week is the whole
                         // difference for "on my way". for one that never went out, that
@@ -642,20 +642,20 @@ private fun Conversation(
                             text = if (message.failed) {
                                 stringResource(R.string.sms_not_sent)
                             } else {
-                                uhrFormat.format(Date(message.timestamp))
+                                timeFormat.format(Date(message.timestamp))
                             },
                             color = when {
                                 message.failed -> palette.surfaceDanger.ink
                                 message.incoming -> palette.onBackground
                                 else -> palette.surfaceAccent.ink
                             },
-                            fontSize = dpSp(13f * skala),
+                            fontSize = dpSp(13f * scale),
                         )
                     }
                 }
             }
         }
-        val feld = @Composable {
+        val field = @Composable {
             OutlinedTextField(
                 value = draft,
                 onValueChange = onDraft,
@@ -709,9 +709,9 @@ private fun Conversation(
         }
         if (sendButtonAbove) {
             sendButton()
-            feld()
+            field()
         } else {
-            feld()
+            field()
             sendButton()
         }
     }

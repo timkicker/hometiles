@@ -574,15 +574,15 @@ private fun TileFor(
  */
 @Composable
 private fun signalSpeech(reading: SignalReading?): String? {
-    val zustand = reading?.let { SignalInfo.stateOf(it) } ?: return null
-    return when (zustand) {
+    val state = reading?.let { SignalInfo.stateOf(it) } ?: return null
+    return when (state) {
         SignalInfo.State.NO_PERMISSION -> stringResource(R.string.signal_no_permission)
         SignalInfo.State.NO_SIM -> stringResource(R.string.signal_no_sim)
         SignalInfo.State.NO_SERVICE -> stringResource(R.string.signal_no_service)
         // weak stands as a word, not a colour: the danger colour reaches under 2 to one on
         // every tile hue and is unreadable in exactly the situation it should speak in.
         else -> TileSpeech.describe(
-            label = if (zustand == SignalInfo.State.WEAK) stringResource(R.string.signal_weak) else "",
+            label = if (state == SignalInfo.State.WEAK) stringResource(R.string.signal_weak) else "",
             state = stringResource(R.string.a11y_signal_bars, SignalInfo.bars(reading), SignalInfo.MAX_LEVEL),
             badge = SignalInfo.caption(reading),
         )
@@ -595,9 +595,9 @@ private fun signalSpeech(reading: SignalReading?): String? {
  */
 @Composable
 private fun batterySpeech(reading: BatteryReading?): String? {
-    val prozent = reading?.let { BatteryInfo.percent(it) } ?: return null
+    val percent = reading?.let { BatteryInfo.percent(it) } ?: return null
     return TileSpeech.describe(
-        label = "$prozent %",
+        label = "$percent %",
         state = if (BatteryInfo.isCharging(reading)) stringResource(R.string.battery_charging) else null,
     )
 }
@@ -620,16 +620,16 @@ private fun EmptyTile(
     onEdit: () -> Unit,
 ) {
     val palette = LocalBigPalette.current
-    val einladung = label ?: stringResource(R.string.empty_tile_invite)
+    val invite = label ?: stringResource(R.string.empty_tile_invite)
     BigTile(
         // an empty state is an invitation, not a loss: the tile says what it offers rather
         // than what it lacks. in the editor it stays empty, a statement of state.
-        label = einladung,
+        label = invite,
         // where the slot is stands only in the picture: two empty tiles were both called
         // tap, so anyone not seeing them had the same offer twice. found with
         // `tools/gleiche-namen.py`. the same words as in the move view.
         contentDescription = TileSpeech.describe(
-            label = einladung,
+            label = invite,
             state = stringResource(R.string.move_spot, row + 1, column + 1),
         ),
         background = palette.emptyTile,
@@ -651,12 +651,12 @@ private fun tileColor(button: Button, x: Int, y: Int, cols: Int): Color {
     // the free hue comes after the palette and before the automatic one, and only where the
     // theme knows tile colours at all: in the contrast theme every palette slot is the
     // background colour (`PLAN.md` 3.3).
-    val themaKenntFarben = FreeTileColor.themeUsesTileColours(palette.tiles.map { it.toArgbLong() })
-    if (themaKenntFarben) {
-        button.colorHue?.let { ton ->
+    val themeHasColours = FreeTileColor.themeUsesTileColours(palette.tiles.map { it.toArgbLong() })
+    if (themeHasColours) {
+        button.colorHue?.let { hue ->
             return Color(
                 FreeTileColor.forHue(
-                    ton,
+                    hue,
                     palette.background.toArgbLong(),
                     palette.onTile.toArgbLong(),
                     FreeTileColor.targetLuminance(palette.tiles.map { it.toArgbLong() }),
@@ -722,7 +722,7 @@ private fun FolderTile(
                     cells = preview,
                     cellWidth = cellWidth,
                     // what is left after the label, the same arithmetic as in BigTile.
-                    availableHeight = (cellHeight.value - vorschauZone(cellWidth, cellHeight)).dp,
+                    availableHeight = (cellHeight.value - previewZone(cellWidth, cellHeight)).dp,
                     appIcon = appIcon,
                 )
             }
@@ -747,21 +747,21 @@ private fun FolderPreview(
     appIcon: (String, String) -> ImageBitmap?,
 ) {
     val palette = LocalBigPalette.current
-    val kanteDp = FolderPreviewLayout.edgeDp(cellWidth.value, availableHeight.value)
-    val kante = kanteDp.dp
-    val reihen = FolderPreviewLayout.rows(availableHeight.value, kanteDp)
+    val edgeDp = FolderPreviewLayout.edgeDp(cellWidth.value, availableHeight.value)
+    val edge = edgeDp.dp
+    val rowCount = FolderPreviewLayout.rows(availableHeight.value, edgeDp)
     Column(verticalArrangement = Arrangement.spacedBy(FolderPreviewLayout.GAP_DP.dp)) {
-        cells.chunked(2).take(reihen).forEach { reihe ->
+        cells.chunked(2).take(rowCount).forEach { chunk ->
             Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                reihe.forEach { cell ->
-                    Box(Modifier.size(kante), contentAlignment = Alignment.Center) {
+                chunk.forEach { cell ->
+                    Box(Modifier.size(edge), contentAlignment = Alignment.Center) {
                         when (val action = cell.button.action) {
                             is ButtonAction.App -> {
-                                val bild = appIcon(action.packageName, action.activityName)
-                                if (bild != null) {
-                                    Image(bitmap = bild, contentDescription = null, modifier = Modifier.size(kante))
+                                val image = appIcon(action.packageName, action.activityName)
+                                if (image != null) {
+                                    Image(bitmap = image, contentDescription = null, modifier = Modifier.size(edge))
                                 } else {
-                                    Icon(Icons.Filled.Apps, null, tint = palette.onTile, modifier = Modifier.size(kante))
+                                    Icon(Icons.Filled.Apps, null, tint = palette.onTile, modifier = Modifier.size(edge))
                                 }
                             }
 
@@ -769,28 +769,28 @@ private fun FolderPreview(
                                 action.builtin.icon(),
                                 contentDescription = null,
                                 tint = palette.onTile,
-                                modifier = Modifier.size(kante),
+                                modifier = Modifier.size(edge),
                             )
 
                             is ButtonAction.Contact -> Icon(
                                 Icons.Filled.Person,
                                 contentDescription = null,
                                 tint = palette.onTile,
-                                modifier = Modifier.size(kante),
+                                modifier = Modifier.size(edge),
                             )
 
                             is ButtonAction.Shortcut -> Icon(
                                 Icons.Filled.Bolt,
                                 contentDescription = null,
                                 tint = palette.onTile,
-                                modifier = Modifier.size(kante),
+                                modifier = Modifier.size(edge),
                             )
 
                             else -> Icon(
                                 Icons.Filled.Widgets,
                                 contentDescription = null,
                                 tint = palette.onTile,
-                                modifier = Modifier.size(kante),
+                                modifier = Modifier.size(edge),
                             )
                         }
                     }
@@ -802,7 +802,7 @@ private fun FolderPreview(
 
 /** the height the folder tile's label claims. */
 @Composable
-private fun vorschauZone(
+private fun previewZone(
     cellWidth: androidx.compose.ui.unit.Dp,
     cellHeight: androidx.compose.ui.unit.Dp,
 ): Float {

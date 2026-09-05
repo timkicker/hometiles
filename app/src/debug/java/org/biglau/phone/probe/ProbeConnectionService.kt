@@ -12,89 +12,80 @@ import android.telecom.TelecomManager
 import android.util.Log
 
 /**
- * Telecoms Gegenueber fuer den Probeanruf. Siehe [Probeanruf].
+ * telecom's counterpart for the probe call. see [ProbeCall].
  *
- * `audioModeIsVoip = true` ist der Kern: damit fuehrt Telecom den Ton ueber den
- * gewoehnlichen Audioweg statt ueber das Funkmodul - und genau deshalb laesst sich der
- * Wechsel zwischen Hoermuschel, Lautsprecher und Bluetooth hier wirklich pruefen und nicht
- * nur ansehen.
+ * `audioModeIsVoip = true` is the core: with it telecom carries the sound over the ordinary
+ * audio path instead of the radio - which is why the switch between earpiece, speaker and
+ * bluetooth can really be checked here and not just looked at.
  */
 class ProbeConnectionService : ConnectionService() {
 
     override fun onCreateIncomingConnection(
         connectionManagerPhoneAccount: PhoneAccountHandle?,
         request: ConnectionRequest?,
-    ): Connection = verbindung(
+    ): Connection = connection(
         request,
-        // Klingeln ist die Ausnahme, nicht die Vorgabe. Ein Probeanruf, der um halb zehn
-        // abends laeutet, prueft den Anrufbildschirm und weckt das Haus. Wer das Klingeln
-        // pruefen will, sagt es ausdruecklich - und waehlt die Zeit selbst.
-        klingeln = request?.extras?.getBoolean(Probeanruf.EXTRA_KLINGELN) == true,
+        // ringing is the exception, not the default: a probe that rings at half past nine in
+        // the evening checks the call screen and wakes the house.
+        ringing = request?.extras?.getBoolean(ProbeCall.EXTRA_RINGING) == true,
     )
 
     override fun onCreateOutgoingConnection(
         connectionManagerPhoneAccount: PhoneAccountHandle?,
         request: ConnectionRequest?,
-    ): Connection = verbindung(request, klingeln = false)
+    ): Connection = connection(request, ringing = false)
 
-    private fun verbindung(request: ConnectionRequest?, klingeln: Boolean): Connection {
-        val nummer = request?.address?.schemeSpecificPart ?: Probeanruf.NUMMER
-        if (!Probeanruf.erlaubt(nummer)) {
-            // Hier endet die Probe, bevor sie anfaengt. Ein Probeanruf auf eine
-            // Notrufnummer waere kein Probeanruf mehr.
-            Log.w("BigLau", "Probeanruf abgelehnt: $nummer")
+    private fun connection(request: ConnectionRequest?, ringing: Boolean): Connection {
+        val number = request?.address?.schemeSpecificPart ?: ProbeCall.NUMBER
+        if (!ProbeCall.allowed(number)) {
+            Log.w("BigLau", "probe call refused: $number")
             return Connection.createFailedConnection(
-                DisconnectCause(DisconnectCause.ERROR, "keine Probe mit dieser Nummer"),
+                DisconnectCause(DisconnectCause.ERROR, "no probe with this number"),
             )
         }
-        return ProbeVerbindung(applicationContext).apply {
+        return ProbeConnection(applicationContext).apply {
             setAddress(
-                Uri.fromParts("tel", nummer, null),
+                Uri.fromParts("tel", number, null),
                 TelecomManager.PRESENTATION_ALLOWED,
             )
-            setCallerDisplayName(Probeanruf.NAME, TelecomManager.PRESENTATION_ALLOWED)
+            setCallerDisplayName(ProbeCall.NAME, TelecomManager.PRESENTATION_ALLOWED)
             connectionCapabilities = Connection.CAPABILITY_MUTE or
                 Connection.CAPABILITY_HOLD or
                 Connection.CAPABILITY_SUPPORT_HOLD
             audioModeIsVoip = true
-            // **Ohne Klingelphase.** Zwei Versuche am 03.09.2026: `setDialing()` und
-            // dann `setActive()` bei der Erzeugung - beide wirkungslos, weil Telecom einen
-            // ueber `addNewIncomingCall` gestellten Anruf auf RINGING setzt und dort
-            // wartet, bis jemand abhebt. Der dritte Weg hebt selbst ab, kurz nachdem
-            // Telecom fertig ist. Zwei Probeanrufe standen dabei je vier Sekunden auf
-            // RINGING; hoerbar war das nicht, weil auf diesem Geraet STREAM_RING stumm
-            // geschaltet ist - aber darauf soll sich eine Probe nicht verlassen.
+            // two tries on 03.09.2026: `setDialing()` and `setActive()` at creation - both
+            // without effect, because telecom puts a call placed through `addNewIncomingCall`
+            // on RINGING and waits there until somebody picks up. so the third way picks up
+            // itself, shortly after telecom is done.
             setRinging()
-            if (!klingeln) selbstAbheben()
-            selbstBeenden()
+            if (!ringing) answerSelf()
+            endSelf()
         }
     }
 }
 
-/** Der Anruf selbst. Jede Taste im Anrufbildschirm landet hier. */
-private class ProbeVerbindung(private val context: Context) : Connection() {
+/** the call itself. every key on the call screen lands here. */
+private class ProbeConnection(private val context: Context) : Connection() {
 
-    /**
-     * Nach zwei Minuten legt die Probe von selbst auf.
-     *
-     * Ein echtes Gespraech endet, weil jemand auflegt. Eine Probe endet, weil jemand daran
-     * denkt - und wenn nicht, steht sie in der Statusleiste, bis das Telefon neu startet.
-     * Der Countdown laeuft im Hauptthread, wo Telecom die Verbindung ohnehin fuehrt.
-     */
-    /** Hebt gleich selbst ab, damit gar nicht erst geklingelt wird. */
-    fun selbstAbheben() {
+    /** picks up straight away, so that it does not start ringing at all. */
+    fun answerSelf() {
         android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(
-            // Nicht `state == STATE_RINGING` abfragen: 250 ms nach der Erzeugung stand
-            // die Verbindung noch auf STATE_NEW, die Bedingung traf nie zu, und der Anruf
-            // klingelte weiter. Gefragt ist nur, dass er noch da ist.
+            // not `state == STATE_RINGING`: 250 ms after creation the connection still stood
+            // on STATE_NEW, the condition never held, and the call kept ringing.
             { if (state != STATE_DISCONNECTED) setActive() },
             600L,
         )
     }
 
-    fun selbstBeenden() {
+    /**
+     * after two minutes the probe hangs up by itself.
+     *
+     * a real call ends because somebody hangs up. a probe ends because somebody remembers -
+     * and if not, it stands in the status bar until the phone restarts.
+     */
+    fun endSelf() {
         android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(
-            { if (state != STATE_DISCONNECTED) beenden(DisconnectCause.LOCAL) },
+            { if (state != STATE_DISCONNECTED) end(DisconnectCause.LOCAL) },
             120_000L,
         )
     }
@@ -104,15 +95,15 @@ private class ProbeVerbindung(private val context: Context) : Connection() {
     }
 
     override fun onReject() {
-        beenden(DisconnectCause.REJECTED)
+        end(DisconnectCause.REJECTED)
     }
 
     override fun onDisconnect() {
-        beenden(DisconnectCause.LOCAL)
+        end(DisconnectCause.LOCAL)
     }
 
     override fun onAbort() {
-        beenden(DisconnectCause.CANCELED)
+        end(DisconnectCause.CANCELED)
     }
 
     override fun onHold() {
@@ -123,46 +114,40 @@ private class ProbeVerbindung(private val context: Context) : Connection() {
         setActive()
     }
 
-    /**
-     * Die Tastentoene bleiben still.
-     *
-     * Im Ernstfall spielt sie das Netz, nicht das Geraet. Hier gaebe es niemanden, der sie
-     * hoert - ausser dem Menschen im Zimmer, und der hat nachts nichts davon.
-     */
+    /** in earnest the network plays the key tones, not the device. here nobody would hear them. */
     override fun onPlayDtmfTone(c: Char) {
-        Log.i("BigLau", "Probeanruf DTMF: $c")
+        Log.i("BigLau", "probe call DTMF: $c")
     }
 
-    fun beenden(grund: Int) {
-        setDisconnected(DisconnectCause(grund))
+    fun end(cause: Int) {
+        setDisconnected(DisconnectCause(cause))
         destroy()
-        aufraeumen()
+        cleanUp()
     }
 
     /**
-     * Die Probe raeumt ihre Spur aus der Anrufliste.
+     * the probe clears its own trace from the call log.
      *
-     * Am 03.09.2026 standen nach sieben Proben „+44 7700 900123 (7)“ oben in der
-     * Anrufliste - vor „zhenya“ und den echten verpassten Anrufen. Telecom schreibt den
-     * Eintrag selbst, und die Bitte `android.telecom.extra.DO_NOT_LOG_CALL` wird auf
-     * Android 11 nicht beachtet (am Geraet nachgesehen: der Zaehler ging trotzdem von 6
-     * auf 7). Also wird hinterher geloescht, und zwar erst nach zwei Sekunden - vorher
-     * steht der Eintrag noch gar nicht da.
+     * on the user's device on 03.09.2026 seven probes stood on top of the call log, above the
+     * real missed calls. telecom writes the entry itself, and the request
+     * `android.telecom.extra.DO_NOT_LOG_CALL` is ignored on android 11 (looked up at the
+     * device: the counter went from 6 to 7 anyway). so it is deleted afterwards, and only
+     * after two seconds - before that the entry is not there yet.
      *
-     * Nur diese eine Nummer, und die ist fuer Film und Fernsehen reserviert: es kann
-     * keinen echten Anruf geben, der hier mitgeloescht wird.
+     * only this one number, and it is reserved for film and television: there can be no real
+     * call that gets deleted along with it.
      */
-    private fun aufraeumen() {
+    private fun cleanUp() {
         android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(
             {
                 runCatching {
-                    val weg = context.contentResolver.delete(
+                    val removed = context.contentResolver.delete(
                         CallLog.Calls.CONTENT_URI,
                         "${CallLog.Calls.NUMBER} LIKE ?",
-                        arrayOf("%" + Probeanruf.NUMMER.takeLast(10)),
+                        arrayOf("%" + ProbeCall.NUMBER.takeLast(10)),
                     )
-                    Log.i("BigLau", "Probeanruf aus der Anrufliste geraeumt: $weg")
-                }.onFailure { Log.w("BigLau", "Anrufliste nicht geraeumt: $it") }
+                    Log.i("BigLau", "probe call cleared from the call log: $removed")
+                }.onFailure { Log.w("BigLau", "call log not cleared: $it") }
             },
             2_000L,
         )

@@ -136,7 +136,7 @@ var logGranted by remember(resumes.intValue) { mutableStateOf(callLog.hasPermiss
             var writeCanAskAgain by remember { mutableStateOf(true) }
             // once android stops asking, only the system settings are left.
             var writeGate by remember { mutableStateOf(false) }
-            var wartetAufSchreibrecht by remember { mutableStateOf<Pair<String, List<Long>>?>(null) }
+            var awaitingWriteRight by remember { mutableStateOf<Pair<String, List<Long>>?>(null) }
 
             /** the deletion itself, behind the question, the write right and, if set, the pin. */
             fun deleteNow(pending: Pair<String, List<Long>>) {
@@ -162,8 +162,8 @@ var logGranted by remember(resumes.intValue) { mutableStateOf(callLog.hasPermiss
             val askWrite = rememberLauncherForActivityResult(
                 ActivityResultContracts.RequestPermission(),
             ) { granted ->
-                val pending = wartetAufSchreibrecht
-                wartetAufSchreibrecht = null
+                val pending = awaitingWriteRight
+                awaitingWriteRight = null
                 if (granted) {
                     pending?.let(::deleteNow)
                 } else {
@@ -193,7 +193,7 @@ var logGranted by remember(resumes.intValue) { mutableStateOf(callLog.hasPermiss
                     DeleteStep.DELETE -> deleteNow(pending)
                     DeleteStep.GATE -> writeGate = true
                     DeleteStep.ASK -> {
-                        wartetAufSchreibrecht = pending
+                        awaitingWriteRight = pending
                         askWrite.launch(Manifest.permission.WRITE_CALL_LOG)
                     }
                 }
@@ -246,12 +246,12 @@ var logGranted by remember(resumes.intValue) { mutableStateOf(callLog.hasPermiss
                     // `markMissedSeen` clears the system's flag when we may, and the
                     // remembered moment makes the count go out when we may not.
                     callLog.markMissedSeen()
-                    val gesehen = MissedCalls.seenUpTo(
+                    val seenAt = MissedCalls.seenUpTo(
                         config.phone.lastSeenMissedAt,
                         groups.map { it.latest },
                     )
-                    if (gesehen != config.phone.lastSeenMissedAt) {
-                        store.update { it.copy(phone = it.phone.copy(lastSeenMissedAt = gesehen)) }
+                    if (seenAt != config.phone.lastSeenMissedAt) {
+                        store.update { it.copy(phone = it.phone.copy(lastSeenMissedAt = seenAt)) }
                     }
                 } else {
                     // without the right nothing is read: the list is not loading then but
@@ -289,17 +289,17 @@ var logGranted by remember(resumes.intValue) { mutableStateOf(callLog.hasPermiss
                         .safeDrawingPadding()
                         .padding(horizontal = 8.dp),
                 ) {
-                    val zuBestaetigen = pinFor
-                    if (zuBestaetigen != null) {
+                    val toConfirm = pinFor
+                    if (toConfirm != null) {
                         PinGate(
                             title = stringResource(R.string.calllog_locked),
                             explainer = stringResource(R.string.calllog_locked_hint),
                             wrongText = stringResource(R.string.security_wrong_pin),
                             confirmLabel = stringResource(R.string.editor_done),
-                            onCheck = { eingabe -> Pin.verify(eingabe, config.security.pin) },
+                            onCheck = { entered -> Pin.verify(entered, config.security.pin) },
                             onAccept = {
                                 pinFor = null
-                                deleteAfterPermission(zuBestaetigen)
+                                deleteAfterPermission(toConfirm)
                             },
                             acceptOnComplete = true,
                         )
@@ -363,7 +363,7 @@ var logGranted by remember(resumes.intValue) { mutableStateOf(callLog.hasPermiss
                             scrollButtons = config.behaviour.accessibility.scrollButtons,
                             // unfiltered in: the list must tell being empty from being
                             // filtered empty.
-                            alle = groups,
+                            all = groups,
                             allowed = CallLogGrouping.allowedFrom(config.phone.hiddenCallTypes),
                             granted = logGranted,
                             blocked = PermissionState.blocked(logDeniedOnce, logCanAskAgain),
@@ -393,10 +393,10 @@ var logGranted by remember(resumes.intValue) { mutableStateOf(callLog.hasPermiss
                             onAskCall = { label, number -> pendingCall = label to number },
                             onCancelCall = { pendingCall = null },
                             onConfirmCall = {
-                                val gewaehlt = pendingCall?.second
+                                val chosen = pendingCall?.second
                                 pendingCall = null
-                                if (gewaehlt != null) {
-                                    dial(gewaehlt) { askCall.launch(Manifest.permission.CALL_PHONE) }
+                                if (chosen != null) {
+                                    dial(chosen) { askCall.launch(Manifest.permission.CALL_PHONE) }
                                 }
                             },
                             onAskDelete = { label, ids -> pendingDelete = label to ids },
@@ -520,22 +520,22 @@ private fun Keypad(
                 // measure the text that is actually drawn: the computation used `typed`
                 // while the grouped version was drawn, longer by every gap, against a fixed
                 // 330 dp instead of the real width. both cut the number without a mark.
-                val gezeigt = PhoneNumbers.forDisplay(typed)
-                val nummerStil = tabularFigures().copy(fontWeight = FontWeight.Bold)
+                val shown = PhoneNumbers.forDisplay(typed)
+                val numberStyle = tabularFigures().copy(fontWeight = FontWeight.Bold)
                 BoxWithConstraints(Modifier.fillMaxWidth()) {
                     Text(
-                        text = gezeigt,
+                        text = shown,
                         color = palette.onBackground,
-                        // Vorgelesen ziffernweise: als gewoehnlicher Text wuerde aus "123"
-                        // ein "einhundertdreiundzwanzig". Siehe PhoneNumbers.forSpeech.
+                        // read out digit by digit: as ordinary text "123" would become
+                        // "one hundred twenty three". see PhoneNumbers.forSpeech.
                         modifier = Modifier.semantics {
-                            contentDescription = PhoneNumbers.forSpeech(gezeigt)
+                            contentDescription = PhoneNumbers.forSpeech(shown)
                         },
                         fontSize = dpSp(
-                            fittedSingleLineDp(gezeigt, nummerStil, 40f, maxWidth),
+                            fittedSingleLineDp(shown, numberStyle, 40f, maxWidth),
                         ),
                         // the number must not jump on every digit. `PLAN.md` 3.7.
-                        style = nummerStil,
+                        style = numberStyle,
                         maxLines = 1,
                         softWrap = false,
                     )
@@ -578,7 +578,7 @@ private fun Keypad(
 
 @Composable
 private fun CallList(
-    alle: List<CallGroup>,
+    all: List<CallGroup>,
     allowed: Set<CallDirection>,
     granted: Boolean,
     blocked: Boolean,
@@ -604,14 +604,14 @@ private fun CallList(
     loading: Boolean,
 ) {
     // stands in the row for a withheld number; a fixed "?" used to.
-    val unbekannt = stringResource(R.string.call_unknown)
+    val unknown = stringResource(R.string.call_unknown)
     // the lasting choice of kinds first, then the quick missed-only filter: that one is a
     // view, not a setting, and must not overwrite the other.
     val groups = CallLogGrouping.visible(
-        if (missedOnly) CallLogGrouping.onlyMissed(alle) else alle,
+        if (missedOnly) CallLogGrouping.onlyMissed(all) else all,
         allowed,
     )
-    val emptyBecause = CallLogEmpty.reason(alle, missedOnly, allowed)
+    val emptyBecause = CallLogEmpty.reason(all, missedOnly, allowed)
     val palette = LocalBigPalette.current
     val locale = currentLocale()
     val format = remember(locale) {
@@ -774,14 +774,14 @@ private fun CallList(
             items(groups, key = { it.latest.id }) { group ->
                 BigRow(
                     label = buildString {
-                        append(group.name ?: PhoneNumbers.forDisplay(group.number).ifBlank { unbekannt })
+                        append(group.name ?: PhoneNumbers.forDisplay(group.number).ifBlank { unknown })
                         if (group.count > 1) append(" (${group.count})")
                     },
                     // a *number* in place of a name is read digit by digit: otherwise a
                     // screen reader turns 222222 into one number, and someone checking whom
                     // they are about to call back learns nothing. a name stays a name.
                     labelSpeech = if (group.name == null) {
-                        PhoneNumbers.forSpeech(group.number).ifBlank { unbekannt }
+                        PhoneNumbers.forSpeech(group.number).ifBlank { unknown }
                     } else {
                         null
                     },

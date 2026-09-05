@@ -199,7 +199,7 @@ class SettingsActivity : BigLauActivity() {
 
         setContent {
             // for work that does not belong on the main thread. see MainThreadTest.
-            val fadenBereich = rememberCoroutineScope()
+            val scope = rememberCoroutineScope()
             val config by store.config.collectAsStateWithLifecycle()
             val locked = Pin.usable(config.security.pin)
             // rememberSaveable so a language change does not throw one back to the top: it
@@ -226,27 +226,27 @@ class SettingsActivity : BigLauActivity() {
             // duplicating says afterwards what it did and what it left out: a silent jump
             // to an almost identical screen leaves one guessing whether it worked.
             fun duplicate(screen: Screen) {
-                val kopieName = getString(R.string.screen_copy_name, screen.name)
-                when (val ergebnis = ScreenCopy.duplicate(store.current, screen.id, kopieName)) {
+                val copyName = getString(R.string.screen_copy_name, screen.name)
+                when (val outcome = ScreenCopy.duplicate(store.current, screen.id, copyName)) {
                     is ScreenCopy.Result.Done -> {
-                        store.update { ergebnis.config }
-                        val ausgelassen = ergebnis.skippedWidgets + ergebnis.skippedFolders
+                        store.update { outcome.config }
+                        val skipped = outcome.skippedWidgets + outcome.skippedFolders
                         Notice.show(
                             this@SettingsActivity,
-                            if (ausgelassen == 0) {
+                            if (skipped == 0) {
                                 resources.getQuantityString(
                                     R.plurals.screen_copy_done,
-                                    ergebnis.copied,
-                                    kopieName,
-                                    ergebnis.copied,
+                                    outcome.copied,
+                                    copyName,
+                                    outcome.copied,
                                 )
                             } else {
                                 getString(
                                     R.plurals.screen_copy_done_partial,
-                                    ergebnis.copied,
-                                    kopieName,
-                                    ergebnis.copied,
-                                    ausgelassen,
+                                    outcome.copied,
+                                    copyName,
+                                    outcome.copied,
+                                    skipped,
                                 )
                             },
                         )
@@ -302,7 +302,7 @@ class SettingsActivity : BigLauActivity() {
                 if (uri == null) return@rememberLauncherForActivityResult
                 // not on the main thread: the target can be a cloud app, and then the write
                 // goes over the network.
-                fadenBereich.launch {
+                scope.launch {
                     val ok = withContext(Dispatchers.IO) {
                         runCatching {
                             contentResolver.openOutputStream(uri)?.use { stream ->
@@ -406,9 +406,9 @@ class SettingsActivity : BigLauActivity() {
                                 SmsRepository.get(this@SettingsActivity).isDefaultSmsApp()
                             },
                             onHomeApp = {
-                                val absicht = Intents.homeRoleIntent(this@SettingsActivity)
-                                if (absicht != null) {
-                                    askDialerRole.launch(absicht)
+                                val roleIntent = Intents.homeRoleIntent(this@SettingsActivity)
+                                if (roleIntent != null) {
+                                    askDialerRole.launch(roleIntent)
                                 } else {
                                     Intents.chooseHomeApp(this@SettingsActivity)
                                 }
@@ -416,15 +416,15 @@ class SettingsActivity : BigLauActivity() {
                             onSmsApp = {
                                 // as with the phone: holding the role already, the role
                                 // dialog leads nowhere.
-                                val absicht = if (
+                                val roleIntent = if (
                                     SmsRepository.get(this@SettingsActivity).isDefaultSmsApp()
                                 ) {
                                     null
                                 } else {
                                     Intents.smsRoleIntent(this@SettingsActivity)
                                 }
-                                if (absicht != null) {
-                                    askDialerRole.launch(absicht)
+                                if (roleIntent != null) {
+                                    askDialerRole.launch(roleIntent)
                                 } else {
                                     Intents.chooseSmsApp(this@SettingsActivity)
                                 }
@@ -432,13 +432,13 @@ class SettingsActivity : BigLauActivity() {
                             onDialerApp = {
                                 // holding the role already, the dialog closes at once. then
                                 // into the system settings, where it can be given back.
-                                val absicht = if (DialerRole.held(this@SettingsActivity)) {
+                                val roleIntent = if (DialerRole.held(this@SettingsActivity)) {
                                     null
                                 } else {
                                     Intents.dialerRoleIntent(this@SettingsActivity)
                                 }
-                                if (absicht != null) {
-                                    askDialerRole.launch(absicht)
+                                if (roleIntent != null) {
+                                    askDialerRole.launch(roleIntent)
                                 } else {
                                     Intents.chooseDialerApp(this@SettingsActivity)
                                 }
@@ -462,7 +462,7 @@ class SettingsActivity : BigLauActivity() {
                                 onCancel = { switching = null },
                             )
                         } else ScreenList(
-                            // Ordner gehoeren ihrer Kachel, nicht der Screen-Liste.
+                            // folders belong to their tile, not to the screen list.
                             screens = FolderEdits.plainScreens(config),
                             homeId = config.homeScreenId,
                             unreachable = ScreenEdits.unreachable(config),
@@ -504,14 +504,14 @@ class SettingsActivity : BigLauActivity() {
                             gutterDp = config.appearance.gutterDp,
                             borderPercent = config.appearance.safeBorderPercent,
                             theme = config.appearance.theme,
-                            onBackground = { hintergrund ->
+                            onBackground = { pick ->
                                 val target = renaming
                                 if (target != null) {
                                     store.update { current ->
                                         current.copy(
                                             screens = current.screens.map {
                                                 if (it.id == target.id) {
-                                                    it.copy(background = hintergrund)
+                                                    it.copy(background = pick)
                                                 } else {
                                                     it
                                                 }
@@ -567,8 +567,8 @@ class SettingsActivity : BigLauActivity() {
                         Page.HIDDEN_APPS -> HiddenAppsList(
                             hidden = config.apps.hidden,
                             recentCount = config.apps.recentCount,
-                            onRecentCount = { anzahl ->
-                                store.update { it.copy(apps = it.apps.copy(recentCount = anzahl)) }
+                            onRecentCount = { count ->
+                                store.update { it.copy(apps = it.apps.copy(recentCount = count)) }
                             },
                             labelFor = { key ->
                                 val parts = key.split("/")
@@ -801,9 +801,9 @@ class SettingsActivity : BigLauActivity() {
                                 DialerRole.held(this@SettingsActivity)
                             },
                             onDialerApp = {
-                                val absicht = Intents.dialerRoleIntent(this@SettingsActivity)
-                                if (absicht != null) {
-                                    askDialerRole.launch(absicht)
+                                val roleIntent = Intents.dialerRoleIntent(this@SettingsActivity)
+                                if (roleIntent != null) {
+                                    askDialerRole.launch(roleIntent)
                                 } else {
                                     Intents.chooseDialerApp(this@SettingsActivity)
                                 }
@@ -1016,7 +1016,7 @@ private fun ScreenList(
     val palette = LocalBigPalette.current
     // a screen with all its tiles was gone in one tap, with no question and no way back.
     // two steps, as when shrinking the grid: the first says what it costs.
-    var scharf by remember { mutableStateOf<String?>(null) }
+    var pendingDelete by remember { mutableStateOf<String?>(null) }
     LazyColumn(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         item { BigHeading(stringResource(R.string.settings_screens)) }
         // a screen no tile leads to is set up and unreachable: without this hint one looks
@@ -1092,28 +1092,28 @@ private fun ScreenList(
                     icon = Icons.Filled.Home,
                     onClick = { onMakeHome(screen) },
                 )
-                val (kacheln, ordner) = lossesFor(screen)
-                val gespannt = scharf == screen.id
+                val (tiles, folders) = lossesFor(screen)
+                val isPending = pendingDelete == screen.id
                 BigRow(
-                    label = if (gespannt) {
+                    label = if (isPending) {
                         stringResource(R.string.screen_delete_now, screen.name)
                     } else {
                         stringResource(R.string.screen_delete, screen.name)
                     },
-                    secondary = if (!gespannt) {
+                    secondary = if (!isPending) {
                         null
                     } else {
                         buildString {
-                            append(pluralStringResource(R.plurals.screen_delete_tiles, kacheln, kacheln))
-                            if (ordner > 0) {
+                            append(pluralStringResource(R.plurals.screen_delete_tiles, tiles, tiles))
+                            if (folders > 0) {
                                 append(' ')
-                                append(pluralStringResource(R.plurals.screen_delete_folders, ordner, ordner))
+                                append(pluralStringResource(R.plurals.screen_delete_folders, folders, folders))
                             }
                         }
                     },
                     icon = Icons.Filled.Delete,
                     surface = palette.surfaceDanger,
-                    onClick = { if (gespannt) onDelete(screen) else scharf = screen.id },
+                    onClick = { if (isPending) onDelete(screen) else pendingDelete = screen.id },
                 )
             }
         }
@@ -1264,13 +1264,13 @@ private fun ScreenPanel(
             )
         }
         item {
-            val gewaehlt = screen.background == Background.Theme
+            val isSelected = screen.background == Background.Theme
             BigRow(
                 label = stringResource(R.string.screen_background_theme),
-                icon = if (gewaehlt) Icons.Filled.Check else null,
-                selected = gewaehlt,
+                icon = if (isSelected) Icons.Filled.Check else null,
+                selected = isSelected,
                 surface = BigSurface(palette.background, palette.onBackground),
-                borderColor = if (gewaehlt) palette.accent else null,
+                borderColor = if (isSelected) palette.accent else null,
                 onClick = { onBackground(Background.Theme) },
             )
         }
@@ -1280,26 +1280,26 @@ private fun ScreenPanel(
         // to *see*, and that is where the argument ends: the node dump showed five rows all
         // saying this colour. the row stays as it is and the colour's name is spoken, which
         // is what `labelSpeech` is for.
-        itemsIndexed(backgroundColours) { platz, farbe ->
-            val gewaehlt = (screen.background as? Background.Solid)?.argb == farbe
+        itemsIndexed(backgroundColours) { index, colour ->
+            val isSelected = (screen.background as? Background.Solid)?.argb == colour
             BigRow(
                 label = stringResource(R.string.screen_background_colour),
-                labelSpeech = stringResource(BACKGROUND_NAMES[platz % BACKGROUND_NAMES.size]),
-                icon = if (gewaehlt) Icons.Filled.Check else null,
-                selected = gewaehlt,
+                labelSpeech = stringResource(BACKGROUND_NAMES[index % BACKGROUND_NAMES.size]),
+                icon = if (isSelected) Icons.Filled.Check else null,
+                selected = isSelected,
                 surface = BigSurface(
-                    Color(farbe.toInt()),
-                    Color(ScreenBackground.inkFor(farbe).toInt()),
+                    Color(colour.toInt()),
+                    Color(ScreenBackground.inkFor(colour).toInt()),
                 ),
-                borderColor = if (gewaehlt) palette.accent else null,
-                onClick = { onBackground(Background.Solid(farbe)) },
+                borderColor = if (isSelected) palette.accent else null,
+                onClick = { onBackground(Background.Solid(colour)) },
             )
         }
         item { BigHeading(stringResource(R.string.screen_columns)) }
-        items(GridLimits.columns(usableWidthDp, gutterDp)) { spalten ->
+        items(GridLimits.columns(usableWidthDp, gutterDp)) { colCount ->
             GridChoiceRow(
-                label = pluralStringResource(R.plurals.screen_columns_n, spalten, spalten),
-                cols = spalten,
+                label = pluralStringResource(R.plurals.screen_columns_n, colCount, colCount),
+                cols = colCount,
                 rows = screen.rows,
                 screen = screen,
                 confirming = confirming,
@@ -1308,11 +1308,11 @@ private fun ScreenPanel(
             )
         }
         item { BigHeading(stringResource(R.string.screen_rows)) }
-        items(GridLimits.rows(usableHeightDp, gutterDp)) { zeilen ->
+        items(GridLimits.rows(usableHeightDp, gutterDp)) { rowCount ->
             GridChoiceRow(
-                label = pluralStringResource(R.plurals.screen_rows_n, zeilen, zeilen),
+                label = pluralStringResource(R.plurals.screen_rows_n, rowCount, rowCount),
                 cols = screen.cols,
-                rows = zeilen,
+                rows = rowCount,
                 screen = screen,
                 confirming = confirming,
                 onArm = { confirming = it },
@@ -1813,15 +1813,15 @@ private fun HiddenAppsList(
         // the number was fixed at four while the app stores twelve starts, so anyone using
         // many different apps never saw the fifth again.
         item { BigHeading(stringResource(R.string.apps_recent_count)) }
-        items(AppDrawer.RECENT_CHOICES) { anzahl ->
+        items(AppDrawer.RECENT_CHOICES) { count ->
             BigRow(
-                label = if (anzahl == 0) {
+                label = if (count == 0) {
                     stringResource(R.string.apps_recent_none_choice)
                 } else {
-                    pluralStringResource(R.plurals.apps_recent_count_value, anzahl, anzahl)
+                    pluralStringResource(R.plurals.apps_recent_count_value, count, count)
                 },
-                selected = anzahl == recentCount,
-                onClick = { onRecentCount(anzahl) },
+                selected = count == recentCount,
+                onClick = { onRecentCount(count) },
             )
         }
         item { BigHeading(stringResource(R.string.settings_hidden_apps)) }
@@ -2010,12 +2010,12 @@ private fun SecurityList(
 private fun DiagnosticsList(activity: BigLauActivity) {
     // what is left after the system bars, exactly the area a tile gets: the window alone
     // said 605 dp of height, while 581 are usable.
-    val dichte = LocalDensity.current
-    val einblendungen = WindowInsets.safeDrawing
-    val nutzbar = run {
+    val screenDensity = LocalDensity.current
+    val insets = WindowInsets.safeDrawing
+    val usable = run {
         // the *full* screen size and not `displayMetrics`, which already excludes the
         // gesture bar; it would come off twice. see `Diagnostics.usableDp`.
-        val ganz = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+        val whole = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             activity.windowManager.currentWindowMetrics.bounds
                 .let { it.width() to it.height() }
         } else {
@@ -2027,21 +2027,21 @@ private fun DiagnosticsList(activity: BigLauActivity) {
             metrics.widthPixels to metrics.heightPixels
         }
         Diagnostics.usableDp(
-            fullWidthPx = ganz.first,
-            fullHeightPx = ganz.second,
-            left = einblendungen.getLeft(dichte, LayoutDirection.Ltr),
-            top = einblendungen.getTop(dichte),
-            right = einblendungen.getRight(dichte, LayoutDirection.Ltr),
-            bottom = einblendungen.getBottom(dichte),
-            density = dichte.density,
+            fullWidthPx = whole.first,
+            fullHeightPx = whole.second,
+            left = insets.getLeft(screenDensity, LayoutDirection.Ltr),
+            top = insets.getTop(screenDensity),
+            right = insets.getRight(screenDensity, LayoutDirection.Ltr),
+            bottom = insets.getBottom(screenDensity),
+            density = screenDensity.density,
         )
     }
-    val zusammenhang = LocalContext.current
+    val context = LocalContext.current
     // `resumes` as a second key: the diagnostics read roles and permissions the system
     // grants, and granting one and coming back gave the old values on exactly the page one
     // opens to check what is true.
-    val lines = remember(nutzbar, activity.resumes.intValue) {
-        Diagnostics.collect(activity, nutzbar) { id -> zusammenhang.getString(id) }
+    val lines = remember(usable, activity.resumes.intValue) {
+        Diagnostics.collect(activity, usable) { id -> context.getString(id) }
     }
     LazyColumn(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         item { BigHeading(stringResource(R.string.settings_diagnostics)) }
@@ -2130,20 +2130,20 @@ private fun ResetPanel(
             // words that agree with the number: a mismatch makes a warning look sloppy, and
             // a sloppy warning is not taken seriously. with no folders the half sentence
             // falls away entirely rather than saying zero.
-            val bildschirme = pluralStringResource(
+            val screensText = pluralStringResource(
                 R.plurals.reset_screens, losses.screens, losses.screens,
             )
-            val kacheln = pluralStringResource(
+            val tilesText = pluralStringResource(
                 R.plurals.reset_tiles, losses.tiles, losses.tiles,
             )
             Text(
                 text = if (losses.folders == 0) {
-                    stringResource(R.string.reset_losses_plain, bildschirme, kacheln)
+                    stringResource(R.string.reset_losses_plain, screensText, tilesText)
                 } else {
                     stringResource(
                         R.string.reset_losses,
-                        bildschirme,
-                        kacheln,
+                        screensText,
+                        tilesText,
                         pluralStringResource(
                             R.plurals.reset_folders, losses.folders, losses.folders,
                         ),
@@ -2214,19 +2214,19 @@ private fun SwipeOrderList(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
             ) {
-                val darfRaus = mayLeave(screen.id)
+                val mayExclude = mayLeave(screen.id)
                 BigRow(
                     label = screen.name,
                     // why it does not work, instead of a button that does nothing: without a
                     // jump tile the screen would be unfindable after being taken out.
-                    secondary = if (darfRaus) {
+                    secondary = if (mayExclude) {
                         stringResource(R.string.swipe_order_position, index + 1, screens.size)
                     } else {
                         stringResource(R.string.swipe_order_needed)
                     },
                     secondaryMaxLines = 2,
                     modifier = Modifier.weight(1f),
-                    onClick = { if (darfRaus) onExclude(screen.id) },
+                    onClick = { if (mayExclude) onExclude(screen.id) },
                 )
                 // no button at the edge rather than one that does nothing: an arrow that
                 // sometimes works and sometimes does not makes one doubt oneself.
@@ -2532,13 +2532,13 @@ private fun CallTypesList(
                 onClick = { onChange(phone.copy(blockedNumbers = CallBlocking.parse(blockedText))) },
             )
         }
-        // PLAN.md 4.6: Standard-Audioausgabe und Lautsprecher bei abgehenden Anrufen.
+        // PLAN.md 4.6: default audio route and speaker on outgoing calls.
         item { BigHeading(stringResource(R.string.call_audio)) }
-        items(AudioRoute.entries.toList()) { weg ->
+        items(AudioRoute.entries.toList()) { route ->
             BigRow(
-                label = stringResource(audioLabel(weg)),
-                selected = weg == phone.audioRoute,
-                onClick = { onChange(phone.copy(audioRoute = weg)) },
+                label = stringResource(audioLabel(route)),
+                selected = route == phone.audioRoute,
+                onClick = { onChange(phone.copy(audioRoute = route)) },
             )
         }
         item {
@@ -2571,7 +2571,7 @@ private fun CallTypesList(
     }
 }
 
-private fun audioLabel(weg: AudioRoute): Int = when (weg) {
+private fun audioLabel(route: AudioRoute): Int = when (route) {
     AudioRoute.EARPIECE -> R.string.call_audio_earpiece
     AudioRoute.SPEAKER -> R.string.call_audio_speaker
     AudioRoute.BLUETOOTH -> R.string.call_audio_bluetooth

@@ -170,7 +170,7 @@ class AppDrawerActivity : BigLauActivity() {
                             explainer = stringResource(R.string.applock_locked_hint),
                             wrongText = stringResource(R.string.security_wrong_pin),
                             confirmLabel = stringResource(R.string.editor_done),
-                            onCheck = { eingabe -> Pin.verify(eingabe, config.security.pin) },
+                            onCheck = { entered -> Pin.verify(entered, config.security.pin) },
                             onAccept = {
                                 lockedApp = null
                                 launch(blockedApp)
@@ -185,7 +185,7 @@ class AppDrawerActivity : BigLauActivity() {
                             explainer = stringResource(R.string.apps_locked_hint),
                             wrongText = stringResource(R.string.security_wrong_pin),
                             confirmLabel = stringResource(R.string.editor_done),
-                            onCheck = { eingabe -> Pin.verify(eingabe, config.security.pin) },
+                            onCheck = { entered -> Pin.verify(entered, config.security.pin) },
                             onAccept = { locked = false },
                             acceptOnComplete = true,
                         )

@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- Launcher darf die Liste startbarer Apps sehen (Android 11+ Package Visibility).
-         Kein QUERY_ALL_PACKAGES noetig. -->
+    <!-- a launcher may see the list of startable apps (android 11+ package visibility).
+         no QUERY_ALL_PACKAGES needed. -->
     <queries>
         <intent>
             <action android:name="android.intent.action.MAIN" />
@@ -19,23 +19,23 @@
 
     <uses-permission android:name="android.permission.CALL_PHONE" />
     <uses-permission android:name="android.permission.READ_CALL_LOG" />
-    <!-- Nur zum Anzeigen von Empfang und Netzart auf der Signalkachel. Rein lesend:
-         BigLau waehlt darueber nichts und meldet sich nirgends an. -->
+    <!-- only to show reception and network type on the signal tile. reading only: BigLau
+         dials nothing through it and registers nowhere. -->
     <uses-permission android:name="android.permission.READ_PHONE_STATE" />
     <uses-permission android:name="android.permission.WRITE_CALL_LOG" />
     <uses-permission android:name="android.permission.READ_CONTACTS" />
-    <!-- Nur fuers Favoritenkennzeichen; Kontakte anlegen und bearbeiten macht die System-App. -->
+    <!-- only for the favourite mark; creating and editing contacts is the system app's job. -->
     <uses-permission android:name="android.permission.WRITE_CONTACTS" />
     <uses-permission android:name="android.permission.SEND_SMS" />
     <uses-permission android:name="android.permission.READ_SMS" />
     <uses-permission android:name="android.permission.RECEIVE_SMS" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
-    <!-- Nur fuer die Meldung ueber eine neue Nachricht, und nur ab Android 13 noetig.
-         Auf dem Zielgeraet (Android 11) erteilt sie das System beim Installieren. -->
+    <!-- only for the new-message notice, and only needed from android 13 on. on the target
+         device (android 11) the system grants it at install time. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-    <!-- Fuer die Vollbild-Meldung bei einer neuen Nachricht (PLAN.md 4.7). Sie ist von
-         Haus aus aus; ohne diese Anmeldung erschiene sie stumm als gewoehnliche Meldung. -->
+    <!-- for the full screen notice on a new message (PLAN.md 4.7). it is off by default;
+         without this declaration it would appear silently as an ordinary notice. -->
     <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
     <uses-permission android:name="android.permission.VIBRATE" />
 
@@ -76,8 +76,8 @@
             android:windowSoftInputMode="adjustResize"
             android:theme="@style/Theme.BigLau" />
 
-        <!-- Gespraechsansicht. showWhenLocked, damit ein Anruf auch bei gesperrtem
-             Bildschirm bedienbar ist - sonst kaeme niemand ans Annehmen. -->
+        <!-- the call screen. showWhenLocked so a call can be worked on a locked screen -
+             otherwise nobody reaches the answer button. -->
         <activity
             android:name=".phone.InCallActivity"
             android:exported="false"
@@ -87,9 +87,9 @@
             android:turnScreenOn="true"
             android:theme="@style/Theme.BigLau" />
 
-        <!-- Die vier Pflichtkomponenten einer Standard-SMS-App. Fehlt eine davon,
-             erscheint BigLau in der Auswahl gar nicht - unabhaengig davon, ob sie
-             funktionieren wuerde. Siehe SmsComponents.kt. -->
+        <!-- the four components a default sms app must have. with one missing BigLau does
+             not appear in the chooser at all, regardless of whether it would work. see
+             SmsComponents.kt. -->
         <receiver
             android:name=".sms.SmsDeliverReceiver"
             android:exported="true"
@@ -139,15 +139,14 @@
             </intent-filter>
         </activity>
 
-        <!-- Gesperrte Nummern abweisen, bevor Android klingelt. Nur die
-             Standard-Telefon-App wird gefragt; ohne die Rolle greift der Rueckfall in
-             BigInCallService. -->
-        <!-- Die Quittung des Netzes fuer eine gesendete Nachricht. Nicht exportiert: den
-             Rundruf schickt das System an genau diesen PendingIntent. -->
+        <!-- the network's receipt for a sent message. not exported: the system sends the
+             broadcast to exactly this PendingIntent. -->
         <receiver
             android:name=".sms.SmsSentReceiver"
             android:exported="false" />
 
+        <!-- rejects blocked numbers before android rings. only the default phone app is
+             asked; without the role the fallback in BigInCallService takes over. -->
         <service
             android:name=".phone.CallScreening"
             android:exported="true"
@@ -174,8 +173,8 @@
             android:exported="false"
             android:theme="@style/Theme.BigLau" />
 
-        <!-- Fuer die Telefon-Rolle verlangt Android einen ACTION_DIAL-Einstieg. Ohne ihn
-             taucht BigLau in der Auswahl der Standard-Telefon-App gar nicht auf. -->
+        <!-- for the phone role android demands an ACTION_DIAL entry. without it BigLau does
+             not show up in the default phone app chooser at all. -->
         <activity
             android:name=".phone.DialerActivity"
             android:exported="true"
@@ -205,10 +204,8 @@
             android:windowSoftInputMode="adjustResize"
             android:theme="@style/Theme.BigLau" />
 
-        <!-- Sicherungsdatei von aussen oeffnen: Dateimanager, Cloud, Mailanhang. -->
-        <!-- Der wartende Hinweis wird ueber eine Absicht geoeffnet: `Notice` liegt im
-             Design-System und darf die Activity nicht beim Namen kennen. Siehe
-             org.biglau.ui.Notice.ACTION. -->
+        <!-- the waiting notice is opened through an intent: `Notice` lives in the design
+             system and must not know the activity by name. see org.biglau.ui.Notice.ACTION. -->
         <activity
             android:name=".ui.NoticeActivity"
             android:exported="false"
@@ -220,6 +217,7 @@
             </intent-filter>
         </activity>
 
+        <!-- opening a backup file from outside: file manager, cloud, mail attachment. -->
         <activity
             android:name=".settings.ImportActivity"
             android:exported="true"
@@ -239,10 +237,9 @@
             android:exported="false"
             android:theme="@style/Theme.BigLau" />
 
-        <!-- Der Sprung auf eine Unterseite laeuft ueber diese Absicht statt ueber die
-             Klasse: sonst kennt jeder Bildschirm, der dorthin springt, die Einstellungen
-             beim Namen. Nicht exportiert - die Absicht wird mit setPackage im eigenen
-             Programm gehalten. Siehe org.biglau.ui.SettingsLink. -->
+        <!-- a jump to a subpage goes through this intent instead of the class: otherwise
+             every screen that jumps there knows the settings by name. not exported - the
+             intent is kept inside the app with setPackage. see org.biglau.ui.SettingsLink. -->
         <activity
             android:name=".settings.SettingsActivity"
             android:exported="false"
@@ -255,8 +252,8 @@
             </intent-filter>
         </activity>
 
-        <!-- Der Wecker fuer die wiederholte Erinnerung an ungelesene Nachrichten.
-             Nicht exportiert: nur der eigene Wecker loest ihn aus. -->
+        <!-- the alarm for the repeated reminder about unread messages. not exported: only
+             the app's own alarm triggers it. -->
         <receiver
             android:name=".sms.MessageReminderReceiver"
             android:exported="false" />

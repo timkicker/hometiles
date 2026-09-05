@@ -133,7 +133,7 @@ var granted by remember(resumes.intValue) { mutableStateOf(repository.hasPermiss
                     loading = false
                     // the open contact comes from the same list: deleted in the phone book,
                     // there is nothing left to show, so back to the list.
-                    selected = selected?.let { offen -> all.firstOrNull { it.id == offen.id } }
+                    selected = selected?.let { open -> all.firstOrNull { it.id == open.id } }
                 }
             }
 

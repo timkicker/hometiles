@@ -399,23 +399,23 @@ private fun AudioChoice(
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         BigHeading(stringResource(R.string.call_audio))
-        AudioRoute.entries.forEach { weg ->
+        AudioRoute.entries.forEach { route ->
             BigRow(
                 label = stringResource(
-                    when (weg) {
+                    when (route) {
                         AudioRoute.EARPIECE -> R.string.call_audio_earpiece
                         AudioRoute.SPEAKER -> R.string.call_audio_speaker
                         AudioRoute.BLUETOOTH -> R.string.call_audio_bluetooth
                     },
                 ),
-                icon = when (weg) {
+                icon = when (route) {
                     AudioRoute.SPEAKER -> Icons.Filled.VolumeUp
                     AudioRoute.BLUETOOTH -> Icons.Filled.Bluetooth
                     AudioRoute.EARPIECE -> Icons.Filled.PhoneInTalk
                 },
-                selected = weg == current,
+                selected = route == current,
                 modifier = Modifier.height(72.dp),
-                onClick = { onPick(weg) },
+                onClick = { onPick(route) },
             )
         }
         BigRow(

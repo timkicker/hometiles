@@ -160,8 +160,8 @@ class MainActivity : BigLauActivity() {
 
     /** fetches the read permission for the signal tile, nothing more. */
     private val askPhoneState =
-        registerForActivityResult(ActivityResultContracts.RequestPermission()) { erteilt ->
-            if (!erteilt) {
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+            if (!granted) {
                 phoneStateDeniedOnce.value = true
                 phoneStateCanAskAgain.value =
                     shouldShowRequestPermissionRationale(Manifest.permission.READ_PHONE_STATE)
@@ -375,8 +375,8 @@ class MainActivity : BigLauActivity() {
                         when (action) {
                             // the long press starts the tile, for hands that would
                             // otherwise trigger something by brushing.
-                            LongPressAction.ACTIVATE -> cell?.let { treffer ->
-                                activate(treffer, shown.id, apps) { target ->
+                            LongPressAction.ACTIVATE -> cell?.let { hit ->
+                                activate(hit, shown.id, apps) { target ->
                                     currentScreen.value = target
                                 }
                             }
@@ -626,11 +626,11 @@ class MainActivity : BigLauActivity() {
                                     // every direction key is consumed, even when nothing
                                     // moves: otherwise compose picks a target itself, and the
                                     // next one lies under the list.
-                                    .onPreviewKeyEvent { taste ->
-                                        if (taste.type != KeyEventType.KeyDown) {
+                                    .onPreviewKeyEvent { event ->
+                                        if (event.type != KeyEventType.KeyDown) {
                                             false
                                         } else {
-                                            when (taste.key) {
+                                            when (event.key) {
                                                 Key.DirectionDown -> {
                                                     if (at < menuItems.lastIndex) {
                                                         at += 1
@@ -722,7 +722,7 @@ class MainActivity : BigLauActivity() {
                         explainer = stringResource(R.string.applock_locked_hint),
                         wrongText = stringResource(R.string.security_wrong_pin),
                         confirmLabel = stringResource(R.string.editor_done),
-                        onCheck = { eingabe -> Pin.verify(eingabe, config.security.pin) },
+                        onCheck = { entered -> Pin.verify(entered, config.security.pin) },
                         onAccept = {
                             lockedApp.value = null
                             startAction(pending.action, pending.screenId, pending.x, pending.y, apps)
@@ -995,8 +995,8 @@ private fun LabelPopup(label: String, onDismiss: () -> Unit) {
             .fillMaxSize()
             .background(palette.background)
             .focusRequester(anchors)
-            .onPreviewKeyEvent { taste ->
-                if (taste.type == KeyEventType.KeyDown) {
+            .onPreviewKeyEvent { event ->
+                if (event.type == KeyEventType.KeyDown) {
                     onDismiss()
                     true
                 } else {
@@ -1057,11 +1057,11 @@ private fun ContactChoice(
         modifier = Modifier
             .fillMaxSize()
             .background(palette.background)
-            .onPreviewKeyEvent { taste ->
-                if (taste.type != KeyEventType.KeyDown) {
+            .onPreviewKeyEvent { event ->
+                if (event.type != KeyEventType.KeyDown) {
                     false
                 } else {
-                    when (taste.key) {
+                    when (event.key) {
                         Key.DirectionDown -> {
                             if (at < anchors.lastIndex) {
                                 at += 1
@@ -1191,11 +1191,11 @@ private fun FolderOverlay(
                 // same reason: one press to the right and the focus was *gone*, since compose
                 // then searches and finds nothing, the row spanning the full width. the same
                 // fault the whole folder had, one row smaller.
-                .onPreviewKeyEvent { taste ->
-                    if (taste.type != KeyEventType.KeyDown) {
+                .onPreviewKeyEvent { event ->
+                    if (event.type != KeyEventType.KeyDown) {
                         false
                     } else {
-                        when (taste.key) {
+                        when (event.key) {
                             Key.DirectionUp -> {
                                 runCatching { backAnchor.requestFocus() }
                                 true
@@ -1240,11 +1240,11 @@ private fun SignalPermissionExplainer(
             .fillMaxSize()
             .background(palette.background)
             .absorbTouches()
-            .onPreviewKeyEvent { taste ->
-                if (taste.type != KeyEventType.KeyDown) {
+            .onPreviewKeyEvent { event ->
+                if (event.type != KeyEventType.KeyDown) {
                     false
                 } else {
-                    when (taste.key) {
+                    when (event.key) {
                         Key.Back -> {
                             onDismiss()
                             true

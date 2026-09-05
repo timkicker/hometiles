@@ -1,17 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Nur im Debug-Bau: der Probeanruf.
+  debug build only: the probe call.
 
-  Was hier steht, kommt nie in ein ausgeliefertes Programm - AGP mischt diese Datei nur in
-  den Debug-Bau. Eine Moeglichkeit, einen Anruf vorzutaeuschen, gehoert nicht in die Hand
-  von jemandem, der die App bloss installiert hat.
+  what stands here never reaches a delivered program - AGP merges this file into the debug
+  build alone. a way to fake a call does not belong in the hands of somebody who merely
+  installed the app.
 -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <!--
-      Nur damit die Probe selbst abheben kann und gar nicht erst klingelt. Ein Programm,
-      das Anrufe annehmen darf, ist etwas anderes als ein Startbildschirm - deshalb steht
-      das Recht hier und nicht im Haupt-Manifest.
+      only so the probe can pick up itself instead of ringing. a program allowed to answer
+      calls is something other than a home screen - so the permission stands here and not in
+      the main manifest.
     -->
     <uses-permission android:name="android.permission.ANSWER_PHONE_CALLS" />
 
@@ -27,7 +27,7 @@
         </service>
 
         <activity
-            android:name=".sms.probe.ProbeNachrichtActivity"
+            android:name=".sms.probe.ProbeMessageActivity"
             android:exported="true"
             android:excludeFromRecents="true"
             android:noHistory="true"

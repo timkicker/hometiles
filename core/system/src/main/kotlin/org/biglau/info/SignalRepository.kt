@@ -27,59 +27,59 @@ object SignalRepository {
     // `PhoneStateListener` and not `TelephonyCallback`; the reason is at the listener below.
     @Suppress("DEPRECATION")
     fun readings(context: Context): Flow<SignalReading> = callbackFlow {
-        val telefonie = context.getSystemService(TelephonyManager::class.java)
-        if (telefonie == null || !hasPermission(context)) {
-            trySend(unbekannt(darfLesen = telefonie != null && hasPermission(context)))
+        val telephony = context.getSystemService(TelephonyManager::class.java)
+        if (telephony == null || !hasPermission(context)) {
+            trySend(unknown(mayRead = telephony != null && hasPermission(context)))
             awaitClose { }
             return@callbackFlow
         }
 
-        var pegel = -1
-        var imNetz = telefonie.simState == TelephonyManager.SIM_STATE_READY
-        var roaming = telefonie.isNetworkRoaming
+        var signalLevel = -1
+        var hasService = telephony.simState == TelephonyManager.SIM_STATE_READY
+        var roaming = telephony.isNetworkRoaming
 
-        fun melden() {
+        fun report() {
             trySend(
                 SignalReading(
-                    level = pegel,
+                    level = signalLevel,
                     mayRead = true,
-                    hasSim = telefonie.simState == TelephonyManager.SIM_STATE_READY,
-                    inService = imNetz,
+                    hasSim = telephony.simState == TelephonyManager.SIM_STATE_READY,
+                    inService = hasService,
                     roaming = roaming,
-                    networkType = netzart(telefonie),
+                    networkType = netTypeOf(telephony),
                 ),
             )
         }
 
         // the device runs android 11; the replacement exists only from 12 on.
-        val zuhoerer = object : PhoneStateListener() {
+        val listener = object : PhoneStateListener() {
             override fun onSignalStrengthsChanged(strength: SignalStrength?) {
-                pegel = strength?.level ?: -1
-                melden()
+                signalLevel = strength?.level ?: -1
+                report()
             }
 
             override fun onServiceStateChanged(state: ServiceState?) {
-                imNetz = state?.state == ServiceState.STATE_IN_SERVICE
+                hasService = state?.state == ServiceState.STATE_IN_SERVICE
                 roaming = state?.roaming ?: roaming
-                melden()
+                report()
             }
         }
 
         runCatching {
-            telefonie.listen(
-                zuhoerer,
+            telephony.listen(
+                listener,
                 PhoneStateListener.LISTEN_SIGNAL_STRENGTHS or PhoneStateListener.LISTEN_SERVICE_STATE,
             )
         }
-        melden()
+        report()
         awaitClose {
-            runCatching { telefonie.listen(zuhoerer, PhoneStateListener.LISTEN_NONE) }
+            runCatching { telephony.listen(listener, PhoneStateListener.LISTEN_NONE) }
         }
     }
 
-    private fun unbekannt(darfLesen: Boolean) = SignalReading(
+    private fun unknown(mayRead: Boolean) = SignalReading(
         level = -1,
-        mayRead = darfLesen,
+        mayRead = mayRead,
         hasSim = false,
         inService = false,
         roaming = false,
@@ -88,13 +88,13 @@ object SignalRepository {
 
     // `networkType` is the branch for anything before android 7; `dataNetworkType` is above.
     @Suppress("DEPRECATION")
-    private fun netzart(telefonie: TelephonyManager): String = runCatching {
-        val typ = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            telefonie.dataNetworkType
+    private fun netTypeOf(telephony: TelephonyManager): String = runCatching {
+        val type = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            telephony.dataNetworkType
         } else {
-            telefonie.networkType
+            telephony.networkType
         }
-        when (typ) {
+        when (type) {
             TelephonyManager.NETWORK_TYPE_NR -> "5G"
             TelephonyManager.NETWORK_TYPE_LTE -> "4G"
             TelephonyManager.NETWORK_TYPE_UMTS,

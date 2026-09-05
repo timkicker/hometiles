@@ -257,11 +257,11 @@ fun SignalContent(
         ) {
             // rising bars. empty ones stay as an outline so one sees how much is missing.
             repeat(SignalInfo.MAX_LEVEL) { index ->
-                val hoehe = (cellHeight.value * (0.08f + 0.045f * index)).coerceAtMost(48f).dp
+                val height = (cellHeight.value * (0.08f + 0.045f * index)).coerceAtMost(48f).dp
                 Box(
                     Modifier
                         .width((cellWidth.value * 0.09f).coerceIn(6f, 16f).dp)
-                        .height(hoehe)
+                        .height(height)
                         // fully rounded like the battery bar: a gauge, not a surface. a
                         // small radius of its own would be a second radius in the app.
                         .clip(RoundedCornerShape(50))
