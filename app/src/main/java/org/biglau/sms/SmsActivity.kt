@@ -30,6 +30,7 @@ import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
@@ -62,6 +63,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.biglau.ui.ClockFormat
 import org.biglau.ui.bestDatePattern
 import org.biglau.ui.bigSp
+import androidx.compose.ui.layout.ContentScale
+import coil.compose.AsyncImage
 import org.biglau.ui.theme.LocalCornerRadius
 import org.biglau.ui.BigLauActivity
 import org.biglau.ui.currentLocale
@@ -193,7 +196,7 @@ var granted by remember(resumes.intValue) { mutableStateOf(repository.hasReadPer
                 }
                 // filtered messages never reach the list. `PLAN.md` 4.7.
                 messages = SmsFilter.apply(
-                    repository.load(),
+                    repository.load(getString(org.biglau.core.system.R.string.mms_picture)),
                     config.sms.hiddenNumbers,
                     config.sms.hiddenWords,
                 )
@@ -626,6 +629,20 @@ private fun Conversation(
                         .padding(12.dp),
                 ) {
                     Column {
+                        // the picture goes through coil, like the caller photo: it scales to
+                        // the box instead of holding the full sized bitmap.
+                        message.imageUri?.let { picture ->
+                            AsyncImage(
+                                model = picture,
+                                contentDescription = null,
+                                contentScale = ContentScale.Fit,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .heightIn(max = 200.dp)
+                                    .clip(RoundedCornerShape(LocalCornerRadius.current))
+                                    .padding(bottom = 8.dp),
+                            )
+                        }
                         Text(
                             text = message.body,
                             color = when {

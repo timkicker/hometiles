@@ -11,4 +11,5 @@
     <string name="call_dir_rejected">refusé</string>
     <string name="call_dir_blocked">bloqué</string>
     <string name="call_dir_other">sens inconnu</string>
+    <string name="mms_picture">Image</string>
 </resources>

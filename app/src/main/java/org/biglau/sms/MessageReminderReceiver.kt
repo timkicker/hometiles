@@ -11,6 +11,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import org.biglau.contacts.ContactRepository
 import org.biglau.data.ConfigStore
+import org.biglau.ui.AppLocale
 
 /**
  * the alarm for the repeated reminder. `PLAN.md` 4.7.
@@ -39,7 +40,9 @@ class MessageReminderReceiver : BroadcastReceiver() {
         if (!SmsReminder.active(config)) return
         // only as the default app, or the real one reports the same message beside ours.
         if (!SmsRepository.get(context).isDefaultSmsApp()) return
-        val open = SmsReminder.due(SmsRepository.get(context).load(), config)
+        val open = SmsReminder.due(SmsRepository.get(context).load(
+            AppLocale.forApp(context).getString(org.biglau.core.system.R.string.mms_picture),
+        ), config)
         if (open.isEmpty()) return
         val contacts = ContactRepository.get(context)
         open.forEach { message ->

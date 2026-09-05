@@ -11,4 +11,5 @@
     <string name="call_dir_rejected">rechazada</string>
     <string name="call_dir_blocked">bloqueada</string>
     <string name="call_dir_other">sentido desconocido</string>
+    <string name="mms_picture">Imagen</string>
 </resources>

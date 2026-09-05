@@ -10,6 +10,8 @@ data class SmsMessage(
     val read: Boolean,
     /** the network refused it; sendTextMessage throwing nothing is not a receipt. */
     val failed: Boolean = false,
+    /** the picture of an mms, as a provider uri; null for an sms. */
+    val imageUri: String? = null,
 )
 
 data class SmsThread(
