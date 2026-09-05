@@ -61,4 +61,27 @@ class IncomingCallScreenTest {
         assertEquals(false, CallNotifications.CHANNEL.startsWith(org.biglau.sms.SmsNotifications.CHANNEL_PREFIX))
         assertEquals("call-incoming", CallNotifications.CHANNEL)
     }
+
+    /**
+     * the short answers must be readable before they are sent.
+     *
+     * they sat in rows fixed at 72 dp, like the buttons above them - and at this text size
+     * two lines do not fit in 72 dp, so all three read "I cannot talk rig..." at the
+     * emulator on 05.09.2026. a row that hides what it will send is worse than no row.
+     */
+    @Test
+    fun `the reply rows may grow`() {
+        // only the answer row, not the back row below it: that one is a button and stays at
+        // its 72 dp.
+        val row = Quelltext.cut(
+            Quelltext.file("org/biglau/phone/InCallActivity.kt").readText(),
+            "val body = stringResource(text)",
+            "onClick = { onPick(body) }",
+        )
+        assertTrue(
+            "the reply row is fixed in height again - then a sentence gets cut and one " +
+                "sends what one could not read.",
+            "heightIn(min = 72.dp)" in row && "Modifier.height(72.dp)" !in row,
+        )
+    }
 }

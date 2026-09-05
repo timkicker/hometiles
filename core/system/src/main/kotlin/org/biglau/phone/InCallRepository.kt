@@ -49,9 +49,13 @@ object InCallRepository {
     /**
      * turn the call down and hand a short text to telecom.
      *
-     * telecom passes it to the default sms app, which is BigLau: the text lands in
-     * `RespondViaMessageService` and from there in the conversation, ready to send. so the
-     * message still leaves only on a hand movement - see OutgoingTest.
+     * **telecom sends it itself.** it does not go to the default sms app - tried at the
+     * emulator on 05.09.2026, where `RespondViaSmsManager` reported "Couldn't send SMS
+     * message: Invalid SubId: -1", so it failed only for the missing sim. with a sim the
+     * message leaves at once.
+     *
+     * that makes this a place where something goes out, and the hand movement it hangs on is
+     * the row that carries the very sentence it will send. see OutgoingTest.
      */
     fun rejectWith(text: String) = runCatching { current?.reject(true, text) }
     fun hangUp() = runCatching { current?.disconnect() }

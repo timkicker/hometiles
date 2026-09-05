@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.safeDrawing
@@ -374,9 +375,9 @@ private fun ActionRow(
 /**
  * the short answers offered instead of a plain refusal.
  *
- * telecom takes the text and hands it to the default sms app, which is BigLau itself: it
- * lands in the conversation ready to send, and the owner sends it. so nothing goes out
- * without a hand movement - the promise this whole app rests on. see OutgoingTest.
+ * tapping one **sends it**: telecom takes the text and puts it on the wire itself. the row
+ * therefore carries the whole sentence and nothing else, so that what leaves is what was
+ * read. see OutgoingTest, which counts this place among those that may send.
  */
 @Composable
 private fun ReplyChoice(
@@ -402,7 +403,11 @@ private fun ReplyChoice(
             BigRow(
                 label = body,
                 icon = Icons.Filled.Message,
-                modifier = Modifier.height(72.dp),
+                // room to grow, not the fixed 72 dp of a button row: these labels are whole
+                // sentences, and at this text size two lines do not fit in 72 dp. seen at
+                // the emulator on 05.09.2026, where all three read "I cannot talk rig...".
+                // what one is about to send has to be readable before it goes.
+                modifier = Modifier.heightIn(min = 72.dp),
                 onClick = { onPick(body) },
             )
         }

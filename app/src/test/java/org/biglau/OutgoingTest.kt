@@ -37,15 +37,24 @@ class OutgoingTest {
         "MainActivity.kt" to
             "a contact tile the user set to \"call\", and the question \"call or write?\" " +
                 "at ContactMode.ASK",
+        "InCallActivity.kt" to
+            "the short answer on a ringing call - the row carries the whole sentence it " +
+                "sends (names the action)",
+        "InCallRepository.kt" to
+            "hands that sentence to telecom, which sends it; nothing else calls this",
     )
 
     /**
      * the way round through [org.biglau.actions.Intents] counts too: looking for `ACTION_CALL`
      * in plain text missed **two** screens dialling through `Intents.call(…)`. a permission
      * list one gets past with one step in between is none.
+     *
+     * `reject(true, …)` belongs here for the same reason although no `sendTextMessage` stands
+     * beside it: telecom sends that text itself. seen at the emulator on 05.09.2026 - without
+     * it this list would have stayed green while a new way out was built.
      */
     private val outgoingPattern =
-        Regex("""ACTION_CALL|Intents\.call\(|sendTextMessage|sendMultipartTextMessage""")
+        Regex("""ACTION_CALL|Intents\.call\(|sendTextMessage|sendMultipartTextMessage|reject\(true|rejectWith\(""")
 
     private fun places(): Map<File, List<String>> = Quelltext.files()
         .associateWith { file ->
