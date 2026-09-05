@@ -62,13 +62,28 @@ data class CallView(
  */
 object CallForeground {
 
-    fun pick(states: List<CallStatus>): Int? = when {
-        states.isEmpty() -> null
-        else -> states.indexOfFirst { it == CallStatus.RINGING }
-            .takeIf { it >= 0 }
-            ?: states.indexOfFirst { it == CallStatus.ACTIVE }.takeIf { it >= 0 }
-            ?: 0
+    /**
+     * [children] marks the members of a conference, one flag per call. telecom reports a
+     * conference as the conference itself **plus** every member, each as a call of its own;
+     * a member on the screen would be the same conversation shown twice. an empty list means
+     * no conference is running, which is the ordinary case.
+     */
+    fun pick(states: List<CallStatus>, children: List<Boolean> = emptyList()): Int? {
+        val shown = states.indices.filterNot { children.getOrElse(it) { false } }
+        if (shown.isEmpty()) return null
+        return shown.firstOrNull { states[it] == CallStatus.RINGING }
+            ?: shown.firstOrNull { states[it] == CallStatus.ACTIVE }
+            ?: shown.first()
     }
+
+    /**
+     * the other call beside the one in front, or null while there is only one.
+     *
+     * conference members are skipped here too: naming one of them as the second call told
+     * the user somebody else was waiting, when it was the same conversation.
+     */
+    fun other(children: List<Boolean>, front: Int): Int? =
+        children.indices.firstOrNull { it != front && !children[it] }
 }
 
 /**

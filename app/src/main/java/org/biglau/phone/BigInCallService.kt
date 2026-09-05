@@ -91,17 +91,25 @@ class BigInCallService : InCallService() {
         calls.firstOrNull()?.let(::publish)
     }
 
+    /** a conference member; telecom reports it as a call of its own beside the conference. */
+    private fun Call.isConferenceMember(): Boolean = parent != null
+
     /** which call is shown; the order sits in [CallForeground] and is checked there. */
     private fun foreground(): Call? {
         val list = calls
-        val index = CallForeground.pick(list.map { statusOf(it.state) }) ?: return null
+        val index = CallForeground.pick(
+            list.map { statusOf(it.state) },
+            list.map { it.isConferenceMember() },
+        ) ?: return null
         return list.getOrNull(index)
     }
 
     private fun publish(call: Call) {
         val shown = foreground() ?: call
         if (shown != call) return publish(shown)
-        val second = calls.firstOrNull { it != call }
+        val second = CallForeground
+            .other(calls.map { it.isConferenceMember() }, calls.indexOf(call))
+            ?.let { calls.getOrNull(it) }
         val details = call.details
         InCallRepository.publish(
             call = call,

@@ -49,6 +49,10 @@ class ProbeConnectionService : ConnectionService() {
                 TelecomManager.PRESENTATION_ALLOWED,
             )
             setCallerDisplayName(ProbeCall.NAME, TelecomManager.PRESENTATION_ALLOWED)
+            // no merge capability, so telecom offers no conference: two probes stay two
+            // calls. tried on this device on 05.09.2026 - a second probe arrived as an
+            // additional call, but a conference cannot be reached this way, and the
+            // conference handling in CallForeground is checked by its rules only.
             connectionCapabilities = Connection.CAPABILITY_MUTE or
                 Connection.CAPABILITY_HOLD or
                 Connection.CAPABILITY_SUPPORT_HOLD

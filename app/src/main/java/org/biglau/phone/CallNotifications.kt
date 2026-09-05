@@ -16,6 +16,10 @@ import org.biglau.ui.AppLocale
  * background start is refused, and an incall service runs in the background exactly when it
  * matters - screen off, phone in a pocket. then the call screen would simply not appear. a
  * full screen intent is the way android grants for this, and it also works on a locked screen.
+ *
+ * played through on this device on 05.09.2026 with the probe call and the screen asleep: the
+ * notice stood on channel `call-incoming` with a fullscreenIntent and importance HIGH, and
+ * `InCallActivity` was the resumed activity. after hanging up no notice was left.
  */
 object CallNotifications {
 
