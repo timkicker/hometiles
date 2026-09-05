@@ -15,12 +15,9 @@ object SystemPackagesReader {
 
     fun read(context: Context): SystemPackages = SystemPackages(
         sms = runCatching { Telephony.Sms.getDefaultSmsPackage(context) }.getOrNull(),
+        // no version check: the telecom manager is there from android 6 on, minSdk is 26.
         dialer = runCatching {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                context.getSystemService(TelecomManager::class.java)?.defaultDialerPackage
-            } else {
-                null
-            }
+            context.getSystemService(TelecomManager::class.java)?.defaultDialerPackage
         }.getOrNull(),
     )
 }

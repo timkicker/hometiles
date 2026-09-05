@@ -1,6 +1,7 @@
 package org.biglau.toggles
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.content.Context
 import android.content.pm.PackageManager
 import android.location.LocationListener
@@ -28,6 +29,8 @@ class SosLocation(private val context: Context) {
             ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) ==
             PackageManager.PERMISSION_GRANTED
 
+    /** guarded by [mayLocate] and by `runCatching`; lint follows neither. */
+    @SuppressLint("MissingPermission")
     fun start() {
         if (running || !mayLocate()) return
         val manager = context.getSystemService(Context.LOCATION_SERVICE) as? LocationManager ?: return

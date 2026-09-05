@@ -30,11 +30,20 @@ class LinksTest {
     // true, and beside the point.
     private val pattern = Regex("""([A-Za-z0-9_./-]+/[A-Za-z0-9_.-]+\.(?:md|sh|py))""")
 
+    /**
+     * a web address is not a path in this repository.
+     *
+     * the badge link `https://img.shields.io/...` reads to the pattern above as a file
+     * `img.sh` in a directory - and the rule reported it as dead. it is not dead, it is not
+     * a file at all.
+     */
+    private fun withoutUrls(text: String): String = text.replace(Regex("""https?://\S+"""), " ")
+
     @Test
     fun `every named path exists`() {
         val dead = listOf("PLAN.md", "README.md", "tools/README.md")
             .flatMap { name ->
-                val text = File("../$name").readText()
+                val text = withoutUrls(File("../$name").readText())
                 pattern.findAll(text).map { it.groupValues[1] }.map { name to it }
             }
             .filterNot { (_, path) -> path in allowed }
@@ -54,7 +63,7 @@ class LinksTest {
     @Test
     fun `the rule finds any paths at all`() {
         val count = listOf("PLAN.md", "README.md", "tools/README.md")
-            .sumOf { pattern.findAll(File("../$it").readText()).count() }
+            .sumOf { pattern.findAll(withoutUrls(File("../$it").readText())).count() }
         assertTrue("only $count paths found - does the rule still search?", count >= 5)
     }
 

@@ -145,6 +145,13 @@ class TranslationsTest {
      * form: the one-form often writes the number out and the other-form needs it.
      *
      * compared form against the same form: that `one` and `other` differ is correct.
+     *
+     * one exception, and only one: a translation may carry `%1$d` where english does not.
+     * french counts zero as singular, so its one-form has to show the number - without it an
+     * empty field says "one digit entered". every call passes the count as the first
+     * argument (`pluralStringResource(id, n, n)`), so that placeholder is always there.
+     * anything else must match, and a *missing* placeholder is never allowed: that is the
+     * direction in which a number silently disappears.
      */
     @Test
     fun `placeholders match in the plural forms too`() {
@@ -165,8 +172,10 @@ class TranslationsTest {
         val en = forms("values")
         translated.forEach { language ->
             val other = forms(language)
+            val countOnly = setOf("%1\$d")
             val differing = en.keys.intersect(other.keys)
                 .filter { en[it] != other[it] }
+                .filterNot { other[it] == en[it].orEmpty() + countOnly }
                 .map { (name, amount) -> "$language: $name/$amount ${en[name to amount]} instead of ${other[name to amount]}" }
             assertEquals("placeholders in a plural form", emptyList<String>(), differing)
         }

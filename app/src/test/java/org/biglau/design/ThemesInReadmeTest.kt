@@ -25,7 +25,7 @@ class ThemesInReadmeTest {
     fun `there are still four themes`() {
         assertEquals(
             "the number of themes has changed. a sentence in the README lists them " +
-                "(section Gestaltung) - it wants pulling along.",
+                "(section Looks) - it wants pulling along.",
             4,
             ThemeName.entries.size,
         )
@@ -33,10 +33,9 @@ class ThemesInReadmeTest {
 
     @Test
     fun `the sentence names all four`() {
-        // the marks are german: they cut into the german README.
-        val place = Quelltext.cut(readme, "## Gestaltung", "##")
-        listOf("unkel", "hell", "Kontrast", "Telefon folgen").forEach { word ->
-            assertTrue("the section Gestaltung is missing: $word", word in place)
+        val place = Quelltext.cut(readme, "## Looks", "##")
+        listOf("Dark", "light", "contrast", "follow the phone").forEach { word ->
+            assertTrue("the section Looks is missing: $word", word in place)
         }
     }
 }

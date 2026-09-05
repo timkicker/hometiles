@@ -1,6 +1,8 @@
 <resources>
     <plurals name="a11y_pin_digits">
-        <item quantity="one">Un chiffre saisi</item>
+        <!-- French counts 0 as singular, so this form has to carry the number: without it
+             an empty field would say "one digit entered". -->
+        <item quantity="one">%1$d chiffre saisi</item>
         <item quantity="other">%1$d chiffres saisis</item>
     </plurals>
 </resources>

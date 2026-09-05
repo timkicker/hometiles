@@ -13,6 +13,16 @@ tasks.withType<Test> {
 }
 
 android {
+    // What lint finds today is written down in `lint-baseline.xml`, so that a **new**
+    // finding turns the build red instead of drowning in the old ones. The baseline is not
+    // an excuse: what stands in it is listed in PLAN.md P8 as work, and the french plural
+    // forms in it are a job for the native review.
+    lint {
+        baseline = file("lint-baseline.xml")
+        warningsAsErrors = false
+        abortOnError = true
+    }
+
     namespace = "org.biglau"
     compileSdk = 35
 

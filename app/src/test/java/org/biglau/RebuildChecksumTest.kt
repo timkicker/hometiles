@@ -27,7 +27,8 @@ class RebuildChecksumTest {
             (sum!!.range.first - 400).coerceAtLeast(0),
             (sum.range.last + 400).coerceAtMost(readme.length),
         )
-        // the README is german, so the word it looks for is german too.
+        // the word is capitalised in the README, and the rule wants it that way: a lower
+        // case "commit" appears in prose too, and then the rule would find the wrong one.
         val commit = Regex("""Commit\s+`([0-9a-f]{7,40})`""").find(around)
         assertTrue(
             "the checksum in the README names no commit. without it nobody can recompute " +

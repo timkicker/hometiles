@@ -21,9 +21,9 @@ class ShortcutRepository(context: Context) {
         appContext.getSystemService(Context.LAUNCHER_APPS_SERVICE) as LauncherApps
     private val user: UserHandle = Process.myUserHandle()
 
+    // no version check: shortcuts arrived in android 7.1 and minSdk is 26.
     fun available(): Boolean =
-        Build.VERSION.SDK_INT >= Build.VERSION_CODES.N_MR1 &&
-            runCatching { launcherApps.hasShortcutHostPermission() }.getOrDefault(false)
+        runCatching { launcherApps.hasShortcutHostPermission() }.getOrDefault(false)
 
     /** `getShortcuts` returns null without the permission: that is no answer, not an empty one. */
     fun forPackage(packageName: String): ShortcutAnswer {

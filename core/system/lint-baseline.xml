@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<issues format="6" by="lint 8.7.3" type="baseline" client="gradle" dependencies="false" name="AGP (8.7.3)" variant="all" version="8.7.3">
+
+    <issue
+        id="StaticFieldLeak"
+        message="Do not place Android context classes in static fields (static reference to `InCallRepository` which has field `service` pointing to `InCallService`); this is a memory leak"
+        errorLine1="/**"
+        errorLine2="^">
+        <location
+            file="src/main/kotlin/org/biglau/phone/InCallRepository.kt"
+            line="10"
+            column="1"/>
+    </issue>
+
+    <issue
+        id="StaticFieldLeak"
+        message="Do not place Android context classes in static fields; this is a memory leak"
+        errorLine1="    // `InCallService`, not `BigInCallService`: only `setMuted` and `setAudioRoute` are"
+        errorLine2="    ^">
+        <location
+            file="src/main/kotlin/org/biglau/phone/InCallRepository.kt"
+            line="25"
+            column="5"/>
+    </issue>
+
+</issues>

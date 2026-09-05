@@ -2,6 +2,7 @@ package org.biglau.toggles
 
 import org.biglau.actions.SosMessage
 import android.Manifest
+import android.annotation.SuppressLint
 import android.content.Context
 import android.content.pm.PackageManager
 import android.location.Location
@@ -113,6 +114,12 @@ object Sos {
             SmsManager.getDefault()
         }
 
+    /**
+     * lint cannot see the guard: the permission is checked one line below through
+     * `hasPermission`, and the call itself sits in a `runCatching` that swallows a
+     * SecurityException. both of the things lint asks for are there.
+     */
+    @SuppressLint("MissingPermission")
     private fun lastKnownLocation(context: Context): Location? {
         if (!hasPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) &&
             !hasPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION)

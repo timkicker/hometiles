@@ -1,0 +1,84 @@
+name: Release
+
+# A tag, and only a tag. F-Droid reads tags to find new versions (UpdateCheckMode: Tags),
+# so the tag is the release; this workflow only puts a file beside it.
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Set up the Android SDK
+        uses: android-actions/setup-android@v3
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      # The tag has to agree with the versionName in the build file. A release named
+      # v0.2.0 carrying 0.1.0 inside is the kind of mismatch nobody notices until an
+      # update refuses to install.
+      - name: The tag and versionName must agree
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          name=$(sed -n 's/.*versionName = "\(.*\)".*/\1/p' app/build.gradle.kts | head -1)
+          echo "tag $tag, versionName $name"
+          test "$tag" = "$name"
+
+      # Every release has run the rules. A build that ships without them shipped nothing
+      # that was checked.
+      - name: Run the rules
+        run: ./gradlew test
+
+      - name: Build (unsigned)
+        run: ./gradlew --no-build-cache clean assembleRelease
+
+      # Unsigned on purpose: signing with the debug key would be a lie about where the
+      # file came from, and F-Droid signs its own builds. Whoever wants a signed apk
+      # brings their own key.
+      - name: Checksums
+        run: |
+          cd app/build/outputs/apk/release
+          mv app-release-unsigned.apk "biglau-${GITHUB_REF_NAME}-unsigned.apk"
+          sha256sum "biglau-${GITHUB_REF_NAME}-unsigned.apk" > SHA256SUMS
+          cat SHA256SUMS
+
+      - name: Draft the release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: BigLau ${{ github.ref_name }}
+          tag_name: ${{ github.ref_name }}
+          # A draft, not a publication: someone reads it before the world does.
+          draft: true
+          prerelease: ${{ contains(github.ref_name, '-') }}
+          files: |
+            app/build/outputs/apk/release/biglau-*-unsigned.apk
+            app/build/outputs/apk/release/SHA256SUMS
+          body: |
+            ## BigLau ${{ github.ref_name }}
+
+            The apk here is **unsigned**. Install it only if you sign it yourself; the
+            usual way to get BigLau is F-Droid, which builds from this source and signs
+            with its own key.
+
+            Verify what you downloaded:
+
+            ```sh
+            sha256sum -c SHA256SUMS
+            ```
+
+            The same source gives the same file: see "Reproducible builds" in the README.

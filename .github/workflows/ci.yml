@@ -1,0 +1,120 @@
+name: CI
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+    branches: [main, dev]
+
+# One run per branch is enough: a second push makes the first answer stale.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # The rules. Most of them read the source rather than run the app, so this job is the
+  # one that has to pass before anything else matters.
+  rules:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # RebuildChecksumTest asks git whether the commit named in the README exists.
+          # With a shallow clone it would only see the tip and call a good commit missing.
+          fetch-depth: 0
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Set up the Android SDK
+        uses: android-actions/setup-android@v3
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Run the rules
+        run: ./gradlew test
+
+      # A green run says little without the count: a build file that quietly excludes a
+      # module would make the suite pass by not running.
+      - name: Count what ran
+        if: always()
+        run: |
+          total=$(find . -path '*/build/test-results/*/TEST-*.xml' \
+            -exec sed -n 's/.*tests="\([0-9]*\)".*/\1/p' {} + | awk '{s+=$1} END {print s+0}')
+          echo "test cases: $total"
+          test "$total" -ge 2000
+
+      - name: Keep the reports
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports
+          path: |
+            **/build/reports/tests/
+            **/build/test-results/
+          retention-days: 7
+
+  # The app itself. R8 runs only in the release build, and a rule that holds in debug can
+  # still be shrunk away there.
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Set up the Android SDK
+        uses: android-actions/setup-android@v3
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Debug build
+        run: ./gradlew assembleDebug
+
+      - name: Release build (unsigned)
+        run: ./gradlew assembleRelease
+
+      - name: Lint
+        run: ./gradlew lintRelease
+
+      - name: Keep the unsigned APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: biglau-unsigned
+          path: app/build/outputs/apk/release/*.apk
+          retention-days: 14
+
+  # The promise in the README: the same source gives the same file. Checked here so that
+  # it cannot rot between releases - it is the one claim a user cannot verify cheaply.
+  reproducible:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Set up the Android SDK
+        uses: android-actions/setup-android@v3
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Build twice without the build cache
+        run: |
+          ./gradlew --no-build-cache clean assembleRelease
+          first=$(sha256sum app/build/outputs/apk/release/app-release-unsigned.apk | cut -d' ' -f1)
+          ./gradlew --no-build-cache clean assembleRelease
+          second=$(sha256sum app/build/outputs/apk/release/app-release-unsigned.apk | cut -d' ' -f1)
+          echo "first  $first"
+          echo "second $second"
+          test "$first" = "$second"

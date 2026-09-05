@@ -1,115 +1,242 @@
-# BigLau
+<p align="center">
+  <img alt="BigLau" src="docs/logo.png" width="140">
+</p>
 
-Ein großer, ruhiger Startbildschirm für Android, mit Telefon und SMS in derselben App.
+<p align="center">
+  <b>A big, calm home screen for Android. Phone, messages and contacts in the same app.</b>
+</p>
 
-BigLau ist die freie Antwort auf BIG Launcher, das seine Funktionen inzwischen auf drei
-gekaufte Apps verteilt. Hier ist alles in einer App, quelloffen, ohne Konto, ohne Werbung,
-ohne Netzwerkzugriff.
+<p align="center">
+  <a href="https://github.com/timkicker/biglau/actions/workflows/ci.yml">
+    <img alt="CI" src="https://img.shields.io/github/actions/workflow/status/timkicker/biglau/ci.yml?branch=main&label=ci">
+  </a>
+  <a href="LICENSE">
+    <img alt="License" src="https://img.shields.io/badge/license-GPLv3-blue.svg">
+  </a>
+  <img alt="Platform" src="https://img.shields.io/badge/platform-Android%208%2B-3ddc84">
+  <img alt="Rules" src="https://img.shields.io/badge/rules-1546-blue">
+  <img alt="Network" src="https://img.shields.io/badge/internet%20permission-none-informational">
+</p>
 
-Entwickelt und geprüft auf einem **Unihertz Jelly 2** (3 Zoll, 480 × 854, 220 dpi), dem
-Gerät, auf dem große Kacheln am meisten zählen und am schwersten unterzubringen sind.
+---
 
-## Was drin ist
+## Table of Contents
+- [Why BigLau?](#why-biglau)
+- [Screenshots](#screenshots)
+- [What it does](#what-it-does)
+- [Install](#install)
+- [Build](#build)
+- [Reproducible builds](#reproducible-builds)
+- [Permissions](#permissions)
+- [Looks](#looks)
+- [How it is tested](#how-it-is-tested)
+- [Contributing](#contributing)
+- [License and credits](#license-and-credits)
 
-- **Startbildschirm** aus großen Kacheln, frei belegbar: App, Kontakt, Verknüpfung,
-  Widget, Funktion (Taschenlampe, WLAN, Bluetooth, Flugmodus, Klingeln/Vibrieren …) oder Sprung
-  auf einen anderen Bildschirm. Raster, Größen, Farben und Beschriftungen einstellbar.
-- **Kopfzeile** mit Uhrzeit, Datum, Ladestand und Ladebalken, abschaltbar.
-- **Telefon**: Tastenfeld, Kurzwahl auf 2-9, Anrufliste mit Gruppierung, eigener
-  Anrufbildschirm. BigLau kann die Telefon-Rolle übernehmen, muss aber nicht.
-- **Nachrichten**: Liste, Gespräch, Verfassen. Alle vier Pflichtkomponenten für die
-  Standard-SMS-Rolle sind da.
-- **Kontakte** mit Suche, Sortierung nach Vor- oder Nachnamen, Favoriten.
-- **App-Liste** als große Liste mit Suche und „zuletzt benutzt"; Apps lassen sich
-  ausblenden. Ganz am Ende steht **„BigLau-Einstellungen"**. Damit gibt es einen Weg
-  dorthin, auch wenn auf keinem Bildschirm eine Einstellungs-Kachel liegt. Die Zeile ist
-  auch über die Suche zu finden.
-- **SOS**: Notfallknopf mit Countdown und Notfall-SMS an mehrere Nummern, auf Wunsch mit
-  Standort. BigLau **wählt dabei nie von selbst**. Nach dem Senden steht ein Knopf da, der
-  die Wähltastatur mit der ersten Nummer öffnet.
-- **Lesehilfe**: langer Druck liest die Kachel vor oder zeigt ihren Namen bildschirmfüllend;
-  Blätterknöpfe statt Wischen für lange Listen.
-- **Sicherung**: Konfiguration als Datei exportieren und auf dem nächsten Telefon
-  wieder einlesen.
-- **Notfall-Auffang**: startet der Launcher zweimal hintereinander nicht, erscheint ein
-  einfacher Bildschirm statt eines schwarzen Geräts: ganz oben Telefon und Kontakte (die
-  Apps des Systems, nicht die eigenen), darunter noch einmal versuchen, Einstellungen,
-  anderen Startbildschirm wählen und Kacheln zurücksetzen.
+---
 
-## Gestaltung
+## Why BigLau?
 
-Dunkel als Hauptthema, dazu ein helles, ein Kontrastthema (Schwarz auf Gelb) und die
-Einstellung „dem Telefon folgen". Jede Kachel ist eine Fläche
-in einer Farbe, das Symbol oben links, die Beschriftung unten links in einer Zone fester
-Höhe, dadurch stehen die Grundlinien in einer Reihe, auch wenn eine Beschriftung umbricht.
-Alle Farbpaare erfüllen mindestens 4,5:1 (WCAG AAA für große Schrift); ein Test prüft das
-für jede Kombination, die die App überhaupt zeichnen kann.
+Large-tile launchers exist, but the well known one now spreads phone, messages and the
+launcher itself over three paid apps. BigLau puts them back in one place, gives the source
+away, and asks for no account.
 
-Ausführlich in [PLAN.md](PLAN.md), Abschnitt 3.
+- **One app, not three.** Home screen, dialler, messages and contacts ship together and look
+  the same.
+- **Made for a small screen.** Developed on a **Unihertz Jelly 2**: 3 inches, 480 x 854 px at
+  220 dpi, which leaves **349 x 597 dp** once the system bars are off. Big tiles are hardest
+  there, and that is the point.
+- **No network.** There is no `INTERNET` permission in the manifest, so nothing can leave the
+  phone even by accident.
+- **No account, no ads, no telemetry.** Your configuration is a file on your phone.
+- **Readable by default.** Atkinson Hyperlegible as the standard typeface, tiles that shrink
+  their own text before they cut it, and every colour pair at 4.5:1 or better.
+- **It does not dial by itself.** Not even the SOS tile: it writes, then offers a button that
+  opens the keypad with the number in it.
 
-## Bauen
+> Working title. The name is not final and will change before any release.
+
+## Screenshots
+
+<p align="center">
+  <img src="docs/screenshots/01-home.png" alt="Home screen with large tiles" width="30%"/>
+  <img src="docs/screenshots/02-incoming-call.png" alt="Incoming call" width="30%"/>
+  <img src="docs/screenshots/04-messages.png" alt="Message list" width="30%"/>
+</p>
+<p align="center">
+  <img src="docs/screenshots/05-conversation.png" alt="A conversation" width="30%"/>
+  <img src="docs/screenshots/03-send-a-message.png" alt="Turn a call down with a short answer" width="30%"/>
+  <img src="docs/screenshots/06-apps.png" alt="App list" width="30%"/>
+</p>
+<p align="center">
+  <img src="docs/screenshots/07-edit-tile.png" alt="Editing a tile" width="30%"/>
+  <img src="docs/screenshots/08-settings.png" alt="Settings" width="30%"/>
+  <img src="docs/screenshots/09-sos.png" alt="Setting up SOS" width="30%"/>
+</p>
+
+## What it does
+
+**Home screen**
+- A grid of large tiles, each one freely assigned: an app, a contact, a shortcut, a widget, a
+  built-in function or a jump to another screen.
+- Grid size, tile size, colours, labels and label position are all settings.
+- Header with clock, date, battery level and charge bar. It can be switched off.
+- Long press reads the tile out or shows its name full screen, for eyes that need it.
+- Paging buttons instead of swiping, for hands that do not swipe well.
+
+**Phone**
+- Keypad with big keys, speed dial on 2 to 9, call log with grouping.
+- Its own call screen: answer, reject, mute, speaker, hold, keypad, bluetooth.
+- Turn a call down with a short written answer.
+- BigLau can take the phone role, but it works without it.
+- Emergency numbers always go to the system dialler.
+
+**Messages**
+- Thread list, conversation, writing and sending, delivery receipts.
+- All four components Android demands of a default SMS app.
+- Picture messages already on the phone are shown, text and image.
+- Filter by number and by word.
+
+**Contacts**
+- Search that ignores accents and case, sorting by first or last name, favourites.
+
+**App list**
+- One long list with search and "recently used", and apps can be hidden.
+- The last row is always **BigLau settings**, so there is a way in even when no tile leads
+  there. The search finds that row too.
+
+**SOS**
+- A countdown, then a message to up to five people, with the location if there is one.
+- After sending, a button opens the keypad with the first number. **BigLau never dials by
+  itself.**
+
+**Safety net**
+- If the launcher fails to start twice in a row, a plain screen appears instead of a black
+  phone: the system phone and contacts apps at the top, then try again, settings, choose
+  another home screen, and reset the tiles.
+
+**Backup**
+- The whole configuration exports to a file and reads back on the next phone.
+
+**Languages**: English, German, Spanish, French, Italian.
+
+## Install
+
+There is **no release yet**. The app runs on Android 8 (API 26) and above; it is developed
+against Android 11 on the target device.
+
+Until then, build it yourself (see below). Publication on F-Droid is planned, and the
+repository already carries the metadata for it under `fastlane/metadata/`.
+
+## Build
 
 ```sh
-source ./env.sh      # setzt ANDROID_HOME, JAVA_HOME und den Gradle-Pfad
+source ./env.sh          # sets ANDROID_HOME, JAVA_HOME and the gradle path
 ./gradlew assembleDebug
-./gradlew testDebugUnitTest
+./gradlew test
 ./gradlew installDebug
 ```
 
-Gebraucht werden das Android SDK (compileSdk 35) und ein JDK 21. Der Pfad zum JDK steht
-bewusst **nicht** in `gradle.properties`, er kommt aus `JAVA_HOME`.
+You need the Android SDK (compileSdk 35) and a JDK 21. The path to the JDK deliberately does
+**not** live in `gradle.properties`; it comes from `JAVA_HOME`.
 
-### Reproduzierbar
+Modules: `:app` and four libraries, `:core:model` (no Android imports at all), `:core:data`,
+`:core:system` and `:core:ui`.
 
-`assembleRelease` liefert ein **unsigniertes** APK. Mit dem Debug-Schlüssel zu signieren
-wäre eine Lüge über die Herkunft. Wer selbst veröffentlicht, trägt seinen eigenen Schlüssel
-ein; F-Droid signiert ohnehin selbst.
+## Reproducible builds
 
-Zwei vollständige Neubauten ohne Build-Cache ergeben dieselbe Datei:
+`assembleRelease` produces an **unsigned** APK. Signing it with the debug key would be a lie
+about where it came from. Whoever publishes brings their own key; F-Droid signs its own
+builds anyway.
+
+Two full rebuilds without the build cache give the same file:
 
 ```sh
 ./gradlew --no-build-cache clean assembleRelease
 sha256sum app/build/outputs/apk/release/app-release-unsigned.apk
 ```
 
-Geprüft am 3. September 2026 mit AGP 8.7.3, Gradle 8.11.1 und JDK 21, zweimal ohne
-Build-Cache gebaut, beide Male
+Checked on 3 September 2026 with AGP 8.7.3, Gradle 8.11.1 and JDK 21, built twice without the
+build cache, both times
 
 ```
-4f89516a674722eb3a8432036d60150e0468e26296739ec12c67752293f4c1a7   1 789 011 Bytes
+4f89516a674722eb3a8432036d60150e0468e26296739ec12c67752293f4c1a7   1 789 011 bytes
 ```
 
-für **Commit `b753657`**. Die Prüfsumme gehört zu einem Stand des Quelltexts, nicht zum
-Projekt: wer sie nachrechnen will, baut diesen Commit. Genau deshalb steht er jetzt dabei,
-die vorige Angabe nannte nur ein Datum, und schon der nächste Commit machte sie unprüfbar.
-`tools/nachbauen.sh` macht beide Läufe und den Vergleich in einem Aufruf.
+for **Commit `b753657`**. A checksum belongs to one state of the source, not to the project:
+whoever wants to recompute it builds that commit. `tools/nachbauen.sh` does both runs and the
+comparison in one call.
 
-## Berechtigungen
+## Permissions
 
-Alle sind optional und werden erst gefragt, wenn die zugehörige Funktion benutzt wird.
-Ohne SIM oder ohne erteilte Rolle läuft der Launcher vollständig weiter.
+All of them are optional and are asked for only when the matching feature is used. Without a
+SIM or without a granted role the launcher keeps working.
 
-| Berechtigung | Wofür |
+| Permission | What for |
 | --- | --- |
-| `CALL_PHONE` | Anrufen aus Kurzwahl, Kontakten und SOS |
-| `READ_CALL_LOG`, `WRITE_CALL_LOG` | Anrufliste anzeigen und löschen |
-| `READ_CONTACTS`, `WRITE_CONTACTS` | Kontakte und Favoritenkennzeichen |
-| `SEND_SMS`, `READ_SMS`, `RECEIVE_SMS` | Nachrichten |
-| `ACCESS_FINE_LOCATION` | Standort in der Notfall-SMS |
-| `VIBRATE`, `EXPAND_STATUS_BAR`, `SET_WALLPAPER` | Rückmeldung, Schalter, Hintergrund |
+| `CALL_PHONE` | calling from speed dial, contacts and SOS |
+| `READ_CALL_LOG`, `WRITE_CALL_LOG` | showing and deleting the call log |
+| `READ_CONTACTS`, `WRITE_CONTACTS` | contacts and the favourite mark |
+| `SEND_SMS`, `READ_SMS`, `RECEIVE_SMS` | messages |
+| `ACCESS_FINE_LOCATION` | the location in an emergency message |
+| `VIBRATE`, `EXPAND_STATUS_BAR`, `SET_WALLPAPER` | feedback, toggles, wallpaper |
 
-Kein `INTERNET`. BigLau sendet nichts, das Betriebssystem lässt es gar nicht zu.
+No `INTERNET`, and no `QUERY_ALL_PACKAGES`: a launcher gets by with `<queries>` and
+`LauncherApps`.
 
-Wer ins Archiv sieht, findet trotzdem `okhttp3/…/publicsuffixes.gz`: die Bildbibliothek
-Coil bringt einen HTTP-Client mit, den BigLau nie benutzt (Kontaktfotos kommen über
-`content://`). R8 räumt den Code weg, die 41 kB Beilage bleiben. Ohne
-`INTERNET`-Berechtigung kann davon nichts ins Netz, siehe `PLAN.md` P8.
+Anyone reading the archive will still find `okhttp3/.../publicsuffixes.gz`: the image library
+Coil brings an HTTP client that BigLau never calls, since contact photos come through
+`content://`. R8 removes the code, the 41 kB of data stay. Without the `INTERNET` permission
+none of it can reach the network.
 
-## Lizenz
+## Looks
 
-GPL-3.0-or-later, siehe [LICENSE](LICENSE).
+Dark is the main theme, with a light one, a contrast theme (black on yellow) and the setting
+"follow the phone". Every tile is one flat colour, the icon at the top left, the label at the
+bottom left inside a zone of fixed height, so the baselines line up even when a label wraps.
+All colour pairs meet at least 4.5:1, and a rule checks that for every combination the app is
+able to draw.
 
-Mitgeliefert ist die Schrift **Atkinson Hyperlegible** vom Braille Institute of America
-unter der SIL Open Font License 1.1, siehe
-[LICENSE-Atkinson-Hyperlegible.txt](LICENSE-Atkinson-Hyperlegible.txt). Sie ist die
-Vorgabe, weil sie Buchstaben auseinanderzieht, die sich sonst gleichen.
+More in [PLAN.md](PLAN.md), section 3. That file and [STATUS.md](STATUS.md) are in German:
+the plan and the running log are written in the language they were thought in.
+
+## How it is tested
+
+There is no test framework here beyond JUnit, and there are **1546 rules** in 313 classes.
+Most of them do not run the app; they read its source and hold it to a promise:
+
+- A permission in the manifest that no code uses is a claim about abilities that do not
+  exist, and a rule lists every place that may dial or send.
+- Colour pairs are computed, not eyeballed.
+- A number in a user-visible sentence must come from the constant it talks about.
+- Facts measured on a device carry the date they were measured on.
+- Text must fit the smallest screen the app targets, measured rather than assumed.
+
+The rules exist because the app is meant for someone who cannot easily work around a bug.
+
+```sh
+./gradlew test
+```
+
+## Contributing
+
+Focused pull requests are welcome.
+
+- Kotlin, Compose, and no new dependency without a reason.
+- New behaviour comes with a rule that fails without it.
+- Comments say what the code cannot: a condition you cannot see, a why-not, or where a number
+  came from.
+
+## License and credits
+
+- License: [GPL-3.0-or-later](LICENSE)
+- Typeface: **Atkinson Hyperlegible** by the Braille Institute of America under the SIL Open
+  Font License 1.1, see
+  [LICENSE-Atkinson-Hyperlegible.txt](LICENSE-Atkinson-Hyperlegible.txt). It is the default
+  because it pulls apart letters that otherwise look alike.
+
+**Libraries**
+- [Jetpack Compose](https://developer.android.com/jetpack/compose) - the whole interface
+- [Coil](https://coil-kt.github.io/coil/) - contact photos and picture messages
+- [kotlinx.serialization](https://github.com/Kotlin/kotlinx.serialization) - the configuration file
+- [AndroidX Core, Activity and Lifecycle](https://developer.android.com/jetpack/androidx) - the platform glue

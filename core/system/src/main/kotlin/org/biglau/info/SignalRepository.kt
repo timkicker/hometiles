@@ -1,6 +1,7 @@
 package org.biglau.info
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
@@ -86,15 +87,17 @@ object SignalRepository {
         networkType = "",
     )
 
-    // `networkType` is the branch for anything before android 7; `dataNetworkType` is above.
-    @Suppress("DEPRECATION")
+    /**
+     * the permission is checked by the caller, in [readings], one line before the flow
+     * starts - lint cannot follow that through `hasPermission`, hence the suppression here
+     * rather than a guard that would run twice.
+     *
+     * no fallback to the deprecated `networkType`: minSdk is 26, so `dataNetworkType` is
+     * always there. the branch for android 6 and below was dead code.
+     */
+    @SuppressLint("MissingPermission")
     private fun netTypeOf(telephony: TelephonyManager): String = runCatching {
-        val type = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            telephony.dataNetworkType
-        } else {
-            telephony.networkType
-        }
-        when (type) {
+        when (telephony.dataNetworkType) {
             TelephonyManager.NETWORK_TYPE_NR -> "5G"
             TelephonyManager.NETWORK_TYPE_LTE -> "4G"
             TelephonyManager.NETWORK_TYPE_UMTS,
