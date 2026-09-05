@@ -35,7 +35,7 @@ class ThemenImReadmeTest {
 
     @Test
     fun `der Satz nennt alle vier`() {
-        val stelle = Quelltext.ausschnitt(readme, "## Gestaltung", "##")
+        val stelle = Quelltext.cut(readme, "## Gestaltung", "##")
         listOf("unkel", "hell", "Kontrast", "Telefon folgen").forEach { wort ->
             assertTrue("Im Abschnitt Gestaltung fehlt: $wort", wort in stelle)
         }

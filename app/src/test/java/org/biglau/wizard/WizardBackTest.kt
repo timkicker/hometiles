@@ -18,7 +18,7 @@ import org.junit.Test
  */
 class WizardBackTest {
 
-    private val quelle = Quelltext.datei("org/biglau/wizard/WizardActivity.kt").readText()
+    private val quelle = Quelltext.file("org/biglau/wizard/WizardActivity.kt").readText()
 
     /** Im ersten Schritt gibt es keinen Schritt davor - dort muss das Schliessen greifen. */
     @Test
@@ -28,7 +28,7 @@ class WizardBackTest {
 
     @Test
     fun `der Assistent schliesst sich, wenn es nicht weiter zurueckgeht`() {
-        val block = Quelltext.ausschnitt(quelle, "BackHandler(enabled = true)", "}")
+        val block = Quelltext.cut(quelle, "BackHandler(enabled = true)", "}")
         assertTrue("Kein finish() im Zurueck-Weg: $block", "finish()" in block)
     }
 }

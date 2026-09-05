@@ -607,7 +607,7 @@ class MainActivity : BigLauActivity() {
                         FolderOverlay(
                             name = labelAt(config, screenId, x, y, apps),
                             onClose = { kachelMenue.value = null },
-                            schliessen = R.string.dialog_close,
+                            closeLabel = R.string.dialog_close,
                         ) { strip, back ->
                             // `PLAN.md` 10.3.5: while the list is open the focus lies in
                             // it. without this the d-pad walked it into the home screen
@@ -1153,7 +1153,7 @@ private fun FolderOverlay(
      * what stands on the strip below. close folder by default, since that is what the frame
      * is built for; the menu-key list uses the same frame and is no folder.
      */
-    schliessen: Int = R.string.folder_close,
+    closeLabel: Int = R.string.folder_close,
     content: @Composable (FocusRequester, FocusRequester) -> Unit,
 ) {
     val palette = LocalBigPalette.current
@@ -1183,7 +1183,7 @@ private fun FolderOverlay(
         // the back gesture closes it too. the strip is for everyone who does not use it,
         // and it says what it does instead of showing a cross.
         BigRow(
-            label = stringResource(schliessen),
+            label = stringResource(closeLabel),
             icon = Icons.Filled.Close,
             modifier = Modifier
                 .focusRequester(belowAnchor)

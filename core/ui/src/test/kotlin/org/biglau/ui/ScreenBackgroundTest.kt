@@ -11,113 +11,105 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * PLAN.md 4.1: eigener Hintergrund pro Screen.
+ * PLAN.md 4.1: a background of its own per screen.
  *
- * `Background.Solid` wurde von Anfang an gemalt und war nirgends einzustellen;
- * `Background.Image` stand im Modell und wurde nie gemalt — ein `else`-Zweig verschluckte
- * ihn. Beides sind Zusagen, die in der Sicherungsdatei stehen und nichts tun.
+ * `Background.Solid` was painted from the start and settable nowhere; `Background.Image`
+ * stood in the model and was never painted, swallowed by an `else` branch. both are promises
+ * that stand in the backup file and do nothing.
  */
 class ScreenBackgroundTest {
 
     @Test
-    fun `die vorgabe ist die farbe des themas`() {
+    fun `the default is the theme's colour`() {
         assertEquals(Background.Theme, Screen("a", "A", 2, 3).background)
     }
 
     /**
-     * Die eine Regel, an der alles hängt: eine Kachel muss sich vom Untergrund abheben,
-     * sonst sieht man nicht, wo sie aufhört. Drei zu eins ist die WCAG-Schwelle für
-     * Flächen, die man auseinanderhalten muss.
+     * the one rule everything hangs on: a tile has to stand out from its ground or one cannot
+     * see where it ends. three to one is the wcag threshold for surfaces that must be told
+     * apart.
      */
     @Test
-    fun `jede farbe hebt sich von jeder kachelfarbe ab`() {
-        val schwach = mutableListOf<String>()
-        for ((thema, systemIsDark) in themenUndSystem()) {
-            val palette = paletteFor(thema, systemIsDark)
-            for (grund in ScreenBackground.choicesFor(thema, systemIsDark)) {
-                for ((i, kachel) in palette.tiles.withIndex()) {
-                    val wert = contrastRatio(grund, kachel.value.toLong() shr 32)
-                    if (wert < 3.0) schwach += "$thema/Kachel$i/${grund.toString(16)}: %.2f".format(wert)
+    fun `every colour stands out from every tile colour`() {
+        val weak = mutableListOf<String>()
+        for ((theme, systemIsDark) in themesAndSystem()) {
+            val palette = paletteFor(theme, systemIsDark)
+            for (ground in ScreenBackground.choicesFor(theme, systemIsDark)) {
+                for ((i, tile) in palette.tiles.withIndex()) {
+                    val value = contrastRatio(ground, tile.value.toLong() shr 32)
+                    if (value < 3.0) weak += "$theme/tile$i/${ground.toString(16)}: %.2f".format(value)
                 }
             }
         }
-        assertEquals(emptyList<String>(), schwach)
+        assertEquals(emptyList<String>(), weak)
     }
 
     /**
-     * Auf einem eigenen Hintergrund steht **mehr** als eine Kachel.
+     * **more** than a tile stands on a background of its own: the empty tile's border - the
+     * only sign that a free slot is there - and the warning type. both are checked against the
+     * *theme* colour, and a background of its own is exactly what invalidates that check.
      *
-     * Geprüft war bis zum 04.09.2026 nur die Kachel. Daneben liegen dort aber auch der
-     * Rahmen der leeren Kachel — der einzige Hinweis, dass da ein freier Platz ist — und
-     * die Warnschrift. Beide sind gegen die *Themafarbe* geprüft, und genau diese Prüfung
-     * macht ein eigener Hintergrund ungültig; das steht wörtlich im Kommentar von
-     * `ScreenBackground.inkFor`, war aber nur für die Tinte gedacht.
-     *
-     * Nachgerechnet halten beide — knapp: der Rahmen kommt im dunklen Thema auf 3,06, die
-     * Warnschrift auf 7,23. Bei zwölf Prozent Einfärbung ist das kein Zufall, sondern die
-     * Zahl, die dort gewählt wurde. Wer sie erhöht oder eine der beiden Farben anfasst,
-     * soll es hier merken und nicht am Gerät.
+     * both hold, narrowly: the border reaches 3.06 in the dark theme, the warning type 7.23.
+     * at twelve percent tinting that is not chance but the number chosen there.
      */
     @Test
-    fun `auch Rahmen und Warnschrift halten auf jedem eigenen Hintergrund`() {
-        val schwach = mutableListOf<String>()
-        for ((thema, systemIsDark) in themenUndSystem()) {
-            val palette = paletteFor(thema, systemIsDark)
-            for (grund in ScreenBackground.choicesFor(thema, systemIsDark)) {
-                val rahmen = contrastRatio(palette.emptyTileBorder.value.toLong() shr 32, grund)
-                if (rahmen < 3.0) {
-                    schwach += "$thema/Rahmen/${grund.toString(16)}: %.2f".format(rahmen)
+    fun `border and warning type hold on every background of its own too`() {
+        val weak = mutableListOf<String>()
+        for ((theme, systemIsDark) in themesAndSystem()) {
+            val palette = paletteFor(theme, systemIsDark)
+            for (ground in ScreenBackground.choicesFor(theme, systemIsDark)) {
+                val border = contrastRatio(palette.emptyTileBorder.value.toLong() shr 32, ground)
+                if (border < 3.0) {
+                    weak += "$theme/border/${ground.toString(16)}: %.2f".format(border)
                 }
-                val warnung = contrastRatio(palette.dangerText.value.toLong() shr 32, grund)
-                if (warnung < 7.0) {
-                    schwach += "$thema/Warnschrift/${grund.toString(16)}: %.2f".format(warnung)
+                val warning = contrastRatio(palette.dangerText.value.toLong() shr 32, ground)
+                if (warning < 7.0) {
+                    weak += "$theme/warning/${ground.toString(16)}: %.2f".format(warning)
                 }
             }
         }
-        assertEquals(emptyList<String>(), schwach)
+        assertEquals(emptyList<String>(), weak)
     }
 
-    // Die Tinte auf dem Hintergrund wird neu entschieden, nicht vom Thema uebernommen -
-    // die Tinte des Themas ist gegen die Themafarbe geprueft, nicht gegen diese hier.
+    // the ink on the background is decided anew, not taken from the theme: the theme's ink is
+    // checked against the theme colour, not against this one.
     @Test
-    fun `die tinte erreicht ueberall den grosstext-wert`() {
-        for (grund in themenUndSystem().flatMap { (thema, dunkel) -> ScreenBackground.choicesFor(thema, dunkel) }) {
-            val tinte = ScreenBackground.inkFor(grund)
+    fun `the ink reaches the large-text value everywhere`() {
+        for (ground in themesAndSystem().flatMap { (theme, dark) -> ScreenBackground.choicesFor(theme, dark) }) {
+            val ink = ScreenBackground.inkFor(ground)
             assertTrue(
-                "${grund.toString(16)} erreicht nur %.2f".format(contrastRatio(grund, tinte)),
-                contrastRatio(grund, tinte) >= 4.5,
+                "${ground.toString(16)} reaches only %.2f".format(contrastRatio(ground, ink)),
+                contrastRatio(ground, ink) >= 4.5,
             )
         }
     }
 
     @Test
-    fun `auf dunklem grund steht helle tinte`() {
+    fun `light ink stands on a dark ground`() {
         assertEquals(0xFFFFFFFF, ScreenBackground.inkFor(0xFF101418))
         assertEquals(0xFF000000, ScreenBackground.inkFor(0xFFFFEB3B))
     }
 
     /**
-     * Im Hochkontrast-Thema gibt es keine Wahl. Dort tragen Hintergrund und Kacheln
-     * dieselbe Farbe — die Kacheln stehen durch ihren Rand da, nicht durch ihre Füllung.
-     * Eine eigene Hintergrundfarbe würde genau die eine Eigenschaft aufweichen, wegen der
-     * jemand dieses Thema wählt.
+     * in the high contrast theme there is no choice: background and tiles carry the same
+     * colour there, and the tiles stand out by their border, not their fill. a background of
+     * its own would soften the one property this theme is chosen for.
      */
     @Test
-    fun `der hochkontrast-modus bekommt keine farben angeboten`() {
+    fun `the high contrast mode is offered no colours`() {
         assertEquals(false, ScreenBackground.offersChoices(ThemeName.HIGH_CONTRAST))
         assertEquals(emptyList<Long>(), ScreenBackground.choicesFor(ThemeName.HIGH_CONTRAST, true))
         assertTrue(ScreenBackground.choicesFor(ThemeName.DARK, true).isNotEmpty())
         assertTrue(ScreenBackground.choicesFor(ThemeName.LIGHT, true).isNotEmpty())
-        // Auch "wie das Telefon" bekommt Farben - in beiden Zustaenden.
+        // "like the phone" gets colours too - in both states.
         assertTrue(ScreenBackground.choicesFor(ThemeName.SYSTEM, true).isNotEmpty())
         assertTrue(ScreenBackground.choicesFor(ThemeName.SYSTEM, false).isNotEmpty())
     }
 
-    // Die Farben muessen auch voneinander unterscheidbar sein - fuenf Toene, die man nicht
-    // auseinanderhaelt, sind keine Auswahl, sondern eine Zumutung.
+    // five tones nobody can tell apart are not a choice but an imposition.
     @Test
-    fun `die farben unterscheiden sich voneinander`() {
-        val farben = ScreenBackground.choicesFor(ThemeName.DARK, true)
-        assertEquals(farben.size, farben.toSet().size)
+    fun `the colours differ from each other`() {
+        val colours = ScreenBackground.choicesFor(ThemeName.DARK, true)
+        assertEquals(colours.size, colours.toSet().size)
     }
 }

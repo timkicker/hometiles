@@ -19,7 +19,7 @@ object Bereiche {
 
     /** Bereich → Bereich, nur wo das Ziel wirklich in `:app` steht. Wert: Datei + Symbol. */
     fun kanten(ohne: Set<String> = emptySet()): Map<Pair<String, String>, List<String>> {
-        val wurzel = Quelltext.appWurzel
+        val wurzel = Quelltext.appRoot
         val symbole = mutableMapOf<String, String>()
         dateien().forEach { datei ->
             val text = datei.readText()
@@ -30,13 +30,13 @@ object Bereiche {
         }
         val kanten = mutableMapOf<Pair<String, String>, MutableList<String>>()
         dateien().filterNot { it.name in ohne }.forEach { datei ->
-            val von = bereich(datei, wurzel)
+            val from = bereich(datei, wurzel)
             datei.readLines().mapNotNull { zeile ->
                 Regex("""^import (org\.biglau\.[\w.]+)""").find(zeile.trim())?.groupValues?.get(1)
             }.forEach { voll ->
                 val nach = symbole[voll] ?: symbole[voll.substringBeforeLast('.')] ?: return@forEach
-                if (nach != von) {
-                    kanten.getOrPut(von to nach) { mutableListOf() }
+                if (nach != from) {
+                    kanten.getOrPut(from to nach) { mutableListOf() }
                         .add("${datei.name}: ${voll.substringAfterLast('.')}")
                 }
             }
@@ -45,9 +45,9 @@ object Bereiche {
     }
 
     fun dateien(): List<File> =
-        Quelltext.appWurzel.walkTopDown().filter { it.extension == "kt" }.toList()
+        Quelltext.appRoot.walkTopDown().filter { it.extension == "kt" }.toList()
 
-    fun bereich(datei: File, wurzel: File = Quelltext.appWurzel): String {
+    fun bereich(datei: File, wurzel: File = Quelltext.appRoot): String {
         val teile = datei.relativeTo(File(wurzel, "org/biglau")).path.split(File.separator)
         return if (teile.size > 1) teile.first() else "."
     }

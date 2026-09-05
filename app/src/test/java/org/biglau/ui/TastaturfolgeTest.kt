@@ -26,8 +26,8 @@ import org.junit.Test
  */
 class TastaturfolgeTest {
 
-    private val tastatur = Quelltext.ohneKommentare("org/biglau/ui/BigKeypad.kt")
-    private val sperre = Quelltext.ohneKommentare("org/biglau/ui/PinGate.kt")
+    private val tastatur = Quelltext.withoutComments("org/biglau/ui/BigKeypad.kt")
+    private val sperre = Quelltext.withoutComments("org/biglau/ui/PinGate.kt")
 
     @Test
     fun `jede Taste hat einen Anker`() {
@@ -44,7 +44,7 @@ class TastaturfolgeTest {
 
     @Test
     fun `jede Richtungstaste wird verbraucht`() {
-        val weg = Quelltext.ausschnitt(tastatur, ".onPreviewKeyEvent { event ->", "verticalArrangement")
+        val weg = Quelltext.cut(tastatur, ".onPreviewKeyEvent { event ->", "verticalArrangement")
         listOf("DirectionUp", "DirectionDown", "DirectionLeft", "DirectionRight").forEach {
             assertTrue(
                 "Key.$it wird nicht behandelt. Eine Richtungstaste, die durchrutscht, " +

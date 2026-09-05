@@ -20,7 +20,7 @@ import org.junit.Test
  */
 class LeereListeTest {
 
-    private val kontakte = Quelltext.datei("org/biglau/contacts/ContactsActivity.kt").readText()
+    private val kontakte = Quelltext.file("org/biglau/contacts/ContactsActivity.kt").readText()
 
     @Test
     fun `die Kontaktliste unterscheidet leer von kein Treffer`() {
@@ -29,8 +29,8 @@ class LeereListeTest {
                 "auch wenn niemand gesucht hat.",
             "R.string.contacts_none" in kontakte,
         )
-        val stelle = Quelltext.ausschnitt(kontakte, "R.string.contacts_no_match")
-            .let { Quelltext.ausschnitt(kontakte, "", "R.string.contacts_no_match").takeLast(300) + it.take(100) }
+        val stelle = Quelltext.cut(kontakte, "R.string.contacts_no_match")
+            .let { Quelltext.cut(kontakte, "", "R.string.contacts_no_match").takeLast(300) + it.take(100) }
         assertTrue(
             "Die Auswahl zwischen den beiden Sätzen hängt an nichts - `hatKontakte` fehlt.",
             "hatKontakte" in stelle,
@@ -39,7 +39,7 @@ class LeereListeTest {
 
     @Test
     fun `die App-Liste macht es weiterhin richtig`() {
-        val apps = Quelltext.datei("org/biglau/apps/AppDrawerActivity.kt").readText()
+        val apps = Quelltext.file("org/biglau/apps/AppDrawerActivity.kt").readText()
         assertTrue(
             "Der Schutz `all.isNotEmpty() && shown.isEmpty()` ist weg - dann sagt die " +
                 "App-Liste „kein Treffer\", bevor überhaupt Apps geladen sind.",
@@ -51,7 +51,7 @@ class LeereListeTest {
     @Test
     fun `leer und kein Treffer sind nicht derselbe Satz`() {
         listOf("values", "values-de").forEach { sprache ->
-            fun wert(name: String) = Quelltext.textWert(name, sprache)
+            fun wert(name: String) = Quelltext.textValue(name, sprache)
             assertEquals(
                 "$sprache: contacts_none und contacts_no_match sagen dasselbe - dann war " +
                     "die Unterscheidung umsonst.",

@@ -33,7 +33,7 @@ class OffeneFragenTest {
      * Ein Ausschnitt ohne Ende ist kein Ausschnitt. Die Regel hat immer den ganzen Rest des
      * Dokuments gemessen und nur zufaellig nichts gefunden.
      */
-    private val fragen = Quelltext.ausschnitt(plan, "## 9. Offene Fragen", "## 10.")
+    private val fragen = Quelltext.cut(plan, "## 9. Offene Fragen", "## 10.")
 
     @Test
     fun `die Lizenzfrage steht nicht mehr offen`() {

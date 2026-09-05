@@ -17,7 +17,7 @@ import org.junit.Test
 class DiagnosticsCoverageTest {
 
     private val manifest = File("src/main/AndroidManifest.xml")
-    private val seite = Quelltext.datei("org/biglau/settings/Diagnostics.kt")
+    private val seite = Quelltext.file("org/biglau/settings/Diagnostics.kt")
 
     /** Nur diese Gruppe wird zur Laufzeit erteilt; der Rest kommt beim Installieren. */
     private val gefaehrlich = setOf(

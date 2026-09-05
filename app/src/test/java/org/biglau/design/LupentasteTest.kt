@@ -22,7 +22,7 @@ import org.junit.Test
  */
 class LupentasteTest {
 
-    private val datei = Quelltext.datei("org/biglau/apps/AppDrawerActivity.kt")
+    private val datei = Quelltext.file("org/biglau/apps/AppDrawerActivity.kt")
     private val zeilen = datei.readLines()
     private val quelle = datei.readText()
 
@@ -32,7 +32,7 @@ class LupentasteTest {
             .filter { (_, z) ->
                 val nackt = z.trim()
                 Regex("""(^|[^.\w])launch\(""").containsMatchIn(nackt) &&
-                    !Quelltext.istKommentarzeile(z) &&
+                    !Quelltext.isCommentLine(z) &&
                     !nackt.startsWith("fun launch(") &&
                     "repository.launch(" !in nackt
             }
@@ -59,7 +59,7 @@ class LupentasteTest {
         assertNotNull("Der Trefferzaehler ist weg - wandert die Regel mit?", zaehler)
 
         // Woran haengt die Einstellungszeile? Das steht ueber ihr, nicht in dieser Regel.
-        val beiZeile = zeilen.indexOfFirst { "label = einstellungen" in it }
+        val beiZeile = zeilen.indexOfFirst { "label = settingsLabel" in it }
         assertTrue("Die Einstellungszeile gibt es nicht mehr", beiZeile > 0)
         val bedingung = zeilen.subList(maxOf(0, beiZeile - 8), beiZeile)
             .reversed()

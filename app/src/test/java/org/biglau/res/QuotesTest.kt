@@ -22,7 +22,7 @@ import org.junit.Test
  */
 class QuotesTest {
 
-    private val dateien = Quelltext.alleTexte()
+    private val dateien = Quelltext.allTexts()
 
     @Test
     fun `kein gerades Anfuehrungszeichen in einem Text`() {

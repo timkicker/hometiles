@@ -23,7 +23,7 @@ import org.junit.Test
  */
 class KurzwahlTest {
 
-    private val waehler = Quelltext.ohneKommentare("org/biglau/phone/DialerActivity.kt")
+    private val waehler = Quelltext.withoutComments("org/biglau/phone/DialerActivity.kt")
 
     @Test
     fun `leer und belegt bekommen verschiedene Saetze`() {
@@ -56,7 +56,7 @@ class KurzwahlTest {
      */
     @Test
     fun `der feste Satz steht nirgends mehr`() {
-        val uebrig = Quelltext.alleTexte()
+        val uebrig = Quelltext.allTexts()
             .filter { "dialer_speeddial_hint\"" in it.readText() }
             .map { it.parentFile.name + "/" + it.name }
         assertEquals("Der alte Hinweis liegt noch herum", emptyList<String>(), uebrig)

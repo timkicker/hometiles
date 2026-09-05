@@ -33,7 +33,7 @@ class TileDangerTest {
         "org/biglau/ui/BigTile.kt",
         "org/biglau/ui/WidgetTile.kt",
         "org/biglau/ui/HomeScreenView.kt",
-    ).map(Quelltext::datei)
+    ).map(Quelltext::file)
 
     @Test
     fun `die Warnfarbe faellt auf jedem Kachelton durch`() {

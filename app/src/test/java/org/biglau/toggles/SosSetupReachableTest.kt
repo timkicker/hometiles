@@ -17,7 +17,7 @@ import org.junit.Test
  */
 class SosSetupReachableTest {
 
-    private val quelle = Quelltext.ohneKommentare("org/biglau/toggles/SosActivity.kt")
+    private val quelle = Quelltext.withoutComments("org/biglau/toggles/SosActivity.kt")
 
     @Test
     fun `zu jedem Hinweis auf fehlende Kontakte gehoert der Sprung in die Einstellungen`() {

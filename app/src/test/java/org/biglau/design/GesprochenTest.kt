@@ -24,7 +24,7 @@ import org.junit.Test
  */
 class GesprochenTest {
 
-    private val kachel = Quelltext.ohneKommentare("org/biglau/ui/BigTile.kt")
+    private val kachel = Quelltext.withoutComments("org/biglau/ui/BigTile.kt")
 
     @Test
     fun `der gesprochene Text kennt die Sichtbarkeit nicht`() {
@@ -55,7 +55,7 @@ class GesprochenTest {
      */
     @Test
     fun `nur die Kachel selbst baut ihn`() {
-        val stellen = Quelltext.dateien()
+        val stellen = Quelltext.files()
             .filter { datei ->
                 val text = datei.readText()
                 val ab = text.indexOf("TileSpeech.describe(")

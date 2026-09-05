@@ -21,11 +21,11 @@ import org.junit.Test
  */
 class WelcheKachelTest {
 
-    private val quelle = Quelltext.ohneKommentare("org/biglau/tiles/TileEditorActivity.kt")
+    private val quelle = Quelltext.withoutComments("org/biglau/tiles/TileEditorActivity.kt")
 
     @Test
     fun `der editor nennt screen und platz`() {
-        val kopf = Quelltext.ausschnitt(quelle, von = "Mode.MENU -> MenuList(", bis = "\n                        )")
+        val kopf = Quelltext.cut(quelle, from = "Mode.MENU -> MenuList(", to = "\n                        )")
         assertTrue(
             "Der Kachel-Editor sagt nicht, welche Kachel er bearbeitet:\n$kopf",
             "editor_where" in kopf,
@@ -34,7 +34,7 @@ class WelcheKachelTest {
 
     @Test
     fun `die verschieben-ansicht nennt die kachel`() {
-        val kopf = Quelltext.ausschnitt(quelle, von = "Mode.MOVE -> MoveTargetList(", bis = "\n                        )")
+        val kopf = Quelltext.cut(quelle, from = "Mode.MOVE -> MoveTargetList(", to = "\n                        )")
         assertTrue(
             "Die Verschieben-Ansicht sagt nicht, welche Kachel bewegt wird:\n$kopf",
             "move_which" in kopf,
@@ -45,7 +45,7 @@ class WelcheKachelTest {
     fun `beide saetze zaehlen ab eins`() {
         listOf("editor_where", "move_which").forEach { name ->
             listOf("values-de", "values").forEach { sprache ->
-                val text = Quelltext.textWert(name, sprache)
+                val text = Quelltext.textValue(name, sprache)
                 assertTrue(
                     "$name braucht Screen, Zeile und Spalte (Sprache \"$sprache\"): $text",
                     "%1\$s" in text && "%2\$d" in text && "%3\$d" in text,
@@ -54,7 +54,7 @@ class WelcheKachelTest {
         }
         // Und im Quelltext steht ueberall die +1, nicht der Rasterindex.
         listOf("R.string.editor_where", "R.string.move_which").forEach { ruf ->
-            val stelle = Quelltext.ausschnitt(quelle, von = ruf, hoechstens = 400)
+            val stelle = Quelltext.cut(quelle, from = ruf, atMost = 400)
             assertTrue(
                 "Bei $ruf fehlt das Zaehlen ab eins - \"Zeile 0\" liest sich wie ein Fehler:\n$stelle",
                 "y + 1" in stelle && "x + 1" in stelle,

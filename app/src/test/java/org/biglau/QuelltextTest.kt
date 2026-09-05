@@ -6,149 +6,124 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Die Liste der Quelltextwurzeln ist vollstaendig.
+ * the list of source roots is complete.
  *
- * Ohne diese Regel waere der Modulschnitt aus `PLAN.md` 2.1 eine leise Entwertung: wer
- * Dateien nach `:core:model` schoebe, haette danach dieselbe Zahl gruener Tests - nur
- * pruefen wuerden sie den verschobenen Teil nicht mehr. Deshalb sucht dieser Test die
- * Module selbst und vergleicht.
+ * without this rule the module split of `PLAN.md` 2.1 would be a quiet devaluation: moving
+ * files to `:core:model` leaves the same number of green tests, only they no longer check
+ * the moved part. so this test looks for the modules itself and compares.
  */
 class QuelltextTest {
 
-    /** Jedes Verzeichnis mit einer `build.gradle.kts`, ohne die Bauverzeichnisse. */
-    private fun module(): List<File> = File("..").walkTopDown()
+    /** every directory with a `build.gradle.kts`, without the build directories. */
+    private fun modules(): List<File> = File("..").walkTopDown()
         .onEnter { it.name != "build" && it.name != ".git" && it.name != ".gradle" }
         .filter { it.name == "build.gradle.kts" }
         .map { it.parentFile }
         .toList()
 
-    private fun quellorte(unterordner: String): List<File> = module()
-        .flatMap { modul -> listOf("java", "kotlin").map { File(modul, "src/$unterordner/$it") } }
+    private fun sourcePlaces(subdirectory: String): List<File> = modules()
+        .flatMap { module -> listOf("java", "kotlin").map { File(module, "src/$subdirectory/$it") } }
         .filter { it.isDirectory }
 
-    private fun schluessel(dateien: List<File>) = dateien.map { it.canonicalPath }.sorted()
+    private fun keys(files: List<File>) = files.map { it.canonicalPath }.sorted()
 
     @Test
-    fun `jedes Modul mit Hauptquelltext steht in den Wurzeln`() {
+    fun `every module with main source stands in the roots`() {
         assertEquals(
-            "Ein Modul fehlt in Quelltext.wurzeln - seine Dateien pruefte keine Regel mehr",
-            schluessel(quellorte("main")),
-            schluessel(Quelltext.wurzeln),
+            "a module is missing from Quelltext.roots - no rule checked its files any more",
+            keys(sourcePlaces("main")),
+            keys(Quelltext.roots),
         )
     }
 
     @Test
-    fun `jedes Modul mit Testquelltext steht in den Testwurzeln`() {
+    fun `every module with test source stands in the test roots`() {
         assertEquals(
-            "Ein Modul fehlt in Quelltext.testWurzeln",
-            schluessel(quellorte("test")),
-            schluessel(Quelltext.testWurzeln),
+            "a module is missing from Quelltext.testRoots",
+            keys(sourcePlaces("test")),
+            keys(Quelltext.testRoots),
         )
     }
 
-    /**
-     * Der Fehler, gegen den das alles steht: eine Wurzel, die es nicht gibt, faellt nicht
-     * auf. Sie muss deshalb hier auffallen.
-     */
+    /** a root that does not exist does not stand out on its own. so it stands out here. */
     @Test
-    fun `keine Wurzel zeigt ins Leere`() {
-        (Quelltext.wurzeln + Quelltext.testWurzeln).forEach {
-            assertTrue("Wurzel gibt es nicht: ${it.path}", it.isDirectory)
+    fun `no root points at nothing`() {
+        (Quelltext.roots + Quelltext.testRoots).forEach {
+            assertTrue("the root does not exist: ${it.path}", it.isDirectory)
         }
     }
 
     @Test
-    fun `die Wurzeln tragen tatsaechlich Quelltext`() {
-        assertTrue("kein Hauptquelltext gefunden", Quelltext.dateien().size > 50)
-        assertTrue("kein Testquelltext gefunden", Quelltext.testDateien().size > 50)
+    fun `the roots really carry source`() {
+        assertTrue("no main source found", Quelltext.files().size > 50)
+        assertTrue("no test source found", Quelltext.testFiles().size > 50)
     }
 
     /**
-     * Keine Regel geht am Verzeichnis vorbei selbst los.
-     *
-     * Genau das war heute Nacht die Luecke: die Wurzelliste war da, und `SlopRulesTest`
-     * lief trotzdem weiter ueber `File("src/main/java/org/biglau")`. Beim Umzug nach
-     * `:core:system` hat sie ihre fuenfunddreissig Dateien einfach nicht mehr gesehen -
-     * ohne einen roten Test, denn `walkTopDown` auf einem Pfad, der weniger enthaelt,
-     * liefert eben weniger.
-     *
-     * Aufgefallen ist es nur, weil ich beim Aufraeumen nochmal gesucht habe. Deshalb sucht
-     * jetzt diese Regel.
+     * the root list existed and `SlopRulesTest` still ran over `File("src/main/java/org/biglau")`
+     * of its own. after the move to `:core:system` it simply stopped seeing thirty-five
+     * files, without a red test: `walkTopDown` on a path holding less returns less.
      */
     @Test
-    fun `keine Regel baut sich ihren Quellpfad selbst`() {
-        val treffer = Quelltext.testDateien()
+    fun `no rule builds its own source path`() {
+        val hits = Quelltext.testFiles()
             .filterNot { it.name == "Quelltext.kt" || it.name == "QuelltextTest.kt" }
-            .flatMap { datei ->
-                datei.readLines().withIndex()
-                    .filter { zeile ->
-                        // Die Ressourcen bleiben in :app - nur die Quellverzeichnisse
-                        // wandern, und nur um die geht es hier.
+            .flatMap { file ->
+                file.readLines().withIndex()
+                    .filter { line ->
+                        // the resources stay in :app - only the source directories move, and
+                        // only they are meant here.
                         listOf("File(\"src/main/java", "File(\"src/test/java")
-                            .any { it in zeile.value }
+                            .any { it in line.value }
                     }
-                    .map { "${datei.name}:${it.index + 1}  ${it.value.trim()}" }
+                    .map { "${file.name}:${it.index + 1}  ${it.value.trim()}" }
             }
-        assertEquals("liest am Verzeichnis vorbei: $treffer", emptyList<String>(), treffer)
+        assertEquals("reads past the directory: $hits", emptyList<String>(), hits)
     }
 
-    /**
-     * Auch die Ressourcen liegen inzwischen in mehreren Modulen - `:core:ui` bringt die
-     * Schriftdateien mit. Eine Regel, die sie sucht, soll das Modul nicht wissen muessen.
-     */
+    /** the resources lie in several modules too; `:core:ui` brings the font files along. */
     @Test
-    fun `jedes Modul mit Ressourcen steht in den Ressourcenwurzeln`() {
-        val vorhanden = module().map { File(it, "src/main/res") }.filter { it.isDirectory }
+    fun `every module with resources stands in the resource roots`() {
+        val present = modules().map { File(it, "src/main/res") }.filter { it.isDirectory }
         assertEquals(
-            "Ein Modul fehlt in Quelltext.resWurzeln",
-            schluessel(vorhanden),
-            schluessel(Quelltext.resWurzeln),
+            "a module is missing from Quelltext.resRoots",
+            keys(present),
+            keys(Quelltext.resRoots),
         )
     }
 
     /**
-     * Und keine Regel sucht die Texte selbst.
-     *
-     * Zehn Regeln lasen `src/main/res/values/strings.xml` und meinten „alle Texte". Sobald
-     * ein Text mit seinem Modul umzieht, pruefen sie ihn nicht mehr - lautlos, denn eine
-     * Datei, die es gibt, liest sich weiterhin gut. `Quelltext.texte` fragt alle Module.
-     *
-     * `themes.xml` bleibt ausgenommen: das Thema der Anwendung liegt in `:app` und nirgends
-     * sonst.
+     * ten rules read `src/main/res/values/strings.xml` and meant all texts by it. once a text
+     * moves with its module they stop checking it, silently, because a file that exists still
+     * reads fine. `themes.xml` stays exempt: the application's theme lies in `:app` and
+     * nowhere else.
      */
     @Test
-    fun `keine Regel sucht die Texte selbst`() {
-        val treffer = Quelltext.testDateien()
+    fun `no rule looks for the texts itself`() {
+        val hits = Quelltext.testFiles()
             .filterNot { it.name == "Quelltext.kt" || it.name == "QuelltextTest.kt" }
-            .flatMap { datei ->
-                datei.readLines().withIndex()
+            .flatMap { file ->
+                file.readLines().withIndex()
                     .filter { "src/main/res/values" in it.value && "themes.xml" !in it.value }
-                    .map { "${datei.name}:${it.index + 1}  ${it.value.trim()}" }
+                    .map { "${file.name}:${it.index + 1}  ${it.value.trim()}" }
             }
-        assertEquals("liest Texte am Verzeichnis vorbei: $treffer", emptyList<String>(), treffer)
+        assertEquals("reads texts past the directory: $hits", emptyList<String>(), hits)
     }
 
     /**
-     * Die Siebe, auf denen die anderen Regeln stehen, fangen noch etwas.
+     * around thirty rules start with `Quelltext.files().filter { … }` - by `Activity.kt`, by
+     * `@Composable`, by `Repository`. a filter whose pattern no longer matches returns
+     * nothing, and the rule above it is quietly green.
      *
-     * Rund dreissig Regeln fangen mit `Quelltext.dateien().filter { … }` an - nach
-     * `Activity.kt`, nach `@Composable`, nach `Repository`. `QuelltextTest` sichert bisher
-     * nur, dass die **Wurzeln** stimmen. Das genuegt nicht: ein Sieb, dessen Muster nicht
-     * mehr passt, liefert nichts, und die Regel darueber ist still gruen.
-     *
-     * Am 03.09.2026 in einer Nacht mit dreiundzwanzig Dateiumzuegen gemessen: 142
-     * Kotlin-Dateien, 13 Activities, 29 Dateien mit `@Composable`. Die Untergrenzen hier
-     * sind bewusst grosszuegig - sie sollen einen **Zusammenbruch** melden, nicht jedes
-     * Aufraeumen. Wer eine davon reisst, hat entweder etwas Grosses geloescht oder ein Sieb
-     * kaputtgemacht; beides will man wissen.
+     * the bounds are deliberately generous: they report a **collapse**, not every tidy-up.
      */
     @Test
-    fun `die Siebe der anderen Regeln fangen noch etwas`() {
-        val alle = Quelltext.dateien()
-        assertTrue("nur ${alle.size} Kotlin-Dateien gefunden", alle.size >= 100)
-        val activities = alle.filter { it.name.endsWith("Activity.kt") }
-        assertTrue("nur ${activities.size} Activities gefunden", activities.size >= 10)
-        val composables = alle.filter { "@Composable" in it.readText() }
-        assertTrue("nur ${composables.size} Dateien mit @Composable", composables.size >= 20)
+    fun `the filters of the other rules still catch something`() {
+        val all = Quelltext.files()
+        assertTrue("only ${all.size} kotlin files found", all.size >= 100)
+        val activities = all.filter { it.name.endsWith("Activity.kt") }
+        assertTrue("only ${activities.size} activities found", activities.size >= 10)
+        val composables = all.filter { "@Composable" in it.readText() }
+        assertTrue("only ${composables.size} files with @Composable", composables.size >= 20)
     }
 }

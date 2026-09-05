@@ -20,13 +20,13 @@ import org.junit.Test
  */
 class KurzwahlSatzTest {
 
-    private val waehler = Quelltext.ohneKommentare("org/biglau/phone/DialerActivity.kt")
+    private val waehler = Quelltext.withoutComments("org/biglau/phone/DialerActivity.kt")
 
     @Test
     fun `die Belegung sagt, was der Langdruck spaeter tut`() {
         // AssignList steht am Dateiende, also gibt es keine naechste Funktion als Grenze.
         // Bis zum Ende ist hier genau richtig - der Abschnitt ist die letzte Funktion.
-        val liste = Quelltext.ausschnitt(waehler, "private fun AssignList(")
+        val liste = Quelltext.cut(waehler, "private fun AssignList(")
         assertTrue(
             "Die Belegung nennt den Satz nicht. Man waehlt einen Kontakt und erfaehrt erst " +
                 "danach, dass ein Langdruck ihn ohne Rueckfrage anruft.",

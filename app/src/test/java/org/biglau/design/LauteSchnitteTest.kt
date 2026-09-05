@@ -11,11 +11,11 @@ import org.junit.Test
  * `substringAfter("X")` gibt bei fehlendem `X` **den ganzen Text** zurueck, `substringBefore`
  * auch. Eine Regel schneidet dann nicht mehr den Abschnitt heraus, den sie meint, sondern
  * behaelt alles - und findet ihr Stichwort irgendwo anders. In der Nacht auf den 04.09.2026
- * ist das zweimal passiert: `AuswahlAnsageTest` nahm den Farbtonwaehler mit (die Endmarke
- * lag hinter dem Abschnitt), und `FremdeAbsichtTest` haette bei einer umbenannten Variablen
+ * ist das zweimal passiert: `SelectionAnnouncementTest` nahm den Farbtonwaehler mit (die Endmarke
+ * lag hinter dem Abschnitt), und `ForeignIntentTest` haette bei einer umbenannten Variablen
  * den ganzen Rest der Datei durchsucht. Beide waren gruen und prueften nichts.
  *
- * `Quelltext.ausschnitt` wirft in diesem Fall. Achtzig Schnittstellen sind darauf umgestellt;
+ * `Quelltext.cut` wirft in diesem Fall. Achtzig Schnittstellen sind darauf umgestellt;
  * diese Regel haelt die letzten drei fest, bei denen die alte Form richtig ist.
  */
 class LauteSchnitteTest {
@@ -37,12 +37,12 @@ class LauteSchnitteTest {
 
     @Test
     fun `Regeln schneiden mit einer Marke, die es geben muss`() {
-        val stumm = Quelltext.testDateien()
+        val stumm = Quelltext.testFiles()
             .filterNot { it.name in erlaubt }
             .flatMap { datei ->
                 datei.readLines().mapIndexedNotNull { nummer, zeile ->
                     val text = zeile.trim()
-                    if (Quelltext.istKommentarzeile(zeile)) {
+                    if (Quelltext.isCommentLine(zeile)) {
                         null
                     } else if (Regex("""\.substring(After|Before)\(""").containsMatchIn(zeile)) {
                         "${datei.name}:${nummer + 1}: $text"
@@ -54,7 +54,7 @@ class LauteSchnitteTest {
         assertEquals(
             "Hier wird an einer Marke geschnitten, die es eines Tages nicht mehr gibt - " +
                 "dann liefert der Schnitt den ganzen Text und die Regel bleibt gruen, ohne " +
-                "noch etwas zu pruefen. Quelltext.ausschnitt nehmen; die faellt dann um:\n" +
+                "noch etwas zu pruefen. Quelltext.cut nehmen; die faellt dann um:\n" +
                 stumm.joinToString("\n"),
             emptyList<String>(),
             stumm,
@@ -64,20 +64,20 @@ class LauteSchnitteTest {
     /**
      * Und ein Text wird in **allen** Modulen gesucht, nicht nur im ersten.
      *
-     * `Quelltext.texte(sprache).first()` ist `:app` und sonst nichts. In dieser Nacht sind
+     * `Quelltext.texts(sprache).first()` ist `:app` und sonst nichts. In dieser Nacht sind
      * Texte dreimal in ein anderes Modul gezogen - `a11y_chosen` nach `core:ui`, die sechs
      * Woerter fuer die Richtung eines Anrufs nach `core:system`. Fuenf Regeln haetten danach
-     * ins Leere gegriffen. `Quelltext.textWert` sieht ueberall nach und faellt um, wenn es
+     * ins Leere gegriffen. `Quelltext.textValue` sieht ueberall nach und faellt um, wenn es
      * den Text nirgends gibt.
      */
     @Test
     fun `ein Text wird in allen Modulen gesucht`() {
-        val nurAppp = Quelltext.testDateien().flatMap { datei ->
+        val nurAppp = Quelltext.testFiles().flatMap { datei ->
             datei.readLines().mapIndexedNotNull { nummer, zeile ->
                 // Kommentare zaehlen nicht: zum dritten Mal in dieser Nacht hat eine
                 // Regel ihre eigene Begruendung als Verstoss gemeldet.
                 val text = zeile.trim()
-                if (Quelltext.istKommentarzeile(zeile)) {
+                if (Quelltext.isCommentLine(zeile)) {
                     null
                 } else if (Regex("""texte\([^)]*\)\s*\.first\(\)""").containsMatchIn(zeile)) {
                     "${datei.name}:${nummer + 1}: ${zeile.trim()}"
@@ -88,7 +88,7 @@ class LauteSchnitteTest {
         }
         assertEquals(
             "Hier wird ein Text nur in :app gesucht. Zieht er in ein anderes Modul, greift " +
-                "die Regel ins Leere. Quelltext.textWert nehmen:\n" + nurAppp.joinToString("\n"),
+                "die Regel ins Leere. Quelltext.textValue nehmen:\n" + nurAppp.joinToString("\n"),
             emptyList<String>(),
             nurAppp,
         )

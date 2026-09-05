@@ -21,7 +21,7 @@ import org.junit.Test
  */
 class NotmodusReachTest {
 
-    private val quelle = Quelltext.datei("org/biglau/safety/EmergencyScreen.kt").readText()
+    private val quelle = Quelltext.file("org/biglau/safety/EmergencyScreen.kt").readText()
 
     @Test
     fun `der Notmodus fuehrt ans Telefon und zu den Kontakten`() {

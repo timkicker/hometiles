@@ -22,8 +22,8 @@ class WidgetPlatzTest {
     @Test
     fun `der Satz nennt die Zeile, die das Problem loest`() {
         listOf("values", "values-de").forEach { sprache ->
-            val satz = Quelltext.textWert("widget_no_room", sprache)
-            val zeile = Quelltext.textWert("editor_resize", sprache)
+            val satz = Quelltext.textValue("widget_no_room", sprache)
+            val zeile = Quelltext.textValue("editor_resize", sprache)
             assertTrue(
                 "$sprache: der Satz nennt nicht die Zeile \"$zeile\", mit der man die " +
                     "Kachel groesser macht: $satz",
@@ -34,15 +34,15 @@ class WidgetPlatzTest {
 
     @Test
     fun `der Satz behauptet nicht, es sei noch nichts geschehen`() {
-        val editor = Quelltext.ohneKommentare("org/biglau/tiles/TileEditorActivity.kt")
-        val stelle = Quelltext.ausschnitt(editor, "fun finishWidget(", "pendingWidget = null")
+        val editor = Quelltext.withoutComments("org/biglau/tiles/TileEditorActivity.kt")
+        val stelle = Quelltext.cut(editor, "fun finishWidget(", "pendingWidget = null")
         assertTrue(
             "Die Kachel wird nicht mehr vor der Platzpruefung beschrieben - dann darf der " +
                 "Satz wieder sagen, es sei noch nichts passiert, und diese Regel weg.",
             stelle.indexOf("write(next)") in 0 until stelle.indexOf("widget_no_room"),
         )
         listOf("values", "values-de").forEach { sprache ->
-            val satz = Quelltext.textWert("widget_no_room", sprache)
+            val satz = Quelltext.textValue("widget_no_room", sprache)
             assertTrue(
                 "$sprache: der Satz besteht aus einem Halbsatz - er muss sagen, was ist, " +
                     "und was zu tun bleibt: $satz",

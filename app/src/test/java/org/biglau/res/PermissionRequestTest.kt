@@ -48,7 +48,7 @@ class PermissionRequestTest {
     /** Alles, was irgendwo in einem `launch(…)` steht — einzeln oder im `arrayOf(…)`. */
     private fun erfragt(): Set<String> {
         val treffer = mutableSetOf<String>()
-        Quelltext.dateien().forEach { datei ->
+        Quelltext.files().forEach { datei ->
             val text = datei.readText()
             Regex("""\.launch\(""").findAll(text).forEach { start ->
                 // Bis zur schliessenden Klammer des launch-Aufrufs lesen, damit ein

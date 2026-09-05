@@ -21,7 +21,7 @@ import org.junit.Test
 class TextScaleTest {
 
     /** Die Bildschirme mit Listen - dort ist Platz zum Wachsen, weil sie scrollen. */
-    private val bildschirme = Quelltext.dateien().filter { it.name.endsWith("Activity.kt") }
+    private val bildschirme = Quelltext.files().filter { it.name.endsWith("Activity.kt") }
 
     private val festeGroesse = Regex("""fontSize = \d+(\.\d+)?\.sp""")
 
@@ -44,7 +44,7 @@ class TextScaleTest {
 
     @Test
     fun `bigSp gibt es und es liest die Einstellung`() {
-        val quelle = Quelltext.datei("org/biglau/ui/TextSizing.kt").readText()
+        val quelle = Quelltext.file("org/biglau/ui/TextSizing.kt").readText()
         assertTrue("bigSp fehlt", "fun bigSp(" in quelle)
         assertTrue("bigSp liest die Einstellung nicht", "LocalTextScale.current" in quelle)
     }

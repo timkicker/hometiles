@@ -6,26 +6,21 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 /**
- * Die Sprachregeln aus PLAN.md 3.7.
+ * the language rules from `PLAN.md` 3.7: buttons name the action.
  *
- * „Knöpfe benennen die Handlung: ‚Anrufen', nicht ‚Los'." Die Bestätigung beim Löschen der
- * Anrufliste stand auf „Ja" und „Nein" - Wörter, die beide alles heißen können, unter einer
- * Frage, deren falsche Antwort nicht rückgängig zu machen ist.
+ * the confirmation before deleting the call log read yes and no, words that can mean
+ * anything, under a question whose wrong answer cannot be undone.
  */
 class LanguageRulesTest {
 
     private val sprachen = listOf("values", "values-de")
 
     /**
-     * Alle Texte einer Sprache — **auch die Mehrzahlformen**.
-     *
-     * Die erste Fassung las nur `strings.xml`. Was in `plurals.xml` steht, steht genauso auf
-     * dem Bildschirm („Drei Bildschirme, vierzehn Kacheln, zwei Ordner gehen verloren") und
-     * war von jeder Sprachregel hier ausgenommen, ohne dass es irgendwo stand. Am 3.9.2026
-     * nachgezogen.
+     * every text of a language, *including the plurals*: reading only `strings.xml` left
+     * everything in `plurals.xml` outside all these rules, unmentioned.
      */
     private fun texte(verzeichnis: String): Map<String, String> {
-        val dateien = Quelltext.texte(verzeichnis) + Quelltext.texte(verzeichnis, "plurals.xml")
+        val dateien = Quelltext.texts(verzeichnis) + Quelltext.texts(verzeichnis, "plurals.xml")
         val roh = dateien.joinToString("\n") { it.readText() }
         val einzel = Regex("""<string name="([^"]+)">(.*?)</string>""", RegexOption.DOT_MATCHES_ALL)
             .findAll(roh)
@@ -48,7 +43,7 @@ class LanguageRulesTest {
 
     @Test
     fun `kein Ausrufezeichen`() {
-        // Ein Ausrufezeichen ist entweder Werbung oder Panik. Beides ist hier fehl am Platz.
+        // an exclamation mark is either advertising or panic.
         assertEquals(emptyList<String>(), verstoesse(Regex("!")))
     }
 
@@ -62,8 +57,8 @@ class LanguageRulesTest {
 
     @Test
     fun `keine Knoepfe ohne Handlung`() {
-        // Ganze Texte, die nur aus einem nichtssagenden Wort bestehen. Ein "Ja" unter einer
-        // Löschfrage sagt nicht, was es löscht.
+        // whole texts made of one empty word: a yes under a delete question does not say
+        // what it deletes.
         val leer = Regex("""^(OK|Ja|Nein|Yes|No|Los|Go|Weiter\.\.\.)$""")
         val treffer = sprachen.flatMap { verzeichnis ->
             texte(verzeichnis).filterValues { leer.matches(it.trim()) }.keys.map { "$verzeichnis/$it" }
@@ -73,21 +68,17 @@ class LanguageRulesTest {
 
     @Test
     fun `Fertig und Weiter bleiben erlaubt`() {
-        // Gegenprobe zur Regel oben: "Fertig" schließt einen Vorgang ab und benennt damit
-        // sehr wohl eine Handlung. Die Regel zielt auf Antworten ohne Verb, nicht auf kurze
-        // Wörter an sich - sonst würde sie am Ziel vorbeischießen.
+        // the counter-check: done closes something and does name an action. the rule aims
+        // at answers without a verb, not at short words as such.
         val alle = texte("values-de").values.map { it.trim() }
         assertEquals(true, alle.contains("Fertig"))
     }
 
     /**
-     * Leere Zustände auf Bildschirmen, auf denen jemand landet und wartet.
+     * empty states on screens someone lands on and waits.
      *
-     * Bis zum 3.9.2026 prüfte diese Regel genau **einen** Text — die leere Kachel — und hiess
-     * trotzdem „leere Zustände". Nachgesehen: die leere Anrufliste und die leere
-     * Nachrichtenliste sagten nur, dass nichts da ist. Beide sagen jetzt auch, was als
-     * Nächstes kommt; geprüft wird das an zwei Sätzen. Eine Regel über Prosa ist grob, aber
-     * sie fängt den Rückfall in den blossen Befund.
+     * the rule checked exactly *one* text and was still called empty states. a rule about
+     * prose is coarse, but it catches the fall back into the bare finding.
      */
     @Test
     fun `leere Zustaende sagen, was zu tun ist`() {
@@ -114,18 +105,16 @@ class LanguageRulesTest {
 }
 
 /**
- * Deutsche Texte, die im Quelltext festhängen statt in den Ressourcen zu stehen.
+ * german texts stuck in the source instead of the resources.
  *
- * Zweimal passiert: der Notfall-Bildschirm und die Diagnose-Seite. Beide sind ausgerechnet
- * die Seiten, die jemand aufschlägt, wenn etwas nicht geht - und auf einem englischen Gerät
- * waren sie dann deutsch. Der Sprachdateien-Vergleich findet das nicht: was gar nicht in
- * strings.xml steht, fehlt dort auch nicht.
+ * it happened twice, on the safe-mode screen and the diagnostics page, which are exactly
+ * the pages one opens when something is wrong. comparing the resource files does not find
+ * it: what is not in `strings.xml` is not missing there either.
  */
 class HardcodedGermanTest {
 
-    // Ohne IGNORE_CASE lief "Keine passende App gefunden" glatt durch: das Muster kannte
-    // nur das kleine "keine". Ein Test, der nur die Kleinschreibung sieht, findet
-    // ausgerechnet die Satzanfaenge nicht - und Meldungen fangen mit einem Satz an.
+    // without IGNORE_CASE a capitalised sentence slipped straight through: a rule that sees
+    // only lower case misses exactly the beginnings, and notices begin with a sentence.
     private val deutscheWorte = Regex(
         """"[^"]*\b(nicht|keine|keiner|kein|Gerät|Fenster|Dichte|Schrift|Nutzbar|Anrufe|""" +
             """Kontakte|Startbildschirm|Kachel|Kacheln|Bildschirm|Einstellungen|Fehler|""" +
@@ -135,19 +124,19 @@ class HardcodedGermanTest {
 
     @Test
     fun `keine deutschen Zeichenketten im Quelltext`() {
-        val treffer = Quelltext.dateien().asSequence()
+        val treffer = Quelltext.files().asSequence()
             .filter { it.extension == "kt" }
             .flatMap { datei ->
                 datei.readLines().asSequence().mapIndexedNotNull { index, roh ->
                     val zeile = roh.trim()
-                    // Kommentare sind absichtlich deutsch, Importe und Anmerkungen egal.
+                    // comments, imports and annotations do not count.
                     val entwicklerMeldung = zeile.startsWith("require(") ||
                         zeile.startsWith("check(") || zeile.startsWith("error(")
                     if (zeile.startsWith("//") || zeile.startsWith("*") || zeile.startsWith("/*")) {
                         null
                     } else if (entwicklerMeldung) {
-                        // Zusicherungen im Code sieht nie ein Nutzer, sondern nur, wer den
-                        // Quelltext liest - und der ist hier durchgehend deutsch.
+                        // assertions are never seen by a user, only by whoever reads the
+                        // source.
                         null
                     } else if (deutscheWorte.containsMatchIn(zeile)) {
                         "${datei.name}:${index + 1}: $zeile"
@@ -160,15 +149,13 @@ class HardcodedGermanTest {
     }
 
     /**
-     * Der Wortliste oben entkommt jeder deutsche Satz, der zufaellig kein Wort daraus
-     * enthaelt. Die schaerfere Frage stellt sich anders herum: eine Meldung an den Nutzer
-     * darf ueberhaupt kein Text im Quelltext sein, egal in welcher Sprache. Sie gehoert in
-     * strings.xml, sonst gibt es sie nur einmal.
+     * any sentence without a word from the list above escapes it. the sharper question is the
+     * other way round: a notice must not be text in the source at all, in any language.
      */
     @Test
     fun `keine Meldung mit festem Text`() {
         val fest = Regex("""Notice\.show\([^,]+,\s*"""")
-        val treffer = Quelltext.dateien().asSequence()
+        val treffer = Quelltext.files().asSequence()
             .filter { it.extension == "kt" }
             .flatMap { datei ->
                 datei.readLines().asSequence().mapIndexedNotNull { index, zeile ->
@@ -179,13 +166,12 @@ class HardcodedGermanTest {
     }
 
     /**
-     * Und: Meldungen laufen ueber [org.biglau.ui.Notice], nicht an ihm vorbei. Wer einen
-     * Toast direkt baut, umgeht die Einstellung "Meldungen warten, bis du sie wegtippst" -
-     * und ausgerechnet die Meldung, auf die es ankommt, blitzt dann doch nur auf.
+     * notices go through [org.biglau.ui.Notice] and not past it: building a toast directly
+     * bypasses the setting that keeps notices standing until tapped away.
      */
     @Test
     fun `kein Toast am Notice vorbei`() {
-        val treffer = Quelltext.dateien().asSequence()
+        val treffer = Quelltext.files().asSequence()
             .filter { it.extension == "kt" && it.name != "Notice.kt" }
             .flatMap { datei ->
                 datei.readLines().asSequence().mapIndexedNotNull { index, zeile ->
@@ -197,16 +183,13 @@ class HardcodedGermanTest {
 }
 
 /**
- * Die Sprachnamen selbst werden nicht übersetzt.
- *
- * Wer die eingestellte Sprache nicht liest, sucht in der Liste nach dem Wort, das er
- * kennt. "Deutsch" als "German" zu übersetzen macht die Zeile genau für den unlesbar,
- * der sie braucht.
+ * the language names themselves are not translated: whoever cannot read the current one
+ * looks for the word they know, and translating it makes the row unreadable to them.
  */
 class LanguageNamesTest {
 
     private fun wert(verzeichnis: String, name: String): String {
-        val dateien = Quelltext.texte(verzeichnis)
+        val dateien = Quelltext.texts(verzeichnis)
         return Regex("""<string name="$name">(.*?)</string>""")
             .find(dateien.joinToString("\n") { it.readText() })!!
             .groupValues[1]
@@ -226,23 +209,22 @@ class LanguageNamesTest {
 }
 
 /**
- * Datum und Uhrzeit folgen der eingestellten Sprache, nicht der des Prozesses.
+ * date and time follow the chosen language, not the process one.
  *
- * Nach dem Umstellen auf Deutsch stand ueber dem Startbildschirm weiter "Tue, 1. Sep":
- * die Texte kamen aus den Ressourcen und waren deutsch, der Wochentag kam aus
- * `Locale.getDefault()` und blieb englisch. Halb uebersetzt ist schlechter als gar nicht -
- * es sieht nach einem Fehler aus, und man sucht ihn bei sich.
+ * the texts came from the resources while the weekday came from `Locale.getDefault()`, so
+ * the header read half in one language and half in the other. half translated is worse than
+ * not at all: it looks like a fault, and one looks for it in oneself.
  */
 class DateLocaleTest {
 
     @Test
     fun `keine anzeige formatiert mit der prozesssprache`() {
-        val treffer = Quelltext.dateien().asSequence()
+        val treffer = Quelltext.files().asSequence()
             .filter { it.extension == "kt" }
             .flatMap { datei ->
                 datei.readLines().asSequence().mapIndexedNotNull { index, zeile ->
-                    // Der Sprecher darf darauf zurueckfallen, wenn die App der Sprache des
-                    // Telefons folgt - eine Stimme ohne Sprache spricht gar nicht.
+                    // the speaker may fall back on it when the app follows the phone's
+                    // language: a voice without a language does not speak.
                     val rueckfall = zeile.contains("?: Locale.getDefault()")
                     if (zeile.contains("Locale.getDefault()") && !rueckfall) {
                         "${datei.name}:${index + 1}"
@@ -255,14 +237,13 @@ class DateLocaleTest {
     }
 
     /**
-     * Gegenstueck: Locale.US bleibt erlaubt und ist an drei Stellen sogar noetig - im
-     * Absturzprotokoll, im Dateinamen der Sicherung und in den Koordinaten der SOS-
-     * Nachricht. Dort wuerde eine deutsche Sprache aus "48.20849" ein "47,26543" machen,
-     * und der Kartenlink der Rettung waere kaputt.
+     * the counterpart: Locale.US stays allowed and is needed in three places, the crash log,
+     * the backup file name and the sos coordinates, where another language would turn the
+     * decimal point into a comma and break the rescue map link.
      */
     @Test
     fun `Locale US bleibt fuer maschinentexte`() {
-        val mitUS = Quelltext.dateien().asSequence()
+        val mitUS = Quelltext.files().asSequence()
             .filter { it.extension == "kt" }
             .count { it.readText().contains("Locale.US") }
         assertEquals(true, mitUS >= 3)

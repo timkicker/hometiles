@@ -34,7 +34,7 @@ class FittedTextTest {
     private val muster = Regex("""softWrap\s*=\s*false""")
 
     private fun ohneUmbruch(): List<Triple<java.io.File, Int, List<String>>> =
-        Quelltext.dateien().flatMap { datei ->
+        Quelltext.files().flatMap { datei ->
             val zeilen = datei.readLines()
             zeilen.withIndex()
                 .filter { muster.containsMatchIn(it.value) && !it.value.trim().startsWith("*") }
@@ -49,9 +49,9 @@ class FittedTextTest {
      */
     @Test
     fun `zaehltAlleStellen`() {
-        val roh = Quelltext.dateien().sumOf { datei ->
+        val roh = Quelltext.files().sumOf { datei ->
             datei.readLines().count {
-                "softWrap" in it && !Quelltext.istKommentarzeile(it)
+                "softWrap" in it && !Quelltext.isCommentLine(it)
             }
         }
         assertEquals("Das Muster trifft nicht jede Schreibweise von softWrap", roh, ohneUmbruch().size)

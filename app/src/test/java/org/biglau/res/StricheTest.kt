@@ -27,7 +27,7 @@ class StricheTest {
 
     @Test
     fun `kein Text traegt einen Strich oder Mittelpunkt`() {
-        val treffer = Quelltext.alleTexte().flatMap { datei ->
+        val treffer = Quelltext.allTexts().flatMap { datei ->
             val inhalt = datei.readText()
             Regex("""<(?:string|item)[^>]*>(.*?)</(?:string|item)>""", RegexOption.DOT_MATCHES_ALL)
                 .findAll(inhalt)

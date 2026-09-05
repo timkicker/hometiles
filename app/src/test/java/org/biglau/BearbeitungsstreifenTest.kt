@@ -25,17 +25,17 @@ import org.junit.Test
  */
 class BearbeitungsstreifenTest {
 
-    private val haupt = Quelltext.ohneKommentare("org/biglau/MainActivity.kt")
+    private val haupt = Quelltext.withoutComments("org/biglau/MainActivity.kt")
 
     @Test
     fun `der ordner zeigt den streifen selbst`() {
-        val aufruf = Quelltext.ausschnitt(
+        val aufruf = Quelltext.cut(
             haupt,
             // Genauer als nur `FolderOverlay(`: seit dem 04.09.2026 benutzt die Liste der
             // Menuetaste denselben Rahmen, und die Marke stand danach zweimal da. Gemeint ist
             // der Ordner, also wird auf seinen Namen geschnitten.
-            von = "                        name = ordner.name,",
-            bis = "                    ) {",
+            from = "                        name = ordner.name,",
+            to = "                    ) {",
         )
         assertTrue(
             "Die Ordner-Ueberlagerung bekommt keinen Bearbeiten-Streifen: $aufruf",

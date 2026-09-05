@@ -487,8 +487,8 @@ class SettingsActivity : BigLauActivity() {
                             onSwipeOrder = { page = Page.SWIPE_ORDER },
                             onDuplicate = { screen -> duplicate(screen) },
                             onMakeHome = { target ->
-                                // Ohne Weg in die Einstellungen waere der Wechsel nicht
-                                // rueckgaengig zu machen - man kaeme nie wieder hierher.
+                                // without a way into the settings the change could not be
+                                // undone: one would never get back here.
                                 if (ScreenEdits.settingsReachable(config, target.id)) {
                                     store.update { current -> current.copy(homeScreenId = target.id) }
                                 } else {
@@ -498,8 +498,8 @@ class SettingsActivity : BigLauActivity() {
                         )
 
                         Page.RENAME -> ScreenPanel(
-                            // Immer die frische Fassung aus der Konfiguration: nach einem
-                            // Rasterwechsel zeigte die gemerkte sonst weiter das alte Raster.
+                            // always the fresh version from the config: a remembered one
+                            // kept showing the old grid after a grid change.
                             screen = renaming?.id?.let { id -> config.screens.firstOrNull { it.id == id } },
                             gutterDp = config.appearance.gutterDp,
                             borderPercent = config.appearance.safeBorderPercent,
@@ -535,10 +535,9 @@ class SettingsActivity : BigLauActivity() {
                             },
                         )
 
-                        // Wie bei den Nachrichten und beim Notruf: die Seite bekommt ihren
-                        // Teil und gibt ihn geaendert zurueck. Vorher standen hier 123 Zeilen
-                        // mit siebzehn Rueckrufen, die alle dasselbe taten. Hier bleibt nur,
-                        // was eine Activity braucht - sich neu aufbauen und sich drehen.
+                        // as with the messages and the sos: the page gets its part and hands
+                        // it back changed. what stays here is what an activity needs, to
+                        // rebuild itself and to turn.
                         Page.APPEARANCE -> AppearanceList(
                             appearance = config.appearance,
                             onChange = { neu -> store.update { it.copy(appearance = neu) } },
@@ -592,9 +591,9 @@ class SettingsActivity : BigLauActivity() {
                             allowedApps = config.apps.allowed.size,
                             onToggleAppLock = {
                                 when (AppLock.toggle(config)) {
-                                    // Nicht einschalten, wenn nichts erlaubt waere: das
-                                    // ist kein gesichertes Telefon, sondern ein
-                                    // verschlossenes. Statt dessen die Liste zeigen.
+                                    // do not switch on when nothing would be allowed: that
+                                    // is not a secured phone but a locked one. show the list
+                                    // instead.
                                     AppLock.Step.CHOOSE_FIRST -> {
                                         Notice.show(
                                             this@SettingsActivity,
@@ -604,8 +603,8 @@ class SettingsActivity : BigLauActivity() {
                                     }
 
                                     AppLock.Step.TURN_ON -> store.update { current ->
-                                        // Die Kachel-Apps von selbst erlauben: die hat der
-                                        // Einrichtende gerade bewusst in Reichweite gelegt.
+                                        // allow the tile apps by themselves: whoever set
+                                        // this up just put them within reach on purpose.
                                         current.copy(
                                             apps = current.apps.copy(
                                                 lockOthers = true,
@@ -654,12 +653,10 @@ class SettingsActivity : BigLauActivity() {
                             },
                             onSetPin = { page = Page.SET_PIN },
                             onRemovePin = {
-                                // Mit der PIN gehen auch die Schutzschalter - alle, auch
-                                // die App-Sperre, die in `apps` liegt und beim ersten Mal
-                                // deshalb stehen blieb. Sie stehen ohne PIN nirgends mehr,
-                                // man kaeme also nicht mehr an sie heran, und eine spaeter
-                                // gesetzte PIN wuerde ungefragt Tueren zusperren, die
-                                // vorher offen waren.
+                                // the guards go with the pin, all of them, including the app
+                                // lock in `apps`. without a pin they appear nowhere, so they
+                                // could not be reached, and a pin set later would lock doors
+                                // that had been open.
                                 store.update {
                                     it.copy(
                                         security = Security(),
@@ -687,9 +684,8 @@ class SettingsActivity : BigLauActivity() {
                             acceptOnComplete = false,
                         )
 
-                        // Diese Seite stellt das **Verhalten** ein, also bekommt sie
-                        // `behaviour` und gibt es geaendert zurueck. Vorher: 94 Zeilen mit
-                        // acht Rueckrufen, jeder eine Kopie einer Kopie.
+                        // this page sets the *behaviour*, so it gets `behaviour` and hands
+                        // it back changed.
                         Page.ACCESSIBILITY -> AccessibilityList(
                             behaviour = config.behaviour,
                             onChange = { neu -> store.update { it.copy(behaviour = neu) } },
@@ -725,10 +721,9 @@ class SettingsActivity : BigLauActivity() {
 
                         Page.TRANSFER -> TransferList(
                             onExport = { exportFile.launch(ConfigTransfer.suggestedFileName(System.currentTimeMillis())) },
-                            // Bewusst ohne Typfilter: eine Sicherung vom anderen Telefon kann mit
-                            // beliebigem MIME-Typ ankommen, und gefilterte Eintraege sind im
-                            // Systemdialog zwar sichtbar, aber nicht antippbar - was aussieht,
-                            // als waere die App kaputt.
+                            // no type filter: a backup from another phone can arrive with any
+                            // mime type, and filtered entries are visible but not tappable in
+                            // the system dialog, which looks like a broken app.
                             onImport = { importFile.launch(arrayOf("*/*")) },
                         )
 
@@ -754,10 +749,9 @@ class SettingsActivity : BigLauActivity() {
                             },
                         )
 
-                        // Die Seite bekommt ihren Teil der Einstellungen und gibt ihn
-                        // geaendert zurueck. Vorher standen hier 56 Zeilen mit fuenfzehn
-                        // Rueckrufen, die alle dasselbe taten - und der Wecker fuer die
-                        // Erinnerung stand mitten drin, obwohl er zu den Nachrichten gehoert.
+                        // the page gets its part of the settings and hands it back changed.
+                        // the reminder alarm sat in the middle of this, although it belongs
+                        // to the messages.
                         Page.MESSAGES -> MessagesSettingsList(
                             sms = config.sms,
                             onChange = { neu -> store.update { it.copy(sms = neu) } },
@@ -797,9 +791,9 @@ class SettingsActivity : BigLauActivity() {
                             },
                         )
 
-                        // Fünfte Seite nach demselben Muster. Der Wechsel der
-                        // Standard-Telefon-App bleibt hier: dafür braucht es eine Activity,
-                        // die auf die Antwort des Systems wartet.
+                        // fifth page in the same pattern. changing the default phone app
+                        // stays here, since that needs an activity awaiting the system's
+                        // answer.
                         Page.CALL_TYPES -> CallTypesList(
                             phone = config.phone,
                             onChange = { neu -> store.update { it.copy(phone = neu) } },
@@ -824,19 +818,15 @@ class SettingsActivity : BigLauActivity() {
                             onBackup = { page = Page.TRANSFER },
                             onCancel = { page = Page.MAIN },
                             onReset = {
-                                // Erst die Widget-Kennungen freigeben, dann die
-                                // Konfiguration wegwerfen. Andersherum waeren sie nicht
-                                // mehr aufzufinden, und der Widget-Host hielte sie fuer
-                                // immer.
+                                // free the widget ids first, then throw the config away: the
+                                // other way round they could not be found again, and the host
+                                // would keep them forever.
                                 val host = WidgetHostController.get(this@SettingsActivity)
                                 Reset.widgetIds(config).forEach { host.release(it) }
                                 store.update { Reset.fresh() }
-                                // Und dann wirklich von vorn. Die Zusage lautet "wie am
-                                // ersten Tag", und der erste Tag faengt mit dem
-                                // Assistenten an. Ihn nur beim naechsten Kaltstart zu
-                                // zeigen hiesse, den Satz nicht einzuloesen: der
-                                // Startbildschirm laeuft laengst und prueft nicht noch
-                                // einmal nach.
+                                // and then really from the beginning. the promise is like on
+                                // the first day, and the first day starts with the wizard;
+                                // showing it only at the next cold start would not keep it.
                                 startActivity(
                                     Intent(this@SettingsActivity, WizardActivity::class.java)
                                         .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
@@ -852,9 +842,8 @@ class SettingsActivity : BigLauActivity() {
 
     companion object {
         /**
-         * Die Kennungen stehen in [org.biglau.ui.SettingsLink] - dort, wo auch die
-         * Absicht steht, mit der andere Bildschirme hierher springen. Hier bleiben sie
-         * als Verweis, damit die Seite und der Weg zu ihr nicht auseinanderlaufen.
+         * the ids live in [org.biglau.ui.SettingsLink], where the intent other screens jump
+         * with lives too. kept here as a reference so the page and the way to it stay together.
          */
         const val EXTRA_PAGE = SettingsLink.EXTRA_PAGE
         const val PAGE_CALL_TYPES = SettingsLink.PAGE_CALL_TYPES
@@ -892,17 +881,16 @@ private fun MainList(
     val palette = LocalBigPalette.current
     LazyColumn(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         item { BigHeading(stringResource(R.string.settings)) }
-        // Nicht dasselbe Haus wie "Als Startbildschirm verwenden" weiter unten: zwei Zeilen
-        // mit demselben Symbol tragen kein Wissen, sie stiften Verwechslung.
+        // not the same house as the set-as-home row below: two rows with the same icon
+        // carry no knowledge, they cause confusion.
         item { BigRow(stringResource(R.string.settings_screens), icon = Icons.Filled.ViewCarousel, onClick = onScreens) }
         item { BigRow(stringResource(R.string.settings_appearance), icon = Icons.Filled.Palette, onClick = onAppearance) }
         item { BigRow(stringResource(R.string.settings_behaviour), icon = Icons.Filled.NotificationsActive, onClick = onBehaviour) }
         item { BigRow(stringResource(R.string.settings_app_list), icon = Icons.Filled.Apps, onClick = onHiddenApps) }
         item { BigRow(stringResource(R.string.settings_security), icon = Icons.Filled.Lock, onClick = onSecurity) }
-        // Beide Zeilen sagen den Zustand, statt eine Aufforderung zu wiederholen, die schon
-        // erfuellt ist. Vorher stand "Als Telefon-App verwenden" auch dann da, wenn BigLau
-        // es laengst war - und ein Tipp darauf tat sichtbar nichts: der Rollendialog schloss
-        // sich sofort wieder ("Application is already a role holder", im Protokoll gesehen).
+        // both rows say the state instead of repeating a request already fulfilled: the
+        // invitation used to stand there even when BigLau was already the app, and a tap did
+        // visibly nothing, the role dialog closing at once.
         item {
             BigRow(
                 label = stringResource(
@@ -927,10 +915,9 @@ private fun MainList(
                 onClick = onDialerApp,
             )
         }
-        // Die dritte Rolle stand nirgends. Startbildschirm und Telefon liessen sich hier
-        // sehen und aendern, die Nachrichten-Rolle nur im Nachrichten-Bildschirm - und dort
-        // nur, solange BigLau sie **nicht** hatte. Wer sie hatte, erfuhr es nirgends und
-        // kam von hier aus nicht mehr davon los. Drei Rollen, ein Ort.
+        // the third role stood nowhere: home and phone could be seen and changed here, the
+        // sms role only on the messages screen, and there only while BigLau did *not* hold
+        // it. three roles, one place.
         item {
             BigRow(
                 label = stringResource(
@@ -939,9 +926,8 @@ private fun MainList(
                 secondary = stringResource(
                     if (istNachrichtenApp) R.string.role_change_hint else R.string.set_as_sms_hint,
                 ),
-                // Nicht dasselbe Symbol wie die Nachrichten-Zeile weiter unten: zwei
-                // gleiche Symbole in einer Liste sind zwei Zeilen, die man verwechselt.
-                // SlopRulesTest hat es gemeldet.
+                // not the same icon as the messages row below: two identical icons in a
+                // list are two rows that get confused.
                 icon = Icons.Filled.Sms,
                 surface = if (istNachrichtenApp) palette.surfaceAccent else palette.surfaceDefault,
                 onClick = onSmsApp,
@@ -1015,7 +1001,7 @@ private fun ScreenList(
     screens: List<Screen>,
     homeId: String,
     unreachable: List<Screen>,
-    /** Legt eine Sprungkachel auf den Startbildschirm; null heisst: dort ist kein Platz. */
+    /** puts a jump tile on the home screen; null means there is no room. */
     onAddJumpTile: (Screen) -> Unit,
     jumpTilePossible: (Screen) -> Boolean,
     orphanedFolders: List<Screen>,
@@ -1028,14 +1014,13 @@ private fun ScreenList(
     onDuplicate: (Screen) -> Unit,
 ) {
     val palette = LocalBigPalette.current
-    // Ein Screen mit allen Kacheln war mit einem einzigen Tipp weg - ohne Rueckfrage, ohne
-    // Weg zurueck. Dieselbe Zweistufigkeit wie beim Verkleinern des Rasters: der erste Tipp
-    // sagt, was es kostet, erst der zweite tut es.
+    // a screen with all its tiles was gone in one tap, with no question and no way back.
+    // two steps, as when shrinking the grid: the first says what it costs.
     var scharf by remember { mutableStateOf<String?>(null) }
     LazyColumn(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         item { BigHeading(stringResource(R.string.settings_screens)) }
-        // Ein Screen, zu dem keine Kachel fuehrt, ist eingerichtet und unerreichbar. Ohne
-        // diesen Hinweis merkt man das nie - man sucht ihn und findet ihn nicht.
+        // a screen no tile leads to is set up and unreachable: without this hint one looks
+        // for it and never finds it.
         if (unreachable.isNotEmpty()) {
             item {
                 Text(
@@ -1049,9 +1034,8 @@ private fun ScreenList(
                     modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp),
                 )
             }
-            // Der Weg dorthin statt der Wegbeschreibung - dieselbe Regel wie beim Notruf
-            // ohne Kontakte und bei der Anrufliste. Der Satz darueber sagte bis zum
-            // 03.09.2026 nur, was zu tun waere.
+            // the way there instead of directions to it, as with the sos without contacts
+            // and the call log.
             items(unreachable, key = { "sprung-${it.id}" }) { schirm ->
                 if (jumpTilePossible(schirm)) {
                     BigRow(
@@ -1101,9 +1085,8 @@ private fun ScreenList(
                 onClick = { onDuplicate(screen) },
             )
             if (!isHome) {
-                // Der Name gehoert in den Knopf. Bei drei Screens stehen hier drei Paare
-                // untereinander, und "diesen" waere dann nur noch aus der Reihenfolge zu
-                // erraten - beim Loeschen kann man sich das nicht leisten.
+                // the name belongs in the button: with three screens there are three pairs
+                // below one another, and this one would have to be guessed from the order.
                 BigRow(
                     label = stringResource(R.string.screen_make_home, screen.name),
                     icon = Icons.Filled.Home,
@@ -1134,10 +1117,9 @@ private fun ScreenList(
                 )
             }
         }
-        // Ein Ordner ohne Kachel ist nirgends zu sehen und nirgends zu oeffnen. Neue
-        // entstehen nicht mehr - das Neubelegen einer Ordnerkachel fragt jetzt nach, und
-        // das Loeschen eines Screens raeumt seine Ordner mit ab. Aeltere gibt es aber, und
-        // sie liegen sonst fuer immer in der Konfiguration und in jeder Sicherung.
+        // a folder without a tile can be neither seen nor opened. new ones no longer arise,
+        // but older ones exist and would otherwise lie in the config and in every backup
+        // forever.
         if (orphanedFolders.isNotEmpty()) {
             item {
                 Text(
@@ -1150,25 +1132,23 @@ private fun ScreenList(
             items(orphanedFolders, key = { "orphan-${it.id}" }) { folder ->
                 BigRow(
                     label = stringResource(R.string.folder_delete_title, folder.name),
-                    // Kacheln, nicht Zellen: ein leerer Platz im Ordner ist keine Kachel,
-                    // und "mit 6 Kacheln" ueber einem Ordner mit fuenf waere eine falsche
-                    // Zahl in genau der Zeile, die zum Loeschen auffordert.
+                    // tiles, not cells: an empty slot in a folder is no tile, and a wrong
+                    // count in exactly the row that invites deleting is the worst place.
                     secondary = pluralStringResource(
                         R.plurals.folder_delete_body,
                         folder.tileCount,
                         folder.tileCount,
                     ),
-                    // Nicht derselbe Papierkorb wie beim Screen darueber: das hier ist
-                    // kein gewoehnliches Loeschen, sondern das Aufraeumen von etwas, das
-                    // sich ohnehin nicht mehr oeffnen laesst.
+                    // not the same bin as the screen above: this is not ordinary deleting
+                    // but tidying away something that cannot be opened any more.
                     icon = Icons.Filled.FolderOff,
                     surface = palette.surfaceDanger,
                     onClick = { onDeleteFolder(folder) },
                 )
             }
         }
-        // Angelegt werden Screens im Editor, nicht hier - so haengt an jedem neuen Screen
-        // von Anfang an eine Kachel, die hinfuehrt. Wer hier danach sucht, soll das lesen.
+        // screens are created in the editor, not here, so every new screen has a tile
+        // leading to it from the start.
         item {
             Text(
                 text = stringResource(R.string.screens_where_new),
@@ -1181,11 +1161,10 @@ private fun ScreenList(
 }
 
 /**
- * Die Namen der Hintergrundfarben, in der Reihenfolge von `ScreenBackground.choicesFor`.
+ * the names of the background colours, in the order of `ScreenBackground.choicesFor`.
  *
- * Gesprochen, nicht geschrieben: die Zeile zeigt die Farbe in voller Breite, und das ist
- * fuer das Auge die bessere Auskunft. Wer sie nicht sieht, hoerte bis zum 04.09.2026
- * fuenfmal denselben Satz.
+ * spoken, not written: the row shows the colour full width, which is the better answer for
+ * the eye. anyone not seeing it heard the same sentence five times.
  */
 internal val HINTERGRUND_NAMEN = listOf(
     R.string.screen_background_blue,
@@ -1196,11 +1175,11 @@ internal val HINTERGRUND_NAMEN = listOf(
 )
 
 /**
- * Name und Raster eines Screens.
+ * a screen's name and grid.
  *
- * Das Raster steht bewusst neben dem Namen und nicht in einer eigenen Ecke: beides gehoert
- * demselben Screen, und wer hier ist, will ihn einrichten. Verkleinern kostet Kacheln, also
- * steht vorher rot daneben, wie viele - und erst der zweite Tipp fuehrt es aus.
+ * the grid stands beside the name and not in a corner of its own: both belong to the same
+ * screen. shrinking costs tiles, so how many stands in red beforehand, and only the second
+ * tap carries it out.
  */
 @Composable
 private fun ScreenPanel(
@@ -1216,14 +1195,14 @@ private fun ScreenPanel(
     var text by remember(screen.id) { mutableStateOf(screen.name) }
     var confirming by remember(screen.id) { mutableStateOf<Pair<Int, Int>?>(null) }
     val palette = LocalBigPalette.current
-    // Was dem Raster wirklich bleibt: Bildschirm minus Aussenrand. Der Rand ist ein
-    // Prozentsatz der Breite und gilt auf allen vier Seiten.
-    val fenster = LocalConfiguration.current
-    val rand = fenster.screenWidthDp * borderPercent / 100f
-    val usableWidthDp = fenster.screenWidthDp - 2 * rand
-    val usableHeightDp = fenster.screenHeightDp - 2 * rand
-    // Ausserhalb der Liste erfragt: in einem items-Aufruf ist kein Composable erlaubt.
-    val hintergrundfarben = ScreenBackground.choicesFor(theme, isSystemInDarkTheme())
+    // what the grid really keeps: screen minus the outer margin, a percentage of the width
+    // holding on all four sides.
+    val window = LocalConfiguration.current
+    val margin = window.screenWidthDp * borderPercent / 100f
+    val usableWidthDp = window.screenWidthDp - 2 * margin
+    val usableHeightDp = window.screenHeightDp - 2 * margin
+    // asked outside the list: no composable is allowed inside an `items` call.
+    val backgroundColours = ScreenBackground.choicesFor(theme, isSystemInDarkTheme())
     LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         item { BigHeading(stringResource(R.string.screen_edit)) }
         item {
@@ -1232,8 +1211,8 @@ private fun ScreenPanel(
                 onValueChange = { text = it },
                 singleLine = true,
                 textStyle = TextStyle(fontSize = bigSp(26f), fontWeight = FontWeight.Bold),
-                // Dieselbe Falle wie beim Kachelnamen: die Tastatur verdeckt "Fertig"
-                // vollstaendig, also uebernimmt ihre eigene Haken-Taste.
+                // the same trap as with the tile name: the keyboard covers done entirely,
+                // so its own tick key takes over.
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                 keyboardActions = KeyboardActions(onDone = { onDone(text) }),
                 modifier = Modifier.fillMaxWidth(),
@@ -1260,9 +1239,8 @@ private fun ScreenPanel(
                 onClick = {
                     when {
                         current -> Unit
-                        // Ein anderes Raster anzutippen nimmt die scharfe Warnung wieder
-                        // zurueck - sonst bliebe irgendwo eine rote Zeile scharf stehen,
-                        // die beim naechsten Tipp ungefragt Kacheln kostet.
+                        // tapping another grid disarms the warning again, or a red row would
+                        // stay armed somewhere and cost tiles on the next tap.
                         loses == 0 -> { onGrid(cols, rows); confirming = null }
                         armed -> { onGrid(cols, rows); confirming = null }
                         else -> confirming = cols to rows
@@ -1270,8 +1248,8 @@ private fun ScreenPanel(
                 },
             )
         }
-        // Und frei waehlbar, so weit dieser Bildschirm es traegt - siehe GridLimits. Die
-        // Grenze ist keine Zahl im Quelltext, sondern was hier noch als Kachel lesbar ist.
+        // freely choosable as far as this screen carries it (see GridLimits): the bound is
+        // not a number in the source but what is still readable as a tile.
         item { BigHeading(stringResource(R.string.screen_background)) }
         item {
             Text(
@@ -1296,15 +1274,13 @@ private fun ScreenPanel(
                 onClick = { onBackground(Background.Theme) },
             )
         }
-        // Jede Zeile in ihrer eigenen Farbe. Bei einer Farbe ist der Name nutzlos - man
-        // will sie sehen, und zwar in der Groesse, in der sie spaeter dasteht.
+        // each row in its own colour: a name is useless for a colour, one wants to see it
+        // in the size it will have.
         //
-        // **Zu sehen**, und genau da endet das Argument. Am 04.09.2026 am Emulator im
-        // Knotenabzug nachgesehen: fuenf Zeilen, fuenfmal "Diese Farbe", kein Wort dazu.
-        // Wer die Farbe nicht sieht, hat fuenf gleiche Angebote vor sich. Die Zeile bleibt
-        // also, wie sie ist - gesprochen wird der Name der Farbe. Genau dafuer gibt es
-        // `labelSpeech`.
-        itemsIndexed(hintergrundfarben) { platz, farbe ->
+        // to *see*, and that is where the argument ends: the node dump showed five rows all
+        // saying this colour. the row stays as it is and the colour's name is spoken, which
+        // is what `labelSpeech` is for.
+        itemsIndexed(backgroundColours) { platz, farbe ->
             val gewaehlt = (screen.background as? Background.Solid)?.argb == farbe
             BigRow(
                 label = stringResource(R.string.screen_background_colour),
@@ -1377,7 +1353,7 @@ private fun languageLabel(language: Language): Int = when (language) {
 private fun AppearanceList(
     appearance: Appearance,
     onChange: (Appearance) -> Unit,
-    /** Nach einem Sprachwechsel baut die Activity sich neu auf. */
+    /** the activity rebuilds itself after a language change. */
     onLanguageChanged: () -> Unit,
     /** Eine Drehung setzt die Activity sofort um. */
     onOrientationChanged: (ScreenOrientation) -> Unit,
@@ -1386,9 +1362,9 @@ private fun AppearanceList(
     LazyColumn(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         item { BigHeading(stringResource(R.string.settings_appearance)) }
         item { BigHeading(stringResource(R.string.appearance_language)) }
-        // Die Sprachnamen bleiben in ihrer eigenen Sprache. Wer die eingestellte Sprache
-        // nicht liest, sucht hier nach dem Wort, das er kennt - "Deutsch" auf Englisch
-        // uebersetzt zu "German" waere genau fuer den unlesbar, der die Zeile braucht.
+        // the language names stay in their own language: whoever cannot read the current one
+        // looks for the word they know, and a translated name is unreadable to exactly the
+        // person who needs the row.
         items(Language.entries.toList()) { entry ->
             BigRow(
                 label = stringResource(languageLabel(entry)),
@@ -1397,17 +1373,17 @@ private fun AppearanceList(
                 onClick = {
                         if (entry != appearance.language) {
                             onChange(appearance.copy(language = entry))
-                            // Sofort neu aufbauen. Wer hier „Deutsch" antippt und nichts
-                            // geschieht, tippt noch einmal und noch einmal - und das ist die
-                            // Seite, auf der man gerade nicht lesen kann, was los ist.
+                            // rebuild at once: tapping a language and seeing nothing happen
+                            // leads to tapping again, on the one page where one cannot read
+                            // what is going on.
                             onLanguageChanged()
                         }
                     },
             )
         }
-        // Jede Zeile ist in ihrem eigenen Thema gemalt. Dreimal dasselbe Paletten-Symbol
-        // sagte nichts; die Farben selbst sagen alles. Die Auswahl traegt deshalb ein
-        // Haekchen statt einer Akzentflaeche - die Flaeche gehoert hier dem Thema.
+        // each row is painted in its own theme: the same palette icon three times said
+        // nothing. the choice carries a tick instead of an accent surface, the surface
+        // belonging to the theme here.
         items(ThemeName.entries.toList()) { entry ->
             val own = paletteFor(entry, isSystemInDarkTheme())
             val chosen = entry == appearance.theme
@@ -1421,9 +1397,8 @@ private fun AppearanceList(
             )
         }
         item { BigHeading(stringResource(R.string.appearance_font)) }
-        // Jede Zeile in ihrer eigenen Schrift: man sieht den Unterschied, statt ihn zu
-        // lesen. Bei einer Schrift, die es fuer schlechte Augen leichter machen soll, ist
-        // das die einzige Vorschau, die etwas taugt.
+        // each row in its own face: one sees the difference instead of reading about it,
+        // which for a font meant to help poor sight is the only preview worth anything.
         items(FontChoice.entries.toList()) { entry ->
             BigRow(
                 label = stringResource(fontLabel(entry)),
@@ -1439,7 +1414,7 @@ private fun AppearanceList(
             )
         }
         item { BigHeading(stringResource(R.string.appearance_text_size)) }
-        // Jede Zeile in ihrer eigenen Groesse: man sieht, was man waehlt, statt es zu lesen.
+        // each row in its own size: one sees what one chooses.
         items(listOf(0.75f, 1.0f, 1.25f, 1.5f, 2.0f)) { scale ->
             CompositionLocalProvider(LocalTextScale provides scale) {
                 BigRow(
@@ -1451,9 +1426,8 @@ private fun AppearanceList(
             }
         }
         item { BigHeading(stringResource(R.string.appearance_label_size)) }
-        // Jede Zeile in ihrer eigenen Groesse - wie bei der Textgroesse darueber. Drei
-        // Listen aus denselben Prozentzahlen sehen sonst gleich aus, sobald die
-        // Ueberschrift weggescrollt ist, und man stellt die falsche.
+        // each row in its own size, as with the text size above: three lists of the same
+        // percentages look alike once the heading has scrolled away.
         items(LABEL_SCALES) { scale ->
             CompositionLocalProvider(LocalTextScale provides scale) {
                 BigRow(
@@ -1465,7 +1439,7 @@ private fun AppearanceList(
             }
         }
         item { BigHeading(stringResource(R.string.appearance_icon_size)) }
-        // Und hier das Symbol selbst in der Groesse, um die es geht.
+        // and here the icon itself, in the size in question.
         items(ICON_PERCENTS) { percent ->
             BigRow(
                 label = "$percent %",
@@ -1493,9 +1467,8 @@ private fun AppearanceList(
                 onClick = { onChange(appearance.copy(labelPosition = position)) },
             )
         }
-        // PLAN.md 3.2: "auf 3 Zoll ist ein abgeschnittenes Wort schlimmer als gar keins."
-        // Nur anbieten, wo die Beschriftung ueberhaupt steht - bei "ohne Beschriftung"
-        // waere es ein Schalter ohne Wirkung.
+        // `PLAN.md` 3.2: on three inches a cut-off word is worse than none. offered only
+        // where a label stands at all, or it would be a switch without effect.
         if (appearance.labelPosition != LabelPosition.HIDDEN) {
             item {
                 BigRow(
@@ -1542,9 +1515,8 @@ private fun AppearanceList(
                 onClick = { onChange(appearance.copy(showHeader = !appearance.showHeader)) },
             )
         }
-        // Vollbild nimmt die Systemleiste weg, die Kopfzeile traegt den Rest. Beides aus
-        // heisst: keine Uhrzeit, kein Ladestand. Erlaubt, aber gesagt - sonst sucht man
-        // den Fehler beim Telefon.
+        // full screen removes the system bar and the header carries the rest; both off means
+        // no time and no battery. allowed, but said, or the phone gets the blame.
         if (StatusVisibility.warns(appearance)) {
             item {
                 Text(
@@ -1580,7 +1552,7 @@ private fun AppearanceList(
             )
         }
         item { BigHeading(stringResource(R.string.appearance_corner)) }
-        // Jede Zeile in ihrer eigenen Rundung: die Zahl sagt nichts, die Ecke alles.
+        // each row in its own rounding: the number says nothing, the corner everything.
         items(GridLooks.RADII) { wert ->
             BigRow(
                 label = "$wert dp",
@@ -1603,8 +1575,8 @@ private fun AppearanceList(
                 selected = entry == appearance.orientation,
                 onClick = {
                         onChange(appearance.copy(orientation = entry))
-                        // Sofort umsetzen: eine Drehung, die erst beim naechsten Start
-                        // kaeme, sieht aus wie ein Schalter, der klemmt.
+                        // applied at once: a rotation arriving only at the next start looks
+                        // like a jammed switch.
                         onOrientationChanged(entry)
                     },
             )
@@ -1649,9 +1621,8 @@ private fun clockLabel(display: ClockDisplay): Int = when (display) {
 }
 
 /**
- * Barrierefreiheit. Beide Schalter nehmen dem Langdruck den Editor weg - deshalb steht
- * darunter, wo man ihn dann findet. Eine Einstellung, die einen Weg schliesst, muss den
- * neuen Weg nennen.
+ * accessibility. both switches take the editor away from the long press, so below them
+ * stands where to find it instead: a setting that closes a way must name the new one.
  */
 @Composable
 private fun AccessibilityList(
@@ -1781,15 +1752,15 @@ private fun AccessibilityList(
 
 
 /**
- * Sicherung und Wiederherstellung. Gedacht fuer den Wechsel auf ein anderes Telefon,
- * deshalb ueber den System-Dateidialog: die Datei soll dort liegen, wo der Nutzer sie
- * auch wiederfindet, nicht in einem App-Verzeichnis, das beim Deinstallieren verschwindet.
+ * backup and restore, meant for moving to another phone, hence through the system file
+ * dialog: the file should lie where it can be found again, not in an app directory that
+ * disappears on uninstall.
  */
 @Composable
 private fun TransferList(onExport: () -> Unit, onImport: () -> Unit) {
     val palette = LocalBigPalette.current
-    // Einlesen ersetzt die ganze Belegung, und zwar unwiderruflich. Dieselbe zweistufige
-    // Rueckfrage wie beim Verkleinern des Rasters: der erste Tipp warnt, der zweite tut es.
+    // importing replaces the whole arrangement, irreversibly. the same two steps as
+    // shrinking the grid: the first tap warns, the second does it.
 
     LazyColumn(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         item { BigHeading(stringResource(R.string.settings_transfer)) }
@@ -1814,12 +1785,10 @@ private fun TransferList(onExport: () -> Unit, onImport: () -> Unit) {
                 label = stringResource(R.string.transfer_import),
                 secondary = stringResource(R.string.transfer_import_hint),
                 icon = Icons.Filled.FolderOpen,
-                // Kein zweiter Tipp mehr davor. Er sagte "Noch einmal tippen, dann ist
-                // alles ersetzt" - und das stimmte nicht: der zweite Tipp oeffnete den
-                // Dateidialog. Seit die Datei drueben in `ImportActivity` erst gezeigt und
-                // dann gefragt wird, steht die Rueckfrage dort, wo etwas zu sehen ist,
-                // und nicht davor, wo sie nur schreckt. Zwei Tipps sind ausserdem genau
-                // das, was eine zittrige Hand von selbst macht.
+                // no second tap in front any more: it promised that everything would be
+                // replaced, which was untrue, since the second tap opened the file dialog.
+                // the question now stands in `ImportActivity`, where there is something to
+                // see. two taps are also what an unsteady hand does by itself.
                 onClick = onImport,
             )
         }
@@ -1827,8 +1796,8 @@ private fun TransferList(onExport: () -> Unit, onImport: () -> Unit) {
 }
 
 /**
- * Ausgeblendete Apps wieder einblenden. Ohne diese Seite waere das Ausblenden eine
- * Einbahnstrasse - eine Aktion ohne Rueckweg ist ein Fehler, auch wenn sie tut, was sie soll.
+ * unhide hidden apps. without this page hiding would be a one-way street, and an action
+ * without a way back is a fault even when it does what it should.
  */
 @Composable
 private fun HiddenAppsList(
@@ -1841,8 +1810,8 @@ private fun HiddenAppsList(
     val palette = LocalBigPalette.current
     LazyColumn(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         item { BigHeading(stringResource(R.string.settings_app_list)) }
-        // Die Zahl stand fest auf vier, waehrend die App zwoelf Starts speichert. Wer
-        // viele verschiedene Apps benutzt, sieht den fuenften nie wieder.
+        // the number was fixed at four while the app stores twelve starts, so anyone using
+        // many different apps never saw the fifth again.
         item { BigHeading(stringResource(R.string.apps_recent_count)) }
         items(AppDrawer.RECENT_CHOICES) { anzahl ->
             BigRow(
@@ -1991,9 +1960,9 @@ private fun SecurityList(
                     label = stringResource(
                         if (lockOthers) R.string.security_applock_on else R.string.security_applock_off,
                     ),
-                    // Die Zeile darunter sagte fest "Apps auf Deinen Kacheln sind von
-                    // Anfang an erlaubt" - auch dann, wenn keine einzige App auf einer
-                    // Kachel liegt und der Schalter das Telefon zusperren wuerde.
+                    // the row below claimed that apps on the tiles are allowed from the
+                    // start, even when not a single app lies on one and the switch would lock
+                    // the phone.
                     secondary = when {
                         lockOthers -> pluralStringResource(
                             R.plurals.security_applock_allowed,
@@ -2013,8 +1982,8 @@ private fun SecurityList(
                     onClick = onToggleAppLock,
                 )
             }
-            // Auch bei ausgeschalteter Sperre erreichbar: sonst laesst sich die Liste erst
-            // vorbereiten, wenn man sich schon ausgesperrt hat.
+            // reachable with the lock off too, or the list could only be prepared once one
+            // had already locked oneself out.
             item {
                 BigRow(
                     label = stringResource(R.string.security_allowed_apps),
@@ -2035,25 +2004,24 @@ private fun SecurityList(
 }
 
 @Composable
-// `BigLauActivity` statt `ComponentActivity`: die Diagnose liest Zustaende, die das System
-// vergibt, und braucht dafuer `resumes` - siehe dort. Eine Diagnoseseite, die veraltete
-// Werte zeigt, ist schlimmer als keine.
+// `BigLauActivity` and not `ComponentActivity`: the diagnostics read states the system
+// grants and need `resumes` for that. a diagnostics page showing stale values is worse than
+// none.
 private fun DiagnosticsList(activity: BigLauActivity) {
-    // Was nach den Systemleisten uebrig bleibt - genau die Flaeche, die eine Kachel
-    // bekommt. Das Fenster allein sagte 605 dp Hoehe, tatsaechlich nutzbar sind 581.
+    // what is left after the system bars, exactly the area a tile gets: the window alone
+    // said 605 dp of height, while 581 are usable.
     val dichte = LocalDensity.current
     val einblendungen = WindowInsets.safeDrawing
     val nutzbar = run {
-        // Die **ganzen** Bildschirmmasse, nicht `displayMetrics`: das liefert das Fenster
-        // schon ohne die Gestenleiste, und die ginge dann zweimal ab. Siehe
-        // `Diagnostics.usableDp`.
+        // the *full* screen size and not `displayMetrics`, which already excludes the
+        // gesture bar; it would come off twice. see `Diagnostics.usableDp`.
         val ganz = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             activity.windowManager.currentWindowMetrics.bounds
                 .let { it.width() to it.height() }
         } else {
             val metrics = android.util.DisplayMetrics()
-            // `defaultDisplay` ist seit Android 11 abgelöst - dies ist der Zweig für
-            // alles davor, der Ersatz steht im if darüber.
+            // this is the branch for everything before android 11; the replacement is in
+            // the if above.
             @Suppress("DEPRECATION")
             activity.windowManager.defaultDisplay.getRealMetrics(metrics)
             metrics.widthPixels to metrics.heightPixels
@@ -2069,9 +2037,9 @@ private fun DiagnosticsList(activity: BigLauActivity) {
         )
     }
     val zusammenhang = LocalContext.current
-    // `resumes` als zweiter Schluessel: die Diagnose liest Rollen und Berechtigungen,
-    // die das System vergibt. Wer sie erteilt und zurueckkommt, bekam sonst die alten Werte -
-    // auf ausgerechnet der Seite, die man aufschlaegt, um nachzusehen, was stimmt.
+    // `resumes` as a second key: the diagnostics read roles and permissions the system
+    // grants, and granting one and coming back gave the old values on exactly the page one
+    // opens to check what is true.
     val lines = remember(nutzbar, activity.resumes.intValue) {
         Diagnostics.collect(activity, nutzbar) { id -> zusammenhang.getString(id) }
     }
@@ -2098,14 +2066,14 @@ private fun labelPositionLabel(position: LabelPosition) = when (position) {
 }
 
 /**
- * Warnung, bevor jemand sich selbst aussperrt.
+ * a warning before locking oneself out.
  *
- * Auf dem gewählten Screen liegt keine Einstellungen-Kachel, und von dort führt auch über
- * Sprünge und Ordner keine hin. Nach dem Wechsel käme man nie wieder hierher - es hülfe nur
- * noch ein anderer Launcher oder ein Rechner mit adb.
+ * the chosen screen carries no settings tile, and none is reachable from it through jumps
+ * or folders either. after the change one would never get back here; only another launcher
+ * or a computer with adb would help.
  *
- * Angeboten wird deshalb der Ausweg statt eines Verbots: eine Einstellungen-Kachel anlegen
- * und dann wechseln. Nur wenn dafür kein Platz ist, geht es wirklich nicht.
+ * so the way out is offered instead of a ban: create a settings tile, then change. only
+ * with no room for one does it really not work.
  */
 @Composable
 private fun NoSettingsWarning(
@@ -2142,12 +2110,11 @@ private fun NoSettingsWarning(
 }
 
 /**
- * Die Rückfrage vor dem einzigen Schritt, der nicht rückgängig zu machen ist.
+ * the question before the one step that cannot be undone.
  *
- * Sie zählt auf, was verschwindet, statt „bist du sicher" zu fragen. Eine Zahl macht eine
- * Warnung wahr; eine Floskel tippt man weg, ohne sie zu lesen. Und der erste Knopf ist
- * nicht das Löschen, sondern die Sicherung - danach ist es kein Verlust mehr, sondern ein
- * Neuanfang.
+ * it counts up what disappears instead of asking whether one is sure: a number makes a
+ * warning true, a phrase gets tapped away unread. and the first button is not the deletion
+ * but the backup, after which it is no longer a loss but a fresh start.
  */
 @Composable
 private fun ResetPanel(
@@ -2160,9 +2127,9 @@ private fun ResetPanel(
     LazyColumn(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         item { BigHeading(stringResource(R.string.settings_reset)) }
         item {
-            // Zahlen in Worten, die zur Zahl passen: "1 folders" laesst eine Warnung
-            // schlampig aussehen, und wer sie schlampig findet, nimmt sie nicht ernst.
-            // Ohne Ordner faellt der halbe Satz ganz weg statt "und 0 Ordner" zu sagen.
+            // words that agree with the number: a mismatch makes a warning look sloppy, and
+            // a sloppy warning is not taken seriously. with no folders the half sentence
+            // falls away entirely rather than saying zero.
             val bildschirme = pluralStringResource(
                 R.plurals.reset_screens, losses.screens, losses.screens,
             )
@@ -2216,11 +2183,10 @@ private fun ResetPanel(
 }
 
 /**
- * Die Reihenfolge beim Wischen und für die Kacheln „nächster" und „voriger".
+ * the order when swiping and for the next and previous tiles.
  *
- * Bewegt wird eine Stelle nach oben oder unten, nicht gezogen. Ziehen setzt eine ruhige
- * Hand voraus, und die ist bei den Leuten, für die diese App gebaut ist, nicht
- * vorauszusetzen. Zweimal tippen bringt denselben Screen zwei Stellen weiter.
+ * a screen moves one place up or down, it is not dragged: dragging needs a steady hand,
+ * which is not to be assumed here. tapping twice moves the same screen two places.
  */
 @Composable
 private fun SwipeOrderList(
@@ -2251,8 +2217,8 @@ private fun SwipeOrderList(
                 val darfRaus = mayLeave(screen.id)
                 BigRow(
                     label = screen.name,
-                    // Warum es nicht geht, statt eines Knopfes, der nichts tut: ohne
-                    // Sprungkachel waere der Screen nach dem Herausnehmen unauffindbar.
+                    // why it does not work, instead of a button that does nothing: without a
+                    // jump tile the screen would be unfindable after being taken out.
                     secondary = if (darfRaus) {
                         stringResource(R.string.swipe_order_position, index + 1, screens.size)
                     } else {
@@ -2262,8 +2228,8 @@ private fun SwipeOrderList(
                     modifier = Modifier.weight(1f),
                     onClick = { if (darfRaus) onExclude(screen.id) },
                 )
-                // Am Rand kein Knopf statt eines Knopfes, der nichts tut: ein Pfeil, der
-                // manchmal wirkt und manchmal nicht, laesst einen an sich selbst zweifeln.
+                // no button at the edge rather than one that does nothing: an arrow that
+                // sometimes works and sometimes does not makes one doubt oneself.
                 if (index > 0) {
                     BigIconButton(
                         icon = Icons.Filled.KeyboardArrowUp,
@@ -2295,12 +2261,10 @@ private fun SwipeOrderList(
 }
 
 /**
- * Eine Zeile der Rasterauswahl - Vorlage, Spalte oder Zeile, immer dieselbe Warnung.
+ * one row of the grid picker: preset, column or row, always the same warning.
  *
- * Ein Raster zu wechseln kann Kacheln kosten; wie viele, steht in der Zeile, und beim
- * ersten Tipp passiert noch nichts. Wer eine andere Zeile antippt, nimmt die scharfe
- * Warnung wieder zurueck - sonst bliebe irgendwo eine rote Zeile stehen, die beim
- * naechsten Tipp ungefragt Kacheln kostet.
+ * changing a grid can cost tiles, and how many stands in the row; the first tap does
+ * nothing yet. tapping another row disarms the warning again.
  */
 @Composable
 private fun GridChoiceRow(
@@ -2343,11 +2307,10 @@ private fun GridChoiceRow(
 }
 
 /**
- * Welche Apps ohne PIN starten. PLAN.md 4.5.
+ * which apps start without the pin. `PLAN.md` 4.5.
  *
- * Die ganze Liste, mit Haken an den erlaubten - und nicht nur die erlaubten. Wer eine App
- * freigeben will, muss sie finden koennen; eine Liste, die nur zeigt, was schon erlaubt
- * ist, waere fuer genau diesen Schritt nutzlos.
+ * the whole list with ticks on the allowed ones, not only the allowed ones: allowing an app
+ * means finding it first, and a list of what is already allowed is useless for that.
  */
 @Composable
 private fun AllowedAppsList(
@@ -2390,11 +2353,11 @@ private fun AllowedAppsList(
 }
 
 /**
- * Die drei Schalter der Kontaktliste. PLAN.md 4.1 nennt sie nicht eigens, aber sie standen
- * im Modell und wurden gelesen - zwei davon waren nirgends zu aendern.
+ * the contact list's three switches. they sat in the model and were read, and two of them
+ * could be changed nowhere.
  *
- * Die Sortierung steht zusaetzlich als Symbol in der Kontaktliste selbst, wo man sie
- * braucht. Hier steht sie, weil man sie hier sucht, wenn man das Symbol nicht erkannt hat.
+ * the sorting also sits as an icon in the contact list itself, where it is needed. it is
+ * here because this is where one looks after not recognising the icon.
  */
 @Composable
 private fun ContactsSettingsList(
@@ -2451,23 +2414,21 @@ private fun ContactsSettingsList(
 }
 
 /**
- * Welche Anrufarten in der Liste erscheinen. PLAN.md 4.6.
+ * which call kinds appear in the list. `PLAN.md` 4.6.
  *
- * Die Logik dafuer stand samt Tests im Quelltext und wurde von der App nie aufgerufen -
- * ein Filter ohne Schalter. Wer nur die verpassten sehen will, hat dafuer die schnelle
- * Umschaltung in der Liste selbst; hier steht, was ueberhaupt auftaucht.
+ * the logic for it stood in the source with its tests and was never called: a filter with no
+ * switch. the quick missed-only toggle lives in the list itself; here stands what appears
+ * at all.
  */
 @Composable
 private fun CallTypesList(
     phone: PhoneConfig,
     onChange: (PhoneConfig) -> Unit,
-    /** Die Standard-Telefon-App zu wechseln geht nur über eine Activity. */
+    /** changing the default phone app works only through an activity. */
     onDialerApp: () -> Unit,
     /**
-     * Haelt BigLau die Telefon-Rolle?
-     *
-     * Kommt von aussen, weil das **System** sie vergibt: wer sie erteilt und zurueckkommt,
-     * soll nicht denselben Hinweis noch einmal lesen. Siehe `BigLauActivity.resumes`.
+     * does BigLau hold the phone role? comes from outside because the *system* grants it.
+     * see `BigLauActivity.resumes`.
      */
     hatTelefonRolle: Boolean,
 ) {
@@ -2475,11 +2436,9 @@ private fun CallTypesList(
     var gesperrtText by remember(phone.blockedNumbers) { mutableStateOf(CallBlocking.format(phone.blockedNumbers)) }
     val abgewiesen = remember(gesperrtText) { CallBlocking.rejected(gesperrtText) }
     LazyColumn(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        // Die Anrufliste steht oben, weil der Weg hierher von ihr kommt: aus der Liste
-        // fuehrt "welche Arten erscheinen" hierher, und wer dann als Erstes ein Feld fuer
-        // gesperrte Nummern sieht, glaubt, auf der falschen Seite gelandet zu sein.
-        // Innerhalb davon die Gruppierung vor den Arten: sie betrifft die ganze Liste, das
-        // Aus- und Einblenden einzelner Arten nur ihren Inhalt.
+        // the call log stands at the top because the way here comes from it, and seeing a
+        // field for blocked numbers first reads as the wrong page. within it, grouping before
+        // the kinds: grouping concerns the whole list, hiding kinds only its content.
         item { BigHeading(stringResource(R.string.call_grouping)) }
         items(CallGrouping.entries.toList()) { art ->
             BigRow(
@@ -2518,17 +2477,14 @@ private fun CallTypesList(
                 },
             )
         }
-        // PLAN.md 4.6: Nummernsperre. Die Liste steht in einer Zeile wie bei den
-        // Notrufnummern - auf drei Zoll geht das schneller als eine Liste mit Plus-Knopf,
-        // und CallBlocking sortiert beim Einlesen streng aus.
+        // `PLAN.md` 4.6: blocked numbers, in one field as with the sos numbers. faster on
+        // three inches than a list with a plus button, and CallBlocking sorts strictly.
         item { BigHeading(stringResource(R.string.blocked_numbers)) }
         item {
             Text(
-                // "werden abgewiesen, ohne zu klingeln" gilt nur, wenn BigLau die
-                // Telefon-Rolle haelt - nur die Standard-Telefon-App sieht eingehende
-                // Anrufe. Ohne die Rolle wirkt die Sperre allein nach aussen. Siehe
-                // DialerRole. Am 03.09.2026 hielt die Rolle ein anderes Programm; seit dem
-                // 04.09.2026 haelt BigLau sie, und damit gilt der erste Satz.
+                // rejected without ringing holds only while BigLau has the phone role: only
+                // the default phone app sees incoming calls. without it the block works
+                // outwards alone. see DialerRole.
                 text = if (hatTelefonRolle) {
                     stringResource(R.string.blocked_numbers_hint)
                 } else {
@@ -2539,9 +2495,8 @@ private fun CallTypesList(
                 modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp),
             )
         }
-        // Den Weg anbieten, nicht nur den Grund nennen: ohne die Telefon-Rolle wirkt die
-        // Sperre halb, und die Rolle ist zwei Bildschirme weit weg. Die Zeile steht nur da,
-        // solange sie fehlt.
+        // offer the way, not just the reason: without the phone role the block works half,
+        // and the role is two screens away. the row stands only while it is missing.
         if (!hatTelefonRolle) {
             item {
                 BigRow(

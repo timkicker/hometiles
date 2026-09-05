@@ -19,7 +19,7 @@ import org.junit.Test
  */
 class ShrinkBeforeBreakTest {
 
-    private fun quelle(pfad: String) = Quelltext.datei(pfad).readText()
+    private fun quelle(pfad: String) = Quelltext.file(pfad).readText()
 
     @Test
     fun `Kachel, Ueberschrift und Zeile benutzen dieselbe Leiter`() {

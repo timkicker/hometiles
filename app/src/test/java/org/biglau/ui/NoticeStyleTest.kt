@@ -43,7 +43,7 @@ class NoticeStyleTest {
      */
     @Test
     fun `die Meldung steht in Ueberschriftengroesse`() {
-        val quelle = org.biglau.Quelltext.datei("org/biglau/ui/NoticeActivity.kt").readText()
+        val quelle = org.biglau.Quelltext.file("org/biglau/ui/NoticeActivity.kt").readText()
         assertEquals(true, "BigHeading(text)" in quelle)
     }
 }

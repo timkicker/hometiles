@@ -20,14 +20,14 @@ import org.junit.Test
  */
 class LeerePlaetzeTest {
 
-    private val quelle = Quelltext.ohneKommentare("org/biglau/ui/HomeScreenView.kt")
+    private val quelle = Quelltext.withoutComments("org/biglau/ui/HomeScreenView.kt")
 
     @Test
     fun `eine leere kachel sagt ihren platz`() {
-        val leer = Quelltext.ausschnitt(
+        val leer = Quelltext.cut(
             quelle,
-            von = "private fun EmptyTile(",
-            bis = "\n}",
+            from = "private fun EmptyTile(",
+            to = "\n}",
         )
         assertTrue(
             "Die leere Kachel nennt ihren Platz nicht - dann heissen alle leeren Kacheln " +
@@ -52,7 +52,7 @@ class LeerePlaetzeTest {
     @Test
     fun `die worte fuer den platz gibt es in beiden sprachen`() {
         listOf("values-de", "values").forEach { sprache ->
-            val text = Quelltext.textWert("move_spot", sprache)
+            val text = Quelltext.textValue("move_spot", sprache)
             assertTrue(
                 "move_spot braucht Zeile und Spalte (Sprache \"$sprache\"): $text",
                 "%1\$d" in text && "%2\$d" in text,

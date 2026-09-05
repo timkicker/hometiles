@@ -20,7 +20,7 @@ import org.junit.Test
  */
 class ContactLabelTest {
 
-    private val quelle = Quelltext.datei("org/biglau/contacts/ContactRepository.kt").readText()
+    private val quelle = Quelltext.file("org/biglau/contacts/ContactRepository.kt").readText()
 
     @Test
     fun `die Bezeichnung kommt aus getTypeLabel`() {
@@ -50,7 +50,7 @@ class ContactLabelTest {
             "org/biglau/sms/SmsActivity.kt",
             "org/biglau/phone/DialerActivity.kt",
         )
-        val ohne = rufer.filterNot { "load(resources)" in Quelltext.datei(it).readText() }
+        val ohne = rufer.filterNot { "load(resources)" in Quelltext.file(it).readText() }
         assertEquals("liest Kontakte ohne eigene Sprache: $ohne", emptyList<String>(), ohne)
     }
 }

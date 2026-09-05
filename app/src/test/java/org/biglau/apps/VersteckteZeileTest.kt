@@ -17,7 +17,7 @@ import org.junit.Test
  */
 class VersteckteZeileTest {
 
-    private val liste = Quelltext.ohneKommentare("org/biglau/apps/AppDrawerActivity.kt")
+    private val liste = Quelltext.withoutComments("org/biglau/apps/AppDrawerActivity.kt")
 
     @Test
     fun `beim Suchen werden passende ausgeblendete Apps genannt`() {
@@ -34,23 +34,23 @@ class VersteckteZeileTest {
         // Datei stehen. Die Gegenprobe - den Suchfall auf `null` gesetzt - lief damit
         // durch: die Zeile war wieder weg, die Regel gruen. Jetzt wird die Entscheidung
         // selbst gelesen.
-        val entscheidung = Quelltext.ausschnitt(liste, "val versteckteZeile", "}")
+        val entscheidung = Quelltext.cut(liste, "val hiddenRow", "}")
         assertTrue(
             "Die Zeile haengt nicht am Suchfall - sie waere beim Suchen wieder weg, also " +
                 "genau dann, wenn sie gebraucht wird: $entscheidung",
-            "query.isNotEmpty()" in entscheidung && "versteckteTreffer" in entscheidung,
+            "query.isNotEmpty()" in entscheidung && "hiddenHits" in entscheidung,
         )
     }
 
     @Test
     fun `kein Widerspruch zwischen beiden Saetzen`() {
-        val leer = Quelltext.ausschnitt(liste, "R.string.search_no_match", hoechstens = 0)
+        val leer = Quelltext.cut(liste, "R.string.search_no_match", atMost = 0)
         // Der Satz steht in einem `if`, das ein paar Zeilen darueber beginnt.
-        val bedingung = Quelltext.ausschnitt(liste, "", "R.string.search_no_match").takeLast(300)
+        val bedingung = Quelltext.cut(liste, "", "R.string.search_no_match").takeLast(300)
         assertTrue(
             "\"Keine App passt dazu\" steht auch dann da, wenn eine ausgeblendete App " +
                 "passt - daneben widersprechen sich die beiden Zeilen: $bedingung$leer",
-            "versteckteTreffer.isEmpty()" in bedingung,
+            "hiddenHits.isEmpty()" in bedingung,
         )
     }
 }

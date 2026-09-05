@@ -20,7 +20,7 @@ import org.junit.Test
  */
 class UnusedStringsTest {
 
-    private val res = Quelltext.resWurzeln
+    private val res = Quelltext.resRoots
 
     /**
      * Namen, die es zu Recht ohne Fundstelle im Quelltext gibt.
@@ -32,7 +32,7 @@ class UnusedStringsTest {
     private val ohneFundstelle = emptySet<String>()
 
     private fun namen(tag: String): List<String> {
-        val dateien = Quelltext.texte("values", if (tag == "plurals") "plurals.xml" else "strings.xml")
+        val dateien = Quelltext.texts("values", if (tag == "plurals") "plurals.xml" else "strings.xml")
         assertTrue("values/$tag fehlt in jedem Modul", dateien.isNotEmpty())
         return dateien.flatMap { datei ->
             Regex("<$tag name=\"([^\"]+)\"").findAll(datei.readText()).map { it.groupValues[1] }
@@ -43,7 +43,7 @@ class UnusedStringsTest {
     private fun verwendet(): Set<String> {
         val treffer = mutableSetOf<String>()
         val zeiger = Regex("""R\.(?:string|plurals)\.([A-Za-z0-9_]+)|@(?:string|plurals)/([A-Za-z0-9_]+)""")
-        (Quelltext.wurzeln + res + File("src/main/AndroidManifest.xml")).forEach { ort ->
+        (Quelltext.roots + res + File("src/main/AndroidManifest.xml")).forEach { ort ->
             ort.walkTopDown().filter { it.isFile }.forEach { datei ->
                 zeiger.findAll(datei.readText()).forEach {
                     treffer += it.groupValues[1].ifEmpty { it.groupValues[2] }

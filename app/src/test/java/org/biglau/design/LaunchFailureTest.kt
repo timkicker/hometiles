@@ -25,7 +25,7 @@ class LaunchFailureTest {
     private val geprueft = listOf(".launch(")
 
     private fun dateien(): List<File> =
-        Quelltext.dateien()
+        Quelltext.files()
 
     @Test
     fun `jeder Startversuch wertet sein Ergebnis aus`() {

@@ -24,7 +24,7 @@ import org.junit.Test
  */
 class OrdnerErstSpaeterTest {
 
-    private val editor = Quelltext.ohneKommentare("org/biglau/tiles/TileEditorActivity.kt")
+    private val editor = Quelltext.withoutComments("org/biglau/tiles/TileEditorActivity.kt")
 
     @Test
     fun `der Ordner entsteht erst beim Schreiben`() {

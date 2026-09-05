@@ -300,7 +300,7 @@ private fun ContactList(
             // nobody reach the remaining contacts.
             //
             // and not while reading: above the loading check, the screen first said no
-            // favourites yet and then they jumped in. see LadenTest.
+            // favourites yet and then they jumped in. see LoadingTest.
             if (contacts.isEmpty() && !loading) {
                 Text(
                     text = stringResource(R.string.favourites_none),

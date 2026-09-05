@@ -24,9 +24,9 @@ class StartAufgabenTest {
      * auszukommentieren liess sie grün, denn die Zeichenkette stand ja noch da. Eine Regel,
      * die einen auskommentierten Aufruf für einen Aufruf hält, prüft nichts.
      */
-    private val start = Quelltext.datei("org/biglau/BigLauApp.kt")
+    private val start = Quelltext.file("org/biglau/BigLauApp.kt")
         .readLines()
-        .filterNot { Quelltext.istKommentarzeile(it) }
+        .filterNot { Quelltext.isCommentLine(it) }
         .joinToString("\n")
 
     @Test

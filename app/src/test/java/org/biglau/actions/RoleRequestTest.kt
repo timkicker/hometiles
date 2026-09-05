@@ -21,10 +21,10 @@ import org.junit.Test
  */
 class RoleRequestTest {
 
-    private val intents = Quelltext.ohneKommentare("org/biglau/actions/Intents.kt")
+    private val intents = Quelltext.withoutComments("org/biglau/actions/Intents.kt")
 
     private fun rollenTeil(): String =
-        Quelltext.ausschnitt(intents, "fun homeRoleIntent", "private inline fun start")
+        Quelltext.cut(intents, "fun homeRoleIntent", "private inline fun start")
 
     /**
      * `createRequestRoleIntent` darf in dieser Datei nur als **Absicht zurückgegeben**
@@ -50,12 +50,12 @@ class RoleRequestTest {
      */
     @Test
     fun `die Rollenzeilen nennen den Zustand`() {
-        val einstellungen = Quelltext.datei("org/biglau/settings/SettingsActivity.kt").readText()
+        val einstellungen = Quelltext.file("org/biglau/settings/SettingsActivity.kt").readText()
         listOf("R.string.is_home", "R.string.is_dialer", "istStartbildschirm", "istTelefonApp")
             .forEach { assertTrue("$it fehlt", it in einstellungen) }
         // Je Sprache, nicht je Datei - die Texte liegen in mehreren Modulen.
         listOf("values", "values-de").forEach { sprache ->
-            val texte = Quelltext.texte(sprache).joinToString("\n") { it.readText() }
+            val texte = Quelltext.texts(sprache).joinToString("\n") { it.readText() }
             listOf("is_home", "is_dialer", "role_change_hint").forEach { name ->
                 assertTrue("$sprache: $name fehlt", "\"$name\"" in texte)
             }
@@ -65,10 +65,10 @@ class RoleRequestTest {
     /** Und die Aufrufer nehmen wirklich einen Launcher. */
     @Test
     fun `beide Rollen werden ueber einen Launcher gefragt`() {
-        val einstellungen = Quelltext.datei("org/biglau/settings/SettingsActivity.kt").readText()
+        val einstellungen = Quelltext.file("org/biglau/settings/SettingsActivity.kt").readText()
         assertTrue("Telefon-Rolle ohne Launcher", "askDialerRole.launch(" in einstellungen)
         assertTrue("Startbildschirm-Rolle ohne Launcher", "Intents.homeRoleIntent(" in einstellungen)
-        val assistent = Quelltext.datei("org/biglau/wizard/WizardActivity.kt").readText()
+        val assistent = Quelltext.file("org/biglau/wizard/WizardActivity.kt").readText()
         assertTrue("Assistent ohne Launcher", "askHomeRole.launch(" in assistent)
     }
 }

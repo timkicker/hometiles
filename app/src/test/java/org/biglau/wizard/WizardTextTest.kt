@@ -19,7 +19,7 @@ import org.junit.Test
  */
 class WizardTextTest {
 
-    private val quelle = Quelltext.datei("org/biglau/wizard/WizardActivity.kt").readText()
+    private val quelle = Quelltext.file("org/biglau/wizard/WizardActivity.kt").readText()
 
     @Test
     fun `der Erklaertext folgt der eingestellten Groesse`() {

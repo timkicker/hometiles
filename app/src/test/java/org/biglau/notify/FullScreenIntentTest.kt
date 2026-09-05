@@ -14,7 +14,7 @@ import org.junit.Test
  */
 class FullScreenIntentTest {
 
-    private val quellen = Quelltext.dateien()
+    private val quellen = Quelltext.files()
     private val manifest = File("src/main/AndroidManifest.xml").readText()
 
     @Test
@@ -39,7 +39,7 @@ class FullScreenIntentTest {
      */
     @Test
     fun `die Nachrichtenansicht steht nicht dauerhaft ueber dem Schloss`() {
-        val block = Quelltext.ausschnitt(manifest, ".sms.SmsActivity", "</activity>")
+        val block = Quelltext.cut(manifest, ".sms.SmsActivity", "</activity>")
         assertTrue("showWhenLocked gehört nicht ins Manifest: $block", "showWhenLocked" !in block)
     }
 }

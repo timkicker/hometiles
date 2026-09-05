@@ -43,7 +43,7 @@ class LabelFitTest {
     /** Und die Messung selbst steht in der Kachel, nicht als Schätzung daneben. */
     @Test
     fun `gemessen wird mit dem TextMeasurer`() {
-        val quelle = Quelltext.datei("org/biglau/ui/BigTile.kt").readText()
+        val quelle = Quelltext.file("org/biglau/ui/BigTile.kt").readText()
         assertTrue("rememberTextMeasurer fehlt", "rememberTextMeasurer()" in quelle)
         assertTrue("hasVisualOverflow fehlt", "hasVisualOverflow" in quelle)
     }

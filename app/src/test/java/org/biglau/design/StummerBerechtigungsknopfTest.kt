@@ -34,7 +34,7 @@ class StummerBerechtigungsknopfTest {
     @Test
     fun `wer fragt kennt auch das nein fuer immer`() {
         val ohne = frager.filter { (pfad, _) ->
-            val text = Quelltext.ohneKommentare(pfad)
+            val text = Quelltext.withoutComments(pfad)
             "RequestPermission()" in text && "PermissionState.blocked" !in text
         }
         assertEquals(

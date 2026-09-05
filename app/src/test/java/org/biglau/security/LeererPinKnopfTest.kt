@@ -23,10 +23,10 @@ import org.junit.Test
  */
 class LeererPinKnopfTest {
 
-    private val knopf = Quelltext.ausschnitt(
-        Quelltext.ohneKommentare("org/biglau/ui/PinGate.kt"),
-        von = "BigRow(\n            label = confirmLabel,",
-        bis = "\n        )",
+    private val knopf = Quelltext.cut(
+        Quelltext.withoutComments("org/biglau/ui/PinGate.kt"),
+        from = "BigRow(\n            label = confirmLabel,",
+        to = "\n        )",
     )
 
     @Test

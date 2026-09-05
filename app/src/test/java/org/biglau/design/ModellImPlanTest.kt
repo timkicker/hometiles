@@ -24,7 +24,7 @@ import org.junit.Test
 class ModellImPlanTest {
 
     private val plan = File("../PLAN.md").readText()
-    private val modell = Quelltext.datei("org/biglau/data/Model.kt").readText()
+    private val modell = Quelltext.file("org/biglau/data/Model.kt").readText()
 
     private fun felder(text: String, klasse: String): List<String> {
         val block = Regex("""data class $klasse\((.*?)\n\)""", RegexOption.DOT_MATCHES_ALL)
@@ -56,13 +56,13 @@ class ModellImPlanTest {
     fun `der Plan verspricht keine Hintergrundbilder mehr`() {
         assertTrue(
             "Im Modell gibt es Background.Image - dann darf der Plan es auch nennen.",
-            "Image(" !in Quelltext.ausschnitt(modell, "interface Background").take(400),
+            "Image(" !in Quelltext.cut(modell, "interface Background").take(400),
         )
         // Nur im **Codeblock**, nicht in der Prosa: der Absatz darunter erklaert, dass der
         // erste Entwurf `Image(uri, scale)` vorsah und was daran hing. Eine Regel, die auch
         // das verbietet, zwingt den Plan, seine eigene Geschichte zu verschweigen - derselbe
         // Fehler, den `VerweiseTest` heute schon einmal gemacht hat.
-        val block = Quelltext.ausschnitt(Quelltext.ausschnitt(plan, "### 2.2"), "```kotlin", "```")
+        val block = Quelltext.cut(Quelltext.cut(plan, "### 2.2"), "```kotlin", "```")
         assertTrue(
             "Der Modell-Entwurf in PLAN.md 2.2 nennt wieder ein Hintergrundbild, das es " +
                 "nicht gibt.",

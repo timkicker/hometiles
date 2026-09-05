@@ -25,7 +25,7 @@ import org.junit.Test
  */
 class LangdruckHinweisTest {
 
-    private val editor = Quelltext.ohneKommentare("org/biglau/tiles/TileEditorActivity.kt")
+    private val editor = Quelltext.withoutComments("org/biglau/tiles/TileEditorActivity.kt")
 
     /** Erst der Grund: eine Zweitbelegung nimmt dem Langdruck den Editor wirklich weg. */
     @Test

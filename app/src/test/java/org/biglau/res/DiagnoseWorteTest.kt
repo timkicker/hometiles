@@ -22,7 +22,7 @@ import org.junit.Test
  */
 class DiagnoseWorteTest {
 
-    private val quelle = Quelltext.ohneKommentare("org/biglau/settings/Diagnostics.kt")
+    private val quelle = Quelltext.withoutComments("org/biglau/settings/Diagnostics.kt")
 
     @Test
     fun `der letzte absturz hat sein eigenes wort`() {
@@ -43,8 +43,8 @@ class DiagnoseWorteTest {
     @Test
     fun `beide seiten der akku-zeile sind gleich weit gefasst`() {
         listOf("values-de", "values").forEach { sprache ->
-            val an = Quelltext.textWert("diag_battery_saving_on", sprache)
-            val aus = Quelltext.textWert("diag_battery_saving_off", sprache)
+            val an = Quelltext.textValue("diag_battery_saving_on", sprache)
+            val aus = Quelltext.textValue("diag_battery_saving_off", sprache)
             val nenntApp = { text: String -> "BigLau" in text }
             assertTrue(
                 "Nur eine der beiden Antworten nennt BigLau (Sprache \"$sprache\"): " +

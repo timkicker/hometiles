@@ -23,10 +23,10 @@ import org.junit.Test
  */
 class OrdnerWechselTest {
 
-    private val activate = Quelltext.ausschnitt(
-        Quelltext.ohneKommentare("org/biglau/MainActivity.kt"),
-        von = "private fun activate(",
-        bis = "\n    private fun ",
+    private val activate = Quelltext.cut(
+        Quelltext.withoutComments("org/biglau/MainActivity.kt"),
+        from = "private fun activate(",
+        to = "\n    private fun ",
     )
 
     @Test
@@ -44,10 +44,10 @@ class OrdnerWechselTest {
 
     @Test
     fun `die eine stelle schliesst den ordner`() {
-        val wechseln = Quelltext.ausschnitt(
+        val wechseln = Quelltext.cut(
             activate,
-            von = "val wechseln: (String) -> Unit = {",
-            bis = "}",
+            from = "val wechseln: (String) -> Unit = {",
+            to = "}",
         )
         assertEquals(
             "`wechseln` schliesst den Ordner nicht: $wechseln",

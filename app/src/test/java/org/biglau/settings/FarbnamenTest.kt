@@ -48,7 +48,7 @@ class FarbnamenTest {
     @Test
     fun `jeder name steht in beiden sprachen und ist einmalig`() {
         listOf("values-de", "values").forEach { sprache ->
-            val namen = schluessel.map { Quelltext.textWert(it, sprache) }
+            val namen = schluessel.map { Quelltext.textValue(it, sprache) }
             namen.forEach { name ->
                 assertTrue("Ein Farbname ist leer (Sprache \"$sprache\")", name.isNotBlank())
             }
@@ -62,10 +62,10 @@ class FarbnamenTest {
 
     @Test
     fun `die farbzeile reicht den gesprochenen namen weiter`() {
-        val liste = Quelltext.ausschnitt(
-            Quelltext.ohneKommentare("org/biglau/settings/SettingsActivity.kt"),
-            von = "itemsIndexed(hintergrundfarben)",
-            bis = "\n        }",
+        val liste = Quelltext.cut(
+            Quelltext.withoutComments("org/biglau/settings/SettingsActivity.kt"),
+            from = "itemsIndexed(backgroundColours)",
+            to = "\n        }",
         )
         assertTrue(
             "Die Farbzeilen sagen ihren Namen nicht: $liste",

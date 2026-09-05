@@ -13,15 +13,15 @@ import org.junit.Test
  */
 class PlainLanguageTest {
 
-    private val quellen = Quelltext.dateien()
+    private val quellen = Quelltext.files()
     /**
      * Beide Sprachen **und** die Mehrzahlformen.
      *
      * Bis zum 3.9.2026 stand hier nur `strings.xml`. Die Mehrzahltexte („%1$d Kacheln gehen
      * verloren") standen genauso auf dem Bildschirm und waren von jeder Regel hier
-     * ausgenommen. `Quelltext.alleTexte` fragt beides.
+     * ausgenommen. `Quelltext.allTexts` fragt beides.
      */
-    private val texte = Quelltext.alleTexte()
+    private val texte = Quelltext.allTexts()
 
     /**
      * „Keine Versalien für Kachelbeschriftungen. Großbuchstaben zerstören die Wortkontur,
@@ -59,7 +59,7 @@ class PlainLanguageTest {
         // die Regel gruen, wenn es den Text nirgends mehr gibt - sie haette dann nichts
         // angesehen. `textWert` faellt in dem Fall um.
         val zulang = listOf("values", "values-de").mapNotNull { sprache ->
-            val text = Quelltext.textWert("empty_tile_invite", sprache)
+            val text = Quelltext.textValue("empty_tile_invite", sprache)
             if (text.length > 12) "$sprache: \"$text\" (${text.length})" else null
         }
         assertEquals(emptyList<String>(), zulang)

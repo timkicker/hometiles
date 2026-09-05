@@ -28,8 +28,8 @@ class ManifestKlassenTest {
             .toList()
         assertEquals("das Manifest nennt keine einzige eigene Klasse mehr - Regel kaputt?", true, genannt.size >= 10)
 
-        val vorhanden = Quelltext.dateien().map { it.nameWithoutExtension }.toSet()
-        val quelltexte = Quelltext.dateien().associate { it.nameWithoutExtension to it.readText() }
+        val vorhanden = Quelltext.files().map { it.nameWithoutExtension }.toSet()
+        val quelltexte = Quelltext.files().associate { it.nameWithoutExtension to it.readText() }
         val fehlend = genannt.filter { name ->
             val einfach = name.substringAfterLast('.')
             // Die Datei heisst meistens wie die Klasse; sonst muss die Klasse wenigstens
@@ -49,7 +49,7 @@ class ManifestKlassenTest {
             .mapNotNull { voll ->
                 val paket = "org.biglau." + voll.substringBeforeLast('.')
                 val klasse = voll.substringAfterLast('.')
-                val datei = Quelltext.dateien().firstOrNull { d ->
+                val datei = Quelltext.files().firstOrNull { d ->
                     Regex("""(class|object) $klasse\b""").containsMatchIn(d.readText())
                 } ?: return@mapNotNull "$voll (nicht gefunden)"
                 val stehtIn = Regex("""^package ([\w.]+)""", RegexOption.MULTILINE)

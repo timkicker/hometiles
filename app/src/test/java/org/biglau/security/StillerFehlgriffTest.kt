@@ -23,11 +23,11 @@ class StillerFehlgriffTest {
 
     @Test
     fun `die fehlermeldung ist eine liveRegion`() {
-        val gate = Quelltext.ohneKommentare("org/biglau/ui/PinGate.kt")
-        val meldung = Quelltext.ausschnitt(
+        val gate = Quelltext.withoutComments("org/biglau/ui/PinGate.kt")
+        val meldung = Quelltext.cut(
             gate,
-            von = "wrong -> Text(",
-            bis = "\n                )",
+            from = "wrong -> Text(",
+            to = "\n                )",
         )
         assertTrue(
             "Die Meldung zur falschen PIN wird nicht angesagt: $meldung\n" +

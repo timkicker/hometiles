@@ -48,7 +48,7 @@ class NamenImPlanTest {
 
     @Test
     fun `jeder genannte Typ kommt im Quelltext vor`() {
-        val alles = (Quelltext.dateien() + Quelltext.testDateien()).joinToString("\n") { it.readText() }
+        val alles = (Quelltext.files() + Quelltext.testFiles()).joinToString("\n") { it.readText() }
         val geister = genannt().filterNot { it in vonAussen }.filterNot { it in alles }
         assertEquals(
             "PLAN.md nennt einen Namen, den es im Quelltext nicht gibt. Entweder ist er " +

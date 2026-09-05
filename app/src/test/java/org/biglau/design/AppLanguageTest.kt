@@ -22,7 +22,7 @@ class AppLanguageTest {
 
 
     private fun dateien(): List<File> =
-        Quelltext.dateien()
+        Quelltext.files()
 
     /**
      * Innerhalb einer Activity hängt die Sprache schon am Context (`attachBaseContext`),

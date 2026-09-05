@@ -24,7 +24,7 @@ import org.junit.Test
 class PaletteScopeTest {
 
     private val quellen: List<File> =
-        Quelltext.dateien()
+        Quelltext.files()
 
     /** Zeile des ersten Aufrufs von [name] in dieser Datei, oder null. */
     private fun ersteZeile(zeilen: List<String>, treffer: (String) -> Boolean): Int? =

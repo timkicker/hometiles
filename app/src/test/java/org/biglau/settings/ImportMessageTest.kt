@@ -16,11 +16,11 @@ import org.junit.Test
  */
 class ImportMessageTest {
 
-    private val quelle = Quelltext.datei("org/biglau/settings/ImportActivity.kt").readText()
+    private val quelle = Quelltext.file("org/biglau/settings/ImportActivity.kt").readText()
 
     @Test
     fun `nicht lesbar und nicht lesbar-als-Sicherung sind zwei Faelle`() {
-        val block = Quelltext.ausschnitt(quelle, "text = when {", "},")
+        val block = Quelltext.cut(quelle, "text = when {", "},")
         assertTrue("Der Lesefehler fehlt: $block", "transfer_unreadable" in block)
         assertTrue("Der Formatfehler fehlt: $block", "transfer_bad_file" in block)
         assertTrue(
@@ -34,7 +34,7 @@ class ImportMessageTest {
         // Je Sprache, nicht je Datei: die Texte liegen inzwischen in mehreren Modulen,
         // und ein Satz gehoert in *eine* davon, nicht in jede.
         listOf("values", "values-de").forEach { sprache ->
-            val texte = Quelltext.texte(sprache).joinToString("\n") { it.readText() }
+            val texte = Quelltext.texts(sprache).joinToString("\n") { it.readText() }
             listOf("transfer_unreadable", "transfer_bad_file").forEach { name ->
                 assertTrue("$sprache: $name fehlt", "\"$name\"" in texte)
             }

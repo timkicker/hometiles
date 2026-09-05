@@ -18,12 +18,12 @@ import org.junit.Test
  */
 class VerkleinertTest {
 
-    private val modell = Quelltext.ohneKommentare("org/biglau/tiles/TileMove.kt")
-    private val editor = Quelltext.ohneKommentare("org/biglau/tiles/TileEditorActivity.kt")
+    private val modell = Quelltext.withoutComments("org/biglau/tiles/TileMove.kt")
+    private val editor = Quelltext.withoutComments("org/biglau/tiles/TileEditorActivity.kt")
 
     @Test
     fun `das Modell verkleinert die Kachel beim Umzug immer noch`() {
-        val umzug = Quelltext.ausschnitt(modell, "fun move(")
+        val umzug = Quelltext.cut(modell, "fun move(")
         assertTrue(
             "TileMove.move schrumpft nicht mehr - dann darf der Hinweis in der " +
                 "Verschieben-Ansicht weg, und diese Regel auch.",
@@ -33,7 +33,7 @@ class VerkleinertTest {
 
     @Test
     fun `die Verschieben-Ansicht sagt es, bevor es passiert`() {
-        val ansicht = Quelltext.ausschnitt(editor, "fun MoveTargetList(")
+        val ansicht = Quelltext.cut(editor, "fun MoveTargetList(")
         assertTrue(
             "Die Verschieben-Ansicht nennt das Schrumpfen nicht. Eine Kachel, die beim " +
                 "Verschieben still kleiner wird, sieht aus wie ein Fehler.",
@@ -43,7 +43,7 @@ class VerkleinertTest {
 
     @Test
     fun `der Hinweis kommt nur bei einer grossen Kachel`() {
-        val bedingung = Quelltext.ausschnitt(editor, "shrinks = ", "\n")
+        val bedingung = Quelltext.cut(editor, "shrinks = ", "\n")
         assertTrue(
             "Die Bedingung fuer den Hinweis liest nicht die Groesse der Kachel, sondern " +
                 "steht auf $bedingung - dann stuende er auch bei einer Kachel, die gar " +
@@ -54,16 +54,16 @@ class VerkleinertTest {
 
     @Test
     fun `der Hinweis steht in beiden Sprachen und weist einen Weg`() {
-        for (datei in Quelltext.texte("values") + Quelltext.texte("values-de")) {
+        for (datei in Quelltext.texts("values") + Quelltext.texts("values-de")) {
             val text = datei.readText()
             if (!text.contains("name=\"move_shrinks\"")) continue
-            val satz = Quelltext.ausschnitt(text, "name=\"move_shrinks\">", "</string>")
+            val satz = Quelltext.cut(text, "name=\"move_shrinks\">", "</string>")
             assertTrue(
                 "Der Hinweis in ${datei.path} nennt nur das Problem: $satz",
                 satz.count { it == '.' } >= 2,
             )
         }
-        val gefunden = (Quelltext.texte("values") + Quelltext.texte("values-de"))
+        val gefunden = (Quelltext.texts("values") + Quelltext.texts("values-de"))
             .count { it.readText().contains("name=\"move_shrinks\"") }
         assertTrue("Der Hinweis fehlt in einer der beiden Sprachen.", gefunden == 2)
     }

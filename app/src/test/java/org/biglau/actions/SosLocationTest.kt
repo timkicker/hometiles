@@ -26,7 +26,7 @@ import org.junit.Test
 class SosLocationTest {
 
     private val bildschirm =
-        Quelltext.ohneKommentare("org/biglau/toggles/SosActivity.kt")
+        Quelltext.withoutComments("org/biglau/toggles/SosActivity.kt")
 
     @Test
     fun `waehrend des Countdowns wird gesucht`() {
@@ -44,7 +44,7 @@ class SosLocationTest {
 
     @Test
     fun `die Suche hoert wieder auf`() {
-        val aufraeumen = Quelltext.ausschnitt(bildschirm, "onDispose {", "}")
+        val aufraeumen = Quelltext.cut(bildschirm, "onDispose {", "}")
         assertTrue("die Ortung laeuft weiter: $aufraeumen", "locator.stop()" in aufraeumen)
     }
 }

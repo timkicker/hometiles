@@ -18,11 +18,11 @@ import org.junit.Test
 class PinGateHintTest {
 
     private val einstellungen =
-        Quelltext.datei("org/biglau/settings/SettingsActivity.kt").readText()
+        Quelltext.file("org/biglau/settings/SettingsActivity.kt").readText()
 
     @Test
     fun `das Schloss zeigt den kurzen Satz`() {
-        val stelle = Quelltext.ausschnitt(einstellungen, "Page.GATE -> PinGate(", "wrongText")
+        val stelle = Quelltext.cut(einstellungen, "Page.GATE -> PinGate(", "wrongText")
         assertTrue("Der kurze Satz fehlt: $stelle", "security_forgot" in stelle)
         assertTrue("Der lange Text steht wieder auf dem Schloss: $stelle", "security_explainer" !in stelle)
     }
@@ -30,7 +30,7 @@ class PinGateHintTest {
     @Test
     fun `der kurze Satz nennt die dreissig Sekunden`() {
         listOf("values", "values-de").forEach { sprache ->
-            val text = Quelltext.textWert("security_forgot", sprache)
+            val text = Quelltext.textValue("security_forgot", sprache)
             assertTrue("$sprache: ohne die Dauer nützt der Satz nichts", "30" in text)
             assertTrue("$sprache: zu lang für das Schloss (${text.length})", text.length <= 60)
         }

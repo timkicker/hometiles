@@ -17,7 +17,7 @@ import org.junit.Test
  */
 class SuchzeileTrefferTest {
 
-    private val feld = Quelltext.ohneKommentare("org/biglau/ui/BigSearchField.kt")
+    private val feld = Quelltext.withoutComments("org/biglau/ui/BigSearchField.kt")
 
     @Test
     fun `die ganze Zeile nimmt den Tipp an`() {
@@ -40,7 +40,7 @@ class SuchzeileTrefferTest {
      */
     @Test
     fun `die Zeile wird dadurch nicht zur Schaltflaeche`() {
-        val zeile = Quelltext.ausschnitt(feld, "Row(", "Icon(")
+        val zeile = Quelltext.cut(feld, "Row(", "Icon(")
         assertTrue(
             "Die Suchzeile ist anklickbar geworden - dann sagt die Vorlesefunktion " +
                 "\"Schaltflaeche\", obwohl dort ein Eingabefeld steht: $zeile",

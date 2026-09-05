@@ -232,7 +232,7 @@ var logGranted by remember(resumes.intValue) { mutableStateOf(callLog.hasPermiss
             //
             // and while reading, the list does not say it is empty: `groups` starts empty and
             // `CallLogEmpty.reason` would turn that into no calls yet, which is false while
-            // the provider is still reading. see LadenTest.
+            // the provider is still reading. see LoadingTest.
             var loading by remember { mutableStateOf(true) }
             LaunchedEffect(tab, logGranted) {
                 if (tab != Tab.LOG) return@LaunchedEffect
@@ -611,7 +611,7 @@ private fun CallList(
         if (missedOnly) CallLogGrouping.onlyMissed(alle) else alle,
         allowed,
     )
-    val leerWeil = CallLogEmpty.reason(alle, missedOnly, allowed)
+    val emptyBecause = CallLogEmpty.reason(alle, missedOnly, allowed)
     val palette = LocalBigPalette.current
     val locale = currentLocale()
     val format = remember(locale) {
@@ -738,7 +738,7 @@ private fun CallList(
                     )
                 }
             }
-            if (granted && leerWeil != null) {
+            if (granted && emptyBecause != null) {
                 item {
                     Text(
                         // while reading, the list is not empty but not there yet.
@@ -746,7 +746,7 @@ private fun CallList(
                             if (loading) {
                                 R.string.calllog_loading
                             } else {
-                                when (leerWeil) {
+                                when (emptyBecause) {
                                     EmptyCallLog.NO_CALLS -> R.string.calllog_empty
                                     EmptyCallLog.HIDDEN_BY_TYPE -> R.string.calllog_all_hidden
                                     EmptyCallLog.NO_MISSED -> R.string.calllog_no_missed
@@ -760,7 +760,7 @@ private fun CallList(
                 }
                 // the way back belongs where one notices needing it, not in a setting that
                 // has to be found first.
-                if (leerWeil == EmptyCallLog.HIDDEN_BY_TYPE) {
+                if (emptyBecause == EmptyCallLog.HIDDEN_BY_TYPE) {
                     item {
                         BigRow(
                             label = stringResource(R.string.calllog_all_hidden_open),

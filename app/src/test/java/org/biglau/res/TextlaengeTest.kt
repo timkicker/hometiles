@@ -16,7 +16,7 @@ import org.junit.Test
  * Als erstes faellt das **Wo** weg. "Geben Sie die Rolle zurueck" statt "in den
  * Einstellungen zurueck", "geben Sie dem Screen mehr Felder" statt "in den Einstellungen
  * mehr Felder". Der Satz wird kuerzer und der Ausweg unbrauchbar. Deshalb steht diese Regel
- * neben [org.biglau.tiles.KeinPlatzTest] und [org.biglau.sms.MmsHinweisTest], die genau das
+ * neben [org.biglau.tiles.KeinPlatzTest] und [org.biglau.sms.MmsHintTest], die genau das
  * pruefen: kuerzen darf, wer den Weg stehen laesst.
  *
  * 160 ist der laengste Text, der nach dem Durchgang noch dastand, nicht eine gewuenschte
@@ -39,7 +39,7 @@ class TextlaengeTest {
 
     @Test
     fun `kein Text ist laenger als die Grenze`() {
-        val zulang = Quelltext.alleTexte().flatMap { datei ->
+        val zulang = Quelltext.allTexts().flatMap { datei ->
             Regex("""<(?:string|item)[^>]*?(?:name="([^"]*)")?[^>]*>(.*?)</(?:string|item)>""", RegexOption.DOT_MATCHES_ALL)
                 .findAll(datei.readText())
                 .map { it.groupValues[1] to it.groupValues[2] }

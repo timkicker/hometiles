@@ -22,7 +22,7 @@ import org.junit.Test
  */
 class DocPlacementTest {
 
-    private val quellen: List<File> = Quelltext.dateien() + Quelltext.testDateien()
+    private val quellen: List<File> = Quelltext.files() + Quelltext.testFiles()
 
     @Test
     fun `kein Doku-Block steht auf einem anderen`() {

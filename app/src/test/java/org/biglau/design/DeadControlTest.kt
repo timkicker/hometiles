@@ -24,7 +24,7 @@ class DeadControlTest {
     private val muster = Regex("""on(Click|LongClick|Pick|Confirm|Accept)\s*=\s*\{\s*\}""")
 
     private fun dateien(): List<File> =
-        Quelltext.dateien()
+        Quelltext.files()
 
     @Test
     fun `kein Bedienelement mit leerer Handlung`() {

@@ -26,7 +26,7 @@ import org.junit.Test
  */
 class SosSpeichernTest {
 
-    private val quelle = Quelltext.ohneKommentare("org/biglau/toggles/SosSettings.kt")
+    private val quelle = Quelltext.withoutComments("org/biglau/toggles/SosSettings.kt")
 
     @Test
     fun `ohne aenderung sind beide knoepfe still`() {
@@ -47,10 +47,10 @@ class SosSpeichernTest {
 
     @Test
     fun `die rueckmeldung unterscheidet den leeren fall`() {
-        val speichern = Quelltext.ausschnitt(
+        val speichern = Quelltext.cut(
             quelle,
-            von = "val taken = SosNumbers.parse(numbersText)",
-            bis = "\n                    }",
+            from = "val taken = SosNumbers.parse(numbersText)",
+            to = "\n                    }",
         )
         assertTrue(
             "Die Meldung nach dem Speichern zaehlt nicht nach, was uebernommen wurde:\n" +
@@ -66,7 +66,7 @@ class SosSpeichernTest {
     @Test
     fun `beide meldungen gibt es in beiden sprachen`() {
         listOf("values-de", "values").forEach { sprache ->
-            val text = Quelltext.textWert("sos_numbers_cleared", sprache)
+            val text = Quelltext.textValue("sos_numbers_cleared", sprache)
             assertTrue("sos_numbers_cleared fehlt in $sprache", text.isNotBlank())
         }
     }

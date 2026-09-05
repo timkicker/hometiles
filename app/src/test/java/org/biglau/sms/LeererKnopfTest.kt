@@ -19,11 +19,11 @@ import org.junit.Test
  */
 class LeererKnopfTest {
 
-    private val quelle = Quelltext.ohneKommentare("org/biglau/sms/SmsActivity.kt")
+    private val quelle = Quelltext.withoutComments("org/biglau/sms/SmsActivity.kt")
 
     @Test
     fun `das Senden weigert sich weiter bei leerem Text`() {
-        val senden = Quelltext.ausschnitt(quelle, "private fun send(", "\n    }")
+        val senden = Quelltext.cut(quelle, "private fun send(", "\n    }")
         assertTrue(
             "send() nimmt eine leere Nachricht wieder an - dann darf der Knopf auch wieder " +
                 "immer antippbar sein, und diese Regel weg.",
@@ -33,7 +33,7 @@ class LeererKnopfTest {
 
     @Test
     fun `der Senden-Knopf ist ohne Text kein Knopf`() {
-        val knopf = Quelltext.ausschnitt(quelle, "val knopf = @Composable {", "\n        }")
+        val knopf = Quelltext.cut(quelle, "val knopf = @Composable {", "\n        }")
         assertTrue(
             "Der Senden-Knopf bleibt antippbar, obwohl das Senden bei leerem Text nichts " +
                 "tut: $knopf",
@@ -55,14 +55,14 @@ class LeererKnopfTest {
      */
     @Test
     fun `der Anrufen-Knopf ist ohne Nummer kein Knopf`() {
-        val waehler = Quelltext.ohneKommentare("org/biglau/phone/DialerActivity.kt")
-        val waehlen = Quelltext.ausschnitt(waehler, "private fun dial(", "\n    }")
+        val waehler = Quelltext.withoutComments("org/biglau/phone/DialerActivity.kt")
+        val waehlen = Quelltext.cut(waehler, "private fun dial(", "\n    }")
         assertTrue(
             "dial() nimmt wieder alles an - dann darf der Knopf auch wieder immer " +
                 "antippbar sein, und diese Regel weg.",
             "if (!PhoneNumbers.isDialable(number)) return" in waehlen,
         )
-        val tastatur = Quelltext.ausschnitt(waehler, "private fun Keypad(", "\nprivate fun ")
+        val tastatur = Quelltext.cut(waehler, "private fun Keypad(", "\nprivate fun ")
         assertTrue(
             "Der Anrufen-Knopf bleibt antippbar, obwohl das Waehlen ohne Nummer nichts tut.",
             "onClick = if (waehlbar) onCall else null" in tastatur,

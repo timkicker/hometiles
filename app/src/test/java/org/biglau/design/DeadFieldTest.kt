@@ -35,7 +35,7 @@ class DeadFieldTest {
     )
 
     private fun dateien(): List<File> =
-        Quelltext.dateien()
+        Quelltext.files()
 
     /** Alle Felder im Kopf einer `data class`, als "Klasse.Feld" mit ihrer Fundstelle. */
     private fun felder(): List<Triple<String, String, File>> {

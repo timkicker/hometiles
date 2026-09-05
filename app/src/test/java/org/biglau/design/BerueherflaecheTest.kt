@@ -20,10 +20,10 @@ class BerueherflaecheTest {
 
     @Test
     fun `kein Material-AlertDialog`() {
-        val treffer = Quelltext.dateien()
+        val treffer = Quelltext.files()
             .filter { datei ->
                 datei.readLines().any { zeile ->
-                    "AlertDialog" in zeile && !Quelltext.istKommentarzeile(zeile)
+                    "AlertDialog" in zeile && !Quelltext.isCommentLine(zeile)
                 }
             }
             .map { it.name }
@@ -38,7 +38,7 @@ class BerueherflaecheTest {
     @Test
     fun `keine klickbare Flaeche unter 48 dp`() {
         val muster = Regex("""\.size\((\d+(?:\.\d+)?)\.dp\)""")
-        val zuKlein = Quelltext.dateien().flatMap { datei ->
+        val zuKlein = Quelltext.files().flatMap { datei ->
             val zeilen = datei.readLines()
             zeilen.withIndex()
                 .filter { (_, zeile) -> ".clickable(" in zeile || ".combinedClickable(" in zeile }

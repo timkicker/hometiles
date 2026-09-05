@@ -20,7 +20,7 @@ import org.junit.Test
  */
 class LetzterSatzTest {
 
-    private val assistent = Quelltext.ohneKommentare("org/biglau/wizard/WizardActivity.kt")
+    private val assistent = Quelltext.withoutComments("org/biglau/wizard/WizardActivity.kt")
 
     @Test
     fun `der Schlusssatz fragt, ob der Langdruck ueberhaupt hinfuehrt`() {
@@ -42,7 +42,7 @@ class LetzterSatzTest {
     fun `beide Saetze gibt es in beiden Sprachen`() {
         val fehlt = listOf("wizard_done_body", "wizard_done_body_edit_mode").flatMap { name ->
             listOf("values", "values-de").filterNot { sprache ->
-                Quelltext.texte(sprache).any { "name=\"$name\"" in it.readText() }
+                Quelltext.texts(sprache).any { "name=\"$name\"" in it.readText() }
             }.map { "$name in $it" }
         }
         assertTrue("Ein Schlusssatz fehlt in einer Sprache: $fehlt", fehlt.isEmpty())

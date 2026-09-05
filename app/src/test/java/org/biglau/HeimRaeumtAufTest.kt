@@ -22,7 +22,7 @@ import org.junit.Test
  */
 class HeimRaeumtAufTest {
 
-    private val haupt = Quelltext.ohneKommentare("org/biglau/MainActivity.kt")
+    private val haupt = Quelltext.withoutComments("org/biglau/MainActivity.kt")
 
     /** Zustand → was er über den Startbildschirm legt. */
     private val ueberlagerungen = mapOf(
@@ -36,10 +36,10 @@ class HeimRaeumtAufTest {
         "kachelMenue" to "die Liste der Menuetaste",
     )
 
-    private val raeumen = Quelltext.ausschnitt(
+    private val raeumen = Quelltext.cut(
         haupt,
-        von = "private fun closeOverlays() {",
-        bis = "\n    }",
+        from = "private fun closeOverlays() {",
+        to = "\n    }",
     )
 
     @Test
@@ -56,10 +56,10 @@ class HeimRaeumtAufTest {
 
     @Test
     fun `die heim-taste ruft das auch auf`() {
-        val neuerIntent = Quelltext.ausschnitt(
+        val neuerIntent = Quelltext.cut(
             haupt,
-            von = "override fun onNewIntent(",
-            bis = "\n    }",
+            from = "override fun onNewIntent(",
+            to = "\n    }",
         )
         assertTrue(
             "onNewIntent raeumt die Ueberlagerungen nicht: $neuerIntent",

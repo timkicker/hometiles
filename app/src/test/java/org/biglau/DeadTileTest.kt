@@ -19,7 +19,7 @@ import org.junit.Test
  */
 class DeadTileTest {
 
-    private val quelle = Quelltext.ohneKommentare("org/biglau/MainActivity.kt")
+    private val quelle = Quelltext.withoutComments("org/biglau/MainActivity.kt")
 
     /**
      * Die Stelle, die den Start behandelt.
@@ -53,7 +53,7 @@ class DeadTileTest {
      */
     @Test
     fun `der Editor bekommt die Zelle, auf die getippt wurde`() {
-        val rufe = Quelltext.datei("org/biglau/MainActivity.kt").readLines()
+        val rufe = Quelltext.file("org/biglau/MainActivity.kt").readLines()
             .filter { it.trim().startsWith("starten(") }
         assertTrue("Niemand ruft den Start - liest die Regel noch, was sie meint?", rufe.isNotEmpty())
         val ohneZelle = rufe.filterNot { "cell.x" in it || "wartend.x" in it }

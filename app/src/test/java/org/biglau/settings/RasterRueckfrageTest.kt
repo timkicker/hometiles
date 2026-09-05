@@ -21,7 +21,7 @@ import org.junit.Test
  */
 class RasterRueckfrageTest {
 
-    private val einstellungen = Quelltext.ohneKommentare("org/biglau/settings/SettingsActivity.kt")
+    private val einstellungen = Quelltext.withoutComments("org/biglau/settings/SettingsActivity.kt")
 
     @Test
     fun `beide Wege zaehlen die Kacheln, die verschwinden`() {

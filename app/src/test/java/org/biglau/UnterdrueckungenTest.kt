@@ -17,7 +17,7 @@ import org.junit.Test
 class UnterdrueckungenTest {
 
     private fun stellen(): List<Triple<String, Int, String>> =
-        Quelltext.dateien().flatMap { datei ->
+        Quelltext.files().flatMap { datei ->
             val zeilen = datei.readLines()
             zeilen.withIndex()
                 .filter { (_, zeile) -> zeile.trimStart().startsWith("@Suppress") }
@@ -31,7 +31,7 @@ class UnterdrueckungenTest {
     fun `jede unterdrueckung nennt ihren grund`() {
         val ohne = stellen()
             .filter { (_, _, umfeld) ->
-                val davor = Quelltext.ausschnitt(umfeld, "", "|")
+                val davor = Quelltext.cut(umfeld, "", "|")
                 !(davor.startsWith("//") || davor.startsWith("*") || davor.startsWith("/*"))
             }
             .map { it.first }
@@ -46,7 +46,7 @@ class UnterdrueckungenTest {
     @Test
     fun `nichts wird als unbenutzt totgeschwiegen`() {
         val stumm = stellen()
-            .filter { (_, _, umfeld) -> "\"unused\"" in Quelltext.ausschnitt(umfeld, "|") }
+            .filter { (_, _, umfeld) -> "\"unused\"" in Quelltext.cut(umfeld, "|") }
             .map { it.first }
         assertEquals(
             "Was niemand ruft, wird gelöscht und nicht mit @Suppress(\"unused\") ruhiggestellt.",

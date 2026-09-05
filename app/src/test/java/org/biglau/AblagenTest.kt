@@ -48,7 +48,7 @@ class AblagenTest {
     @Test
     fun `keine Ablage bleibt im Programmodul`() {
         val imApp = ablagenIn(
-            Quelltext.appWurzel.walkTopDown().filter { it.extension == "kt" },
+            Quelltext.appRoot.walkTopDown().filter { it.extension == "kt" },
         )
         assertEquals(
             "Eine Ablage gehört nach core:system. Hängt sie an einer Klasse aus :app, ist " +
@@ -68,7 +68,7 @@ class AblagenTest {
 
     @Test
     fun `es sind noch alle neun da`() {
-        val alle = ablagenIn(Quelltext.dateien().asSequence())
+        val alle = ablagenIn(Quelltext.files().asSequence())
         assertEquals(
             "Eine Ablage ist verschwunden oder dazugekommen - dann diesen Merkposten " +
                 "nachziehen, damit die Regel oben nicht ins Leere prüft.",

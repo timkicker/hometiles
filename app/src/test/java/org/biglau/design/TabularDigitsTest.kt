@@ -27,7 +27,7 @@ class TabularDigitsTest {
 
     @Test
     fun `jede laufende Zahl bekommt Tabellenziffern`() {
-        val ohne = stellen.filterNot { "tabularFigures()" in Quelltext.datei(it).readText() }
+        val ohne = stellen.filterNot { "tabularFigures()" in Quelltext.file(it).readText() }
         assertTrue("Ohne Tabellenziffern: $ohne", ohne.isEmpty())
     }
 
@@ -41,7 +41,7 @@ class TabularDigitsTest {
      */
     @Test
     fun `die Tabellenziffern behalten die Schrift der Oberflaeche`() {
-        val quelle = Quelltext.datei("org/biglau/ui/TextSizing.kt").readText()
+        val quelle = Quelltext.file("org/biglau/ui/TextSizing.kt").readText()
         assertTrue("tabularFigures baut einen eigenen Stil", "LocalTextStyle.current.copy(" in quelle)
         assertTrue("es gibt wieder einen Vorrat-Stil", "val TabellenZiffern" !in quelle)
     }
@@ -50,7 +50,7 @@ class TabularDigitsTest {
     @Test
     fun `die mitgelieferte Schrift kennt tnum`() {
         listOf("atkinson_regular.ttf", "atkinson_bold.ttf").forEach { name ->
-            val bytes = Quelltext.ressource("font/$name").readBytes()
+            val bytes = Quelltext.resource("font/$name").readBytes()
             val marke = "tnum".toByteArray()
             val drin = (0..bytes.size - marke.size).any { i ->
                 marke.indices.all { bytes[i + it] == marke[it] }

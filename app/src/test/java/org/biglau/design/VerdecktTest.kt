@@ -20,7 +20,7 @@ import org.junit.Test
  */
 class VerdecktTest {
 
-    private val start = Quelltext.ohneKommentare("org/biglau/MainActivity.kt")
+    private val start = Quelltext.withoutComments("org/biglau/MainActivity.kt")
 
     @Test
     fun `der Startbildschirm verschwindet, solange etwas darueber liegt`() {
@@ -40,14 +40,14 @@ class VerdecktTest {
      */
     @Test
     fun `jede Ueberlagerung steht in der Bedingung`() {
-        val bedingung = Quelltext.ausschnitt(start, "val verdeckt = ", "Column(")
+        val bedingung = Quelltext.cut(start, "val verdeckt = ", "Column(")
         // Die Ueberlagerungen: was nach dem Raster des Startbildschirms noch bedingt
         // gezeigt wird. `then(wischen)` gehoert zum Startbildschirm und nur zu ihm - es ist
         // seine Wischgeste zwischen den Screens. Vorher stand hier `zeigeKachel(screen`, und
         // das ging am 04.09.2026 kaputt, als der Aufruf zwei Zeilen bekam: die Marke ist die
         // Formatierung mitgemeint. Ein Ausdruck, der nur an dieser einen Stelle vorkommen
         // **kann**, haelt laenger.
-        val danach = Quelltext.ausschnitt(start, "then(wischen)", "private fun")
+        val danach = Quelltext.cut(start, "then(wischen)", "private fun")
         // Zwei Schreibweisen, nicht eine. Bis zum 04.09.2026 stand hier nur die erste, und
         // genau daran ist die Regel vorbeigelaufen: die Liste der Menuetaste kam als
         // `kachelMenue.value?.let { ... }` dazu, wurde nicht gezaehlt und fehlte in der

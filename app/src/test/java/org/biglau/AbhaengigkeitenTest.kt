@@ -53,7 +53,7 @@ class AbhaengigkeitenTest {
     )
 
     private fun aliase(): List<String> {
-        val teil = Quelltext.ausschnitt(katalog, "[libraries]", "[plugins]")
+        val teil = Quelltext.cut(katalog, "[libraries]", "[plugins]")
         return Regex("""^([a-z0-9-]+)\s*=\s*\{""", RegexOption.MULTILINE)
             .findAll(teil).map { it.groupValues[1] }.toList()
     }

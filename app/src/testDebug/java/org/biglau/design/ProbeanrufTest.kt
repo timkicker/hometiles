@@ -59,7 +59,7 @@ class ProbeanrufTest {
                 "ausgelieferten Programm mit.",
             debugWurzel.isDirectory && debugWurzel.listFiles().orEmpty().isNotEmpty(),
         )
-        val imHauptbau = Quelltext.dateien()
+        val imHauptbau = Quelltext.files()
             .filter { datei ->
                 val text = datei.readText()
                 "phone.probe" in text || "ProbeConnectionService" in text

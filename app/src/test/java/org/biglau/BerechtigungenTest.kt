@@ -43,7 +43,7 @@ class BerechtigungenTest {
 
     @Test
     fun `keine Berechtigung ohne Verwendung`() {
-        val quelle = Quelltext.dateien().joinToString("\n") { it.readText() }
+        val quelle = Quelltext.files().joinToString("\n") { it.readText() }
         val unbenutzt = rechte()
             .filterNot { it in quelle }
             .filterNot { it in ohneNennungNoetig }

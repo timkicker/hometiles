@@ -1925,10 +1925,10 @@ private fun NumberEditor(initial: String, onDone: (String) -> Unit) {
 }
 
 /**
- * Die Adresse einer Webseiten-Kachel eingeben.
+ * type the address of a web tile.
  *
- * Ohne „https://" davor - das ergaenzt [LinkTarget], weil es auf drei Zoll niemand tippt.
- * Die Haken-Taste der Tastatur uebernimmt, denn mit offener Tastatur ist "Fertig" verdeckt.
+ * without a scheme in front, which [LinkTarget] adds, because nobody types it on three
+ * inches. the keyboard's tick key takes over, since done is covered while it is open.
  */
 @Composable
 private fun LinkEditor(initial: String, onDone: (String) -> Unit) {

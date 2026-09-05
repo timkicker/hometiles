@@ -21,11 +21,11 @@ import org.junit.Test
  */
 class SettingsLinkTest {
 
-    private val manifest = Quelltext.datei("src/main/AndroidManifest.xml").readText()
+    private val manifest = Quelltext.file("src/main/AndroidManifest.xml").readText()
 
     @Test
     fun `die Einstellungen beantworten die Absicht`() {
-        val block = Quelltext.ausschnitt(manifest, ".settings.SettingsActivity", "</activity>")
+        val block = Quelltext.cut(manifest, ".settings.SettingsActivity", "</activity>")
         assertTrue(
             "SettingsActivity hat keinen Filter fuer ${SettingsLink.ACTION}: $block",
             SettingsLink.ACTION in block,
@@ -39,7 +39,7 @@ class SettingsLinkTest {
      */
     @Test
     fun `ausser der Huelle nennt niemand SettingsActivity`() {
-        val nenner = Quelltext.dateien()
+        val nenner = Quelltext.files()
             .filter { "org.biglau.settings.SettingsActivity" in it.readText() }
             .map { it.name }
             .filterNot { it == "MainActivity.kt" || it == "SettingsActivity.kt" }
@@ -55,14 +55,14 @@ class SettingsLinkTest {
             "org/biglau/contacts/ContactsActivity.kt",
             "org/biglau/apps/AppDrawerActivity.kt",
         )
-        val ohne = springer.filterNot { "SettingsLink.toPage(" in Quelltext.datei(it).readText() }
+        val ohne = springer.filterNot { "SettingsLink.toPage(" in Quelltext.file(it).readText() }
         assertEquals("springt nicht ueber SettingsLink: $ohne", emptyList<String>(), ohne)
     }
 
     /** Die Absicht bleibt im eigenen Programm - sonst könnte ein fremdes sie beantworten. */
     @Test
     fun `die Absicht bleibt im eigenen Programm`() {
-        val quelle = Quelltext.datei("org/biglau/ui/SettingsLink.kt").readText()
+        val quelle = Quelltext.file("org/biglau/ui/SettingsLink.kt").readText()
         assertTrue("ohne setPackage waere die Absicht offen", "setPackage(" in quelle)
     }
 
@@ -73,10 +73,10 @@ class SettingsLinkTest {
      */
     @Test
     fun `der wartende Hinweis wird ueber eine Absicht geoeffnet`() {
-        val block = Quelltext.ausschnitt(manifest, ".ui.NoticeActivity", "</activity>")
+        val block = Quelltext.cut(manifest, ".ui.NoticeActivity", "</activity>")
         assertTrue("NoticeActivity hat keinen Filter fuer ${Notice.ACTION}: $block", Notice.ACTION in block)
         assertTrue("ohne DEFAULT-Kategorie startet keine implizite Absicht", "category.DEFAULT" in block)
-        val quelle = Quelltext.datei("org/biglau/ui/Notice.kt").readLines()
+        val quelle = Quelltext.file("org/biglau/ui/Notice.kt").readLines()
         // Nur Code: im Kommentar darf die Activity vorkommen - dort steht ja gerade, wo
         // die Gegenstelle wohnt. Ein Test, der Kommentare mitliest, erzieht zum Schweigen.
         val code = quelle.filterNot { it.trimStart().let { z -> z.startsWith("*") || z.startsWith("//") || z.startsWith("/*") } }

@@ -39,12 +39,12 @@ class FeatureKantenTest {
         // MainActivity ist die Hülle und darf jeden Bildschirm kennen.
         val kanten = Bereiche.kanten(ohne = setOf("MainActivity.kt"))
         val verstoesse = kanten.entries.flatMap { (paar, stellen) ->
-            val von = gehoertZu[paar.first]
+            val from = gehoertZu[paar.first]
             val nach = gehoertZu[paar.second]
-            if (von == null || nach == null || von == nach || von == "settings") {
+            if (from == null || nach == null || from == nach || from == "settings") {
                 emptyList()
             } else {
-                stellen.map { "$von -> $nach  $it" }
+                stellen.map { "$from -> $nach  $it" }
             }
         }.sorted()
 
@@ -67,7 +67,7 @@ class FeatureKantenTest {
         val ausSettings = kanten.entries
             .filter { (paar, _) -> gehoertZu[paar.first] == "settings" && gehoertZu[paar.second] != null && gehoertZu[paar.second] != "settings" }
             .flatMap { it.value }
-            .map { Quelltext.ausschnitt(it, ": ") }
+            .map { Quelltext.cut(it, ": ") }
             .toSortedSet()
 
         assertEquals(

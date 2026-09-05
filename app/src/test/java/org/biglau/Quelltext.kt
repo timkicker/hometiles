@@ -3,35 +3,24 @@ package org.biglau
 import java.io.File
 
 /**
- * Wo der Quelltext von BigLau liegt - fuer die Regeln, die ihn lesen.
+ * where BigLau's source lies, for the rules that read it.
  *
- * Knapp die Haelfte der Tests hier prueft nicht Verhalten, sondern Quelltext: tote Felder,
- * unbenutzte Texte, Sprachregeln, Dokumentation am falschen Platz. Sie alle liefen bisher
- * ueber `File("src/main/java")`, den Hauptquelltext von `:app`.
- *
- * Solange alles in `:app` liegt, stimmt das. Beim Modulschnitt aus `PLAN.md` 2.1 stimmt es
- * nicht mehr - und zwar **lautlos**: `walkTopDown()` auf einem Verzeichnis, das es nicht
- * gibt, liefert keine Datei und keinen Fehler. Die Regel bliebe gruen und pruefte nichts
- * mehr. Genau deshalb steht die Liste der Wurzeln an einer Stelle, und ein Test sieht nach,
- * dass sie vollstaendig ist.
+ * nearly half the tests here check source rather than behaviour, and they all ran over one
+ * hard-written path. `walkTopDown()` on a directory that does not exist returns no file and
+ * no error, so a rule would stay green and check nothing. hence one list of roots, and a
+ * test that looks whether it is complete.
  */
 object Quelltext {
 
-    /**
-     * Der Hauptquelltext von `:app` allein.
-     *
-     * Eine Regel, die nur diesen braucht - etwa die Kreise zwischen den Bereichen -, soll
-     * ihn nicht selbst hinschreiben muessen; genau das verbietet `QuelltextTest`.
-     */
-    val appWurzel: File = File("src/main/java")
+    /** the main source of `:app` alone, so a rule needing only it need not write the path. */
+    val appRoot: File = File("src/main/java")
 
     /**
-     * Alle Wurzeln mit Hauptquelltext, relativ zum Arbeitsverzeichnis der Tests (`app/`).
-     *
-     * Neue Module gehoeren hier hinein. `QuelltextTest` faellt um, wenn eines fehlt.
+     * every root with main source, relative to the tests' working directory (`app/`).
+     * new modules belong here; `QuelltextTest` falls over when one is missing.
      */
-    val wurzeln: List<File> = listOf(
-        appWurzel,
+    val roots: List<File> = listOf(
+        appRoot,
         File("../core/model/src/main/kotlin"),
         File("../core/data/src/main/kotlin"),
         File("../core/system/src/main/kotlin"),
@@ -39,254 +28,215 @@ object Quelltext {
     )
 
     /**
-     * Die Ressourcenwurzeln aller Module.
-     *
-     * Beim Umzug von `:core:ui` sind die beiden Schriftdateien mitgewandert, und zwei
-     * Regeln suchten sie weiter unter `app/src/main/res`. Sie fielen laut um - aber
-     * dieselbe Liste, die den Quelltext zusammenhaelt, taugt auch dafuer.
+     * the resource roots of every module: when `:core:ui` moved, the two font files went
+     * with it and two rules kept looking in the old place.
      */
-    val resWurzeln: List<File> = listOf(
+    val resRoots: List<File> = listOf(
         File("src/main/res"),
         File("../core/ui/src/main/res"),
-        // Am 04.09.2026 dazugekommen: die sechs Woerter fuer die Richtung eines Anrufs
-        // liegen bei `CallDirection`, damit sie nicht zweimal gefuehrt werden muessen.
+        // the six words for a call's direction live beside `CallDirection`, so they are not
+        // kept twice.
         File("../core/system/src/main/res"),
     )
 
     /**
-     * Alle Textdateien eines Sprachverzeichnisses, ueber alle Module.
+     * every text file of one language directory, across all modules.
      *
-     * Zehn Regeln lasen `app/src/main/res/values/strings.xml` und meinten damit „alle
-     * Texte". Solange die Texte nur dort liegen, stimmt das. Zieht ein Text mit seinem
-     * Modul um - `:core:ui` bringt schon Schriftdateien mit -, dann pruefen sie ihn
-     * lautlos nicht mehr. Deshalb fragen sie jetzt hier.
-     *
-     * Gibt es die Datei in einem Modul nicht, faellt sie weg statt zu stoeren: nicht jedes
-     * Modul hat Texte, und schon gar nicht jede Sorte.
+     * ten rules read one module's `strings.xml` and meant all texts by it; a text moving
+     * with its module would silently leave their reach. a module without the file drops out
+     * rather than failing: not every module has texts.
      */
-    fun texte(verzeichnis: String, name: String = "strings.xml"): List<File> =
-        resWurzeln.map { File(it, "$verzeichnis/$name") }.filter { it.isFile }
-            // Leer heisst nicht "nichts zu pruefen", sondern "hier stimmt etwas nicht":
-            // eine Regel, die ueber null Dateien laeuft, ist gruen und hat nichts
-            // angesehen. Kein Modul mit Texten zu finden ist immer ein Fehler.
+    fun texts(directory: String, name: String = "strings.xml"): List<File> =
+        resRoots.map { File(it, "$directory/$name") }.filter { it.isFile }
+            // empty does not mean nothing to check but something is wrong here: a rule
+            // running over zero files is green and has looked at nothing.
             .also {
                 if (it.isEmpty()) {
                     throw AssertionError(
-                        "Kein Modul hat $verzeichnis/$name. Jede Regel, die hier nachsieht, " +
-                            "waere von jetzt an gruen, ohne etwas zu pruefen.",
+                        "no module has $directory/$name. every rule looking here would be " +
+                            "green from now on without checking anything.",
                     )
                 }
             }
 
     /**
-     * Der Wert eines Textes, ueber alle Module und mit lautem Nein, wenn es ihn nicht gibt.
-     *
-     * Fuenf Regeln lasen dafuer `texte(sprache).first()` - also **nur** `:app`. Heute Nacht
-     * sind Texte dreimal in ein anderes Modul gezogen (`a11y_chosen` nach `core:ui`, die
-     * Anrufarten nach `core:system`); danach haetten diese Regeln den Text nicht mehr
-     * gefunden und je nach Schreibweise laut gestolpert oder still nichts mehr geprueft.
+     * a text's value across all modules, with a loud no when it does not exist. five rules
+     * took the first module only, and texts have moved between modules three times.
      */
-    fun textWert(name: String, sprache: String): String =
-        texte(sprache).firstNotNullOfOrNull { datei ->
+    fun textValue(name: String, language: String): String =
+        texts(language).firstNotNullOfOrNull { file ->
             Regex("""<string name="$name">(.*?)</string>""", RegexOption.DOT_MATCHES_ALL)
-                .find(datei.readText())?.groupValues?.get(1)
-        } ?: throw AssertionError("Den Text $name gibt es in $sprache in keinem Modul.")
+                .find(file.readText())?.groupValues?.get(1)
+        } ?: throw AssertionError("the text $name exists in $language in no module.")
 
     /**
-     * Die Sprachverzeichnisse, wie sie im Baum stehen: `values` und jedes `values-xx`.
+     * the language directories as they stand in the tree: `values` and every `values-xx`.
      *
-     * Gesucht statt aufgezaehlt, und das ist der Punkt. Bis zum 04.09.2026 stand hier
-     * `listOf("values", "values-de")`, und dieselben zwei Namen standen fest in jeder
-     * Regel von `TranslationsTest`. Eine dritte Sprache waere damit angelegt worden und
-     * **von keiner einzigen Regel angesehen**: keine Schluesselpruefung, keine
-     * Platzhalter, keine Striche, keine Laenge. Gruen, und nichts geprueft.
-     *
-     * Aufgefallen beim Planen von PLAN.md 10.4, also bevor die erste neue Sprache da war.
-     * Das ist der einzige Zeitpunkt, zu dem so etwas billig ist.
+     * searched instead of listed, and that is the point: with two names written down, a
+     * third language would have been created and looked at by not a single rule. green, and
+     * nothing checked.
      */
-    fun sprachen(): List<String> =
-        resWurzeln.flatMap { wurzel ->
-            (wurzel.listFiles() ?: emptyArray()).filter { ordner ->
-                ordner.isDirectory &&
-                    (ordner.name == "values" || ordner.name.startsWith("values-")) &&
-                    (File(ordner, "strings.xml").isFile || File(ordner, "plurals.xml").isFile)
+    fun languages(): List<String> =
+        resRoots.flatMap { root ->
+            (root.listFiles() ?: emptyArray()).filter { folder ->
+                folder.isDirectory &&
+                    (folder.name == "values" || folder.name.startsWith("values-")) &&
+                    (File(folder, "strings.xml").isFile || File(folder, "plurals.xml").isFile)
             }.map { it.name }
         }.distinct().sorted()
 
-    /** Die Sprachen ohne die Grundsprache: das, was uebersetzt sein will. */
-    fun uebersetzungen(): List<String> = sprachen().filter { it != "values" }
+    /** the languages without the base one: what wants translating. */
+    fun translations(): List<String> = languages().filter { it != "values" }
 
     /**
-     * Die Sprachen, die wirklich ausgeliefert werden, aus `resourceConfigurations` gelesen.
+     * the languages actually shipped, read from `resourceConfigurations`, which is the only
+     * place that knows whether a language is finished or still in progress.
      *
-     * Diese Liste im Baugeruest entscheidet, was im Archiv landet; was nicht drinsteht, wirft
-     * der Bau wieder heraus. Sie ist damit die einzige Stelle, die weiss, ob eine Sprache
-     * fertig ist oder noch in Arbeit.
-     *
-     * Der Unterschied zaehlt: Android faellt fuer einen fehlenden Text auf `values` zurueck,
-     * eine halb uebersetzte Sprache **funktioniert** also und ist teils englisch. Waehrend
-     * der Arbeit ist das der normale Zustand. Ausgeliefert werden darf sie so nicht. Die
-     * Vollstaendigkeitsregeln haengen deshalb hieran und nicht am blossen Vorhandensein
-     * eines Verzeichnisses.
+     * the difference counts: android falls back to `values` for a missing text, so a
+     * half-translated language *works* and is partly english. that is the normal state while
+     * working, and not a shippable one.
      */
-    fun ausgeliefert(): List<String> =
+    fun shipped(): List<String> =
         Regex("""resourceConfigurations\s*\+=\s*listOf\(([^)]*)\)""")
             .find(File("build.gradle.kts").readText())
             ?.groupValues?.get(1)
             ?.let { Regex(""""([^"]+)"""").findAll(it).map { m -> m.groupValues[1] }.toList() }
             ?.map { if (it == "en") "values" else "values-$it" }
             ?: throw AssertionError(
-                "resourceConfigurations steht nicht mehr in app/build.gradle.kts. Ohne sie " +
-                    "weiss keine Regel mehr, welche Sprache ausgeliefert wird.",
+                "resourceConfigurations is gone from app/build.gradle.kts. without it no rule " +
+                    "knows which language ships.",
             )
 
-    /** Jede Textdatei ueber alle Module und alle Sprachen. */
-    fun alleTexte(): List<File> =
-        sprachen().flatMap { v ->
+    /** every text file across all modules and languages. */
+    fun allTexts(): List<File> =
+        languages().flatMap { v ->
             listOf("strings.xml", "plurals.xml").flatMap { name ->
-                resWurzeln.map { File(it, "$v/$name") }.filter { it.isFile }
+                resRoots.map { File(it, "$v/$name") }.filter { it.isFile }
             }
         }
 
-    /** Eine Ressource ueber ihren Pfad ab `res/`, z. B. `font/atkinson_bold.ttf`. */
-    fun ressource(pfad: String): File =
-        resWurzeln.map { File(it, pfad) }.firstOrNull { it.exists() }
-            ?: throw AssertionError("Ressource nicht gefunden: $pfad")
+    /** a resource by its path below `res/`, such as `font/atkinson_bold.ttf`. */
+    fun resource(path: String): File =
+        resRoots.map { File(it, path) }.firstOrNull { it.exists() }
+            ?: throw AssertionError("resource not found: $path")
 
-    /** Die Wurzeln mit Testquelltext. */
-    val testWurzeln: List<File> = listOf(
+    /** the roots with test source. */
+    val testRoots: List<File> = listOf(
         File("src/test/java"),
         File("../core/system/src/test/kotlin"),
         File("../core/model/src/test/kotlin"),
         File("../core/ui/src/test/kotlin"),
     )
 
-    /** Jede Kotlin-Datei des Hauptquelltexts, ueber alle Module. */
-    fun dateien(): List<File> = kt(wurzeln)
+    /** every kotlin file of the main source, across all modules. */
+    fun files(): List<File> = kt(roots)
 
-    /** Jede Kotlin-Datei des Testquelltexts. */
-    fun testDateien(): List<File> = kt(testWurzeln)
+    /** every kotlin file of the test source. */
+    fun testFiles(): List<File> = kt(testRoots)
 
     /**
-     * Dieselbe Liste, aber mit der Zusage, dass etwas darin steht.
-     *
-     * Fuer Regeln, die eine Auswahl treffen und dann ueber sie laufen: trifft die Auswahl
-     * nichts, laeuft die Schleife nicht, und die Regel ist gruen. Wer hier fragt, sagt
-     * damit, wie viele Treffer er mindestens erwartet.
+     * the same list with a promise that something is in it: a selection that matches nothing
+     * makes the loop not run and the rule green. asking here states a minimum.
      */
-    fun mindestens(treffer: List<*>, wieviele: Int, was: String): List<*> {
-        if (treffer.size < wieviele) {
+    fun atLeast(hits: List<*>, howMany: Int, what: String): List<*> {
+        if (hits.size < howMany) {
             throw AssertionError(
-                "$was: $wieviele erwartet, ${treffer.size} gefunden. Die Regel liefe ueber " +
-                    "eine zu kurze Liste und bliebe gruen, ohne das Gemeinte zu pruefen.",
+                "$what: $howMany expected, ${hits.size} found. the rule would run over a list " +
+                    "too short and stay green.",
             )
         }
-        return treffer
+        return hits
     }
 
     /**
-     * Eine einzelne Datei ueber ihren Paketpfad, z. B. `org/biglau/data/Model.kt`.
-     *
-     * Wer stattdessen den Pfad eines Moduls hinschreibt - `src/main/java/…` -, bindet die
-     * Regel an dieses Modul. Hier faellt ein Umzug hoechstens laut auf, und meistens gar
-     * nicht.
+     * a single file by its package path, such as `org/biglau/data/Model.kt`. writing a
+     * module path instead ties the rule to that module.
      */
-    fun datei(pfad: String): File =
-        // Ein Pfad, den es so schon gibt, wird genommen wie er ist: die Ressourcen liegen
-        // weiter in :app, und dieselbe Regel liest oft beides - Quelltext und strings.xml.
-        File(pfad).takeIf { it.isFile }
-            ?: (wurzeln + testWurzeln).map { File(it, pfad) }.firstOrNull { it.isFile }
-            ?: throw AssertionError("Quelltext nicht gefunden: $pfad")
+    fun file(path: String): File =
+        // a path that already exists is taken as it is: the resources still live in :app,
+        // and one rule often reads both source and strings.xml.
+        File(path).takeIf { it.isFile }
+            ?: (roots + testRoots).map { File(it, path) }.firstOrNull { it.isFile }
+            ?: throw AssertionError("source not found: $path")
 
     /**
-     * Eine Datei ohne ihre Kommentarzeilen.
+     * a file without its comment lines, for rules searching for *calls* with `indexOf`.
      *
-     * Fuer Regeln, die mit `indexOf` oder `substringAfter` nach **Aufrufen** suchen. Ein
-     * Kommentar, der denselben Namen nur erwaehnt, verschiebt sonst die gefundene Stelle.
-     * Am 3.9.2026 nachgestellt: mit einem Kommentar ueber der Weiche `if (probe)` haette
-     * die Regel, die den scharfen Notruf-Alarm in der Probe verhindert, einen echten
-     * Fehler **durchgewinkt**.
+     * a comment that merely mentions the same name shifts the found place: with one above a
+     * branch, the rule that keeps the sos alarm silent during a preview would have waved a
+     * real fault through.
      *
-     * Nur ganze Kommentarzeilen fliegen heraus - ein `// ...` hinter Quelltext bleibt, denn
-     * dort steht die Stelle ja wirklich.
+     * only whole comment lines go; a trailing `//` after source stays, since the place
+     * really is there.
      */
-    fun ohneKommentare(pfad: String): String = datei(pfad)
+    fun withoutComments(path: String): String = file(path)
         .readLines()
-        .filterNot { istKommentarzeile(it) }
+        .filterNot { isCommentLine(it) }
         .joinToString("\n")
 
     /**
-     * Eine Zeile, die nur Kommentar ist.
-     *
-     * Die dritte Form ist die, die immer vergessen wird: der einzeilige Kommentar, der mit
-     * einem Schraegstrich und zwei Sternen beginnt. Vierzehn Regeln hatten nur die ersten
-     * beiden Formen und haben deshalb einen einzeiligen Kommentar fuer Quelltext gehalten.
+     * a line that is only comment. the third form is the one always forgotten, the one-line
+     * doc comment: fourteen rules knew only the first two and took one for source.
      */
-    fun istKommentarzeile(zeile: String): Boolean {
-        val nackt = zeile.trim()
-        return nackt.startsWith("//") || nackt.startsWith("*") || nackt.startsWith("/*")
+    fun isCommentLine(line: String): Boolean {
+        val bare = line.trim()
+        return bare.startsWith("//") || bare.startsWith("*") || bare.startsWith("/*")
     }
 
     /**
-     * Der Ausschnitt zwischen zwei Marken - und ein lautes Nein, wenn eine fehlt.
+     * the cut between two marks, and a loud no when one is missing.
      *
-     * `substringAfter` gibt bei fehlender Marke **den ganzen Text** zurueck, `substringBefore`
-     * auch. Eine Regel, die so schneidet, prueft danach nicht mehr das, was sie meint,
-     * sondern irgendetwas - und bleibt dabei gruen. In der Nacht auf den 04.09.2026 ist das
-     * zweimal passiert: `AuswahlAnsageTest` nahm den Farbtonwaehler mit, weil die Endmarke
-     * hinter dem Abschnitt lag, und `FremdeAbsichtTest` haette bei einer umbenannten
-     * Variablen den ganzen Rest der Datei durchsucht.
+     * `substringAfter` and `substringBefore` return the *whole* text for a missing mark, so
+     * a rule cutting that way then checks something else and stays green. it happened twice
+     * in one night.
      *
-     * [von] leer heisst "vom Anfang", [bis] `null` heisst "bis zum Ende". [hoechstens]
-     * begrenzt zusaetzlich - ein Fenster, das nicht an einem Namen haengt.
+     * an empty [from] means from the start, [to] `null` means to the end, and [atMost]
+     * bounds it further: a window that does not hang on a name.
      */
-    fun ausschnitt(
+    fun cut(
         text: String,
-        von: String,
-        bis: String? = null,
-        hoechstens: Int = Int.MAX_VALUE,
+        from: String,
+        to: String? = null,
+        atMost: Int = Int.MAX_VALUE,
         /**
-         * Die Anfangsmarke darf mehrfach vorkommen; gemeint ist die erste.
-         *
-         * Nur setzen, wenn das wirklich so gemeint ist. Sonst entscheidet die Reihenfolge
-         * im Quelltext, welche Stelle geprueft wird - und die aendert sich beim naechsten
-         * Umsortieren, ohne dass jemand es merkt.
+         * the start mark may occur more than once and the first is meant. set only when that
+         * is really intended, or the order in the source decides what gets checked.
          */
-        mehrfach: Boolean = false,
+        repeated: Boolean = false,
     ): String {
-        val ab = text.indexOf(von)
-        if (von.isNotEmpty() && !mehrfach) {
-            val wieOft = Regex(Regex.escape(von)).findAll(text).count()
-            if (wieOft > 1) {
+        val start = text.indexOf(from)
+        if (from.isNotEmpty() && !repeated) {
+            val howOften = Regex(Regex.escape(from)).findAll(text).count()
+            if (howOften > 1) {
                 throw AssertionError(
-                    "Die Marke \"$von\" steht ${wieOft}mal im Text. Welche Stelle die Regel " +
-                        "ansieht, entscheidet dann die Reihenfolge - und die aendert sich " +
-                        "beim Umsortieren. Genauer schneiden, oder mehrfach = true setzen.",
+                    "the mark \"$from\" stands in the text ${howOften} times. which place the " +
+                        "rule looks at is then decided by the order. cut more precisely, " +
+                        "or set repeated = true.",
                 )
             }
         }
-        if (ab < 0) {
+        if (start < 0) {
             throw AssertionError(
-                "Die Marke \"$von\" steht nicht mehr im Text. Die Regel wuerde ins Leere " +
-                    "schneiden und danach gruen bleiben, ohne noch etwas zu pruefen.",
+                "the mark \"$from\" is gone from the text. the rule would cut into nothing " +
+                    "and stay green without checking anything.",
             )
         }
-        val rest = text.substring(ab + von.length)
-        val ende = if (bis == null) {
+        val rest = text.substring(start + from.length)
+        val end = if (to == null) {
             rest.length
         } else {
-            rest.indexOf(bis).also {
+            rest.indexOf(to).also {
                 if (it < 0) {
                     throw AssertionError(
-                        "Die Endmarke \"$bis\" steht nicht mehr hinter \"$von\". Der " +
-                            "Ausschnitt liefe bis zum Dateiende.",
+                        "the end mark \"$to\" no longer stands behind \"$from\". the cut " +
+                            "would run to the end of the file.",
                     )
                 }
             }
         }
-        return rest.take(minOf(ende, hoechstens))
+        return rest.take(minOf(end, atMost))
     }
 
-    private fun kt(orte: List<File>): List<File> =
-        orte.flatMap { it.walkTopDown().filter { datei -> datei.extension == "kt" } }
+    private fun kt(places: List<File>): List<File> =
+        places.flatMap { it.walkTopDown().filter { file -> file.extension == "kt" } }
 }

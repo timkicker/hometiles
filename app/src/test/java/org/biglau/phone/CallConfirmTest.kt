@@ -19,12 +19,12 @@ import org.junit.Test
  */
 class CallConfirmTest {
 
-    private val quelle = Quelltext.datei("org/biglau/phone/DialerActivity.kt").readText()
+    private val quelle = Quelltext.file("org/biglau/phone/DialerActivity.kt").readText()
 
     /** Die Zeile öffnet die Rückfrage, statt zu wählen. */
     @Test
     fun `die Zeile im Verlauf fragt erst`() {
-        val zeile = Quelltext.ausschnitt(quelle, "items(groups, key =", "onLongClick")
+        val zeile = Quelltext.cut(quelle, "items(groups, key =", "onLongClick")
         assertTrue("Die Zeile ruft onAskCall auf: $zeile", "onAskCall(" in zeile)
         assertTrue("Die Zeile darf nicht unmittelbar waehlen: $zeile", "onCall(" !in zeile)
     }
@@ -44,7 +44,7 @@ class CallConfirmTest {
      */
     @Test
     fun `der Notrufweg bleibt vor der Sperre`() {
-        val dial = Quelltext.ausschnitt(quelle, "private fun dial(", "\n    }")
+        val dial = Quelltext.cut(quelle, "private fun dial(", "\n    }")
         assertTrue(
             "Der Notruf muss vor der Nummernsperre geprüft werden",
             dial.indexOf("looksLikeEmergency") < dial.indexOf("CallBlocking.isBlocked"),

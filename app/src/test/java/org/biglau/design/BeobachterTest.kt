@@ -13,12 +13,12 @@ import org.junit.Test
  * standen weiter da, bis die App neu startete.
  *
  * Das ist derselbe Fehler wie bei den Zustaenden, die das System vergibt (siehe
- * `SystemzustandTest`): einmal gelesen, nie wieder gefragt. Nur ist die Quelle hier keine
+ * `SystemStateTest`): einmal gelesen, nie wieder gefragt. Nur ist die Quelle hier keine
  * Rolle, sondern eine Datenbank - und die sagt von sich aus Bescheid, wenn man sie fragt.
  */
 class BeobachterTest {
 
-    private val quelle = Quelltext.ohneKommentare("org/biglau/sms/SmsActivity.kt")
+    private val quelle = Quelltext.withoutComments("org/biglau/sms/SmsActivity.kt")
 
     @Test
     fun `der Nachrichtenbildschirm horcht auf die Datenbank`() {

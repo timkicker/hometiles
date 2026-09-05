@@ -27,7 +27,7 @@ class UebersprungeneTestsTest {
 
     @Test
     fun `nur benannte tests duerfen sich selbst ueberspringen`() {
-        val ueberspringend = Quelltext.testDateien()
+        val ueberspringend = Quelltext.testFiles()
             // Die Regel selbst schreibt den gesuchten Namen hin und faende sonst sich.
             .filter { it.name != "UebersprungeneTestsTest.kt" }
             .filter { it.readText().contains("assumeTrue") }
@@ -45,7 +45,7 @@ class UebersprungeneTestsTest {
 
     @Test
     fun `zu jedem uebersprungenen test gibt es eine immer laufende abschrift`() {
-        val namen = Quelltext.testDateien().map { it.name }.toSet()
+        val namen = Quelltext.testFiles().map { it.name }.toSet()
         assertEquals(true, "GewachseneFassungTest.kt" in namen)
     }
 }

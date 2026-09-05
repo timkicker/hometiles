@@ -21,7 +21,7 @@ import org.junit.Test
  */
 class QuittungTest {
 
-    private val senden = Quelltext.ohneKommentare("org/biglau/sms/SmsActivity.kt")
+    private val senden = Quelltext.withoutComments("org/biglau/sms/SmsActivity.kt")
 
     @Test
     fun `keine Nachricht geht ohne Quittung hinaus`() {
@@ -56,7 +56,7 @@ class QuittungTest {
 
     @Test
     fun `die Quittung macht aus dem Fehlschlag etwas Sichtbares`() {
-        val empfaenger = Quelltext.ohneKommentare("org/biglau/sms/SmsSentReceiver.kt")
+        val empfaenger = Quelltext.withoutComments("org/biglau/sms/SmsSentReceiver.kt")
         assertTrue(
             "Der Fehlschlag wird nicht in der Datenbank vermerkt - dann steht die " +
                 "Nachricht weiter da, als waere sie heraus.",

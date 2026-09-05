@@ -24,7 +24,7 @@ import org.junit.Test
  */
 class KachelWegTest {
 
-    private val haupt = Quelltext.ohneKommentare("org/biglau/MainActivity.kt")
+    private val haupt = Quelltext.withoutComments("org/biglau/MainActivity.kt")
 
     @Test
     fun `kein editor auf dem screen der gerade nicht zu sehen ist`() {
@@ -42,10 +42,10 @@ class KachelWegTest {
 
     @Test
     fun `wer eine kachel merkt merkt auch ihren screen`() {
-        val tipp = Quelltext.ausschnitt(
+        val tipp = Quelltext.cut(
             haupt,
-            von = "private data class GesperrterTipp(",
-            bis = ")",
+            from = "private data class GesperrterTipp(",
+            to = ")",
         )
         assertTrue(
             "GesperrterTipp haelt x und y, aber nicht den Screen. Nach der PIN weiss " +
@@ -56,7 +56,7 @@ class KachelWegTest {
 
     @Test
     fun `starten bekommt den screen gesagt`() {
-        val zeichen = Quelltext.ausschnitt(haupt, von = "private fun starten(", bis = "{")
+        val zeichen = Quelltext.cut(haupt, from = "private fun starten(", to = "{")
         assertTrue(
             "starten() nimmt keinen screenId — dann muss es sich den Screen selbst " +
                 "ausdenken, und das ging schon einmal schief: $zeichen",

@@ -32,7 +32,7 @@ class DeadLogicTest {
     private val begruendeteAusnahmen = emptyMap<String, String>()
 
     private fun dateien(): List<File> =
-        Quelltext.dateien()
+        Quelltext.files()
 
     /** Funktionsname → "Objekt.Name", für alle Funktionen direkt in einem `object`. */
     private fun deklarationen(): List<Pair<String, String>> {

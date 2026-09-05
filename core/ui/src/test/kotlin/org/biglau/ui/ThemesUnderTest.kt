@@ -3,11 +3,11 @@ package org.biglau.ui
 import org.biglau.data.ThemeName
 
 /**
- * Jedes Thema in beiden Zuständen des Systems.
+ * every theme in both states of the system.
  *
- * `ThemeName.SYSTEM` ist keine eigene Palette, sondern eine Frage ans Telefon. Es nur
- * einmal zu prüfen hieße, die Hälfte davon nie anzusehen — und zwar genau die Hälfte, die
- * auf dem Gerät eines Menschen eintritt, dessen Telefon gerade anders steht als meines.
+ * `ThemeName.SYSTEM` is not a palette of its own but a question to the phone. checking it
+ * once would mean never looking at half of it - the half that happens on the device of
+ * someone whose phone stands differently than mine.
  */
-fun themenUndSystem(): List<Pair<ThemeName, Boolean>> =
-    ThemeName.entries.flatMap { thema -> listOf(thema to true, thema to false) }
+fun themesAndSystem(): List<Pair<ThemeName, Boolean>> =
+    ThemeName.entries.flatMap { theme -> listOf(theme to true, theme to false) }

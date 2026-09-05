@@ -18,7 +18,7 @@ import org.junit.Test
  */
 class DreiRollenTest {
 
-    private val baum = Quelltext.ohneKommentare("org/biglau/settings/SettingsActivity.kt")
+    private val baum = Quelltext.withoutComments("org/biglau/settings/SettingsActivity.kt")
 
     @Test
     fun `alle drei Rollen stehen im Einstellungsbaum`() {
@@ -40,7 +40,7 @@ class DreiRollenTest {
      *
      * Rollen vergibt das System, und von dort kommt nichts zurueck. Wird der Zustand einmal
      * gelesen, steht nach der Rueckkehr die Aufforderung da, die man gerade erfuellt hat -
-     * siehe [SystemzustandTest].
+     * siehe [SystemStateTest].
      */
     @Test
     fun `jede Rolle wird beim Wiederkommen neu gelesen`() {
@@ -65,7 +65,7 @@ class DreiRollenTest {
             "is_home", "set_as_home", "is_dialer", "set_as_dialer", "is_sms", "set_as_sms",
         ).flatMap { name ->
             listOf("values", "values-de").filterNot { sprache ->
-                Quelltext.texte(sprache).any { "name=\"$name\"" in it.readText() }
+                Quelltext.texts(sprache).any { "name=\"$name\"" in it.readText() }
             }.map { "$name in $it" }
         }
         assertTrue("Ein Satz fehlt in einer Sprache: $fehlt", fehlt.isEmpty())

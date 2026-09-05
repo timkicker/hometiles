@@ -6,206 +6,163 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 /**
- * Kein Schalter im Modell, den niemand liest.
+ * no switch in the model that nobody reads.
  *
- * Vier Felder in `Behaviour` und `Security` standen seit dem ersten Tag da und wurden
- * nirgends benutzt. Ein toter Schalter ist schlimmer als ein fehlender: er steht in der
- * gesicherten Konfiguration, sieht nach einer Zusage aus und tut nichts. Aufgefallen beim
- * Abgleich von `PLAN.md` 4.4 gegen das Gebaute.
+ * a dead switch is worse than a missing one: it stands in the saved configuration, looks
+ * like a promise and does nothing.
  */
 class DeadSettingsTest {
 
+    /** fields still to be implemented. implementing one means striking it from here. */
+    private val notYetImplemented = emptySet<String>()
 
     /**
-     * Felder, deren Umsetzung noch aussteht. Wer eines umsetzt, streicht es hier - und wer
-     * ein neues Feld anlegt, ohne es zu benutzen, bekommt hier einen roten Test.
+     * counts **reads**, not mere name matches: searching for the bare name counted
+     * `longPress` as used because `HapticFeedback.longPress(...)` exists. so: a dot before
+     * it, no bracket after it.
      */
-    private val nochNichtUmgesetzt = emptySet<String>()
-
-    /**
-     * Zählt **Lesezugriffe**, nicht bloße Namensgleichheit.
-     *
-     * Erste Fassung suchte den bloßen Namen - und `longPress` galt als benutzt, weil es
-     * eine Funktion `HapticFeedback.longPress(...)` gibt. Ein Test, der so danebengreift,
-     * gibt falsche Sicherheit; genau das, wogegen er antreten soll. Gezählt wird deshalb
-     * nur ein Zugriff auf eine Eigenschaft: ein Punkt davor, keine Klammer danach.
-     */
-    private fun benutztAusserhalbDesModells(feld: String): Int {
-        val zugriff = Regex("""\.$feld\b(?!\s*\()""")
-        val zuweisung = Regex("""\b$feld\s*=""")
-        return Quelltext.dateien()
+    private fun usedOutsideTheModel(field: String): Int {
+        val read = Regex("""\.$field\b(?!\s*\()""")
+        val assignment = Regex("""\b$field\s*=""")
+        return Quelltext.files()
             .filter { it.name != "Model.kt" }
-            .sumOf { datei ->
-                datei.readLines().count { zugriff.containsMatchIn(it) || zuweisung.containsMatchIn(it) }
+            .sumOf { file ->
+                file.readLines().count { read.containsMatchIn(it) || assignment.containsMatchIn(it) }
             }
     }
 
     /**
-     * Ein Feld darf auch nur im Modell selbst gelesen werden - aber dann muss die
-     * Eigenschaft, die es liest, draußen ankommen. `hapticFeedback` ist so ein Fall: es
-     * wird nur noch von `haptics` befragt, und `haptics` ist das, was die App verwendet.
-     * Ohne diese zweite Frage könnte ein totes Feld sich hinter einem toten Getter
-     * verstecken - zwei Leichen, die sich gegenseitig am Leben halten.
+     * a field may be read inside the model only, but then whatever reads it has to arrive
+     * outside. without that second question a dead field could hide behind a dead getter.
      */
-    private fun lebendig(feld: String): Boolean {
-        if (benutztAusserhalbDesModells(feld) > 0) return true
-        return ableitungen(feld).any { benutztAusserhalbDesModells(it) > 0 }
+    private fun alive(field: String): Boolean {
+        if (usedOutsideTheModel(field) > 0) return true
+        return derivations(field).any { usedOutsideTheModel(it) > 0 }
     }
 
-    /** Namen der Eigenschaften und Funktionen in Model.kt, deren Rumpf [feld] liest. */
-    private fun ableitungen(feld: String): List<String> {
-        val text = Quelltext.datei("org/biglau/data/Model.kt").readText()
-        val kopf = Regex("""(?:val|fun) (\w+)[:(]""")
-        val treffer = mutableListOf<String>()
+    /** names in Model.kt whose body reads [field]. */
+    private fun derivations(field: String): List<String> {
+        val text = Quelltext.file("org/biglau/data/Model.kt").readText()
+        val head = Regex("""(?:val|fun) (\w+)[:(]""")
+        val hits = mutableListOf<String>()
         var name: String? = null
-        for (zeile in text.lines()) {
-            kopf.find(zeile.trimStart())?.let { name = it.groupValues[1] }
-            if (name != null && name != feld && Regex("""\b$feld\b""").containsMatchIn(zeile)) {
-                treffer += name!!
+        for (line in text.lines()) {
+            head.find(line.trimStart())?.let { name = it.groupValues[1] }
+            if (name != null && name != field && Regex("""\b$field\b""").containsMatchIn(line)) {
+                hits += name!!
             }
         }
-        return treffer.distinct()
+        return hits.distinct()
     }
 
     /**
-     * Zaehlt **Schreibzugriffe**: irgendwo muss ein Editor das Feld setzen.
-     *
-     * Das Gegenstueck zur Frage oben, und ein eigener Fehler. `Button.longPress` wurde
-     * geschrieben und nie gelesen - man konnte es setzen, und es passierte nichts.
-     * `swipeOrder` war andersherum: es wurde gelesen und von keiner Oberflaeche je
-     * geschrieben, blieb also fuer immer leer. Beides sind Zusagen ohne Wirkung, nur von
-     * verschiedenen Seiten.
+     * counts **writes**, the counterpart to the question above and a fault of its own:
+     * `Button.longPress` was written and never read, `swipeOrder` read and never written.
      */
-    private fun wirdGesetzt(feld: String): Boolean {
-        val zuweisung = Regex("""\b$feld\s*=\s*[^=]""")
-        return Quelltext.dateien()
+    private fun isWritten(field: String): Boolean {
+        val assignment = Regex("""\b$field\s*=\s*[^=]""")
+        return Quelltext.files()
             .filter { it.name != "Model.kt" && it.name != "Defaults.kt" }
-            .any { datei -> datei.readLines().any { zuweisung.containsMatchIn(it) } }
+            .any { file -> file.readLines().any { assignment.containsMatchIn(it) } }
     }
 
     /**
-     * Keine Einstellungstraeger: das sind Daten, keine Schalter.
-     *
-     * Der Unterschied ist nicht kosmetisch. Eine Einstellung wird geaendert - deshalb muss
-     * es einen Weg geben, sie zu aendern. Eine Nutzlast wird gebaut: `App("com.x", "Main")`
-     * entsteht, wenn jemand eine App auf eine Kachel legt, und ihre Felder werden nie
-     * einzeln umgestellt. Sie hier mitzupruefen hiesse, eine Regel aufzustellen, die
-     * niemand einhalten kann.
+     * payload, not settings: a setting gets changed and so needs a way to change it, while
+     * `App("com.x", "Main")` is built whole when a tile is filled and its fields are never
+     * switched one by one.
      */
-    private val nutzlast = setOf(
+    private val payload = setOf(
         "Cell", "Screen", "LaunchableApp", "SpeedDialTarget",
-        // ButtonAction und seine Varianten - der Inhalt einer Kachel.
+        // ButtonAction and its variants - what sits on a tile.
         "App", "Contact", "GoToScreen", "Folder", "Link", "Shortcut", "Widget", "Action", "Solid",
     )
 
-    /** Alle Klassen, die Einstellungen tragen - aus Model.kt gelesen, nicht von Hand gepflegt. */
-    private fun konfigKlassen(): List<String> =
+    /** read from Model.kt, not kept by hand: a new class must not slip through. */
+    private fun configClasses(): List<String> =
         Regex("""data class (\w+)\(""")
-            .findAll(Quelltext.datei("org/biglau/data/Model.kt").readText())
+            .findAll(Quelltext.file("org/biglau/data/Model.kt").readText())
             .map { it.groupValues[1] }
-            .filterNot { it in nutzlast }
+            .filterNot { it in payload }
             .toList()
 
-    /**
-     * Kein Feld in keiner Konfigurationsklasse, das niemand liest.
-     *
-     * Vorher gab es das je Klasse einzeln, und drei Klassen fehlten - `SosConfig`,
-     * `PhoneConfig`, `ContactsConfig`. In `SosConfig` lag `callAfterSms`: ein Feld, das
-     * einen Anruf nach dem Notruf ausgeloest haette, von niemandem gelesen. Die Liste der
-     * Klassen kommt jetzt aus dem Modell selbst, damit eine neue Klasse nicht wieder
-     * unbemerkt durchrutscht.
-     */
     @Test
-    fun `kein Feld bleibt ungelesen`() {
-        val tot = mutableListOf<String>()
-        for (klasse in konfigKlassen()) {
-            val felder = Regex("""val (\w+): [\w?<>., ]+""")
-                .findAll(modellAbschnitt("data class $klasse("))
+    fun `no field stays unread`() {
+        val dead = mutableListOf<String>()
+        for (cls in configClasses()) {
+            val fields = Regex("""val (\w+): [\w?<>., ]+""")
+                .findAll(modelSection("data class $cls("))
                 .map { it.groupValues[1] }
-            for (feld in felder) {
-                if (feld !in nochNichtUmgesetzt && !lebendig(feld)) tot += "$klasse.$feld"
+            for (field in fields) {
+                if (field !in notYetImplemented && !alive(field)) dead += "$cls.$field"
             }
         }
-        assertEquals(emptyList<String>(), tot)
+        assertEquals(emptyList<String>(), dead)
     }
 
     /**
-     * Und die Gegenfrage: kann der Nutzer das Feld ueberhaupt aendern?
+     * the other question: can it be changed at all? `searchNumbers` and `favouritesFirst`
+     * were read and never written by any screen, so they stayed on their default forever.
      *
-     * `searchNumbers` und `favouritesFirst` wurden gelesen und von keiner Oberflaeche je
-     * gesetzt - sie standen auf ihrer Vorgabe und blieben dort. Die Lesepruefung sieht so
-     * etwas nicht; sie sind ja gelesen.
-     *
-     * Gezaehlt wird eine Zuweisung **innerhalb eines `copy(`** - so wird in dieser App jede
-     * Einstellung geschrieben. Ein benannter Parameter in einem Composable-Aufruf sieht
-     * genauso aus wie eine Zuweisung und hat mich beim ersten Versuch getaeuscht; `copy(`
-     * davor macht den Unterschied.
+     * counted is an assignment **inside a `copy(`**: a named parameter in a composable call
+     * looks exactly like an assignment.
      */
-    private fun einstellbar(feld: String): Boolean {
-        val imCopy = Regex("""copy\((?:[^()]|\([^()]*\))*\b$feld\s*=""", RegexOption.DOT_MATCHES_ALL)
-        val direkt = Quelltext.dateien()
+    private fun settable(field: String): Boolean {
+        val inCopy = Regex("""copy\((?:[^()]|\([^()]*\))*\b$field\s*=""", RegexOption.DOT_MATCHES_ALL)
+        val direct = Quelltext.files()
             .filter { it.name != "Model.kt" }
-            .any { imCopy.containsMatchIn(it.readText()) }
-        if (direkt) return true
-        // Oder ueber einen Setzer im Modell - `withIcons`, `withClock` und Verwandte -,
-        // der draussen benutzt wird.
-        return ableitungen(feld).any { benutztAusserhalbDesModells(it) > 0 }
+            .any { inCopy.containsMatchIn(it.readText()) }
+        if (direct) return true
+        // or through a setter in the model - `withIcons`, `withClock` and kin - used outside.
+        return derivations(field).any { usedOutsideTheModel(it) > 0 }
     }
 
     /**
-     * Felder, die niemand von Hand setzt, weil sie die App selbst pflegt.
-     *
-     * `recent` fuehrt Buch ueber zuletzt gestartete Apps, `version` ist die Formatnummer,
-     * `pin` wird gehasht statt zugewiesen, `speedDial` geht ueber SpeedDial.assign. Sie
-     * gehoeren nicht in die Oberflaeche - aber sie gehoeren benannt, sonst waere die Regel
-     * eine Regel mit stiller Ausnahme.
+     * fields the app keeps itself: `recent` tracks recently started apps, `version` is the
+     * format number, `pin` is hashed rather than assigned, `speedDial` goes through
+     * SpeedDial.assign. named here, or the rule would have a silent exception.
      */
-    private val vonDerAppGepflegt = setOf("recent", "version", "pin", "speedDial", "screens", "swipeOrder")
+    private val keptByTheApp = setOf("recent", "version", "pin", "speedDial", "screens", "swipeOrder")
 
     @Test
-    fun `jede Einstellung ist auch einstellbar`() {
-        val fest = mutableListOf<String>()
-        for (klasse in konfigKlassen()) {
-            val felder = Regex("""val (\w+): [\w?<>., ]+""")
-                .findAll(modellAbschnitt("data class $klasse("))
+    fun `every setting can also be set`() {
+        val fixed = mutableListOf<String>()
+        for (cls in configClasses()) {
+            val fields = Regex("""val (\w+): [\w?<>., ]+""")
+                .findAll(modelSection("data class $cls("))
                 .map { it.groupValues[1] }
-            for (feld in felder) {
-                if (feld in vonDerAppGepflegt || feld in nochNichtUmgesetzt) continue
-                if (!einstellbar(feld)) fest += "$klasse.$feld"
+            for (field in fields) {
+                if (field in keptByTheApp || field in notYetImplemented) continue
+                if (!settable(field)) fixed += "$cls.$field"
             }
         }
-        assertEquals(emptyList<String>(), fest)
+        assertEquals(emptyList<String>(), fixed)
     }
 
     @Test
-    fun `die Ausnahmeliste bleibt kurz`() {
-        // Sie ist eine Merkliste, keine Ablage. Wächst sie, ist der Plan weiter weg vom
-        // Gebauten als gedacht.
-        assertEquals(true, nochNichtUmgesetzt.size <= 3)
+    fun `the exception list stays short`() {
+        // a note, not a shelf: growing means the plan is further from the built thing.
+        assertEquals(true, notYetImplemented.size <= 3)
     }
 
     /**
-     * Der Kopf einer data class, bis zur **zugehoerigen** schliessenden Klammer.
-     *
-     * Erste Fassung nahm die erste schliessende Klammer ueberhaupt - und
-     * `listOf(Defaults.mainScreen())` in der Vorgabe von `screens` schloss den Abschnitt
-     * nach zwei Feldern. Der Test lief ins Leere und meldete alles in Ordnung. Genau die
-     * falsche Sicherheit, gegen die er antritt; jetzt wird die Klammertiefe gezaehlt.
+     * the head of a data class, up to its **own** closing bracket: taking the first closing
+     * bracket at all, `listOf(Defaults.mainScreen())` in the default of `screens` ended the
+     * section after two fields and the test reported everything in order.
      */
-    private fun modellAbschnitt(kopf: String): String {
-        val text = Quelltext.datei("org/biglau/data/Model.kt").readText()
-        val start = text.indexOf(kopf)
-        require(start >= 0) { "Kein Abschnitt $kopf in Model.kt" }
-        var tiefe = 0
-        for (i in start + kopf.length - 1 until text.length) {
+    private fun modelSection(head: String): String {
+        val text = Quelltext.file("org/biglau/data/Model.kt").readText()
+        val start = text.indexOf(head)
+        require(start >= 0) { "no section $head in Model.kt" }
+        var depth = 0
+        for (i in start + head.length - 1 until text.length) {
             when (text[i]) {
-                '(' -> tiefe++
+                '(' -> depth++
                 ')' -> {
-                    tiefe--
-                    if (tiefe == 0) return text.substring(start, i)
+                    depth--
+                    if (depth == 0) return text.substring(start, i)
                 }
             }
         }
-        error("Klammer zu $kopf nicht gefunden")
+        error("closing bracket for $head not found")
     }
 }

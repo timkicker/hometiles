@@ -62,7 +62,7 @@ class SmsRolleTest {
     fun `die Activity fuer SENDTO kennt alle vier Schemata`() {
         // Ab dem Namensattribut: ein Kommentar, der den Namen erwähnt, würde den Schnitt
         // sonst zu früh setzen - im Nachbartest ist genau das passiert.
-        val block = Quelltext.ausschnitt(manifest, "\".sms.SmsActivity\"", "</activity>")
+        val block = Quelltext.cut(manifest, "\".sms.SmsActivity\"", "</activity>")
         listOf("\"sms\"", "\"smsto\"", "\"mms\"", "\"mmsto\"").forEach { schema ->
             assertTrue("SENDTO ohne Schema $schema", schema in block)
         }

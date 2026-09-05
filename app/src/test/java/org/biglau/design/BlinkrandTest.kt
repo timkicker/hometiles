@@ -23,7 +23,7 @@ import org.junit.Test
  */
 class BlinkrandTest {
 
-    private val kachel = Quelltext.ohneKommentare("org/biglau/ui/BigTile.kt")
+    private val kachel = Quelltext.withoutComments("org/biglau/ui/BigTile.kt")
 
     @Test
     fun `nichts an der Kachel pulst mehr`() {

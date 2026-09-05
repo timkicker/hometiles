@@ -7,38 +7,27 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Aus jedem Bild des Editors fuehrt die Zurueck-Taste einen Schritt zurueck.
+ * from every screen of the editor the back key leads one step back. `PLAN.md` 10.3.7.
  *
- * PLAN.md 10.3.7. Der Editor ist der groesste Bildschirm der App und der einzige mit
- * eigenen Zustaenden: neunzehn Modi und daneben drei Tafeln, die sich mit `return@Box`
- * vor alles legen. Fuer die Modi gab es den Rueckweg von Anfang an. Fuer die Tafeln nicht,
- * und das faellt am Finger nicht auf, weil dort zwei grosse Knoepfe stehen.
+ * the editor has nineteen modes and beside them three panels that lay themselves over
+ * everything with `return@Box`. the modes had the way back from the start, the panels did
+ * not, and at the finger that goes unnoticed because two large buttons stand there.
  *
- * Am 04.09.2026 am Emulator gemessen: Ordnerkachel, Menuetaste, bearbeiten, einen Kontakt
- * gewaehlt. Es kam die Frage `Folder loeschen?` mit `Behalten` daneben. Ein Druck auf
- * Zurueck - und man stand auf dem Startbildschirm, der Editor war zu.
+ * the panels are set from the menu, so `mode != Mode.MENU` was false and the key ended the
+ * activity: anyone working by key answered a question and lost their place unasked.
  *
- * Zerstoert wurde dabei nichts, der Ordner stand noch. Falsch ist trotzdem etwas: die
- * Tafeln werden aus dem Menue heraus gesetzt, `mode != Mode.MENU` war also false, und die
- * Taste beendete die Activity. Wer mit Tasten arbeitet, hat auf eine Frage geantwortet und
- * dabei ungefragt seinen Platz verloren.
- *
- * Die Regel dahinter ist kurz: **die Zurueck-Taste tut, was der Abbruchknopf auf demselben
- * Bild tut.** Steht dort `Behalten`, dann behaelt sie und bleibt. Nicht mehr und nicht
- * weniger.
+ * the rule behind it is short: the back key does what the cancel button on the same screen
+ * does. no more and no less.
  */
 class EditorAusstiegTest {
 
-    private val quelle = Quelltext.ohneKommentare("org/biglau/tiles/TileEditorActivity.kt")
+    private val quelle = Quelltext.withoutComments("org/biglau/tiles/TileEditorActivity.kt")
 
-    /** Der Rueckweg: die Bedingung und der Rumpf des einen BackHandler. */
+    /** the way back: the condition and the body of the one BackHandler. */
     private val rueckweg: String =
-        Quelltext.ausschnitt(quelle, "BackHandler(", ".safeDrawingPadding()")
+        Quelltext.cut(quelle, "BackHandler(", ".safeDrawingPadding()")
 
-    /**
-     * Die Tafeln, die auf die Taste hoeren muessen. Die Sperre fehlt mit Absicht, siehe
-     * unten.
-     */
+    /** the panels that must listen to the key. the lock is missing on purpose, see below. */
     private val tafeln = listOf("replacingFolder", "clearing")
 
     @Test
@@ -66,11 +55,9 @@ class EditorAusstiegTest {
     }
 
     /**
-     * Die andere Seite derselben Regel.
-     *
-     * Die PIN-Sperre ist auch eine Vollbild-Tafel, aber ihr Abbruch ist der Weg **hinaus**.
-     * Wuerde die Taste sie wegraeumen, oeffnete sie den Editor, den die PIN zuhaelt. Dass
-     * `locked` hier nicht steht, ist die Entscheidung und kein Vergessen.
+     * the other side of the same rule: the pin lock is a full-screen panel too, but its
+     * cancel is the way *out*. clearing it away would open the editor the pin holds shut.
+     * `locked` not standing here is the decision, not an oversight.
      */
     @Test
     fun `die Sperre hoert nicht auf die Zurueck-Taste`() {
@@ -82,11 +69,9 @@ class EditorAusstiegTest {
     }
 
     /**
-     * Gezaehlt, damit die naechste Tafel nicht still danebensteht.
-     *
-     * Jedes `return@Box` ist eine Flaeche, die den Editor verdeckt. Es gibt drei: die
-     * Sperre und die beiden Loeschfragen. Kommt eine vierte dazu, faellt diese Regel um und
-     * fragt, was die Zurueck-Taste dort tun soll - vor dem Geraet und nicht erst darauf.
+     * counted so the next panel does not stand there silently: every `return@Box` is a
+     * surface that covers the editor. a fourth makes this rule fall and ask what the back
+     * key should do there.
      */
     @Test
     fun `es gibt keine Tafel, die niemand bedacht hat`() {
@@ -102,8 +87,8 @@ class EditorAusstiegTest {
     }
 
     /**
-     * Und die Modi selbst: von jedem fuehrt die Taste ins Menue zurueck, von dort hinaus.
-     * Das stand schon vorher da; ohne diese Zeile misst der Rest davon nichts.
+     * and the modes themselves: from each the key leads back to the menu, from there out.
+     * without this line the rest of the rule measures nothing.
      */
     @Test
     fun `aus jedem Modus fuehrt die Taste ins Menue`() {
@@ -121,55 +106,47 @@ class EditorAusstiegTest {
 }
 
 /**
- * Entweder alle Auswahllisten tragen eine Abbruchzeile oder keine.
+ * either every picker list carries a cancel row or none does. `PLAN.md` 10.3.7.
  *
- * PLAN.md 10.3.7, gemessen am 04.09.2026 unmittelbar nachdem der Rueckweg stand. Der
- * Verdacht war, `Kachel verschieben` sei der einzige Zustand ohne sichtbaren Ausweg, weil
- * das Menue und die Groessenliste ihr `Fertig` haben. Ich hatte schon eine Zeile
- * `Kachel lassen, wo sie ist` eingebaut und in fuenf Sprachen uebersetzt, bevor ich
- * nachgezaehlt habe: **zehn von siebzehn** Zustaenden haben keine. Die Zeile waere die
- * einzige ihrer Art unter zehn gleichen Bildschirmen gewesen - und damit selbst ein Fehler,
- * denn sie verspricht einen Ausweg am Listenende, den die neun anderen nicht halten. Sie
- * ist wieder draussen.
+ * a single one was already built and translated into five languages before counting: ten of
+ * seventeen states have none. that row would have been the only one of its kind among ten
+ * identical screens, promising a way out at the end of a list that the nine others do not
+ * hold.
  *
- * Die Trennlinie liegt woanders, und sie hat einen Grund:
+ * the dividing line runs elsewhere, and it has a reason:
  *
- * - Wo man **etwas einstellt**, muss man sagen koennen, dass man fertig ist. Das Menue, die
- *   Groessenliste, die beiden Eingabefelder: ohne die Zeile kaeme man aus einer Aenderung
- *   nicht heraus, ohne sie zurueckzunehmen.
- * - Wo man **etwas auswaehlt**, ist jede Zeile bereits eine Antwort. Der Ausweg ist die
- *   Zurueck-Taste, und die greift dank [EditorAusstiegTest] in jedem Modus.
+ * - where one *sets* something, one must be able to say one is done, or a change cannot be
+ *   left without undoing it.
+ * - where one *picks* something, every row is already an answer, and the way out is the
+ *   back key, which [EditorAusstiegTest] holds for every mode.
  *
- * Eine Abbruchzeile in jeder Auswahlliste waere teuer und nicht besser: die App-Liste hat
- * dreistellig viele Eintraege, unten kaeme niemand an, und oben schoebe sie die erste
- * wirkliche Wahl nach unten. Auf drei Zoll mit grosser Schrift ist das keine Kleinigkeit.
- *
- * Diese Regel haelt die Einteilung fest. Ein neuer Modus muss hier einsortiert werden, und
- * eine halbe Loesung - eine einzelne Auswahlliste mit Abbruch - faellt um.
+ * a cancel row in every picker would be expensive and no better: the app list has hundreds
+ * of entries, nobody would reach the bottom, and at the top it would push the first real
+ * choice down.
  */
 class EditorFertigTest {
 
-    private val quelle = Quelltext.ohneKommentare("org/biglau/tiles/TileEditorActivity.kt")
+    private val quelle = Quelltext.withoutComments("org/biglau/tiles/TileEditorActivity.kt")
 
-    /** Die Modi und die Flaeche, die sie zeichnen. */
+    /** the modes and the surface they draw. */
     private val zweige: List<Pair<String, String>> =
         Regex("""Mode\.(\w+) -> (\w+)\s*[({]""").findAll(quelle)
             .map { it.groupValues[1] to it.groupValues[2] }
             .toList()
 
-    /** Hier stellt man etwas ein und muss sagen koennen, dass man fertig ist. */
+    /** here one sets something and must be able to say one is done. */
     private val mitFertig = setOf("MENU", "RESIZE", "EDIT_NUMBER", "EDIT_LINK")
 
-    /** Hier waehlt man aus; jede Zeile ist schon eine Antwort. */
+    /** here one picks; every row is already an answer. */
     private val nurAntworten = setOf(
         "PICK_BUILTIN", "PICK_APP", "PICK_CONTACT", "PICK_NUMBER", "PICK_MODE",
         "PICK_SHORTCUT", "PICK_WIDGET", "PICK_SCREEN", "PICK_LONG_PRESS", "MOVE",
         "PICK_COLOR", "PICK_ICON", "PICK_HUE",
     )
 
-    /** Der Rumpf der Flaeche, die dieser Modus zeichnet. */
-    private fun rumpf(komponente: String): String = Quelltext.ausschnitt(
-        // Die Wachmarke gibt der letzten Funktion der Datei eine Endmarke.
+    /** the body of the surface this mode draws. */
+    private fun rumpf(komponente: String): String = Quelltext.cut(
+        // the guard mark gives the file's last function an end mark.
         quelle + "\nprivate fun WACHE(",
         "private fun $komponente(",
         "private fun ",

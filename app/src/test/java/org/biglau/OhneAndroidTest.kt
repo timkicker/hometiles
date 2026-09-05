@@ -29,7 +29,7 @@ class OhneAndroidTest {
         // die erste Fassung dieser Regel zaehlte sie mit und uebersah dadurch `MessageStamps`,
         // 31 Zeilen Datumsrechnung, die nur `java.util` braucht.
         val fremd = listOf("android", "androidx", "coil")
-        val rein = Quelltext.appWurzel.walkTopDown()
+        val rein = Quelltext.appRoot.walkTopDown()
             .filter { it.extension == "kt" }
             .filter { datei ->
                 datei.readLines()

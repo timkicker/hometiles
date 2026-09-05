@@ -23,7 +23,7 @@ import org.junit.Test
 class KeinNotrufTest {
 
     /** Alles, was am Notruf beteiligt ist. */
-    private val notrufDateien = Quelltext.dateien()
+    private val notrufDateien = Quelltext.files()
         .filter { it.name.startsWith("Sos") }
 
     @Test
@@ -36,7 +36,7 @@ class KeinNotrufTest {
             datei.readLines().withIndex()
                 .filter { (_, z) ->
                     val nackt = z.trim()
-                    !Quelltext.istKommentarzeile(z) &&
+                    !Quelltext.isCommentLine(z) &&
                         ("ACTION_CALL" in nackt || "Intents.call(" in nackt)
                 }
                 .map { (i, z) -> "${datei.name}:${i + 1}: ${z.trim()}" }
@@ -70,7 +70,7 @@ class KeinNotrufTest {
         // Ohne Kommentare: der Zweig traegt selbst den Satz „Kein Sos.send", und die
         // erste Fassung dieser Regel las ihn als Aufruf. Ein Kommentar, der den Namen
         // nur nennt, ist kein Aufruf.
-        val quelle = Quelltext.ohneKommentare("org/biglau/toggles/SosActivity.kt")
+        val quelle = Quelltext.withoutComments("org/biglau/toggles/SosActivity.kt")
         val ab = quelle.indexOf("if (preview) {")
         assertTrue("Den Probe-Zweig gibt es nicht mehr", ab > 0)
         val zweig = quelle.substring(ab, quelle.indexOf("return@LaunchedEffect", ab))
@@ -87,8 +87,8 @@ class KeinNotrufTest {
 
     @Test
     fun `ohne Nummer geht nichts hinaus`() {
-        val send = Quelltext.datei("org/biglau/toggles/Sos.kt").readText()
-            .let { Quelltext.ausschnitt(it, "fun send(") }
+        val send = Quelltext.file("org/biglau/toggles/Sos.kt").readText()
+            .let { Quelltext.cut(it, "fun send(") }
         val erste = send.lines().drop(1).first { it.isNotBlank() }
         assertTrue(
             "Die erste Zeile von Sos.send prueft nicht mehr, ob ueberhaupt eine Nummer " +

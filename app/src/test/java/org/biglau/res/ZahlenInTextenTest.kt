@@ -27,7 +27,7 @@ import org.junit.Test
 class ZahlenInTextenTest {
 
     private fun text(name: String, sprache: String): String =
-        Quelltext.texte(sprache)
+        Quelltext.texts(sprache)
             .firstNotNullOfOrNull { datei ->
                 Regex("""<string name="$name">(.*?)</string>""", RegexOption.DOT_MATCHES_ALL)
                     .find(datei.readText())?.groupValues?.get(1)

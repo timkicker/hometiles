@@ -43,7 +43,7 @@ class SchalterSatzTest {
 
     @Test
     fun `jeder Schalter mit Ansage ist begruendet`() {
-        val gefunden = Quelltext.dateien()
+        val gefunden = Quelltext.files()
             .flatMap { datei ->
                 Regex("""checked = (.+),""").findAll(datei.readText()).map { it.groupValues[1] }
             }

@@ -21,11 +21,11 @@ import org.junit.Test
 class SosPreviewTest {
 
     private val quelle = // Ohne Kommentarzeilen: hier hängt daran, ob ein Alarm losgeht, der niemandem gilt.
-        Quelltext.ohneKommentare("org/biglau/toggles/SosActivity.kt")
+        Quelltext.withoutComments("org/biglau/toggles/SosActivity.kt")
 
     @Test
     fun `in der Probe wird nicht gesendet`() {
-        val vorProbe = Quelltext.ausschnitt(quelle, "", "Sos.send(")
+        val vorProbe = Quelltext.cut(quelle, "", "Sos.send(")
         assertTrue(
             "Vor dem Senden steht keine Abfrage auf die Probe",
             "if (preview)" in vorProbe,

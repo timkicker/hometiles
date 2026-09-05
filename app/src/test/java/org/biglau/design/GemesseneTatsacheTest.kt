@@ -38,7 +38,7 @@ class GemesseneTatsacheTest {
 
     @Test
     fun `wer das Geraet als Beleg anfuehrt, nennt das Datum`() {
-        val ohneDatum = (Quelltext.dateien() + Quelltext.testDateien())
+        val ohneDatum = (Quelltext.files() + Quelltext.testFiles())
             // Die Regel selbst redet ueber solche Saetze, statt welche zu behaupten.
             .filterNot { it.name == "GemesseneTatsacheTest.kt" }
             .flatMap { datei ->
@@ -65,7 +65,7 @@ class GemesseneTatsacheTest {
     /** Und die Regel findet ueberhaupt etwas - sonst prueft sie nichts. */
     @Test
     fun `es gibt solche Saetze wirklich`() {
-        val treffer = (Quelltext.dateien() + Quelltext.testDateien())
+        val treffer = (Quelltext.files() + Quelltext.testFiles())
             .count { datei -> beruft.any { it in datei.readText() } }
         assertTrue(
             "Keine einzige Stelle beruft sich mehr auf das Geraet - liest die Regel noch, " +

@@ -20,19 +20,19 @@ import org.junit.Test
  */
 class EinstellungenFindbarTest {
 
-    private fun wert(name: String): String = Quelltext.textWert(name, "values")
+    private fun wert(name: String): String = Quelltext.textValue(name, "values")
 
     @Test
     fun `die Zeile haengt nicht mehr an einem leeren Suchfeld`() {
-        val quelle = Quelltext.datei("org/biglau/apps/AppDrawerActivity.kt").readText()
-        val stelle = Quelltext.ausschnitt(quelle, "apps_open_settings")
+        val quelle = Quelltext.file("org/biglau/apps/AppDrawerActivity.kt").readText()
+        val stelle = Quelltext.cut(quelle, "apps_open_settings")
         assertEquals(
             "Die Einstellungszeile darf nicht wieder an `query.isEmpty()` hängen - " +
                 "sie ist der letzte Weg dorthin, und der Suchende sucht.",
             false,
-            "if (query.isEmpty())" in Quelltext.ausschnitt(quelle, "", "apps_open_settings").takeLast(400),
+            "if (query.isEmpty())" in Quelltext.cut(quelle, "", "apps_open_settings").takeLast(400),
         )
-        assertEquals(true, "TextSearch.rank(einstellungen" in quelle || "TextSearch.rank(\n" in stelle)
+        assertEquals(true, "TextSearch.rank(settingsLabel" in quelle || "TextSearch.rank(\n" in stelle)
     }
 
     /**
@@ -44,7 +44,7 @@ class EinstellungenFindbarTest {
     @Test
     fun `wer nach den Einstellungen sucht, findet sie`() {
         listOf("values" to "setting", "values-de" to "einstell").forEach { (sprache, wort) ->
-            val label = Quelltext.textWert("apps_open_settings", sprache)
+            val label = Quelltext.textValue("apps_open_settings", sprache)
             assertNotNull("$sprache: $label wird von $wort nicht getroffen",
                 TextSearch.rank(label, wort))
             assertNotNull("$sprache: $label wird von biglau nicht getroffen",

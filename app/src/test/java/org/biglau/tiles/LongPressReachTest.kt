@@ -21,7 +21,7 @@ import org.junit.Test
  */
 class LongPressReachTest {
 
-    private val quelle = Quelltext.datei("org/biglau/tiles/TileEditorActivity.kt").readText()
+    private val quelle = Quelltext.file("org/biglau/tiles/TileEditorActivity.kt").readText()
 
     @Test
     fun `jede Art laesst sich auch auf den Langdruck legen`() {

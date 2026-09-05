@@ -22,7 +22,7 @@ import org.junit.Test
 class ActivityBaseTest {
 
     private val quellen: List<File> =
-        Quelltext.dateien()
+        Quelltext.files()
 
     private fun activityZeilen(): List<Pair<String, String>> =
         quellen.flatMap { datei ->

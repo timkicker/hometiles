@@ -32,14 +32,14 @@ class HauptfadenTest {
 
     @Test
     fun `keine Activity greift ausserhalb eines Effekts auf einen Anbieter zu`() {
-        val stellen = Quelltext.dateien()
+        val stellen = Quelltext.files()
             .filter { it.name.endsWith("Activity.kt") }
             .flatMap { datei ->
                 val zeilen = datei.readLines()
                 zeilen.withIndex()
                     .filter { (_, z) ->
                         val nackt = z.trim()
-                        langsam.any { it in nackt } && !Quelltext.istKommentarzeile(z)
+                        langsam.any { it in nackt } && !Quelltext.isCommentLine(z)
                     }
                     .filterNot { (i, _) ->
                         // Im richtigen Faden, oder in einer Funktion, die selbst nur aus
@@ -61,7 +61,7 @@ class HauptfadenTest {
     /** Und wer laedt, sagt es. */
     @Test
     fun `der Import sagt, dass er liest`() {
-        val quelle = Quelltext.datei("org/biglau/settings/ImportActivity.kt").readText()
+        val quelle = Quelltext.file("org/biglau/settings/ImportActivity.kt").readText()
         assertTrue(
             "Der Import liest ohne Ladezustand - dann steht der Bildschirm leer da, und " +
                 "wer nichts sieht, tippt noch einmal.",

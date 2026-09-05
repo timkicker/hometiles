@@ -22,7 +22,7 @@ import org.junit.Test
  */
 class WarnungVorDemLadenTest {
 
-    private val importieren = Quelltext.ohneKommentare("org/biglau/settings/ImportActivity.kt")
+    private val importieren = Quelltext.withoutComments("org/biglau/settings/ImportActivity.kt")
 
     @Test
     fun `die herkunft steht vor der bestaetigung`() {
@@ -37,7 +37,7 @@ class WarnungVorDemLadenTest {
     @Test
     fun `der satz davor sagt was passieren wird und nicht was passiert ist`() {
         listOf("values-de", "values").forEach { sprache ->
-            val text = Quelltext.textWert("transfer_confirm_newer", sprache)
+            val text = Quelltext.textValue("transfer_confirm_newer", sprache)
             assertTrue(
                 "Der Satz vor dem Laden steht in der Vergangenheit (Sprache \"$sprache\"): " +
                     text + "\nVor der Entscheidung gehoert die Zukunft: was *wird* wegfallen.",

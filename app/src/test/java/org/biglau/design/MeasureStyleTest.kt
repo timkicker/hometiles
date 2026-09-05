@@ -20,7 +20,7 @@ import org.junit.Test
  */
 class MeasureStyleTest {
 
-    private fun messende() = Quelltext.dateien().filter { "rememberTextMeasurer" in it.readText() }
+    private fun messende() = Quelltext.files().filter { "rememberTextMeasurer" in it.readText() }
 
     @Test
     fun `wer misst kennt den gezeichneten Stil`() {
@@ -61,7 +61,7 @@ class MeasureStyleTest {
     @Test
     fun `kein Stil auf Vorrat neben dem der Oberflaeche`() {
         val muster = Regex("""^(?:internal |private )?val \w+\s*(?::\s*TextStyle\s*)?= TextStyle\(""")
-        val treffer = Quelltext.dateien().flatMap { datei ->
+        val treffer = Quelltext.files().flatMap { datei ->
             datei.readLines().withIndex()
                 .filter { muster.containsMatchIn(it.value) }
                 .map { "${datei.name}:${it.index + 1}  ${it.value.trim()}" }

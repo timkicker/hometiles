@@ -24,10 +24,10 @@ class SprungzielTest {
 
     @Test
     fun `die auswahl bietet keinen ordner an`() {
-        val picker = Quelltext.ausschnitt(
-            Quelltext.ohneKommentare("org/biglau/tiles/TileEditorActivity.kt"),
-            von = "private fun ScreenPicker(",
-            bis = "\n}",
+        val picker = Quelltext.cut(
+            Quelltext.withoutComments("org/biglau/tiles/TileEditorActivity.kt"),
+            from = "private fun ScreenPicker(",
+            to = "\n}",
         )
         assertTrue(
             "Der Screen-Waehler bietet auch Ordner an:\n$picker",
@@ -46,7 +46,7 @@ class SprungzielTest {
             "org/biglau/tiles/TileEditorActivity.kt" to "die Auswahl des Sprungziels",
         )
         val ohne = stellen.filterKeys { pfad ->
-            "isFolder" !in Quelltext.ohneKommentare(pfad)
+            "isFolder" !in Quelltext.withoutComments(pfad)
         }
         assertTrue(
             "Diese Aufzaehlung von Screens unterscheidet Ordner nicht: " +

@@ -25,7 +25,7 @@ class KeinPlatzTest {
             "values-de" to listOf("Nachbarn", "Einstellungen"),
             "values" to listOf("neighbour", "settings"),
         ).forEach { (sprache, worte) ->
-            val text = Quelltext.textWert("resize_no_room", sprache).lowercase()
+            val text = Quelltext.textValue("resize_no_room", sprache).lowercase()
             worte.forEach { wort ->
                 assertTrue(
                     "Die Meldung sagt nicht, wie es doch ginge - \"$wort\" fehlt " +
@@ -38,7 +38,7 @@ class KeinPlatzTest {
 
     @Test
     fun `die meldung steht dort wo nichts mehr geht`() {
-        val quelle = Quelltext.ohneKommentare("org/biglau/tiles/TileEditorActivity.kt")
+        val quelle = Quelltext.withoutComments("org/biglau/tiles/TileEditorActivity.kt")
         assertTrue(
             "resize_no_room wird nirgends gezeigt - dann ist der Bildschirm bei vollem " +
                 "Raster leer",

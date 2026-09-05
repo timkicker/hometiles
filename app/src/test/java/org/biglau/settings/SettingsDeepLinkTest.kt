@@ -69,7 +69,7 @@ class SettingsDeepLinkTest {
      */
     @Test
     fun `die Einstellungen nehmen einen zweiten Aufruf entgegen`() {
-        val block = Quelltext.ausschnitt(manifest, ".settings.SettingsActivity", "/>")
+        val block = Quelltext.cut(manifest, ".settings.SettingsActivity", "/>")
         assertTrue(
             "SettingsActivity nimmt einen Deep-Link entgegen und braucht darum einen " +
                 "Startmodus, bei dem onNewIntent ankommt: $block",
@@ -89,7 +89,7 @@ class SettingsDeepLinkTest {
     fun `jede angebotene Kennung gehoert zu einer Seite`() {
         val namen = Page.entries.map { it.name }
         val treffer = Regex("""const val PAGE_[A-Z_]+ = "([A-Z_]+)"""")
-            .findAll(Quelltext.datei("org/biglau/ui/SettingsLink.kt").readText())
+            .findAll(Quelltext.file("org/biglau/ui/SettingsLink.kt").readText())
             .toList()
         assertTrue("keine einzige Kennung gefunden - liest der Test die richtige Datei?", treffer.isNotEmpty())
         treffer.forEach {

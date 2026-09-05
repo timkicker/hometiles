@@ -20,14 +20,14 @@ import org.junit.Test
  */
 class SperreAnJederKachelTest {
 
-    private val zeilen = Quelltext.datei("org/biglau/MainActivity.kt").readLines()
+    private val zeilen = Quelltext.file("org/biglau/MainActivity.kt").readLines()
 
     @Test
     fun `nur eine Stelle startet Apps und Verknuepfungen`() {
         val starts = zeilen.withIndex()
             .filter { (_, z) ->
                 val nackt = z.trim()
-                !Quelltext.istKommentarzeile(z) &&
+                !Quelltext.isCommentLine(z) &&
                     ("apps.launch(" in nackt || Regex("""ShortcutRepository[^)]*\)\.launch\(""").containsMatchIn(nackt))
             }
             .map { it.index + 1 }

@@ -23,7 +23,7 @@ import org.junit.Test
  */
 class RolleImTextTest {
 
-    private val seite = Quelltext.ohneKommentare("org/biglau/sms/MessagesSettingsList.kt")
+    private val seite = Quelltext.withoutComments("org/biglau/sms/MessagesSettingsList.kt")
 
     @Test
     fun `die MMS-Erklaerung richtet sich nach der Rolle`() {
@@ -89,7 +89,7 @@ class RolleImTextTest {
      * Rollenvergabe verschieden ausfaellt.
      */
     private fun schluss(sprache: String, name: String): String {
-        val wert = Quelltext.textWert(name, sprache)
+        val wert = Quelltext.textValue(name, sprache)
         val nachStrich = wert.substringAfterLast("\u2014", "")
         if (nachStrich.isNotBlank()) return nachStrich.trim()
         val saetze = wert.split(". ").filter { it.isNotBlank() }

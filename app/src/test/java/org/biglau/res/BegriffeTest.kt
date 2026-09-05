@@ -31,7 +31,7 @@ import org.junit.Test
 class BegriffeTest {
 
     private fun texte(sprache: String): Map<String, String> = buildMap {
-        Quelltext.resWurzeln.map { File(it, "$sprache/strings.xml") }.filter { it.isFile }
+        Quelltext.resRoots.map { File(it, "$sprache/strings.xml") }.filter { it.isFile }
             .forEach { datei ->
                 Regex("""<string name="([^"]+)"[^>]*>(.*?)</string>""", RegexOption.DOT_MATCHES_ALL)
                     .findAll(datei.readText())
@@ -63,7 +63,7 @@ class BegriffeTest {
         val mehrfach = vorgabe.entries.groupBy({ it.value }, { it.key })
             .filterValues { it.size > 1 }
             .filterKeys { it !in darfAbweichen }
-        val funde = Quelltext.uebersetzungen().flatMap { sprache ->
+        val funde = Quelltext.translations().flatMap { sprache ->
             val d = texte(sprache)
             mehrfach.mapNotNull { (englisch, schluessel) ->
                 val werte = schluessel.mapNotNull { d[it] }.toSet()
@@ -95,7 +95,7 @@ class BegriffeTest {
 
     @Test
     fun `verschiedene englische Texte bleiben verschieden`() {
-        val funde = Quelltext.uebersetzungen().flatMap { sprache ->
+        val funde = Quelltext.translations().flatMap { sprache ->
             texte(sprache).entries.groupBy({ it.value }, { it.key })
                 .filterValues { it.size > 1 }
                 .filterNot { (text, _) -> (sprache to text) in darfVerschmelzen }

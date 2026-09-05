@@ -27,15 +27,15 @@ import org.junit.Test
  */
 class BlaetterknopfTest {
 
-    private val knopf = Quelltext.ausschnitt(
-        Quelltext.ohneKommentare("org/biglau/ui/ScrollButtons.kt"),
-        von = "private fun PageButton(",
-        bis = "\n}",
+    private val knopf = Quelltext.cut(
+        Quelltext.withoutComments("org/biglau/ui/ScrollButtons.kt"),
+        from = "private fun PageButton(",
+        to = "\n}",
     )
 
     @Test
     fun `der aufrufer kommt vor den untergrenzen`() {
-        val kette = Quelltext.ausschnitt(knopf, von = "Box(", bis = "contentAlignment")
+        val kette = Quelltext.cut(knopf, from = "Box(", to = "contentAlignment")
         val aufrufer = kette.indexOf(".then(modifier)")
         assertTrue("PageButton reicht den Modifier des Aufrufers nicht durch", aufrufer >= 0)
         val fest = Regex("""\.(height|width|size)\(""").find(kette)

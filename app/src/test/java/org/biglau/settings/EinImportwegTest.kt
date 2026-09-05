@@ -20,11 +20,11 @@ import org.junit.Test
  */
 class EinImportwegTest {
 
-    private val einstellungen = Quelltext.ohneKommentare("org/biglau/settings/SettingsActivity.kt")
+    private val einstellungen = Quelltext.withoutComments("org/biglau/settings/SettingsActivity.kt")
 
     @Test
     fun `nur eine Stelle ersetzt die Einrichtung aus einer Datei`() {
-        val stellen = Quelltext.dateien()
+        val stellen = Quelltext.files()
             // Beide Schreibweisen: `ImportActivity` reicht die Funktion als Referenz
             // weiter (`ConfigTransfer::import`), die erste Fassung dieser Regel suchte nur
             // den Aufruf mit Klammer - und fand deshalb gar nichts.

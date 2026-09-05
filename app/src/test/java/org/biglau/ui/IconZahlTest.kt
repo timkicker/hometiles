@@ -21,8 +21,8 @@ class IconZahlTest {
     private val plan = File("../PLAN.md").readText()
 
     private fun katalog(): List<String> {
-        val quelle = Quelltext.datei("org/biglau/ui/IconCatalogue.kt").readText()
-        val ab = Quelltext.ausschnitt(quelle, "val GROUPS")
+        val quelle = Quelltext.file("org/biglau/ui/IconCatalogue.kt").readText()
+        val ab = Quelltext.cut(quelle, "val GROUPS")
         return Regex("""listOf\(([^)]*)\)""").findAll(ab)
             .flatMap { Regex(""""([A-Za-z]+)"""").findAll(it.groupValues[1]) }
             .map { it.groupValues[1] }

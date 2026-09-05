@@ -21,11 +21,11 @@ import org.junit.Test
  * 1. Der Knopf ist da.
  * 2. Er ruft `Intents.dial` und **nicht** `Intents.call`. `dial` öffnet die Wähltastatur mit
  *    der Nummer; gewählt wird erst durch einen zweiten Tipp eines Menschen. Genau deshalb
- *    steht `SosActivity` auch nicht in der Liste von `HinausTest`.
+ *    steht `SosActivity` auch nicht in der Liste von `OutgoingTest`.
  */
 class SosCallButtonTest {
 
-    private val quelle = Quelltext.ohneKommentare("org/biglau/toggles/SosActivity.kt")
+    private val quelle = Quelltext.withoutComments("org/biglau/toggles/SosActivity.kt")
 
     @Test
     fun `nach dem Senden steht ein Anruf-Knopf da`() {

@@ -21,10 +21,10 @@ class WidgetLangdruckTest {
 
     @Test
     fun `die widget-liste warnt vor dem langen druck`() {
-        val liste = Quelltext.ausschnitt(
-            Quelltext.ohneKommentare("org/biglau/tiles/TileEditorActivity.kt"),
-            von = "private fun WidgetPicker(",
-            bis = "\n}",
+        val liste = Quelltext.cut(
+            Quelltext.withoutComments("org/biglau/tiles/TileEditorActivity.kt"),
+            from = "private fun WidgetPicker(",
+            to = "\n}",
         )
         assertTrue(
             "Die Widget-Auswahl sagt nicht, dass der lange Druck danach das Widget " +
@@ -36,7 +36,7 @@ class WidgetLangdruckTest {
     @Test
     fun `der hinweis nennt den anderen weg`() {
         listOf("values-de", "values").forEach { sprache ->
-            val text = Quelltext.textWert("widget_long_press_hint", sprache)
+            val text = Quelltext.textValue("widget_long_press_hint", sprache)
             assertTrue(
                 "Der Hinweis nennt keinen Ausweg (Sprache \"$sprache\"): $text",
                 "Kacheln ändern" in text || "Change the tiles" in text,

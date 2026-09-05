@@ -72,11 +72,11 @@ class IconCatalogueTest {
      */
     @Test
     fun `bei ausgeschalteten Symbolen steht der Grund daneben`() {
-        val quelle = Quelltext.datei("org/biglau/tiles/TileEditorActivity.kt").readText()
+        val quelle = Quelltext.file("org/biglau/tiles/TileEditorActivity.kt").readText()
         // Mit dem Komma: ohne das trifft die Marke auch die Ueberschrift der Symbolwahl
         // weiter unten, und welche der beiden Stellen geprueft wird, entschiede die
         // Reihenfolge im Quelltext.
-        val zeile = Quelltext.ausschnitt(quelle, "R.string.editor_pick_icon),", "onClick")
+        val zeile = Quelltext.cut(quelle, "R.string.editor_pick_icon),", "onClick")
         assertTrue("Der Hinweis fehlt: $zeile", "editor_pick_icon_off" in zeile)
         assertTrue("Die Sichtbarkeit wird nicht gelesen: $zeile", "LocalIconVisibility" in zeile)
     }

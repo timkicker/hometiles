@@ -23,8 +23,8 @@ import org.junit.Test
  */
 class NotausgangTest {
 
-    private val intents = Quelltext.ohneKommentare("org/biglau/actions/Intents.kt")
-    private val notmodus = Quelltext.ohneKommentare("org/biglau/safety/EmergencyScreen.kt")
+    private val intents = Quelltext.withoutComments("org/biglau/actions/Intents.kt")
+    private val notmodus = Quelltext.withoutComments("org/biglau/safety/EmergencyScreen.kt")
 
     @Test
     fun `der Notausgang sucht ausdruecklich eine fremde App`() {

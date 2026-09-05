@@ -19,9 +19,9 @@ class StummerFehlschlagTest {
 
     @Test
     fun `in ToggleActions endet kein Versuch stumm`() {
-        val zeilen = Quelltext.datei("org/biglau/toggles/ToggleActions.kt").readLines()
+        val zeilen = Quelltext.file("org/biglau/toggles/ToggleActions.kt").readLines()
         val ohneAusweg = zeilen.withIndex()
-            .filter { (_, zeile) -> "runCatching" in zeile && !Quelltext.istKommentarzeile(zeile) }
+            .filter { (_, zeile) -> "runCatching" in zeile && !Quelltext.isCommentLine(zeile) }
             .filter { (i, _) ->
                 // Der Ausweg darf im selben Ausdruck stehen - eine Zeile weiter oder bis
                 // zur schliessenden Klammer des Blocks.
@@ -42,7 +42,7 @@ class StummerFehlschlagTest {
         // Welche Funktionen ein `Result` liefern, steht in der Quelle - nicht in einer
         // Liste hier, die altert. `attach`, `detach` und `publish` sind Buchhaltung und
         // liefern nichts; sie duerfen als eigene Anweisung stehen.
-        val mitResult = Quelltext.datei("org/biglau/phone/InCallRepository.kt")
+        val mitResult = Quelltext.file("org/biglau/phone/InCallRepository.kt")
             .readLines()
             .mapNotNull { zeile ->
                 Regex("""fun (\w+)\([^)]*\)[^=]*= runCatching""").find(zeile)?.groupValues?.get(1)
@@ -50,7 +50,7 @@ class StummerFehlschlagTest {
             .toSet()
         assertTrue("Keine Result-Funktion gefunden - liest die Regel noch, was sie meint?", mitResult.size >= 5)
 
-        val weggeworfen = Quelltext.dateien()
+        val weggeworfen = Quelltext.files()
             .filter { it.name != "InCallRepository.kt" }
             .flatMap { datei ->
                 datei.readLines().withIndex()
@@ -71,7 +71,7 @@ class StummerFehlschlagTest {
 
     @Test
     fun `der Anrufbildschirm meldet einen Fehlschlag`() {
-        val quelle = Quelltext.datei("org/biglau/phone/InCallActivity.kt").readText()
+        val quelle = Quelltext.file("org/biglau/phone/InCallActivity.kt").readText()
         assertTrue(
             "InCallActivity prüft den Ausgang nicht mehr",
             "isFailure" in quelle && "R.string.call_action_failed" in quelle,

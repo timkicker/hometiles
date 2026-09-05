@@ -15,7 +15,7 @@ import org.junit.Test
  */
 class SosAlarmTest {
 
-    private val sosQuelle = Quelltext.ohneKommentare("org/biglau/toggles/SosActivity.kt")
+    private val sosQuelle = Quelltext.withoutComments("org/biglau/toggles/SosActivity.kt")
 
     @Test
     fun `beides aus heisst nichts tun`() {
@@ -46,7 +46,7 @@ class SosAlarmTest {
         // Nach dem Inhalt gefragt, nicht nach der Schreibweise: im selben Aufraeumen steht
         // inzwischen auch das Abmelden der Ortung, und daran soll diese Regel nicht
         // zerbrechen.
-        val aufraeumen = Quelltext.ausschnitt(sosQuelle, "onDispose {", "}")
+        val aufraeumen = Quelltext.cut(sosQuelle, "onDispose {", "}")
         assertTrue("Es fehlt das onDispose dazu: $aufraeumen", "SosAlarm.stop" in aufraeumen)
     }
 }

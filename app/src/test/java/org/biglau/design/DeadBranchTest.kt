@@ -23,7 +23,7 @@ class DeadBranchTest {
     private val muster = Regex("""\bif\s*\(.+?\)\s+(.+?)\s+else\s+(.+)""")
 
     private fun dateien(): List<File> =
-        Quelltext.dateien()
+        Quelltext.files()
 
     /** Endekommas und schliessende Klammern gehoeren nicht zum Zweig. */
     private fun sauber(zweig: String): String = zweig.trim().trimEnd(',', ')')

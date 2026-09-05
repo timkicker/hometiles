@@ -22,13 +22,13 @@ import org.junit.Test
  */
 class TastaturPlatzTest {
 
-    private val quelle = Quelltext.ohneKommentare("org/biglau/sms/SmsActivity.kt")
+    private val quelle = Quelltext.withoutComments("org/biglau/sms/SmsActivity.kt")
 
     @Test
     fun `die Unterhaltung laesst die Ueberschrift weg, solange getippt wird`() {
         // Conversation ist die letzte Funktion der Datei - es gibt keine naechste als
         // Grenze, also bis zum Ende.
-        val gespraech = Quelltext.ausschnitt(quelle, "private fun Conversation(")
+        val gespraech = Quelltext.cut(quelle, "private fun Conversation(")
         assertTrue(
             "Die Unterhaltung fragt nicht, ob die Tastatur offen ist - dann steht die " +
                 "Ueberschrift auch dann da, wenn der Platz fuer den Senden-Knopf fehlt.",

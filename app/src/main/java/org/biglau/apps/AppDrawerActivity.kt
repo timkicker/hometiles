@@ -74,7 +74,7 @@ class AppDrawerActivity : BigLauActivity() {
             var query by rememberSaveable { mutableStateOf("") }
             // the settings row's name, fetched here because the list itself cannot, and
             // because it is *searched* there too.
-            val einstellungen = stringResource(R.string.apps_open_settings)
+            val settingsLabel = stringResource(R.string.apps_open_settings)
             // from the recently used tile: the recent ones first, switchable at any time.
             // a list without a way to the full one would be a dead end.
             var recentOnly by rememberSaveable {
@@ -131,15 +131,15 @@ class AppDrawerActivity : BigLauActivity() {
             // the settings row is a match like any other and stands in the list, so it
             // counts: with only `shown` counted, two rows stood under a count of one, and
             // the search key opened one of them without showing which.
-            val einstellungTrifft = TextSearch.rank(einstellungen, query.trim()) != null
+            val settingsMatches = TextSearch.rank(settingsLabel, query.trim()) != null
             // what the search may not show because it is hidden, but must still name. see
             // AppDrawer.hiddenMatches.
-            val versteckteTreffer = remember(all, hidden, query) {
+            val hiddenHits = remember(all, hidden, query) {
                 AppDrawer.hiddenMatches(all, hidden, query)
             }
-            val treffer = shown.size + if (einstellungTrifft) 1 else 0
-            val einzigerTreffer: (() -> Unit)? = when {
-                treffer != 1 -> null
+            val hits = shown.size + if (settingsMatches) 1 else 0
+            val onlyHit: (() -> Unit)? = when {
+                hits != 1 -> null
                 shown.size == 1 -> ({ open(shown.first()) })
                 else -> ({ startActivity(SettingsLink.toRoot(this@AppDrawerActivity)) })
             }
@@ -163,8 +163,8 @@ class AppDrawerActivity : BigLauActivity() {
                         .safeDrawingPadding()
                         .padding(horizontal = 8.dp),
                 ) {
-                    val gesperrt = lockedApp
-                    if (gesperrt != null) {
+                    val blockedApp = lockedApp
+                    if (blockedApp != null) {
                         PinGate(
                             title = stringResource(R.string.applock_locked),
                             explainer = stringResource(R.string.applock_locked_hint),
@@ -173,7 +173,7 @@ class AppDrawerActivity : BigLauActivity() {
                             onCheck = { eingabe -> Pin.verify(eingabe, config.security.pin) },
                             onAccept = {
                                 lockedApp = null
-                                launch(gesperrt)
+                                launch(blockedApp)
                             },
                             acceptOnComplete = true,
                         )
@@ -204,18 +204,18 @@ class AppDrawerActivity : BigLauActivity() {
                             secondary = if (query.isEmpty()) {
                                 null
                             } else {
-                                pluralStringResource(R.plurals.search_matches, treffer, treffer)
+                                pluralStringResource(R.plurals.search_matches, hits, hits)
                             },
                             // exactly one match: the search key starts it. on three inches
                             // that is often the whole way, and the list is never seen.
                             //
                             // it goes through `open` and not past it: a `launch` here let one
                             // key press walk around the app lock.
-                            onSearch = { einzigerTreffer?.invoke() },
+                            onSearch = { onlyHit?.invoke() },
                         )
                         // not when a hidden app matches: the row below then says something
                         // more precise, and no app matches beside it would contradict it.
-                        if (all.isNotEmpty() && shown.isEmpty() && versteckteTreffer.isEmpty()) {
+                        if (all.isNotEmpty() && shown.isEmpty() && hiddenHits.isEmpty()) {
                             Text(
                                 text = stringResource(R.string.search_no_match),
                                 color = palette.onBackground,
@@ -288,10 +288,10 @@ class AppDrawerActivity : BigLauActivity() {
                             // and it stands there while someone *searches* too: the row used
                             // to vanish at the first letter, though searching is exactly what
                             // the searcher does.
-                            if (einstellungTrifft) {
+                            if (settingsMatches) {
                                 item {
                                     BigRow(
-                                        label = einstellungen,
+                                        label = settingsLabel,
                                         icon = Icons.Filled.Settings,
                                         onClick = {
                                             startActivity(SettingsLink.toRoot(this@AppDrawerActivity))
@@ -305,11 +305,11 @@ class AppDrawerActivity : BigLauActivity() {
                             //
                             // and *one* row, not two: two rows with the same icon in a list
                             // are two that get confused.
-                            val versteckteZeile = when {
-                                query.isNotEmpty() -> versteckteTreffer.size.takeIf { it > 0 }
+                            val hiddenRow = when {
+                                query.isNotEmpty() -> hiddenHits.size.takeIf { it > 0 }
                                 else -> config.apps.hidden.size.takeIf { it > 0 }
                             }
-                            if (versteckteZeile != null) {
+                            if (hiddenRow != null) {
                                 item {
                                     BigRow(
                                         label = pluralStringResource(
@@ -318,10 +318,10 @@ class AppDrawerActivity : BigLauActivity() {
                                             } else {
                                                 R.plurals.apps_hidden_match
                                             },
-                                            versteckteZeile,
-                                            versteckteZeile,
+                                            hiddenRow,
+                                            hiddenRow,
                                         ),
-                                        secondary = versteckteTreffer
+                                        secondary = hiddenHits
                                             .takeIf { it.isNotEmpty() }
                                             ?.joinToString(", ") { app -> app.label },
                                         secondaryMaxLines = 1,

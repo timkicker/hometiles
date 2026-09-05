@@ -20,8 +20,8 @@ class BackgroundKindsTest {
 
     @Test
     fun `es gibt genau zwei arten von hintergrund`() {
-        val modell = Quelltext.datei("org/biglau/data/Model.kt").readText()
-        val abschnitt = Quelltext.ausschnitt(modell, "sealed interface Background {", "}")
+        val modell = Quelltext.file("org/biglau/data/Model.kt").readText()
+        val abschnitt = Quelltext.cut(modell, "sealed interface Background {", "}")
         assertEquals(true, abschnitt.contains("Theme"))
         assertEquals(true, abschnitt.contains("Solid"))
         assertEquals(false, abschnitt.contains("Image"))

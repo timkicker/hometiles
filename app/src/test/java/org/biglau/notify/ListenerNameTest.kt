@@ -30,10 +30,10 @@ class ListenerNameTest {
 
     @Test
     fun `der Zuhoerer heisst noch genauso`() {
-        // Über Quelltext.datei, nicht über einen selbst gebauten Pfad: sonst hängt die
+        // Über Quelltext.file, nicht über einen selbst gebauten Pfad: sonst hängt die
         // Regel am Modul, und genau das verbietet QuelltextTest - beim Schreiben prompt
         // hineingelaufen.
-        val gefunden = runCatching { Quelltext.datei("${name.replace('.', '/')}.kt") }.isSuccess
+        val gefunden = runCatching { Quelltext.file("${name.replace('.', '/')}.kt") }.isSuccess
         assertTrue(
             "Der Benachrichtigungs-Dienst ist umgezogen oder umbenannt. Die Erlaubnis des " +
                 "Nutzers steht in den Systemeinstellungen unter dem alten Namen und ist " +

@@ -25,7 +25,7 @@ class SurfaceContrastTest {
 
     @Test
     fun `jede Flaeche traegt ihre eigene Schrift lesbar`() {
-        themenUndSystem().forEach { (theme, systemIsDark) ->
+        themesAndSystem().forEach { (theme, systemIsDark) ->
             paletteFor(theme, systemIsDark).allSurfaces().forEach { surface ->
                 val ratio = surface.ratio()
                 assertTrue(
@@ -43,7 +43,7 @@ class SurfaceContrastTest {
         // Gilt fuer Fuellungen, die selbst die Aussage tragen: Kacheln, Akzent, Warnung.
         // Die stille Flaeche unter einer Listenzeile ist davon ausgenommen - dort
         // identifiziert der Text die Zeile, nicht die Fuellung.
-        themenUndSystem().filter { it.first != ThemeName.HIGH_CONTRAST }.forEach { (theme, systemIsDark) ->
+        themesAndSystem().filter { it.first != ThemeName.HIGH_CONTRAST }.forEach { (theme, systemIsDark) ->
             val palette = paletteFor(theme, systemIsDark)
             val background = palette.background.argb()
             val meaningful = palette.tiles.indices.map(palette::surfaceTile) +
@@ -73,7 +73,7 @@ class SurfaceContrastTest {
     fun `die leere Kachel ist ueber ihren Rahmen auffindbar`() {
         // Die Fuellung ist absichtlich still (1,09:1 im dunklen Thema). Damit ein leerer
         // Platz trotzdem sichtbar ist, muss der Rahmen die Flaechenschwelle erreichen.
-        themenUndSystem().forEach { (theme, systemIsDark) ->
+        themesAndSystem().forEach { (theme, systemIsDark) ->
             val palette = paletteFor(theme, systemIsDark)
             listOf(
                 "aussen, gegen den Hintergrund" to palette.background,
@@ -98,7 +98,7 @@ class SurfaceContrastTest {
      */
     @Test
     fun `die Warnschrift jedes Themas liegt ueber der strengen Schwelle`() {
-        themenUndSystem().forEach { (theme, systemIsDark) ->
+        themesAndSystem().forEach { (theme, systemIsDark) ->
             val palette = paletteFor(theme, systemIsDark)
             listOf(
                 "auf dem Hintergrund" to palette.background,
@@ -117,7 +117,7 @@ class SurfaceContrastTest {
 
     @Test
     fun `jedes Thema bietet alle Flaechen an`() {
-        themenUndSystem().forEach { (theme, systemIsDark) ->
+        themesAndSystem().forEach { (theme, systemIsDark) ->
             // drei benannte Flaechen plus sechs Kachelfarben
             assertTrue(paletteFor(theme, systemIsDark).allSurfaces().size == 9)
         }

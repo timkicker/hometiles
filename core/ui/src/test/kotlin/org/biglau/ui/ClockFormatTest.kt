@@ -10,53 +10,50 @@ import org.junit.Assert.assertNull
 import org.junit.Test
 
 /**
- * PLAN.md 4.2: „Uhr auf dem Homescreen: aus / Uhrzeit / Uhrzeit+Datum /
- * Uhrzeit+Datum+Wochentag".
+ * PLAN.md 4.2: clock on the home screen - off / time / time+date / time+date+weekday.
  *
- * Der Wochentag ist die Stufe, die am meisten hilft und am meisten Platz kostet. Wer den
- * Tag nicht sicher weiß — und das ist häufiger, als man denkt, wenn die Tage gleich
- * aussehen —, liest ihn hier ab.
+ * the weekday is the step that helps most and costs most room. whoever is not sure of the day
+ * - more common than one thinks when the days look alike - reads it here.
  */
 class ClockFormatTest {
 
     private val json = Json { ignoreUnknownKeys = true }
 
     /**
-     * Der Fall, der eine leere Kachel ergeben hätte: „keine Uhr" auf einer Uhr-Kachel.
-     * Die Kachel sähe aus, als sei etwas kaputt, und man kann ihr nicht ansehen, dass es
-     * eine Einstellung war.
+     * "no clock" on a clock tile would look broken, and nothing about the tile would say it
+     * was a setting.
      */
     @Test
-    fun `die uhr-kachel zeigt immer die zeit`() {
+    fun `the clock tile always shows the time`() {
         assertEquals(true, ClockFormat.showsTime(ClockDisplay.OFF, onTile = true))
         assertEquals(false, ClockFormat.showsTime(ClockDisplay.OFF, onTile = false))
     }
 
     @Test
-    fun `ohne datum keine datumszeile`() {
+    fun `without a date there is no date line`() {
         assertNull(ClockFormat.dateSkeleton(ClockDisplay.OFF, onTile = false))
         assertNull(ClockFormat.dateSkeleton(ClockDisplay.TIME, onTile = false))
         assertNull(ClockFormat.dateSkeleton(ClockDisplay.TIME, onTile = true))
     }
 
     @Test
-    fun `der wochentag kommt nur in der letzten stufe dazu`() {
-        val kopf = ClockFormat.dateSkeleton(ClockDisplay.TIME_DATE, onTile = false)!!
-        val kopfMitTag = ClockFormat.dateSkeleton(ClockDisplay.TIME_DATE_WEEKDAY, onTile = false)!!
-        assertEquals(false, kopf.contains("E"))
-        assertEquals(true, kopfMitTag.contains("E"))
+    fun `the weekday arrives only in the last step`() {
+        val header = ClockFormat.dateSkeleton(ClockDisplay.TIME_DATE, onTile = false)!!
+        val headerWithDay = ClockFormat.dateSkeleton(ClockDisplay.TIME_DATE_WEEKDAY, onTile = false)!!
+        assertEquals(false, header.contains("E"))
+        assertEquals(true, headerWithDay.contains("E"))
     }
 
-    // In der Kopfzeile ist eine Zeile Platz, auf der Kachel eine ganze Flaeche. "Dienstag"
-    // passt dort, in der Kopfzeile muss "Di." reichen.
+    // the header has one line, the tile a whole surface: "Wednesday" fits there, in the
+    // header "Wed" has to do.
     @Test
-    fun `die kachel darf die langen namen`() {
+    fun `the tile may have the long names`() {
         assertEquals("EEEEdMMMM", ClockFormat.dateSkeleton(ClockDisplay.TIME_DATE_WEEKDAY, onTile = true))
         assertEquals("EEEdMMM", ClockFormat.dateSkeleton(ClockDisplay.TIME_DATE_WEEKDAY, onTile = false))
     }
 
     @Test
-    fun `alte konfigurationen werden uebernommen`() {
+    fun `old configurations are carried over`() {
         assertEquals(
             ClockDisplay.TIME_DATE_WEEKDAY,
             json.decodeFromString<Appearance>("""{"clockShowsDate":true}""").clock,
@@ -68,7 +65,7 @@ class ClockFormatTest {
     }
 
     @Test
-    fun `withClock haelt beide felder gleich`() {
+    fun `withClock keeps both fields equal`() {
         assertEquals(false, Appearance().withClock(ClockDisplay.TIME).clockShowsDate)
         assertEquals(false, Appearance().withClock(ClockDisplay.OFF).clockShowsDate)
         assertEquals(true, Appearance().withClock(ClockDisplay.TIME_DATE).clockShowsDate)
@@ -78,76 +75,74 @@ class ClockFormatTest {
         )
     }
 
-    // Die Vorgabe ist, was die App bisher gemalt hat.
+    // the default is what the app painted before.
     @Test
-    fun `die vorgabe zeigt alles`() {
+    fun `the default shows everything`() {
         assertEquals(ClockDisplay.TIME_DATE_WEEKDAY, Appearance().clock)
     }
 }
 
 /**
- * PLAN.md 4.2: die Uhr „Größe frei".
+ * PLAN.md 4.2: the clock's size is free.
  *
- * Die Kopfzeile ist die einzige Stelle, an der die Uhrzeit steht, wenn das Vollbild die
- * Systemleiste wegnimmt. Wer sie dort nicht lesen kann, hat keine zweite.
+ * the header is the only place the time stands once full screen takes the system bar away.
+ * whoever cannot read it there has no second one.
  */
 class ClockScaleTest {
 
     @Test
-    fun `die vorgabe aendert nichts`() {
+    fun `the default changes nothing`() {
         assertEquals(1.0f, org.biglau.data.Appearance().clockScale, 0.001f)
         assertEquals(1.0f, ClockFormat.scale(1.0f), 0.001f)
     }
 
-    // Eine importierte Datei kann alles enthalten. Eine Uhr in Groesse null waere eine
-    // leere Kopfzeile, eine in Groesse zehn schoebe alles andere heraus.
+    // an imported file can contain anything: a clock at size zero would be an empty header,
+    // one at size ten would push everything else out.
     @Test
-    fun `unmoegliche werte werden beschnitten`() {
+    fun `impossible values are clamped`() {
         assertEquals(ClockFormat.SCALE_MIN, ClockFormat.scale(0f), 0.001f)
         assertEquals(ClockFormat.SCALE_MAX, ClockFormat.scale(10f), 0.001f)
     }
 
     @Test
-    fun `jede angebotene stufe liegt im erlaubten bereich`() {
-        for (wert in ClockFormat.SCALES) {
-            assertEquals(wert, ClockFormat.scale(wert), 0.001f)
+    fun `every offered step lies in the allowed range`() {
+        for (value in ClockFormat.SCALES) {
+            assertEquals(value, ClockFormat.scale(value), 0.001f)
         }
     }
 
     @Test
-    fun `die vorgabe steht auch zur wahl`() {
+    fun `the default is on offer too`() {
         assertEquals(true, ClockFormat.SCALES.contains(org.biglau.data.Appearance().clockScale))
     }
 
     @Test
-    fun `die Kopfzeile waechst mit der Textgroesse`() {
-        // Der Fehler: gerechnet wurde nur mit der Uhrgroesse. Bei 150 % Textgroesse blieb
-        // die Kopfzeile so hoch wie bei 100 % und schnitt die Datumszeile mitten durch -
-        // am Emulator gesehen, nachdem der Assistent mit 150 % durchgelaufen war.
-        val bei100 = ClockFormat.headerHeightDp(hasDate = true, textScale = 1.0f, clockScale = 1.0f)
-        val bei150 = ClockFormat.headerHeightDp(hasDate = true, textScale = 1.5f, clockScale = 1.0f)
-        assertEquals(78f, bei100, 0.01f)
-        assertEquals(117f, bei150, 0.01f)
-        assertTrue("groessere Schrift braucht mehr Hoehe", bei150 > bei100)
+    fun `the header grows with the text size`() {
+        // computed from the clock size alone, the header stayed as tall at 150 % text as at
+        // 100 % and cut the date line through the middle.
+        val at100 = ClockFormat.headerHeightDp(hasDate = true, textScale = 1.0f, clockScale = 1.0f)
+        val at150 = ClockFormat.headerHeightDp(hasDate = true, textScale = 1.5f, clockScale = 1.0f)
+        assertEquals(78f, at100, 0.01f)
+        assertEquals(117f, at150, 0.01f)
+        assertTrue("larger type needs more height", at150 > at100)
     }
 
     @Test
-    fun `die Kopfzeile waechst auch mit der Uhrgroesse`() {
-        val klein = ClockFormat.headerHeightDp(hasDate = true, textScale = 1.0f, clockScale = 1.0f)
-        val gross = ClockFormat.headerHeightDp(hasDate = true, textScale = 1.0f, clockScale = 1.5f)
-        assertTrue("groessere Uhr braucht mehr Hoehe", gross > klein)
+    fun `the header grows with the clock size too`() {
+        val small = ClockFormat.headerHeightDp(hasDate = true, textScale = 1.0f, clockScale = 1.0f)
+        val large = ClockFormat.headerHeightDp(hasDate = true, textScale = 1.0f, clockScale = 1.5f)
+        assertTrue("a larger clock needs more height", large > small)
     }
 
     @Test
-    fun `beide Faktoren wirken zusammen`() {
-        // Beide Regler zugleich hochgedreht ist der Fall, den ein Mensch mit schlechten
-        // Augen wirklich einstellt.
-        val beides = ClockFormat.headerHeightDp(hasDate = true, textScale = 1.5f, clockScale = 1.5f)
-        assertEquals(78f * 1.5f * 1.5f, beides, 0.01f)
+    fun `both factors work together`() {
+        // both sliders turned up is what someone with bad eyes really sets.
+        val both = ClockFormat.headerHeightDp(hasDate = true, textScale = 1.5f, clockScale = 1.5f)
+        assertEquals(78f * 1.5f * 1.5f, both, 0.01f)
     }
 
     @Test
-    fun `ohne Datumszeile ist die Kopfzeile niedriger`() {
+    fun `without a date line the header is lower`() {
         assertTrue(
             ClockFormat.headerHeightDp(hasDate = false, textScale = 1f, clockScale = 1f) <
                 ClockFormat.headerHeightDp(hasDate = true, textScale = 1f, clockScale = 1f),
@@ -155,9 +150,9 @@ class ClockScaleTest {
     }
 
     @Test
-    fun `eine unsinnige Uhrgroesse wird begrenzt`() {
-        // headerHeightDp geht durch dieselbe Begrenzung wie die Schrift - sonst liefe die
-        // Kopfzeile aus dem Bild, waehrend die Schrift darin stehen bliebe.
+    fun `a nonsensical clock size is bounded`() {
+        // headerHeightDp goes through the same clamp as the type, or the header would run out
+        // of the picture while the type stayed inside it.
         assertEquals(
             ClockFormat.headerHeightDp(hasDate = true, textScale = 1f, clockScale = 99f),
             78f * ClockFormat.scale(99f),
@@ -166,73 +161,72 @@ class ClockScaleTest {
     }
 
     @Test
-    fun `die Uhr passt neben den Ladestand`() {
-        // Bei 200 % liefen Uhr und Ladestand ineinander - "9:37" und "100 %" uebereinander,
-        // am Emulator gesehen. Auf den 349 dp des Jelly 2 muss beides nebeneinander passen.
-        listOf(1.0f, 1.5f, 2.0f).forEach { skala ->
-            val breiteLinks = 349f - 16f - 24f - ClockFormat.batteryWidthDp(skala)
-            val groesse = ClockFormat.clockSizeSp("10:38 AM", breiteLinks, skala, 1.0f)
-            val gebraucht = "10:38 AM".length * 0.62f * groesse
+    fun `the clock fits beside the battery level`() {
+        // at 200 % clock and battery ran into each other. on the jelly 2's 349 dp both have to
+        // fit side by side.
+        listOf(1.0f, 1.5f, 2.0f).forEach { scale ->
+            val widthLeft = 349f - 16f - 24f - ClockFormat.batteryWidthDp(scale)
+            val size = ClockFormat.clockSizeSp("10:38 AM", widthLeft, scale, 1.0f)
+            val needed = "10:38 AM".length * 0.62f * size
             assertTrue(
-                "bei $skala braucht die Uhr $gebraucht dp, frei sind $breiteLinks",
-                gebraucht <= breiteLinks + 0.01f,
+                "at $scale the clock needs $needed dp, $widthLeft are free",
+                needed <= widthLeft + 0.01f,
             )
         }
     }
 
     @Test
-    fun `bei kleiner Schrift bleibt die Uhr so gross wie gewuenscht`() {
-        // Die Begrenzung darf nur greifen, wenn es eng wird - sonst waere die Einstellung
-        // fuer die Uhrgroesse eine Attrappe.
+    fun `at small type the clock stays as large as asked`() {
+        // the bound may only bite when it gets tight, or the clock size setting would be a
+        // dummy.
         assertEquals(26f, ClockFormat.clockSizeSp("9:37", 300f, 1.0f, 1.0f), 0.01f)
         assertEquals(39f, ClockFormat.clockSizeSp("9:37", 300f, 1.0f, 1.5f), 0.01f)
     }
 
     @Test
-    fun `eine lange Uhrzeit wird kleiner als eine kurze`() {
-        val kurz = ClockFormat.clockSizeSp("9:37", 120f, 2.0f, 1.0f)
-        val lang = ClockFormat.clockSizeSp("12:38 AM", 120f, 2.0f, 1.0f)
-        assertTrue("die laengere Zeit braucht die kleinere Schrift", lang < kurz)
+    fun `a long time is set smaller than a short one`() {
+        val short = ClockFormat.clockSizeSp("9:37", 120f, 2.0f, 1.0f)
+        val long = ClockFormat.clockSizeSp("12:38 AM", 120f, 2.0f, 1.0f)
+        assertTrue("the longer time needs the smaller type", long < short)
     }
 
     @Test
-    fun `die Uhr wird nie unlesbar klein`() {
+    fun `the clock never gets unreadably small`() {
         assertEquals(14f, ClockFormat.clockSizeSp("12:38 AM", 10f, 1.0f, 1.0f), 0.01f)
     }
 
     @Test
-    fun `der Ladestand waechst mit der Textgroesse`() {
+    fun `the battery level grows with the text size`() {
         assertTrue(ClockFormat.batteryWidthDp(2.0f) > ClockFormat.batteryWidthDp(1.0f))
     }
 
     /**
-     * Am Jelly 2, das auf Englisch steht, hiess der Wochentag auf der Uhr-Kachel
-     * **„Wednesday, 2. September"** — englischer Name, deutscher Punkt, deutsche
-     * Reihenfolge. Das Muster stand fest im Quelltext und wurde nur mit der jeweiligen
-     * Sprache *gefuellt*. Jetzt sagt die Logik nur noch, **welche Bestandteile** das Datum
-     * hat; wie sie angeordnet werden, weiss die Sprache.
+     * on the english jelly 2 the clock tile read "Wednesday, 2. September" - english name,
+     * german full stop, german order. the pattern stood fixed in the source and was only
+     * *filled* with the language. now the logic says only **which parts** the date has; how
+     * they are arranged the language knows.
      */
     @Test
-    fun `das Skelett enthaelt keine Satzzeichen und keine Reihenfolge`() {
+    fun `the skeleton holds no punctuation and no order`() {
         listOf(
             ClockFormat.dateSkeleton(ClockDisplay.TIME_DATE, onTile = true),
             ClockFormat.dateSkeleton(ClockDisplay.TIME_DATE, onTile = false),
             ClockFormat.dateSkeleton(ClockDisplay.TIME_DATE_WEEKDAY, onTile = true),
             ClockFormat.dateSkeleton(ClockDisplay.TIME_DATE_WEEKDAY, onTile = false),
-        ).forEach { skelett ->
-            assertNotNull(skelett)
-            assertEquals("kein Punkt im Skelett: $skelett", false, skelett!!.contains("."))
-            assertEquals("kein Komma im Skelett: $skelett", false, skelett.contains(","))
-            assertEquals("kein Leerzeichen im Skelett: $skelett", false, skelett.contains(" "))
+        ).forEach { skeleton ->
+            assertNotNull(skeleton)
+            assertEquals("no full stop in the skeleton: $skeleton", false, skeleton!!.contains("."))
+            assertEquals("no comma in the skeleton: $skeleton", false, skeleton.contains(","))
+            assertEquals("no space in the skeleton: $skeleton", false, skeleton.contains(" "))
         }
     }
 
     @Test
-    fun `Tag und Monat stehen in jedem Skelett`() {
-        listOf(true, false).forEach { aufKachel ->
-            val skelett = ClockFormat.dateSkeleton(ClockDisplay.TIME_DATE, onTile = aufKachel)!!
-            assertEquals(true, skelett.contains("d"))
-            assertEquals(true, skelett.contains("M"))
+    fun `day and month stand in every skeleton`() {
+        listOf(true, false).forEach { onTile ->
+            val skeleton = ClockFormat.dateSkeleton(ClockDisplay.TIME_DATE, onTile = onTile)!!
+            assertEquals(true, skeleton.contains("d"))
+            assertEquals(true, skeleton.contains("M"))
         }
     }
 }

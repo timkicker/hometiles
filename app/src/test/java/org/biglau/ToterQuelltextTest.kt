@@ -28,7 +28,7 @@ class ToterQuelltextTest {
 
     private fun deklarationen(): Map<String, List<File>> {
         val treffer = mutableMapOf<String, MutableList<File>>()
-        Quelltext.dateien().forEach { datei ->
+        Quelltext.files().forEach { datei ->
             datei.readLines().forEach { zeile ->
                 if (zeile.trimStart().startsWith("private ") ||
                     zeile.trimStart().startsWith("internal ") ||
@@ -59,7 +59,7 @@ class ToterQuelltextTest {
     private fun haeufigkeiten(): Map<String, Int> {
         val zaehler = mutableMapOf<String, Int>()
         val wort = Regex("""[A-Za-z_][A-Za-z0-9_]*""")
-        (Quelltext.dateien() + Quelltext.testDateien()).forEach { datei ->
+        (Quelltext.files() + Quelltext.testFiles()).forEach { datei ->
             wort.findAll(datei.readText()).forEach { treffer ->
                 zaehler[treffer.value] = (zaehler[treffer.value] ?: 0) + 1
             }

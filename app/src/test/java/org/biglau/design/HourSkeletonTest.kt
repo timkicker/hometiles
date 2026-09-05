@@ -17,7 +17,7 @@ import org.junit.Test
  */
 class HourSkeletonTest {
 
-    private val quellen = Quelltext.dateien()
+    private val quellen = Quelltext.files()
 
     @Test
     fun `kein Muster erzwingt vierundzwanzig Stunden`() {

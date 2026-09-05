@@ -20,7 +20,7 @@ class ConversationLayoutTest {
 
     @Test
     fun `der Hinweis steht innerhalb der Liste`() {
-        val quelle = Quelltext.datei("org/biglau/sms/SmsActivity.kt").readText()
+        val quelle = Quelltext.file("org/biglau/sms/SmsActivity.kt").readText()
         val liste = quelle.indexOf("LazyColumn(\n            state = listState")
         val hinweis = quelle.indexOf("R.string.sms_not_default")
         assertTrue("LazyColumn der Unterhaltung nicht gefunden", liste > 0)

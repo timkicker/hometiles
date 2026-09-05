@@ -20,8 +20,8 @@ import org.junit.Test
  */
 class KeineAntwortTest {
 
-    private val repository = Quelltext.datei("org/biglau/shortcuts/ShortcutRepository.kt")
-    private val editor = Quelltext.datei("org/biglau/tiles/TileEditorActivity.kt")
+    private val repository = Quelltext.file("org/biglau/shortcuts/ShortcutRepository.kt")
+    private val editor = Quelltext.file("org/biglau/tiles/TileEditorActivity.kt")
 
     @Test
     fun `forPackage unterscheidet Fehlschlag und leere Liste im Typ`() {
@@ -54,7 +54,7 @@ class KeineAntwortTest {
         val quelle = editor.readText()
         val anfang = quelle.indexOf("private fun ShortcutList(")
         assertTrue("ShortcutList gibt es nicht mehr", anfang > 0)
-        val rumpf = Quelltext.ausschnitt(quelle.substring(anfang), "", "\n@Composable")
+        val rumpf = Quelltext.cut(quelle.substring(anfang), "", "\n@Composable")
 
         assertTrue(
             "ShortcutList kennt den Fehlschlag nicht mehr - dann trifft der Satz ueber die " +
@@ -79,7 +79,7 @@ class KeineAntwortTest {
         // geht die Regel nichts an, umziehen darf er.
         val fehlt = listOf("shortcut_none", "shortcut_unreadable").flatMap { name ->
             listOf("values", "values-de").filterNot { sprache ->
-                Quelltext.texte(sprache).any { "name=\"$name\"" in it.readText() }
+                Quelltext.texts(sprache).any { "name=\"$name\"" in it.readText() }
             }.map { "$name in $it" }
         }
         assertEquals(

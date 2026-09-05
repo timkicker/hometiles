@@ -26,7 +26,7 @@ class FontChoiceTest {
     // ersten Start, kein leerer Text, wenn gerade kein Netz da ist.
     @Test
     fun `beide schnitte liegen im apk`() {
-        val ordner = Quelltext.ressource("font")
+        val ordner = Quelltext.resource("font")
         val dateien = ordner.list()?.toSet().orEmpty()
         assertEquals(true, dateien.contains("atkinson_regular.ttf"))
         assertEquals(true, dateien.contains("atkinson_bold.ttf"))

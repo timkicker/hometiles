@@ -19,7 +19,7 @@ import org.junit.Test
  */
 class SmsChannelTest {
 
-    private val quelle = Quelltext.ohneKommentare("org/biglau/sms/SmsNotifications.kt")
+    private val quelle = Quelltext.withoutComments("org/biglau/sms/SmsNotifications.kt")
 
     @Test
     fun `Kennung und Aufraeumen benutzen dasselbe Praefix`() {

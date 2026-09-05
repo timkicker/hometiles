@@ -22,7 +22,7 @@ import org.junit.Test
  */
 class NeueUnterhaltungTest {
 
-    private val quelle = Quelltext.ohneKommentare("org/biglau/sms/SmsActivity.kt")
+    private val quelle = Quelltext.withoutComments("org/biglau/sms/SmsActivity.kt")
 
     @Test
     fun `nach dem Senden wechselt der Bildschirm in die Unterhaltung`() {

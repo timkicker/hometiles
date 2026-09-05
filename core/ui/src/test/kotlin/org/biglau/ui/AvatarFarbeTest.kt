@@ -28,7 +28,7 @@ class AvatarFarbeTest {
     @Test
     fun `das kontaktbild hebt sich von der zeile ab`() {
         val schwach = mutableListOf<String>()
-        themenUndSystem()
+        themesAndSystem()
             .filter { it.first != ThemeName.HIGH_CONTRAST }
             .forEach { (thema, systemIsDark) ->
                 val palette = paletteFor(thema, systemIsDark)
@@ -50,7 +50,7 @@ class AvatarFarbeTest {
     @Test
     fun `die initialen sind auf jedem kontaktbild lesbar`() {
         val schwach = mutableListOf<String>()
-        themenUndSystem().forEach { (thema, systemIsDark) ->
+        themesAndSystem().forEach { (thema, systemIsDark) ->
             val palette = paletteFor(thema, systemIsDark)
             palette.tiles.forEachIndexed { i, farbe ->
                 val wert = contrastRatio(
