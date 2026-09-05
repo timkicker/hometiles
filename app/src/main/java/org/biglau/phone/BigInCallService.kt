@@ -23,6 +23,9 @@ class BigInCallService : InCallService() {
     private val callback = object : Call.Callback() {
         override fun onStateChanged(call: Call, state: Int) {
             setAudio(call, state)
+            // the notice belongs to the ringing, not to the call: left standing it would sit
+            // in the shade through the whole conversation.
+            if (state != Call.STATE_RINGING) CallNotifications.clear(this@BigInCallService)
             publish(call)
         }
         override fun onDetailsChanged(call: Call, details: Call.Details) = publish(call)
@@ -40,7 +43,16 @@ class BigInCallService : InCallService() {
         InCallRepository.attach(this)
         call.registerCallback(callback)
         publish(call)
-        // full screen instead of a notification: that is what this app is about.
+        // a ringing call goes through the notice: with the screen off this service is in the
+        // background, where android refuses the direct start. see CallNotifications.
+        if (call.state == Call.STATE_RINGING) {
+            CallNotifications.showIncoming(
+                this,
+                name = CallerName.lookup(this, number),
+                number = number,
+            )
+            return
+        }
         startActivity(
             Intent(this, InCallActivity::class.java)
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP),
@@ -65,6 +77,7 @@ class BigInCallService : InCallService() {
         super.onCallRemoved(call)
         audioSet.remove(call)
         call.unregisterCallback(callback)
+        CallNotifications.clear(this)
         if (calls.isEmpty()) {
             InCallRepository.detach()
         } else {

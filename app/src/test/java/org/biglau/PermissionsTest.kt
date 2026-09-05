@@ -21,8 +21,9 @@ class PermissionsTest {
             "required for the default sms role. without it BigLau does not appear in the " +
             "choice at all; the system uses it, not we.",
         "USE_FULL_SCREEN_INTENT" to
-            "carries `setFullScreenIntent` in SmsNotifications. from android 14 on it has " +
-            "to be declared, otherwise the notice appears quietly as an ordinary one.",
+            "carries `setFullScreenIntent` in SmsNotifications and in CallNotifications. " +
+            "from android 14 on it has to be declared, otherwise the notice appears quietly " +
+            "as an ordinary one.",
     )
 
     private val manifest = File("src/main/AndroidManifest.xml").readText()
