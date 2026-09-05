@@ -54,7 +54,7 @@ class TastaturfolgeTest {
             )
         }
         assertTrue(
-            "Nicht jede Richtung gibt true zurueck. Am Rand rutscht die Taste dann durch.",
+            "Nicht jede PadDirection gibt true zurueck. Am Rand rutscht die Taste dann durch.",
             weg.split("true").size >= 5,
         )
     }

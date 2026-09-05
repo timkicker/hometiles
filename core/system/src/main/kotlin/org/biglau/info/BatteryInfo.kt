@@ -1,6 +1,6 @@
 package org.biglau.info
 
-/** Rohwerte, wie sie ACTION_BATTERY_CHANGED liefert. */
+/** raw values as ACTION_BATTERY_CHANGED delivers them. */
 data class BatteryReading(
     val level: Int,
     val scale: Int,
@@ -9,18 +9,17 @@ data class BatteryReading(
 )
 
 /**
- * Rechnet die Rohwerte in etwas um, das auf einer Kachel stehen kann.
+ * turns the raw values into something a tile can show.
  *
- * Die Skala ist nicht immer 100 - manche Geraete melden 255. Wer das uebersieht, zeigt
- * "47 %" bei halbvollem Akku und "12 %" bei fast vollem.
+ * the scale is not always 100 - some devices report 255. missing that shows "47 %" on a
+ * half-full battery.
  */
 object BatteryInfo {
 
-    // Werte aus android.os.BatteryManager, hier ohne Android-Abhaengigkeit
+    // from android.os.BatteryManager, repeated here to keep this file free of android.
     const val STATUS_CHARGING = 2
     const val STATUS_FULL = 5
 
-    /** Ladestand in Prozent, oder null wenn die Werte unbrauchbar sind. */
     fun percent(level: Int, scale: Int): Int? {
         if (level < 0 || scale <= 0) return null
         return ((level.toFloat() / scale) * 100f).toInt().coerceIn(0, 100)
@@ -33,13 +32,8 @@ object BatteryInfo {
 
     fun isCharging(reading: BatteryReading): Boolean = isCharging(reading.status, reading.plugged)
 
-    /** Ab wann die Anzeige warnen soll. */
     fun isLow(percent: Int?): Boolean = percent != null && percent <= 15
 
-    /**
-     * Fuellstand als Anteil zwischen 0 und 1 fuer die Balkendarstellung.
-     * Bei unbekanntem Stand null - dann zeigt die Kachel ein Fragezeichen statt eines
-     * leeren Balkens, der wie "leer" aussaehe.
-     */
+    /** null with an unknown level, so the tile shows a question mark instead of an empty bar. */
     fun fraction(percent: Int?): Float? = percent?.let { it / 100f }
 }

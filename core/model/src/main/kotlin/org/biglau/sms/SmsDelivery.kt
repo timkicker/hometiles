@@ -1,55 +1,45 @@
 package org.biglau.sms
 
 /**
- * Was mit einer eingehenden SMS geschieht, sobald BigLau die SMS-Rolle hält.
+ * what happens to an incoming text once biglau holds the sms role.
  *
- * **Der Fall, der hier verhindert wird, ist Verlust.** Android stellt `SMS_DELIVER` nur der
- * Standard-SMS-App zu, und mit der Rolle kommt die Pflicht, die Nachricht selbst in die
- * Anbieter-Datenbank zu schreiben - sonst hat sie niemand. Am Emulator nachgestellt: Rolle
- * genommen, Nachricht geschickt, und sie war **nirgends**. Weder in der Liste noch in der
- * Datenbank. Der alte Empfänger meldete nur „es hat sich etwas geändert" und verließ sich
- * darauf, dass die vorherige Standard-App mitschreibt - was genau dann nicht mehr stimmt,
- * wenn jemand BigLau zur Standard-App macht.
+ * **what is prevented here is loss.** android delivers `SMS_DELIVER` to the default sms app
+ * only, and the role brings the duty of writing the message into the provider database
+ * ourselves; otherwise nobody has it. reproduced on the emulator: took the role, sent a
+ * message, and it was **nowhere** - not in the list, not in the database.
  *
- * Hier steht nur das Rechnen; das Schreiben macht [SmsDeliverReceiver] mit den
- * Android-Klassen. So bleibt der Teil prüfbar, an dem etwas verlorengehen kann.
+ * only the arithmetic lives here; [SmsDeliverReceiver] does the writing with the android
+ * classes, so the part where something can be lost stays testable.
  */
 object SmsDelivery {
 
-    /** Ein Stück einer Nachricht, wie es aus dem Funkweg kommt. */
+    /** one piece of a message as it comes off the air. */
     data class Part(val address: String, val body: String, val timestamp: Long)
 
-    /** Eine ganze Nachricht, so wie sie in der Datenbank stehen soll. */
     data class Incoming(val address: String, val body: String, val timestamp: Long)
 
     /**
-     * Fügt die Teile einer langen SMS wieder zusammen.
+     * reassembles the parts of a long text.
      *
-     * Über 160 Zeichen kommt eine Nachricht in mehreren Teilen an. Jeden einzeln zu
-     * speichern ergäbe drei halbe Nachrichten hintereinander statt einer ganzen. Der
-     * Zeitstempel ist der des ersten Teils - der Zeitpunkt, zu dem der Absender geschrieben
-     * hat, nicht der, zu dem der letzte Teil ankam.
+     * past 160 characters a message arrives in pieces; storing each one gives three half
+     * messages instead of one whole. the timestamp is the first part's, which is when the
+     * sender wrote, not when the last piece landed.
      */
     fun merge(parts: List<Part>): List<Incoming> {
         if (parts.isEmpty()) return emptyList()
-        val zusammen = mutableListOf<Incoming>()
-        parts.forEach { teil ->
-            val letzte = zusammen.lastOrNull()
-            if (letzte != null && letzte.address == teil.address) {
-                zusammen[zusammen.lastIndex] = letzte.copy(body = letzte.body + teil.body)
+        val joined = mutableListOf<Incoming>()
+        parts.forEach { part ->
+            val last = joined.lastOrNull()
+            if (last != null && last.address == part.address) {
+                joined[joined.lastIndex] = last.copy(body = last.body + part.body)
             } else {
-                zusammen += Incoming(teil.address, teil.body, teil.timestamp)
+                joined += Incoming(part.address, part.body, part.timestamp)
             }
         }
-        return zusammen
+        return joined
     }
 
-    /**
-     * Darf BigLau schreiben?
-     *
-     * Nur als Standard-App. Schriebe es daneben mit, stünde jede Nachricht zweimal in der
-     * Datenbank - einmal von der echten Standard-App, einmal von uns.
-     */
+    /** only as the default app; writing alongside it would file every message twice. */
     fun mayWrite(defaultSmsPackage: String?, ownPackage: String): Boolean =
         defaultSmsPackage != null && defaultSmsPackage == ownPackage
 }

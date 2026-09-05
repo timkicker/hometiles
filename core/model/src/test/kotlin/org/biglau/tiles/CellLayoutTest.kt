@@ -113,7 +113,7 @@ class CellLayoutTest {
         Direction.entries.filter { CellLayout.canStretch(board, target, it) }.forEach { direction ->
             val grown = CellLayout.stretch(board, target, direction)
             val back = CellLayout.shrink(grown, grown.cells.first(), direction)
-            assertEquals("Richtung $direction", board, back)
+            assertEquals("PadDirection $direction", board, back)
         }
     }
 

@@ -1,38 +1,33 @@
 package org.biglau.settings
 
 /**
- * Der Sprung auf eine Unterseite der Einstellungen.
- *
- * Andere Bildschirme schicken einen dorthin, wo die passende Einstellung steht - aus der
- * Anrufliste zu den Anrufarten, aus den Kontakten zu deren Sortierung. Ohne diesen Weg
- * muesste man den Pfad durch die Einstellungen selbst finden, und der Hinweis "das laesst
- * sich einstellen" waere ein Versprechen ohne Weg.
+ * the jump into a settings sub-page: from the call log to the call types, from the contacts
+ * to their sort order. without it, "this can be changed" would be a promise with no way
+ * there.
  */
-// `internal` ging beim Umzug nach core:model verloren: quer ueber Modulgrenzen gibt es das
-// nicht. Wer das zurueckhaben will, muss den Bereich zum eigenen Modul machen - genau der
-// offene Punkt in PLAN.md 2.1.
+// `internal` was lost when this moved to core:model; across module borders there is no such
+// thing. see `PLAN.md` 2.1.
 object SettingsDeepLink {
 
-    /** Die zu [name] gehoerende Seite. Unbekannte Namen ergeben null statt einer Ausnahme. */
-    fun ziel(name: String?): Page? = name?.let { gesucht ->
-        Page.entries.firstOrNull { it.name == gesucht }
+    /** an unknown name gives null rather than throwing. */
+    fun target(name: String?): Page? = name?.let { wanted ->
+        Page.entries.firstOrNull { it.name == wanted }
     }
 
-    /** Die Seite, auf der die Einstellungen aufgehen. Das Schloss geht jedem Ziel vor. */
-    fun start(locked: Boolean, ziel: Page?): Page = when {
+    /** the lock comes before any target. */
+    fun start(locked: Boolean, target: Page?): Page = when {
         locked -> Page.GATE
-        ziel != null -> ziel
+        target != null -> target
         else -> Page.MAIN
     }
 
     /**
-     * Wohin eine spaetere Anfrage fuehrt, oder null, wenn alles stehen bleibt.
+     * where a later request leads, or null to stay put.
      *
-     * Am Schloss bleibt es stehen: sonst brauchte es nur einen Aufruf von aussen, um an der
-     * PIN vorbei in die Einstellungen zu kommen.
+     * it stays put at the lock: otherwise one call from outside would walk past the pin.
      */
-    fun sprung(aktuell: Page, ziel: Page?): Page? = when {
-        ziel == null || aktuell == Page.GATE || aktuell == ziel -> null
-        else -> ziel
+    fun jump(current: Page, target: Page?): Page? = when {
+        target == null || current == Page.GATE || current == target -> null
+        else -> target
     }
 }

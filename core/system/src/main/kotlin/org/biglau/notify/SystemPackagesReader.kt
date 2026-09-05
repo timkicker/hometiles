@@ -5,16 +5,12 @@ import android.os.Build
 import android.provider.Telephony
 import android.telecom.TelecomManager
 
-/**
- * Welche Standard-Apps das System gerade verwendet. Null heisst: keine gesetzt oder
- * nicht ermittelbar - dann blinkt die zugehoerige Kachel eben nicht.
- */
+/** null means none set or not readable, and then the matching tile simply does not blink. */
 data class SystemPackages(
     val sms: String? = null,
     val dialer: String? = null,
 )
 
-/** Liest die aktuell eingestellten Standard-Apps. Alles gekapselt, damit die Zuordnung testbar bleibt. */
 object SystemPackagesReader {
 
     fun read(context: Context): SystemPackages = SystemPackages(

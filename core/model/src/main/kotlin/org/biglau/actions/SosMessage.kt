@@ -1,31 +1,26 @@
 package org.biglau.actions
 
 /**
- * Der Text der Notruf-SMS.
+ * the text of the emergency message.
  *
- * Getrennt vom Versand, weil hier zwei Dinge schieflaufen koennen, die man nicht am Geraet
- * ausprobieren will: eine Nachricht ohne Standort, die so aussieht als haette sie einen,
- * und Koordinaten in einer Schreibweise, die der Empfaenger nicht anklicken kann.
+ * separate from sending, because two things can go wrong here that one does not want to try
+ * out on a device: a message without a location that looks as if it had one, and coordinates
+ * in a notation the recipient cannot tap.
  */
 object SosMessage {
 
     /**
-     * Der Ersatztext wird uebergeben, nicht hier festgeschrieben: er muss in der Sprache
-     * des Telefons stehen. Ein deutscher Satz auf einem englischen Geraet ist im Notfall
-     * genau die falsche Ueberraschung.
+     * the fallback text is passed in, not fixed here: it has to be in the phone's language.
+     *
+     * [ageNote] is added when the location is **old**. one without an age reads as "here he
+     * is now"; if it is in truth from yesterday, help drives to the wrong place and searches
+     * there. old and labelled beats none at all.
      */
     fun compose(
         text: String,
         latitude: Double?,
         longitude: Double?,
         fallback: String,
-        /**
-         * Steht dabei, wenn der Standort **alt** ist - etwa „Standort von vor 3 Stunden".
-         *
-         * Ein Standort ohne Alter liest sich wie „hier ist er jetzt". Ist er in Wahrheit von
-         * gestern, faehrt die Hilfe an den falschen Ort und sucht dort. Alt und beschriftet
-         * ist besser als gar keiner: es bleibt ein Anhaltspunkt.
-         */
         ageNote: String? = null,
     ): String {
         val body = text.trim().ifEmpty { fallback.trim() }
@@ -34,19 +29,10 @@ object SosMessage {
         return listOfNotNull(body, link, ageNote?.trim()?.ifEmpty { null }).joinToString("\n")
     }
 
-    /**
-     * Ab wann ein Standort als alt gilt.
-     *
-     * Fuenf Minuten: kuerzer waere Rauschen (jede Positionsbestimmung ist ein paar Sekunden
-     * alt), laenger hiesse, eine viertelstundenalte Position als aktuell auszugeben.
-     */
+    /** shorter would be noise, every fix is a few seconds old; longer would pass off a quarter of an hour as current. */
     const val AGE_THRESHOLD_MINUTES = 5L
 
-    /**
-     * Muss das Alter dabeistehen? Null heisst: kein Standort oder frisch genug.
-     *
-     * Gibt Minuten oder Stunden zurueck - was der Empfaenger im Kopf leichter einordnet.
-     */
+    /** null means no location or fresh enough. minutes or hours, whichever places it more easily. */
     fun ageNote(minutes: Long?): Pair<AgeUnit, Int>? {
         if (minutes == null || minutes < AGE_THRESHOLD_MINUTES) return null
         if (minutes < 120) return AgeUnit.MINUTES to minutes.toInt()
@@ -55,14 +41,11 @@ object SosMessage {
 
     enum class AgeUnit { MINUTES, HOURS }
 
-    /** Ein Link, den jede Karten-App oeffnet - keine App-eigene Schreibweise. */
+    /** a link every maps app opens, not an app-specific notation. */
     fun mapsLink(latitude: Double, longitude: Double): String =
         "https://maps.google.com/?q=%.5f,%.5f".format(java.util.Locale.US, latitude, longitude)
 
-    /**
-     * Wie viele SMS der Text braucht. Ueber 160 Zeichen wird geteilt, und jede Teil-SMS
-     * kostet - bei einer Notrufkette an drei Nummern summiert sich das.
-     */
+    /** past 160 characters a text is split, and every part costs; a chain to three numbers adds up. */
     fun partsNeeded(message: String): Int {
         if (message.isEmpty()) return 1
         val perPart = if (message.length <= 160) 160 else 153

@@ -4,35 +4,31 @@ import org.biglau.data.LauncherConfig
 import org.biglau.data.Screen
 
 /**
- * Die Reihenfolge der Screens für „nächster" und „voriger".
+ * the screen order for "next" and "previous".
  *
- * Ordner zählen nicht mit: sie gehören ihrer Kachel und liegen nicht in der Reihe. Wer
- * „weiter" tippt, erwartet den nächsten Bildschirm, nicht den Inhalt eines Ordners.
- *
- * Die Reihe ist ein Ring - vom letzten Screen führt „weiter" auf den ersten zurück. Eine
- * Reihe mit Enden hätte zwei Kacheln, die manchmal nichts tun, und das ist genau die Sorte
- * toter Knopf, die man an dieser App nicht haben will.
+ * folders do not take part: they belong to their tile, not to the row. the row is a ring,
+ * because a row with ends would give two tiles that sometimes do nothing.
  */
 object ScreenOrder {
 
     fun ordered(config: LauncherConfig): List<Screen> {
-        val echte = config.screens.filterNot { it.isFolder || it.id in config.swipeExcluded }
-        if (config.swipeOrder.isEmpty()) return echte
-        // Erst die ausdrücklich geordneten, dann der Rest in seiner natürlichen Folge.
-        val nachOrdnung = config.swipeOrder.mapNotNull { id -> echte.firstOrNull { it.id == id } }
-        return nachOrdnung + echte.filterNot { it.id in config.swipeOrder }
+        val real = config.screens.filterNot { it.isFolder || it.id in config.swipeExcluded }
+        if (config.swipeOrder.isEmpty()) return real
+        // the explicitly ordered ones first, then the rest in their natural sequence.
+        val byOrder = config.swipeOrder.mapNotNull { id -> real.firstOrNull { it.id == id } }
+        return byOrder + real.filterNot { it.id in config.swipeOrder }
     }
 
     fun next(config: LauncherConfig, currentId: String): String? = step(config, currentId, +1)
 
     fun previous(config: LauncherConfig, currentId: String): String? = step(config, currentId, -1)
 
-    private fun step(config: LauncherConfig, currentId: String, richtung: Int): String? {
-        val reihe = ordered(config)
-        if (reihe.size < 2) return null
-        val jetzt = reihe.indexOfFirst { it.id == currentId }
-        if (jetzt < 0) return null
-        val naechster = ((jetzt + richtung) % reihe.size + reihe.size) % reihe.size
-        return reihe[naechster].id
+    private fun step(config: LauncherConfig, currentId: String, direction: Int): String? {
+        val row = ordered(config)
+        if (row.size < 2) return null
+        val here = row.indexOfFirst { it.id == currentId }
+        if (here < 0) return null
+        val next = ((here + direction) % row.size + row.size) % row.size
+        return row[next].id
     }
 }

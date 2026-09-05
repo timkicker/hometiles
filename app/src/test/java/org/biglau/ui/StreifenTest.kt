@@ -34,11 +34,11 @@ class StreifenTest {
 
     @Test
     fun `unter der letzten Zeile fuehrt eine Taste zum Streifen`() {
-        val bewegen = Quelltext.ausschnitt(rahmen, "fun bewege(", ".onPreviewKeyEvent { taste ->")
+        val bewegen = Quelltext.ausschnitt(rahmen, "fun move(", ".onPreviewKeyEvent { key ->")
         assertTrue(
             "Der Rasterrahmen schickt den Fokus am unteren Rand nicht mehr zum Streifen. " +
                 "Dann steht dort eine Zeile, die kein Tastendruck erreicht: " + bewegen,
-            "Richtung.RUNTER" in bewegen && "unten" in bewegen,
+            "PadDirection.DOWN" in bewegen && "below" in bewegen,
         )
     }
 
@@ -60,7 +60,7 @@ class StreifenTest {
         )
         assertTrue(
             "Der Streifen traegt keinen Anker mehr, also weiss der Rahmen nicht, wohin.",
-            "focusRequester(untenAnker)" in streifen,
+            "focusRequester(belowAnchor)" in streifen,
         )
     }
 
@@ -69,13 +69,13 @@ class StreifenTest {
         assertTrue(
             "Der Streifen schickt den Fokus nach oben nicht mehr ins Raster zurueck. " +
                 "Dann ist er eine Sackgasse: " + streifen,
-            Regex("""Key\.DirectionUp[\s\S]{0,120}zurueckAnker\.requestFocus""")
+            Regex("""Key\.DirectionUp[\s\S]{0,120}backAnchor\.requestFocus""")
                 .containsMatchIn(streifen),
         )
         assertTrue(
             "Der Rahmen bietet den Rueckweg nicht mehr an. Der Anker des Streifens zeigt " +
                 "dann auf nichts.",
-            "rasterAnker" in rahmen,
+            "gridAnchor" in rahmen,
         )
     }
 

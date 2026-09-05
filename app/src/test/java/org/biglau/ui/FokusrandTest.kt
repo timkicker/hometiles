@@ -44,8 +44,8 @@ class FokusrandTest {
 
     @Test
     fun `der Fokusrand ist dicker als der Blinkrand`() {
-        val blinkRand = zahl("BLINKRAND_DP")
-        val fokus = zahl("FOKUSRAND_DP")
+        val blinkRand = zahl("BADGE_BORDER_DP")
+        val fokus = zahl("FOCUS_BORDER_DP")
         assertTrue(
             "Der Fokusrand ($fokus dp) ist nicht dicker als der Blinkrand an seinem " +
                 "dicksten Punkt ($blinkRand dp). Dann zeigen auf dem Startbildschirm " +
@@ -58,8 +58,8 @@ class FokusrandTest {
     fun `der Unterschied ist auch aus einem Meter zu sehen`() {
         // Knapp dicker reicht nicht: auf drei Zoll ist ein Dpunkt Unterschied nichts.
         // Die Haelfte mehr ist die Schwelle, an der zwei Raender verschieden aussehen.
-        val blinkRand = zahl("BLINKRAND_DP")
-        val fokus = zahl("FOKUSRAND_DP")
+        val blinkRand = zahl("BADGE_BORDER_DP")
+        val fokus = zahl("FOCUS_BORDER_DP")
         assertTrue(
             "Der Fokusrand ist nur $fokus dp gegen $blinkRand dp. Zu knapp, um ihn " +
                 "im Vorbeisehen zu unterscheiden.",
@@ -72,7 +72,7 @@ class FokusrandTest {
         assertTrue(
             "Die Randbreite kennt den Fokus nicht. Ein Zustand, der nur in der Farbe " +
                 "steht, erreicht niemanden mit einer Farbschwaeche.",
-            Regex("""borderWidth[\s\S]{0,400}fokussiert""").containsMatchIn(quelle),
+            Regex("""borderWidth[\s\S]{0,400}focused""").containsMatchIn(quelle),
         )
     }
 }
@@ -104,27 +104,27 @@ class FokussperreTest {
         assertTrue(
             "Der Rasterrahmen rechnet nicht mehr mit den Zielen dieses Screens. Dann kann " +
                 "ein Anker aus einem anderen Screen gemeint sein.",
-            "Fokusfolge.nachbar(ziele," in quelle,
+            "FocusOrder.neighbour(targets," in quelle,
         )
         assertTrue(
             "Die Anker werden nicht aus den Zielen gebaut.",
-            Regex("""anker\s*=\s*remember\(ziele\)""").containsMatchIn(quelle),
+            Regex("""anchors\s*=\s*remember\(targets\)""").containsMatchIn(quelle),
         )
     }
 
     @Test
     fun `jede Richtungstaste wird verbraucht`() {
-        val stelle = Quelltext.ausschnitt(quelle, ".onPreviewKeyEvent { taste ->", "else -> false")
+        val stelle = Quelltext.ausschnitt(quelle, ".onPreviewKeyEvent { key ->", "else -> false")
         listOf("DirectionLeft", "DirectionRight", "DirectionUp", "DirectionDown").forEach {
             assertTrue(
                 "Key.$it wird nicht behandelt. Eine Richtungstaste, die durchrutscht, " +
                     "laesst Compose selbst ein Ziel suchen.",
-                "Key.$it -> bewege(" in stelle,
+                "Key.$it -> move(" in stelle,
             )
         }
         // Der Rueckgabewert von bewege entscheidet, ob die Taste verbraucht ist. Er steht
         // einmal am Ende und ist immer true, auch wenn kein Nachbar gefunden wurde.
-        val bewegen = Quelltext.ausschnitt(quelle, "fun bewege(", ".onPreviewKeyEvent { taste ->")
+        val bewegen = Quelltext.ausschnitt(quelle, "fun move(", ".onPreviewKeyEvent { key ->")
         assertTrue(
             "bewege gibt nicht immer true zurueck. Am Rand rutscht die Taste dann durch " +
                 "und Compose sucht sich selbst ein Ziel: " + bewegen,

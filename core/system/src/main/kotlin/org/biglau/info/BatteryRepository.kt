@@ -9,10 +9,7 @@ import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 
-/**
- * Der Ladestand als Fluss. Registriert wird erst, wenn jemand zuhoert, und wieder
- * abgemeldet, sobald niemand mehr hinsieht.
- */
+/** the charge as a flow. registered only while somebody listens, unregistered after. */
 object BatteryRepository {
 
     fun readings(context: Context): Flow<BatteryReading> = callbackFlow {
@@ -22,7 +19,7 @@ object BatteryRepository {
             }
         }
         val filter = IntentFilter(Intent.ACTION_BATTERY_CHANGED)
-        // Der Sticky-Broadcast liefert den aktuellen Stand sofort mit.
+        // the sticky broadcast delivers the current state straight away.
         val current = context.registerReceiver(receiver, filter)
         current?.toReading()?.let { trySend(it) }
         awaitClose { runCatching { context.unregisterReceiver(receiver) } }

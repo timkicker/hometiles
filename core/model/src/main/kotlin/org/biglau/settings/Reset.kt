@@ -6,16 +6,13 @@ import org.biglau.data.ScreenKind
 import org.biglau.security.Pin
 
 /**
- * „Alles zurücksetzen" aus PLAN.md 4.9.
+ * "reset everything" from `PLAN.md` 4.9, the one step in this app that cannot be undone.
  *
- * Der einzige Schritt in dieser App, der nicht rückgängig zu machen ist. Deshalb sagt die
- * Rückfrage nicht „bist du sicher", sondern zählt auf, was verschwindet - drei
- * Bildschirme, vierzehn Kacheln, zwei Ordner. Eine Zahl macht eine Warnung wahr; „bist du
- * sicher" tippt man weg, ohne sie zu lesen.
+ * the confirmation counts what disappears instead of asking "are you sure": a number makes a
+ * warning true, and "are you sure" gets tapped away unread.
  */
 object Reset {
 
-    /** Was bei einem Zurücksetzen verlorengeht. */
     data class Losses(
         val screens: Int,
         val tiles: Int,
@@ -24,28 +21,23 @@ object Reset {
     )
 
     fun losses(config: LauncherConfig): Losses {
-        val ordner = config.screens.count { it.kind == ScreenKind.FOLDER }
+        val folders = config.screens.count { it.kind == ScreenKind.FOLDER }
         return Losses(
-            screens = config.screens.size - ordner,
+            screens = config.screens.size - folders,
             tiles = config.screens.sumOf { it.tileCount },
-            folders = ordner,
+            folders = folders,
             hasPin = Pin.usable(config.security.pin),
         )
     }
 
     /**
-     * Die Kennungen aller eingebauten Widgets. Ein Zurücksetzen wirft die Kacheln weg;
-     * ohne diesen Schritt behielte der Widget-Host sie für immer, und die Anbieter-App
-     * hielte ein Widget am Leben, das niemand mehr sieht.
+     * every embedded widget id. without releasing these the widget host would keep them for
+     * good, and the providing app would feed a widget nobody can see.
      */
     fun widgetIds(config: LauncherConfig): List<Int> = config.screens
         .flatMap { it.cells }
         .mapNotNull { (it.button.action as? ButtonAction.Widget)?.widgetId }
 
-    /**
-     * Der Zustand wie nach der Installation - einschliesslich `wizardDone = false`, damit
-     * der Assistent wieder läuft. Ohne ihn stünde man vor einem fremden Startbildschirm
-     * ohne Hinweis, was als Nächstes zu tun ist.
-     */
+    /** as after installation, `wizardDone = false` included, or one would face a strange home screen. */
     fun fresh(): LauncherConfig = LauncherConfig()
 }

@@ -4,14 +4,13 @@ import kotlinx.serialization.json.Json
 import java.io.File
 
 /**
- * Liest und schreibt die Konfigurationsdatei.
+ * reads and writes the config file.
  *
- * Geschrieben wird ueber eine Nebendatei, die anschliessend umbenannt wird. Ohne das
- * ueberlappten sich zwei kurz hintereinander ausgeloeste Schreibvorgaenge: beide beginnen
- * bei Position null, der kuerzere endet frueher, und der Rest des laengeren bleibt stehen -
- * die Datei enthielt danach zwei ineinander geschriebene Dokumente und war unlesbar.
+ * written through a side file that is then renamed. without that, two writes triggered close
+ * together overlapped: both start at zero, the shorter one ends first, and the tail of the
+ * longer stays behind, leaving two documents written into each other.
  *
- * Die Datei ist zugleich das Sicherungsformat, deshalb lesbar formatiert.
+ * the file is also the backup format, hence pretty-printed.
  */
 class ConfigFile(private val file: File) {
 
@@ -22,63 +21,49 @@ class ConfigFile(private val file: File) {
     }
 
     /**
-     * Wohin eine unlesbare Datei gerettet wird.
+     * where an unreadable file is rescued to.
      *
-     * Nicht ueberschreiben, sondern zur Seite legen: sonst ist die Einrichtung eines
-     * Menschen mit dem ersten Schreibvorgang endgueltig weg. Von hier laesst sie sich mit
-     * einem Texteditor oder ueber das Einlesen einer Sicherung wiederholen.
+     * set aside rather than overwritten: otherwise somebody's whole setup is gone with the
+     * first write. from here it can be recovered with a text editor or a backup import.
      */
     val rescueFile: File get() = File(file.parentFile, "${file.name}.unreadable")
 
     /**
-     * Wohin die alte Einrichtung waehrend des Rueckfalls beim Schreiben ausweicht.
+     * where the old setup waits during the write fallback.
      *
-     * Sie existiert nur fuer den Bruchteil eines Schreibvorgangs. Liegt sie beim naechsten
-     * Start trotzdem da und die Einrichtung fehlt, ist der Prozess genau dazwischen
-     * gestorben - siehe [read].
+     * it exists for a fraction of one write. finding it at the next start with no setup
+     * beside it means the process died exactly in between; see [read].
      */
     val asideFile: File get() = File(file.parentFile, "${file.name}.old")
 
-    /** Musste beim letzten [read] eine unlesbare Datei zur Seite gelegt werden? */
     var rescuedBroken: Boolean = false
         private set
 
     /**
-     * Gibt die Vorgabe zurueck, wenn nichts da oder nichts lesbar ist.
-     *
-     * Der Rueckfall selbst ist Absicht - abzustuerzen waere schlimmer. Aber er sah bis
-     * hierher aus wie ein frisch installiertes BigLau: alle Kacheln weg, der Assistent
-     * laeuft wieder, und kein Wort dazu. Beim naechsten Schreiben war die alte Datei
-     * ueberschrieben und die Einrichtung endgueltig verloren. Deshalb wird sie jetzt
-     * vorher [rescueFile] genannt.
+     * falls back to the defaults when there is nothing readable. crashing would be worse,
+     * but the fallback used to look exactly like a fresh install: every tile gone, the
+     * wizard running, and not a word about it. so the broken file is renamed first.
      */
     fun read(): LauncherConfig {
         rescuedBroken = false
-        // Ein `.old` ohne Einrichtung heisst: der Prozess ist mitten im Rueckfall des
-        // Schreibens gestorben (siehe [write]). Die alte Einrichtung liegt dann noch da.
-        // Sie zurueckzuholen ist besser, als den Nutzer mit dem Assistenten zu begruessen
-        // und ihn glauben zu lassen, sein Telefon sei zurueckgesetzt.
+        // an `.old` with no setup beside it means the process died mid-fallback in [write].
+        // bringing it back beats greeting the user with the wizard.
         if (!file.exists() && asideFile.exists()) asideFile.renameTo(file)
         if (!file.exists()) return LauncherConfig()
-        val gelesen = runCatching { json.decodeFromString<LauncherConfig>(file.readText()) }
-        gelesen.getOrNull()?.let { return it }
+        val parsed = runCatching { json.decodeFromString<LauncherConfig>(file.readText()) }
+        parsed.getOrNull()?.let { return it }
         rescuedBroken = runCatching { file.renameTo(rescueFile) }.getOrDefault(false)
         return LauncherConfig()
     }
 
     /**
-     * Schreibt vollstaendig oder gar nicht - ein halbes Dokument darf nie sichtbar werden.
+     * writes completely or not at all; half a document must never become visible.
      *
-     * **Der Rueckfall war der gefaehrliche Teil.** Hier stand vorher: laesst sich die neue
-     * Datei nicht ueber die alte legen, dann `file.delete()` und noch einmal versuchen.
-     * Zwischen dem Loeschen und dem Umbenennen gibt es einen Augenblick, in dem **gar
-     * keine Einrichtung** existiert - stirbt der Prozess genau dort, ist alles weg: Screens,
-     * Kacheln, Ordner. Wie sich das anfuehlt, steht in `STATUS.md` vom 03.09.2026, als eine
-     * unlesbare Datei den Assistenten aufgehen liess.
-     *
-     * Jetzt geht die alte Datei erst **zur Seite** und kommt zurueck, wenn der zweite
-     * Versuch auch scheitert. Die neue Einstellung ist dann verloren - die alte
-     * Einrichtung nicht. Von den beiden Verlusten ist das der kleinere.
+     * **the fallback was the dangerous part.** it used to delete the old file and try again,
+     * and between deleting and renaming there is a moment with **no setup at all**: a process
+     * dying there loses screens, tiles and folders. now the old file steps aside and comes
+     * back if the second attempt also fails. the new setting is then lost, the old setup is
+     * not, and of those two losses that is the smaller one.
      */
     fun write(config: LauncherConfig) {
         val text = json.encodeToString(LauncherConfig.serializer(), config)
@@ -86,14 +71,14 @@ class ConfigFile(private val file: File) {
         temporary.writeText(text)
         if (temporary.renameTo(file)) return
 
-        // Manche Dateisysteme benennen nicht ueber eine bestehende Datei hinweg um.
-        val beiseite = asideFile
-        beiseite.delete()
-        val gerettet = file.renameTo(beiseite)
+        // some filesystems will not rename over an existing file.
+        val aside = asideFile
+        aside.delete()
+        val saved = file.renameTo(aside)
         if (temporary.renameTo(file)) {
-            beiseite.delete()
+            aside.delete()
         } else {
-            if (gerettet) beiseite.renameTo(file)
+            if (saved) aside.renameTo(file)
             temporary.delete()
         }
     }

@@ -5,38 +5,26 @@ import org.biglau.data.ContactMode
 import org.biglau.phone.PhoneNumbers
 
 /**
- * Eine Kachel, die eine neue Nachricht an eine feste Nummer beginnt.
+ * a tile that starts a message to a fixed number: the pharmacy, the ride service, the
+ * neighbour across the road. going through the contact picker would presuppose a contact.
  *
- * `PLAN.md` 4.3 sagt sie unter „Nachrichten" zu, und sie war der letzte offene Punkt dieser
- * Liste. Gebraucht wird sie fuer Nummern, die in keinem Adressbuch stehen - die Nummer der
- * Apotheke, des Fahrdienstes, der Nachbarin von gegenueber -, denn der Weg ueber die
- * Kontaktauswahl setzt einen Kontakt voraus.
+ * it writes the same action a contact in sms mode gets, so the existing compose screen
+ * opens. a separate action kind would be a second path to the same place, and the second
+ * one never gets the first one's fixes.
  *
- * Geschrieben wird bewusst dieselbe Aktion wie bei einem Kontakt im SMS-Betrieb: der
- * Startbildschirm oeffnet damit den Schreiben-Bildschirm, den es laengst gibt. Eine eigene
- * Aktionsart daneben waere ein zweiter Weg zum selben Ziel - und der zweite bekommt
- * erfahrungsgemaess die Fehlerbehebungen des ersten nicht mit.
- *
- * **Geschrieben wird hier nichts.** Die Kachel oeffnet den Schreiben-Bildschirm mit
- * eingetragenem Empfaenger; abgeschickt wird erst, wenn jemand auf Senden tippt.
+ * **nothing is sent here.** the tile opens the compose screen with the recipient filled in.
  */
 object MessageTile {
 
-    /**
-     * Die Aktion zur Eingabe, oder `null`, wenn darin keine Ziffer steht.
-     *
-     * Ohne Ziffer entstuende eine Kachel, die einen leeren Schreiben-Bildschirm oeffnet -
-     * eine Kachel, die nie etwas tut, ist schlechter als gar keine.
-     */
-    fun actionFor(eingabe: String): ButtonAction.Contact? {
-        val nummer = PhoneNumbers.clean(eingabe)
-        if (!PhoneNumbers.isDialable(nummer)) return null
+    /** `null` when there is no digit: a tile opening an empty compose screen never does anything. */
+    fun actionFor(input: String): ButtonAction.Contact? {
+        val number = PhoneNumbers.clean(input)
+        if (!PhoneNumbers.isDialable(number)) return null
         return ButtonAction.Contact(
-            // Als Name steht die Nummer in Bloecken da. Sie ist das Einzige, was ueber
-            // diesen Empfaenger bekannt ist; "Nachricht" allein saehe auf zwei Kacheln
-            // gleich aus. Umbenennen geht im Editor.
-            name = PhoneNumbers.forDisplay(nummer),
-            number = nummer,
+            // the number in blocks is the only thing known about this recipient; "message"
+            // alone would look the same on two tiles. renaming is possible in the editor.
+            name = PhoneNumbers.forDisplay(number),
+            number = number,
             photoUri = null,
             mode = ContactMode.SMS,
         )

@@ -1,26 +1,21 @@
 package org.biglau.tiles
 
 /**
- * Wie viele Spalten und Zeilen dieser Bildschirm tragen kann. PLAN.md 4.1 nennt 1-6 x 1-8.
+ * how many columns and rows this screen can carry. `PLAN.md` 4.1 names 1-6 x 1-8.
  *
- * Die feste Liste von sechs Vorlagen endete bei drei Spalten, mit dem Argument, mehr werde
- * auf 349 dp zur Briefmarke. Das stimmt fuer dieses Geraet und ist trotzdem die falsche
- * Antwort: es macht die Grenze zu einer Zahl im Quelltext statt zu einer Eigenschaft des
- * Bildschirms. Auf einem groesseren Telefon waeren fuenf Spalten gut lesbar.
- *
- * Gerechnet wird deshalb rueckwaerts: wie viele Zellen passen, ohne dass eine Zelle unter
- * das faellt, was eine Kachel braucht.
+ * counted backwards from what a tile needs, not from a fixed list of layouts: a hard limit
+ * of three columns is true for this device and wrong as a rule, because it turns a property
+ * of the screen into a number in the source.
  */
 object GridLimits {
 
     /**
-     * Schmaler wird eine Kachel nicht. 48 dp waere die blosse Touchflaeche - aber auf
-     * einer 48 dp breiten Kachel steht kein Wort mehr, und eine Kachel, die man nur an
-     * ihrer Farbe erkennt, ist keine Beschriftung wert.
+     * 48 dp would be the bare touch target, but no word fits on a 48 dp tile, and a tile
+     * recognised only by its colour is not worth a label.
      */
     const val MIN_CELL_WIDTH_DP = 72f
 
-    /** In der Hoehe braucht es die Beschriftungszone plus etwas Symbol darueber. */
+    /** height needs the label zone plus some icon above it. */
     const val MIN_CELL_HEIGHT_DP = 56f
 
     const val MAX_COLUMNS = 6
@@ -38,12 +33,12 @@ object GridLimits {
     fun rows(usableHeightDp: Float, gutterDp: Int): List<Int> =
         (1..maxRows(usableHeightDp, gutterDp)).toList()
 
-    private fun fits(gesamtDp: Float, gutterDp: Int, minZelle: Float, obergrenze: Int): Int {
-        var passt = 1
-        for (n in 1..obergrenze) {
-            val zelle = (gesamtDp - (n - 1) * gutterDp) / n
-            if (zelle >= minZelle) passt = n
+    private fun fits(totalDp: Float, gutterDp: Int, minCell: Float, ceiling: Int): Int {
+        var best = 1
+        for (n in 1..ceiling) {
+            val cell = (totalDp - (n - 1) * gutterDp) / n
+            if (cell >= minCell) best = n
         }
-        return passt
+        return best
     }
 }

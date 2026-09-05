@@ -1,50 +1,48 @@
 package org.biglau.web
 
 /**
- * Die Adresse einer Webseiten-Kachel.
+ * the address behind a website tile.
  *
- * Getippt wird auf drei Zoll mit großen Tasten, und niemand tippt „https://" freiwillig.
- * Die Eingabe wird deshalb ergänzt statt abgelehnt - eine Kachel, die „ungültige Adresse"
- * sagt, weil das Vorwort fehlt, ist schlechter als eine, die es hinzufügt.
+ * typing happens on three inches with big keys, and nobody types "https://" willingly. the
+ * input is completed rather than rejected: a tile saying "invalid address" because the
+ * prefix is missing is worse than one that adds it.
  */
 object LinkTarget {
 
     /**
-     * Macht aus einer Eingabe eine brauchbare Adresse, oder `null`.
+     * turns an input into a usable address, or `null`.
      *
-     * Ergänzt `https://`, wenn kein Schema dasteht - bewusst https und nicht http: wer
-     * heute eine Adresse ohne Vorwort tippt, meint die verschlüsselte Fassung, und der
-     * Server leitet notfalls selbst um.
+     * adds `https://`, deliberately not `http://`: whoever types a bare address today means
+     * the encrypted one, and the server redirects if it must.
      */
     fun normalise(input: String): String? {
-        val roh = input.trim()
-        if (roh.isEmpty()) return null
-        // Leerzeichen mitten in einer Adresse heißen: das war keine Adresse.
-        if (roh.any { it.isWhitespace() }) return null
+        val raw = input.trim()
+        if (raw.isEmpty()) return null
+        // whitespace in the middle means it was not an address.
+        if (raw.any { it.isWhitespace() }) return null
 
-        val mitSchema = when {
-            roh.startsWith("https://", ignoreCase = true) -> roh
-            roh.startsWith("http://", ignoreCase = true) -> roh
-            // Andere Schemata bleiben, wie sie sind - tel:, mailto:, geo: haben ihren Sinn.
-            SCHEMA.containsMatchIn(roh) -> roh
-            else -> "https://$roh"
+        val withScheme = when {
+            raw.startsWith("https://", ignoreCase = true) -> raw
+            raw.startsWith("http://", ignoreCase = true) -> raw
+            // other schemes stay as they are; tel:, mailto: and geo: have their point.
+            SCHEME.containsMatchIn(raw) -> raw
+            else -> "https://$raw"
         }
-        return if (hostOf(mitSchema).isNullOrEmpty() && !SCHEMA.containsMatchIn(roh)) null else mitSchema
+        return if (hostOf(withScheme).isNullOrEmpty() && !SCHEME.containsMatchIn(raw)) null else withScheme
     }
 
-    /** Der Rechnername, wie er auf der Kachel steht, wenn kein eigener Name gesetzt ist. */
+    /** the host name, which is what the tile shows when no label is set. */
     fun hostOf(url: String): String? {
-        val ohneSchema = url.substringAfter("://", missingDelimiterValue = "")
-        if (ohneSchema.isEmpty()) return null
-        val host = ohneSchema.substringBefore('/').substringBefore('?').substringBefore('#')
+        val withoutScheme = url.substringAfter("://", missingDelimiterValue = "")
+        if (withoutScheme.isEmpty()) return null
+        val host = withoutScheme.substringBefore('/').substringBefore('?').substringBefore('#')
             .substringAfter('@')
             .substringBefore(':')
         if (host.isEmpty() || !host.contains('.')) return null
         return host.removePrefix("www.").lowercase()
     }
 
-    /** Was ohne eigene Beschriftung auf der Kachel steht. */
     fun labelFor(url: String): String = hostOf(url) ?: url
 
-    private val SCHEMA = Regex("^[a-zA-Z][a-zA-Z0-9+.-]*:")
+    private val SCHEME = Regex("^[a-zA-Z][a-zA-Z0-9+.-]*:")
 }

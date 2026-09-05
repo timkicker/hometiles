@@ -4,16 +4,15 @@ import android.content.Context
 import android.telecom.TelecomManager
 
 /**
- * Hält BigLau die Telefon-Rolle?
+ * does biglau hold the dialler role?
  *
- * Daran hängt mehr, als es aussieht: **nur die Standard-Telefon-App bekommt eingehende
- * Anrufe zu sehen** und kann sie abweisen. Ohne die Rolle wirkt die Nummernsperre nur nach
- * außen — aus BigLau heraus lässt sich eine gesperrte Nummer nicht wählen, aber wer anruft,
- * klingelt trotzdem durch die Telefon-App des Systems.
+ * more hangs off this than it looks: **only the default phone app sees incoming calls** and
+ * can turn them away. without the role the number block works outwards only - a blocked
+ * number cannot be dialled from biglau, but whoever calls still rings through the system's
+ * phone app.
  *
- * Genau das stand als Zusage in den Einstellungen („Anrufe von diesen Nummern werden
- * abgewiesen, ohne zu klingeln"), ohne dass jemand nachgesehen hätte. Auf dem Telefon des
- * Nutzers hält die Rolle ein anderes Programm — dort war der Satz falsch.
+ * the settings promised exactly that ("calls from these numbers are turned away without
+ * ringing") without anyone checking.
  */
 object DialerRole {
 

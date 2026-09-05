@@ -1,22 +1,17 @@
 package org.biglau.tiles
 
+import org.biglau.data.ButtonAction
 import org.biglau.data.LauncherConfig
+import org.biglau.data.Screen
 
 /**
- * Die Reihenfolge der Screens beim Wischen und fuer die Kacheln „naechster" und
- * „voriger". PLAN.md 4.1.
+ * the screen order for swiping and for the "next" and "previous" tiles. `PLAN.md` 4.1.
  *
- * `swipeOrder` stand von Anfang an im Modell und wurde von [ScreenOrder] gelesen - aber
- * von keiner Oberflaeche je geschrieben. Es blieb also immer leer, und die Reihenfolge war
- * immer die Anlegereihenfolge. Eine Zusage, die nichts tat.
- *
- * Bewegt wird eine Stelle nach oben oder unten, nicht gezogen. Ziehen setzt eine ruhige
- * Hand voraus - und die ist bei den Leuten, fuer die diese App gebaut ist, nicht
- * vorauszusetzen. Zweimal tippen bringt dieselbe Kachel zwei Stellen weiter.
+ * moved one place up or down, not dragged: dragging assumes a steady hand, and that is not
+ * to be assumed for the people this app is for.
  */
 object SwipeChain {
 
-    /** Die geltende Reihenfolge als ausdrueckliche Liste von Kennungen. */
     fun explicit(config: LauncherConfig): List<String> =
         ScreenOrder.ordered(config).map { it.id }
 
@@ -24,28 +19,26 @@ object SwipeChain {
 
     fun moveDown(config: LauncherConfig, id: String): LauncherConfig = move(config, id, +1)
 
-    /** Wie weit oben ein Screen steht, 0-basiert; -1, wenn er nicht in der Reihe ist. */
+    /** zero-based, or -1 when the screen is not in the chain. */
     fun position(config: LauncherConfig, id: String): Int = explicit(config).indexOf(id)
 
-    private fun move(config: LauncherConfig, id: String, richtung: Int): LauncherConfig {
-        val reihe = explicit(config).toMutableList()
-        val jetzt = reihe.indexOf(id)
-        val ziel = jetzt + richtung
-        // Am Rand passiert nichts. Kein Umlauf: wer die oberste Kachel „nach oben" tippt,
-        // erwartet nicht, dass sie unten herauskommt.
-        if (jetzt < 0 || ziel !in reihe.indices) return config
-        reihe[jetzt] = reihe[ziel]
-        reihe[ziel] = id
-        return config.copy(swipeOrder = reihe)
+    private fun move(config: LauncherConfig, id: String, direction: Int): LauncherConfig {
+        val row = explicit(config).toMutableList()
+        val here = row.indexOf(id)
+        val target = here + direction
+        // nothing at the edges, and no wraparound: whoever taps "up" on the topmost entry
+        // does not expect it to come out at the bottom.
+        if (here < 0 || target !in row.indices) return config
+        row[here] = row[target]
+        row[target] = id
+        return config.copy(swipeOrder = row)
     }
 
     /**
-     * Darf dieser Screen die Kette verlassen?
+     * may this screen leave the chain?
      *
-     * Nur, wenn er danach noch anders zu erreichen ist - durch eine Sprungkachel oder
-     * weil er der Startbildschirm ist. Sonst waere das Herausnehmen der schnellste Weg,
-     * einen eingerichteten Screen unauffindbar zu machen: er stuende weiter in der
-     * Konfiguration, und kein Weg fuehrte mehr hin.
+     * only if it stays reachable afterwards, by a jump tile or by being the home screen.
+     * otherwise removing it would be the quickest way to make a set-up screen unfindable.
      */
     fun mayLeave(config: LauncherConfig, id: String): Boolean =
         id == config.homeScreenId || hasJumpTile(config, id)
@@ -56,11 +49,10 @@ object SwipeChain {
     fun include(config: LauncherConfig, id: String): LauncherConfig =
         config.copy(swipeExcluded = config.swipeExcluded - id)
 
-    /** Die Screens, die gerade nicht in der Kette liegen - in ihrer natuerlichen Folge. */
-    fun excluded(config: LauncherConfig): List<org.biglau.data.Screen> =
+    fun excluded(config: LauncherConfig): List<Screen> =
         config.screens.filter { !it.isFolder && it.id in config.swipeExcluded }
 
     private fun hasJumpTile(config: LauncherConfig, id: String): Boolean = config.screens
         .flatMap { it.cells }
-        .any { (it.button.action as? org.biglau.data.ButtonAction.GoToScreen)?.screenId == id }
+        .any { (it.button.action as? ButtonAction.GoToScreen)?.screenId == id }
 }

@@ -4,11 +4,10 @@ import android.telecom.CallAudioState
 import org.biglau.data.AudioRoute
 
 /**
- * Uebersetzt zwischen der Einstellung und dem, was Telecom kennt.
+ * translates between the setting and what telecom knows.
  *
- * Die Zuordnung stand zweimal im Quelltext - einmal beim Verbinden, einmal beim Umschalten
- * von Hand - und wurde beim zweiten Mal nur zur Haelfte hingeschrieben: „Lautsprecher an"
- * gab es, „Lautsprecher aus" nicht. Solche Tabellen gehoeren an eine Stelle.
+ * this mapping stood in the source twice and the second copy was only half written: it had
+ * "speaker on" but not "speaker off". such tables belong in one place.
  */
 object AudioRoutes {
 
@@ -18,7 +17,7 @@ object AudioRoutes {
         AudioRoute.BLUETOOTH -> CallAudioState.ROUTE_BLUETOOTH
     }
 
-    /** Was Telecom gerade meldet. Unbekanntes zaehlt als Hoermuschel. */
+    /** anything unknown counts as the earpiece. */
     fun fromTelecom(route: Int?): AudioRoute = when (route) {
         CallAudioState.ROUTE_SPEAKER -> AudioRoute.SPEAKER
         CallAudioState.ROUTE_BLUETOOTH -> AudioRoute.BLUETOOTH
@@ -26,10 +25,8 @@ object AudioRoutes {
     }
 
     /**
-     * Steckt Bluetooth in dem, was das Geraet anbietet?
-     *
-     * Gefragt wird die **Liste der moeglichen Wege**, nicht der derzeitige: erst wenn ein
-     * Geraet verbunden ist, taucht Bluetooth darin auf - und nur dann lohnt die Auswahl.
+     * asks the **list of possible routes**, not the current one: bluetooth appears there
+     * only once a device is connected, and only then is the choice worth offering.
      */
     fun bluetoothAvailable(supportedMask: Int?): Boolean =
         supportedMask != null && supportedMask and CallAudioState.ROUTE_BLUETOOTH != 0

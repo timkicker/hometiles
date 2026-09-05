@@ -3,33 +3,27 @@ package org.biglau.phone
 import android.provider.CallLog
 
 /**
- * Welche verpassten Anrufe noch niemand gesehen hat.
+ * which missed calls nobody has seen yet. the condition lives here rather than as a string in
+ * the query, so it can be checked without a phone.
  *
- * Die Bedingung steht hier und nicht als Zeichenkette in der Abfrage, damit sie sich ohne
- * Telefon pruefen laesst - sie ist der Kern des Abzeichens auf der Kachel.
- *
- * **Zwei Bedingungen, und beide braucht es.** `NEW = 1` ist die Auskunft des Systems: wer
- * die Liste in der System-Telefon-App durchgeht, raeumt sie damit auch hier auf. Der
- * Zeitpunkt ist unsere eigene: BigLau darf die Anrufliste auf diesem Geraet nicht aendern
- * (`WRITE_CALL_LOG` ist nicht erteilt), und ohne ihn bliebe die Zahl fuer immer stehen.
+ * **both conditions are needed.** `NEW = 1` is the system's word: going through the list in
+ * the system phone app clears it here too. the timestamp is ours, because biglau may not
+ * write to the call log, and without it the number would stand for ever.
  */
 object MissedCalls {
 
-    /** Die `WHERE`-Bedingung. */
+    /** the `WHERE` clause. */
     fun selection(): String =
         "${CallLog.Calls.TYPE} = ? AND ${CallLog.Calls.NEW} = 1 AND ${CallLog.Calls.DATE} > ?"
 
-    /** Die Werte dazu, in derselben Reihenfolge. */
+    /** its arguments, in the same order. */
     fun arguments(since: Long): Array<String> =
         arrayOf(CallLog.Calls.MISSED_TYPE.toString(), since.coerceAtLeast(0L).toString())
 
     /**
-     * Der Zeitpunkt, der nach dem Lesen gespeichert wird.
-     *
-     * **Nicht „jetzt", sondern der juengste Anruf in der Liste.** Zwischen dem Auslesen der
-     * Liste und dem Speichern vergeht Zeit; ein Anruf, der genau dazwischen kommt, waere
-     * mit „jetzt" als gesehen abgehakt, ohne dass ihn jemand gesehen haette. Ist die Liste
-     * leer, bleibt der alte Zeitpunkt stehen - es gab nichts zu sehen.
+     * **not "now" but the newest call in the list.** time passes between reading and saving,
+     * and a call arriving exactly in between would be ticked off as seen by nobody. an empty
+     * list leaves the old timestamp: there was nothing to see.
      */
     fun seenUpTo(previous: Long, entries: List<CallEntry>): Long =
         maxOf(previous, entries.maxOfOrNull { it.timestamp } ?: 0L)

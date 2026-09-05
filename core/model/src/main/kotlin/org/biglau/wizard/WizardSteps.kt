@@ -2,7 +2,7 @@ package org.biglau.wizard
 
 enum class WizardStep { WELCOME, TEXT_SIZE, THEME, PERMISSIONS, HOME_ROLE, DONE }
 
-/** Was beim Start schon eingerichtet ist. */
+/** what is already set up at first launch. */
 data class WizardState(
     val isHomeApp: Boolean,
     val hasContacts: Boolean,
@@ -10,25 +10,15 @@ data class WizardState(
 )
 
 /**
- * Welche Schritte der Assistent zeigt.
- *
- * Er ueberspringt, was schon erledigt ist. Wer BigLau bereits als Startbildschirm gesetzt
- * hat, soll nicht gefragt werden, ob er das tun moechte - solche Schritte lehren den Nutzer,
- * Assistenten wegzuklicken statt sie zu lesen.
- *
- * Textgroesse und Aussehen kommen immer, weil sie keine Vorbedingung haben und weil sie das
- * sind, wofuer man diese App ueberhaupt installiert.
+ * which steps the wizard shows. it skips what is already done: asking someone to set the home
+ * app they have already set teaches them to click wizards away instead of reading them.
  */
 object WizardSteps {
 
     /**
-     * Zeigt der Start den Assistenten?
-     *
-     * Nur, solange die Einrichtung nie zu Ende gelaufen ist. „Einrichtung erneut
-     * durchlaufen" setzte diese Marke frueher zurueck - wer dann abbrach, bekam bei
-     * jedem Start wieder den Assistenten, und der fertige Startbildschirm lag hinter
-     * einer Frage, die er nie stellen wollte. Ein erneuter Durchlauf oeffnet den
-     * Assistenten deshalb direkt und ruehrt die Marke nicht an.
+     * only while setup has never run to the end. "run setup again" used to clear that mark,
+     * so anyone who then cancelled met the wizard on every launch, with their finished home
+     * screen behind a question they never wanted.
      */
     fun showOnLaunch(wizardDone: Boolean): Boolean = !wizardDone
 
@@ -53,7 +43,7 @@ object WizardSteps {
         return if (index <= 0) null else steps[index - 1]
     }
 
-    /** "Schritt 2 von 5" - der Nutzer soll sehen, dass es ein Ende gibt. */
+    /** "step 2 of 5" - one should see that there is an end to it. */
     fun position(current: WizardStep, state: WizardState): Pair<Int, Int> {
         val steps = stepsFor(state)
         val index = steps.indexOf(current)

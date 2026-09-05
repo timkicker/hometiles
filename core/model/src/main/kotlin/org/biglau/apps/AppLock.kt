@@ -6,17 +6,14 @@ import org.biglau.data.LauncherConfig
 import org.biglau.security.Pin
 
 /**
- * Die App-Sperre. PLAN.md 4.5: „welche Apps ohne PIN startbar sind (Whitelist)".
+ * the app lock. `PLAN.md` 4.5: which apps start without the pin.
  *
- * Gedacht fuer den Fall, in dem jemand ein Telefon fuer eine andere Person einrichtet -
- * Angehoerige, Pflege - und will, dass nur ein paar Apps offenstehen. Deshalb eine
- * Erlaubnisliste und keine Sperrliste: eine Sperrliste muesste jede App des Telefons
- * nennen und waere nach der naechsten Installation schon unvollstaendig.
+ * an allow list, not a block list: a block list would have to name every app on the phone
+ * and would be incomplete after the next installation.
  *
- * Genau darum ist sie auch gefaehrlich, und deshalb steht das Einschalten hier nicht
- * allein: [initialAllowance] fuellt die Liste mit dem, was auf den Kacheln liegt. Wer die
- * Sperre einschaltet und danach vor einem Telefon steht, auf dem nichts mehr aufgeht, hat
- * keine Sperre eingerichtet, sondern sich ausgesperrt.
+ * that is also what makes it dangerous, so switching it on never stands alone:
+ * [initialAllowance] fills the list with whatever sits on the tiles. whoever switches it on
+ * and then faces a phone where nothing opens has not set up a lock but locked themselves out.
  */
 object AppLock {
 
@@ -25,35 +22,23 @@ object AppLock {
         return key !in config.apps.allowed && packageName !in config.apps.allowed
     }
 
-    /** Was das Antippen des Sperr-Schalters bewirken soll. */
     enum class Step {
-        /** Aus - jede App startet ohne PIN. */
+        /** off: every app starts without a pin. */
         TURN_OFF,
 
-        /** An - es ist etwas erlaubt, das offen bleibt. */
+        /** on: something is allowed and stays open. */
         TURN_ON,
 
         /**
-         * Nicht einschalten, sondern erst die Erlaubnisliste zeigen.
+         * show the allow list first instead of switching on.
          *
-         * Der Fall: keine App liegt auf einer Kachel, also fuellt [initialAllowance] nichts,
-         * und der Schalter wuerde in einen Zustand kippen, in dem **gar nichts** mehr ohne
-         * PIN aufgeht. Am Emulator mit einem Tipp erreicht - und darunter stand weiter
-         * "Apps auf Deinen Kacheln sind von Anfang an erlaubt", was dort schlicht nicht
-         * stimmte.
+         * with no app on any tile [initialAllowance] fills nothing, and the switch would
+         * land in a state where **nothing** opens without the pin.
          */
         CHOOSE_FIRST,
     }
 
-    /**
-     * Wie viele Apps offen blieben, wenn die Sperre jetzt einginge.
-     *
-     * Die Zeile unter dem Schalter soll das sagen und nicht raten. Erst behauptete sie
-     * fest, die Kachel-Apps seien erlaubt (auch bei null Kachel-Apps); danach behauptete
-     * sie "keine App liegt auf einer Kachel" auch dann noch, wenn schon eine
-     * Erlaubnisliste stand. Beides war eine Auskunft, die man nicht nachrechnen musste,
-     * um zu merken, dass sie nicht stimmt.
-     */
+    /** what the line under the switch says, worked out rather than claimed. */
     fun wouldAllow(config: LauncherConfig): Int =
         if (config.apps.allowed.isNotEmpty()) {
             config.apps.allowed.size
@@ -75,21 +60,17 @@ object AppLock {
         }
 
     /**
-     * Was beim Einschalten von selbst erlaubt ist: alles, was auf einer Kachel liegt.
-     *
-     * Diese Apps hat der Einrichtende bewusst in Reichweite gelegt; sie danach zu sperren
-     * waere das Gegenteil dessen, was er gerade getan hat.
+     * allowed automatically: everything on a tile. whoever set up the phone put these within
+     * reach on purpose, and locking them afterwards would undo what they just did.
      */
     fun initialAllowance(config: LauncherConfig): Set<String> = config.screens
         .flatMap { it.cells }
-        .mapNotNull { zelle ->
-            // Eine Verknuepfung fuehrt in eine App, und sie liegt genauso bewusst auf einer
-            // Kachel. Bis zum 03.09.2026 stand hier nur `App` - solange die Sperre die
-            // Verknuepfung ohnehin durchliess, fiel das nicht auf. Seit sie das nicht mehr
-            // tut, waere eine hingelegte Kachel beim Einschalten sofort zu.
-            when (val was = zelle.button.action) {
-                is ButtonAction.App -> "${was.packageName}/${was.activityName}"
-                is ButtonAction.Shortcut -> was.packageName
+        .mapNotNull { cell ->
+            // a shortcut leads into an app and lies on a tile just as deliberately. with
+            // only `App` here, a shortcut tile would be locked the moment the lock goes on.
+            when (val action = cell.button.action) {
+                is ButtonAction.App -> "${action.packageName}/${action.activityName}"
+                is ButtonAction.Shortcut -> action.packageName
                 else -> null
             }
         }

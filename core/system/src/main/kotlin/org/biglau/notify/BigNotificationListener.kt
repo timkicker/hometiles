@@ -6,8 +6,8 @@ import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
 
 /**
- * Zaehlt aktive Benachrichtigungen pro Paket, damit Kacheln blinken koennen.
- * Braucht die vom Nutzer erteilte Benachrichtigungszugriff-Berechtigung.
+ * counts active notifications per package so tiles can blink. needs the notification access
+ * the user grants by hand.
  */
 class BigNotificationListener : NotificationListenerService() {
 
@@ -34,8 +34,8 @@ class BigNotificationListener : NotificationListenerService() {
         groupSummary = notification.flags and android.app.Notification.FLAG_GROUP_SUMMARY != 0,
         number = notification.number,
         category = notification.category,
-        // Die Vorlage steht in den Extras und nicht in einer Flagge. Eine pausierte
-        // Medienanzeige ist nicht mehr `ongoing`, traegt die Vorlage aber weiter.
+        // the template lives in the extras, not in a flag: a paused media notification is
+        // no longer `ongoing` but still carries the template.
         mediaStyle = notification.extras
             ?.getString("android.template")
             ?.endsWith("MediaStyle") == true,

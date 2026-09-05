@@ -24,8 +24,8 @@ import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
-import org.biglau.tiles.Fokusfolge
-import org.biglau.tiles.Richtung
+import org.biglau.tiles.FocusOrder
+import org.biglau.tiles.PadDirection
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
@@ -110,16 +110,16 @@ fun HomeScreenView(
      * Liegt dieser Rahmen gerade obenauf?
      *
      * Der Startbildschirm und ein offener Ordner benutzen denselben Rahmen und sind
-     * gleichzeitig komponiert; der Ordner liegt im selben Fenster darueber. Wer von beiden
+     * gleichzeitig komponiert; der Ordner liegt im selben Fenster darueber. Wer from beiden
      * die Tasten bekommen soll, kann der Rahmen nicht selbst wissen.
      */
-    aktiv: Boolean = true,
+    active: Boolean = true,
     /**
      * Der Streifen unter dem Raster, falls es einen gibt.
      *
      * In einem Ordner und in der Liste der Menuetaste steht unter dem Raster eine Zeile, die
      * es schliesst. Sie ist ein Geschwister des Rahmens, nicht sein Kind, und der Rahmen
-     * verbraucht jede Richtungstaste - also kam der Fokus nie zu ihr. Am 04.09.2026 von
+     * verbraucht jede Richtungstaste - also kam der Fokus nie zu ihr. Am 04.09.2026 from
      * `tools/unerreichbar.py` gemeldet: neun anklickbare Flaechen im Ordner, acht erreicht,
      * und die neunte war der Streifen.
      *
@@ -127,7 +127,7 @@ fun HomeScreenView(
      * Knoten, und der kann eine Kachel des Startbildschirms unter der Ueberlagerung sein.
      * Deshalb ein benannter Anker: der Rahmen weiss, wohin, oder er tut nichts.
      */
-    unten: FocusRequester? = null,
+    below: FocusRequester? = null,
     /**
      * Der Weg zurueck ins Raster, fuer den Streifen darunter.
      *
@@ -136,7 +136,7 @@ fun HomeScreenView(
      * falsch: unter der Ueberlagerung liegen die Kacheln des Startbildschirms an denselben
      * Stellen.
      */
-    rasterAnker: FocusRequester? = null,
+    gridAnchor: FocusRequester? = null,
 ) {
     val palette = LocalBigPalette.current
     val gutter = appearance.gutterDp.dp
@@ -173,12 +173,12 @@ fun HomeScreenView(
         // sich selbst ein Ziel, zur Not in der Kopfzeile.
         // Die leeren Plaetze gehoeren dazu: sie sind anklickbar, also muessen sie
         // erreichbar sein.
-        val ziele = remember(screen) { Fokusfolge.ziele(screen) }
-        val anker = remember(ziele) { ziele.associateWith { FocusRequester() } }
-        var fokusZelle by remember(screen.id) { mutableStateOf(Fokusfolge.erste(ziele)) }
-        var merkspalte by remember(screen.id) { mutableStateOf<Int?>(null) }
+        val targets = remember(screen) { FocusOrder.targets(screen) }
+        val anchors = remember(targets) { targets.associateWith { FocusRequester() } }
+        var focusedCell by remember(screen.id) { mutableStateOf(FocusOrder.first(targets)) }
+        var rememberedColumn by remember(screen.id) { mutableStateOf<Int?>(null) }
 
-        // PLAN.md 10.3.1: **beim Start** ist der Fokus von selbst da, aber nicht, wenn
+        // PLAN.md 10.3.1: **beim Start** ist der Fokus from selbst da, aber nicht, wenn
         // dieser Rahmen spaeter obenauf kommt.
         //
         // Beim Start stimmt es ohne Zutun: das Fenster bekommt den Fokus, Compose sucht sich
@@ -190,7 +190,7 @@ fun HomeScreenView(
         // Fokus sitzt sofort auf der Kachel oben links.
         //
         // Der Ordner ist der andere Fall, und er war kaputt. Am 04.09.2026 gefunden, vom
-        // ersten Lauf von `tools/unerreichbar.py` ueber einen echten Bildschirm: neun
+        // ersten Lauf from `tools/unerreichbar.py` ueber einen echten Bildschirm: neun
         // anklickbare Flaechen, **null** davon je fokussiert. Von Hand bestaetigt - Kachel
         // mit der Auswahltaste geoeffnet, also `mInTouchMode=false`, davor sass der Fokus
         // auf der Ordnerkachel, danach auf **gar nichts**, und vier Tastendruecke aenderten
@@ -205,13 +205,13 @@ fun HomeScreenView(
         // Deshalb holt der Rahmen ihn sich, sobald er obenauf kommt. Im Beruehrungsmodus
         // wird das weiter still verworfen, und das ist richtig: wer tippt, will keinen
         // Rahmen um eine Kachel.
-        LaunchedEffect(aktiv, ziele) {
-            if (aktiv) {
-                val ziel = fokusZelle ?: Fokusfolge.erste(ziele)
+        LaunchedEffect(active, targets) {
+            if (active) {
+                val target = focusedCell ?: FocusOrder.first(targets)
                 // `requestFocus` wirft, solange der Knoten noch nicht haengt. Das ist kein
                 // Fehler, sondern eine Reihenfolge: dann sitzt der Fokus ohnehin schon da,
                 // wo Compose ihn beim Aufbau hingelegt hat.
-                runCatching { ziel?.let { anker[it]?.requestFocus() } }
+                runCatching { target?.let { anchors[it]?.requestFocus() } }
             }
         }
 
@@ -221,37 +221,37 @@ fun HomeScreenView(
         // den Fokus auf der Apotheke. Ein zweiter Druck waere ein Umweg, den man sich merken
         // muesste.
         //
-        // Ziffern duerfen das nur, wo sie sonst nichts bedeuten. Hier ist das von selbst so:
+        // Ziffern duerfen das nur, wo sie sonst nichts bedeuten. Hier ist das from selbst so:
         // auf dem Startbildschirm und in einem Ordner gibt es kein Eingabefeld. Die
         // Waehltastatur und der Nachrichtentext liegen in eigenen Bildschirmen, die diesen
         // Rahmen nicht benutzen.
-        fun waehle(ziffer: Int): Boolean {
-            val ziel = Fokusfolge.nummer(ziele, ziffer) ?: return true
-            if (ziel in screen.cells) {
-                onActivate(ziel)
+        fun select(digit: Int): Boolean {
+            val target = FocusOrder.numbered(targets, digit) ?: return true
+            if (target in screen.cells) {
+                onActivate(target)
             } else {
                 // Ein leerer Platz hat nichts zu starten; er fuehrt dorthin, wo man ihn
                 // fuellt, genau wie ein Tipp darauf.
-                onEdit(ziel.x, ziel.y)
+                onEdit(target.x, target.y)
             }
             return true
         }
 
-        fun bewege(richtung: Richtung): Boolean {
-            val von = fokusZelle ?: Fokusfolge.erste(ziele) ?: return true
-            val ziel = Fokusfolge.nachbar(ziele, von, richtung, merkspalte)
-            if (ziel == null && richtung == Richtung.RUNTER && unten != null) {
+        fun move(direction: PadDirection): Boolean {
+            val from = focusedCell ?: FocusOrder.first(targets) ?: return true
+            val target = FocusOrder.neighbour(targets, from, direction, rememberedColumn)
+            if (target == null && direction == PadDirection.DOWN && below != null) {
                 // Unter der letzten Zeile steht der Streifen, der die Ueberlagerung
-                // schliesst. Nur nach unten, und nur wenn es ihn gibt.
-                runCatching { unten.requestFocus() }
+                // schliesst. Nur nach below, und nur wenn es ihn gibt.
+                runCatching { below.requestFocus() }
                 return true
             }
-            if (ziel != null) {
+            if (target != null) {
                 // Waagerecht setzt die gemerkte Spalte neu, senkrecht laesst sie stehen.
-                if (richtung == Richtung.LINKS || richtung == Richtung.RECHTS) {
-                    merkspalte = ziel.x
+                if (direction == PadDirection.LEFT || direction == PadDirection.RIGHT) {
+                    rememberedColumn = target.x
                 }
-                anker[ziel]?.requestFocus()
+                anchors[target]?.requestFocus()
             }
             return true
         }
@@ -260,28 +260,28 @@ fun HomeScreenView(
             Modifier
                 .fillMaxSize()
                 .padding(border)
-                .onPreviewKeyEvent { taste ->
-                    if (taste.type != KeyEventType.KeyDown) {
+                .onPreviewKeyEvent { key ->
+                    if (key.type != KeyEventType.KeyDown) {
                         false
                     } else {
-                        when (taste.key) {
-                            Key.DirectionLeft -> bewege(Richtung.LINKS)
-                            Key.DirectionRight -> bewege(Richtung.RECHTS)
-                            Key.DirectionUp -> bewege(Richtung.HOCH)
-                            Key.DirectionDown -> bewege(Richtung.RUNTER)
-                            Key.One -> waehle(1)
-                            Key.Two -> waehle(2)
-                            Key.Three -> waehle(3)
-                            Key.Four -> waehle(4)
-                            Key.Five -> waehle(5)
-                            Key.Six -> waehle(6)
-                            Key.Seven -> waehle(7)
-                            Key.Eight -> waehle(8)
-                            Key.Nine -> waehle(9)
+                        when (key.key) {
+                            Key.DirectionLeft -> move(PadDirection.LEFT)
+                            Key.DirectionRight -> move(PadDirection.RIGHT)
+                            Key.DirectionUp -> move(PadDirection.UP)
+                            Key.DirectionDown -> move(PadDirection.DOWN)
+                            Key.One -> select(1)
+                            Key.Two -> select(2)
+                            Key.Three -> select(3)
+                            Key.Four -> select(4)
+                            Key.Five -> select(5)
+                            Key.Six -> select(6)
+                            Key.Seven -> select(7)
+                            Key.Eight -> select(8)
+                            Key.Nine -> select(9)
                             // Die linke Softkey-Taste. Die rechte ist die Zurueck-Taste, die
                             // Android schon selbst an die Activity gibt.
                             Key.Menu -> {
-                                fokusZelle?.let { onMenu(it.x, it.y) }
+                                focusedCell?.let { onMenu(it.x, it.y) }
                                 true
                             }
                             else -> false
@@ -294,8 +294,8 @@ fun HomeScreenView(
                     appearance = appearance,
                     cellWidth = cellW,
                     cellHeight = cellH,
-                    spalte = x,
-                    zeile = y,
+                    column = x,
+                    row = y,
                     modifier = Modifier
                         .offset(
                             x = metrics.offsetX(x, gutter.value).dp,
@@ -303,10 +303,10 @@ fun HomeScreenView(
                         )
                         .size(cellW, cellH)
                         .then(
-                            anker[Cell(x = x, y = y)]?.let { Modifier.focusRequester(it) }
+                            anchors[Cell(x = x, y = y)]?.let { Modifier.focusRequester(it) }
                             ?.then(
-                                if (rasterAnker != null && fokusZelle == Cell(x = x, y = y)) {
-                                    Modifier.focusRequester(rasterAnker)
+                                if (gridAnchor != null && focusedCell == Cell(x = x, y = y)) {
+                                    Modifier.focusRequester(gridAnchor)
                                 } else {
                                     Modifier
                                 },
@@ -314,7 +314,7 @@ fun HomeScreenView(
                                 ?: Modifier,
                         )
                         .onFocusChanged {
-                            if (it.isFocused) fokusZelle = Cell(x = x, y = y)
+                            if (it.isFocused) focusedCell = Cell(x = x, y = y)
                         },
                     onEdit = { onEdit(x, y) },
                 )
@@ -345,16 +345,16 @@ fun HomeScreenView(
                             y = metrics.offsetY(cell.y, gutter.value).dp,
                         )
                         .size(w, h)
-                        .then(anker[cell]?.let { Modifier.focusRequester(it) } ?: Modifier)
+                        .then(anchors[cell]?.let { Modifier.focusRequester(it) } ?: Modifier)
                         .then(
-                            if (rasterAnker != null && fokusZelle == cell) {
-                                Modifier.focusRequester(rasterAnker)
+                            if (gridAnchor != null && focusedCell == cell) {
+                                Modifier.focusRequester(gridAnchor)
                             } else {
                                 Modifier
                             },
                         )
                         .onFocusChanged {
-                            if (it.isFocused) fokusZelle = cell
+                            if (it.isFocused) focusedCell = cell
                         },
                     onClick = { onActivate(cell) },
                     editMode = editMode,
@@ -582,8 +582,8 @@ private fun TileFor(
             appearance = appearance,
             cellWidth = cellWidth,
             cellHeight = cellHeight,
-            spalte = cell.x,
-            zeile = cell.y,
+            column = cell.x,
+            row = cell.y,
             label = button.label,
             modifier = modifier,
             onEdit = onLongClick,
@@ -640,8 +640,8 @@ private fun EmptyTile(
     cellHeight: androidx.compose.ui.unit.Dp,
     modifier: Modifier,
     /** Platz im Raster, nullbasiert - fuer die Ansage. */
-    spalte: Int,
-    zeile: Int,
+    column: Int,
+    row: Int,
     label: String? = null,
     onEdit: () -> Unit,
 ) {
@@ -659,7 +659,7 @@ private fun EmptyTile(
         // schweigt also durchgehend. Dieselben Worte wie in der Verschieben-Ansicht.
         contentDescription = TileSpeech.describe(
             label = einladung,
-            state = stringResource(R.string.move_spot, zeile + 1, spalte + 1),
+            state = stringResource(R.string.move_spot, row + 1, column + 1),
         ),
         background = palette.emptyTile,
         cellHeight = cellHeight,

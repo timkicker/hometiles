@@ -50,14 +50,14 @@ class UeberlagerungFokusTest {
      * Frage. `VerdecktTest` haelt fest, dass keine fehlt.
      */
     private val ueberlagerungen = mapOf(
-        "ordner" to "aktiv = obenauf",
-        "kachelMenue" to "anker.first().requestFocus()",
-        "label" to "anker.requestFocus()",
+        "ordner" to "active = onTop",
+        "kachelMenue" to "anchors.first().requestFocus()",
+        "label" to "anchors.requestFocus()",
         // In `verdeckt` heisst sie `asking`, im Quelltext `ContactChoice`.
-        "asking" to "anker.first().requestFocus()",
+        "asking" to "anchors.first().requestFocus()",
         // Die Tastatur holt den Fokus selbst, siehe BigKeypad und TastaturfolgeTest.
         "wartend" to "holtFokus = true",
-        "phoneStateAsked" to "anker.first().requestFocus()",
+        "phoneStateAsked" to "anchors.first().requestFocus()",
     )
 
     /**
@@ -132,7 +132,7 @@ class UeberlagerungFokusTest {
         )
         assertTrue(
             "Sie fordert den Fokus nicht mehr an, dann ist sie mit Tasten nicht bedienbar.",
-            "anker.first().requestFocus()" in wahl,
+            "anchors.first().requestFocus()" in wahl,
         )
         listOf("DirectionUp", "DirectionDown").forEach {
             assertTrue(

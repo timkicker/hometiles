@@ -42,7 +42,7 @@ class LeerePlaetzeTest {
         // einer den Platz mit, waere die Haelfte der leeren Kacheln weiter stumm - und
         // welche, haenge davon ab, wie die Konfiguration zufaellig aussieht.
         val aufrufe = Regex("EmptyTile\\(").findAll(quelle).count()
-        val mitPlatz = Regex("spalte = ").findAll(quelle).count()
+        val mitPlatz = Regex("column = ").findAll(quelle).count()
         assertTrue(
             "EmptyTile wird ${aufrufe - 1}-mal aufgerufen, aber nur $mitPlatz-mal mit Platz",
             mitPlatz >= aufrufe - 1,

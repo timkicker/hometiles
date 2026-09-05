@@ -3,16 +3,15 @@ package org.biglau.search
 import java.text.Normalizer
 
 /**
- * Suche ueber beschriftete Eintraege - Apps, Kontakte, spaeter Einstellungen. Auf drei Zoll
- * ist Scrollen durch hunderte Eintraege keine Bedienung, also muss die Suche mehr koennen als
- * Praefixe.
+ * search over labelled entries: apps, contacts, later settings.
  *
- * Reine Funktionen, damit die Rangfolge pruefbar bleibt: sie entscheidet, was der Nutzer
- * nach zwei Buchstaben als Erstes sieht.
+ * scrolling through hundreds of entries is no way to operate three inches, so the search has
+ * to do more than prefixes. pure functions, because the ranking decides what someone sees
+ * first after two letters.
  */
 object TextSearch {
 
-    /** Kleinschreibung ohne diakritische Zeichen, damit "muller" auch "Müller" findet. */
+    /** lowercase without diacritics, so "muller" finds "Müller". */
     fun normalize(text: String): String =
         Normalizer.normalize(text, Normalizer.Form.NFD)
             .replace(DIACRITICS, "")
@@ -20,8 +19,8 @@ object TextSearch {
             .lowercase()
 
     /**
-     * Guete eines Treffers, kleiner ist besser; null heisst kein Treffer.
-     * 0 = der Name beginnt damit, 1 = ein Wort im Namen beginnt damit, 2 = kommt irgendwo vor.
+     * match quality, lower is better, null means no match.
+     * 0 = the name starts with it, 1 = a word in the name does, 2 = it occurs somewhere.
      */
     fun rank(label: String, token: String): Int? {
         if (token.isEmpty()) return 0
@@ -36,9 +35,8 @@ object TextSearch {
     }
 
     /**
-     * Filtert und sortiert. Alle Wortteile der Anfrage muessen zutreffen - "goog map" findet
-     * "Google Maps", "goog zzz" nichts. Sortiert wird nach dem besten Treffer, bei Gleichstand
-     * alphabetisch, damit die Reihenfolge zwischen zwei Tastendruecken nicht springt.
+     * every token must match: "goog map" finds "Google Maps", "goog zzz" nothing. ties break
+     * alphabetically so the order does not jump between two key presses.
      */
     fun <T> filter(items: List<T>, query: String, label: (T) -> String): List<T> {
         val tokens = query.trim().split(WHITESPACE).filter { it.isNotEmpty() }

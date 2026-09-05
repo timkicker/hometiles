@@ -113,9 +113,9 @@ import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import org.biglau.web.LinkTarget
 import org.biglau.tiles.TileEditorActivity
 import org.biglau.tiles.TileLabel
-import org.biglau.a11y.Kachelmenue
+import org.biglau.a11y.TileMenu
 import org.biglau.a11y.LongPress
-import org.biglau.a11y.Menuepunkt
+import org.biglau.a11y.MenuItem
 import org.biglau.a11y.LongPressAction
 import org.biglau.a11y.Speaker
 import org.biglau.ui.HomeHeader
@@ -156,7 +156,7 @@ class MainActivity : BigLauActivity() {
      * Hat der Nutzer die Empfangs-Berechtigung schon einmal abgelehnt, und fragt Android
      * noch?
      *
-     * Nach der **zweiten** Ablehnung fragt es nicht mehr: der Aufruf kehrt sofort zurueck,
+     * Nach der **zweiten** Ablehnung fragt es nicht mehr: der Aufruf kehrt sofort back,
      * ohne dass etwas zu sehen waere. Am 04.09.2026 am Emulator nachgestellt - "Jetzt
      * fragen" angetippt, und der Bildschirm schloss sich einfach. Die Kachel sagte weiter
      * "Antippen zum Erlauben", und so ging es endlos.
@@ -218,7 +218,7 @@ class MainActivity : BigLauActivity() {
     /**
      * Eine App, die auf die PIN wartet. PLAN.md 4.5 - siehe [org.biglau.apps.AppLock].
      * Auf der Activity und nicht in der Komposition, damit die Frage einen Wechsel in eine
-     * andere App und zurueck ueberlebt.
+     * andere App und back ueberlebt.
      */
     private val lockedApp = mutableStateOf<GesperrterTipp?>(null)
 
@@ -400,7 +400,7 @@ class MainActivity : BigLauActivity() {
 
             // Der lange Druck und die Liste der Menuetaste fuehren dieselben Aktionen aus.
             // Sie entscheiden nur verschieden, welche: der lange Druck ueber
-            // LongPress.decide, also nach den Einstellungen, die Liste ueber Kachelmenue,
+            // LongPress.decide, also nach den Einstellungen, die Liste ueber TileMenu,
             // die alle drei zeigt. Deshalb steht die Ausfuehrung einmal hier.
             val fuehreAus: (org.biglau.data.Screen, Int, Int, List<LongPressAction>) -> Unit =
                 { gezeigt, x, y, aktionen ->
@@ -447,12 +447,12 @@ class MainActivity : BigLauActivity() {
             val zeigeKachel: @Composable (
                 org.biglau.data.Screen, Modifier, Boolean, FocusRequester?, FocusRequester?,
             ) -> Unit =
-                { gezeigt, gestalt, obenauf, streifen, zurueck ->
+                { gezeigt, gestalt, onTop, strip, back ->
                     HomeScreenView(
                         screen = gezeigt,
-                        aktiv = obenauf,
-                        unten = streifen,
-                        rasterAnker = zurueck,
+                        active = onTop,
+                        below = strip,
+                        gridAnchor = back,
                         appearance = config.appearance,
                         modifier = gestalt,
                         appIcon = { pkg, act ->
@@ -554,7 +554,7 @@ class MainActivity : BigLauActivity() {
                         .then(if (verdeckt) Modifier.clearAndSetSemantics {} else Modifier),
                 ) {
                     // Bei jeder Rueckkehr neu fragen. Wer den Balken antippt, waehlt
-                    // BigLau im Systemdialog und kommt zurueck - stand der Balken dann
+                    // BigLau im Systemdialog und kommt back - stand der Balken dann
                     // immer noch da, haelt er es fuer gescheitert und tippt wieder.
                     if (!remember(resumeTick.value) { isDefaultHome() }) {
                         HomeRolePrompt {
@@ -631,7 +631,7 @@ class MainActivity : BigLauActivity() {
                         onClose = { openFolder.value = null },
                         // Der Streifen liegt sonst in der verdeckten Spalte darunter: am
                         // 04.09.2026 am Jelly 2 nachgestellt - aus einem offenen Ordner in
-                        // die Einstellungen, dort "Kacheln aendern", zurueck in den Ordner,
+                        // die Einstellungen, dort "Kacheln aendern", back in den Ordner,
                         // und nichts sagte, dass der naechste Tipp den Editor aufmacht. Er
                         // tat es (die richtige Kachel sogar), nur wusste es niemand - und
                         // der Weg hinaus steht auf demselben verdeckten Streifen.
@@ -640,8 +640,8 @@ class MainActivity : BigLauActivity() {
                         } else {
                             null
                         },
-                    ) { streifen, zurueck ->
-                        zeigeKachel(ordner, Modifier.fillMaxSize(), true, streifen, zurueck)
+                    ) { strip, back ->
+                        zeigeKachel(ordner, Modifier.fillMaxSize(), true, strip, back)
                     }
                 }
 
@@ -655,7 +655,7 @@ class MainActivity : BigLauActivity() {
                             name = labelAt(config, screenId, x, y, apps),
                             onClose = { kachelMenue.value = null },
                             schliessen = R.string.dialog_close,
-                        ) { streifen, zurueck ->
+                        ) { strip, back ->
                             // PLAN.md 10.3.5: solange die Liste offen ist, liegt der Fokus
                             // in ihr. Ohne das hier lief er mit dem D-Pad in den
                             // Startbildschirm darunter, unsichtbar unter der Liste; am
@@ -663,13 +663,13 @@ class MainActivity : BigLauActivity() {
                             // Ueberlagerung. Der Rasterrahmen darunter faengt die Tasten ab,
                             // solange er den Fokus hat, und er hat ihn, bis ihn jemand
                             // wegnimmt.
-                            val punkte = Kachelmenue.punkte(
+                            val punkte = TileMenu.items(
                                 hasSecondAction = zelle?.button?.longPress != null,
                             )
-                            val anker = remember(punkte) { punkte.map { FocusRequester() } }
-                            var wo by remember(screenId, x, y) { mutableStateOf(0) }
+                            val anchors = remember(punkte) { punkte.map { FocusRequester() } }
+                            var at by remember(screenId, x, y) { mutableStateOf(0) }
                             LaunchedEffect(screenId, x, y) {
-                                runCatching { anker.first().requestFocus() }
+                                runCatching { anchors.first().requestFocus() }
                             }
                             Column(
                                 Modifier
@@ -685,20 +685,20 @@ class MainActivity : BigLauActivity() {
                                         } else {
                                             when (taste.key) {
                                                 Key.DirectionDown -> {
-                                                    if (wo < punkte.lastIndex) {
-                                                        wo += 1
-                                                        anker[wo].requestFocus()
+                                                    if (at < punkte.lastIndex) {
+                                                        at += 1
+                                                        anchors[at].requestFocus()
                                                     } else {
                                                         // Unter dem letzten Punkt steht der
                                                         // Streifen, der die Liste schliesst.
-                                                        runCatching { streifen.requestFocus() }
+                                                        runCatching { strip.requestFocus() }
                                                     }
                                                     true
                                                 }
                                                 Key.DirectionUp -> {
-                                                    if (wo > 0) {
-                                                        wo -= 1
-                                                        anker[wo].requestFocus()
+                                                    if (at > 0) {
+                                                        at -= 1
+                                                        anchors[at].requestFocus()
                                                     }
                                                     true
                                                 }
@@ -712,33 +712,33 @@ class MainActivity : BigLauActivity() {
                                     BigRow(
                                         label = stringResource(
                                             when (punkt) {
-                                                Menuepunkt.ZWEITE_AKTION -> R.string.key_menu_second
-                                                Menuepunkt.BEARBEITEN -> R.string.editor_title
-                                                Menuepunkt.VORLESEN -> R.string.a11y_speak_off
-                                                Menuepunkt.GROSS_ZEIGEN -> R.string.a11y_popup_off
+                                                MenuItem.SECOND_ACTION -> R.string.key_menu_second
+                                                MenuItem.EDIT -> R.string.editor_title
+                                                MenuItem.SPEAK -> R.string.a11y_speak_off
+                                                MenuItem.SHOW_LARGE -> R.string.a11y_popup_off
                                             },
                                         ),
                                         modifier = Modifier
-                                            .focusRequester(anker[nr])
+                                            .focusRequester(anchors[nr])
                                             .then(
-                                                if (wo == nr) {
-                                                    Modifier.focusRequester(zurueck)
+                                                if (at == nr) {
+                                                    Modifier.focusRequester(back)
                                                 } else {
                                                     Modifier
                                                 },
                                             )
-                                            .onFocusChanged { if (it.isFocused) wo = nr },
+                                            .onFocusChanged { if (it.isFocused) at = nr },
                                         onClick = {
                                             kachelMenue.value = null
                                             fuehreAus(
                                                 schirm, x, y,
                                                 listOf(
                                                     when (punkt) {
-                                                        Menuepunkt.ZWEITE_AKTION ->
+                                                        MenuItem.SECOND_ACTION ->
                                                             LongPressAction.SECOND_ACTION
-                                                        Menuepunkt.BEARBEITEN -> LongPressAction.EDIT
-                                                        Menuepunkt.VORLESEN -> LongPressAction.SPEAK
-                                                        Menuepunkt.GROSS_ZEIGEN -> LongPressAction.POPUP
+                                                        MenuItem.EDIT -> LongPressAction.EDIT
+                                                        MenuItem.SPEAK -> LongPressAction.SPEAK
+                                                        MenuItem.SHOW_LARGE -> LongPressAction.POPUP
                                                     },
                                                 ),
                                             )
@@ -989,7 +989,7 @@ class MainActivity : BigLauActivity() {
      * Ein Launcher ist erst nuetzlich, wenn er die Home-Taste bekommt.
      *
      * PackageManager.resolveActivity taugt dafuer nicht: ohne gesetzte Praeferenz liefert es
-     * auf dem Jelly 2 die aufrufende App selbst zurueck, obwohl die Home-Taste woanders landet.
+     * auf dem Jelly 2 die aufrufende App selbst back, obwohl die Home-Taste woanders landet.
      * Verlaesslich ist die Rollenabfrage; darunter bleibt der Abgleich der bevorzugten Aktivitaeten.
      */
     private fun isDefaultHome(): Boolean {
@@ -1054,13 +1054,13 @@ private fun LabelPopup(label: String, onDismiss: () -> Unit) {
     // Fokus. Die Zurueck-Taste schloss zwar, aber sie stand nirgends angeschrieben, und
     // dastand `Zum Schliessen tippen`. Ausgerechnet hier: dieser Bildschirm ist fuer den
     // da, der die Beschriftung sonst nicht liest.
-    val anker = remember { FocusRequester() }
-    LaunchedEffect(label) { runCatching { anker.requestFocus() } }
+    val anchors = remember { FocusRequester() }
+    LaunchedEffect(label) { runCatching { anchors.requestFocus() } }
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(palette.background)
-            .focusRequester(anker)
+            .focusRequester(anchors)
             .onPreviewKeyEvent { taste ->
                 if (taste.type == KeyEventType.KeyDown) {
                     onDismiss()
@@ -1113,16 +1113,16 @@ private fun ContactChoice(
     // Zwei Zeilen, und mit Tasten war keine davon zu erreichen. Am 04.09.2026 von
     // `tools/unerreichbar.py` gemeldet: drei anklickbare Flaechen, **null** erreicht. Der
     // Grund ist derselbe wie beim Ordner und bei der grossen Beschriftung - eine Flaeche,
-    // die spaeter obenauf kommt, bekommt den Fokus nicht von selbst, und ohne Fokus laeuft
+    // die spaeter onTop kommt, bekommt den Fokus nicht von selbst, und ohne Fokus laeuft
     // kein Tastenhandler an.
     //
     // Anders als die grosse Beschriftung schliesst hier **nicht** jede Taste: das ist eine
     // Frage mit zwei Antworten, und wer sie mit Tasten liest, muss zwischen ihnen waehlen
     // koennen. Also hoch und runter zwischen den beiden Zeilen, links und rechts verbraucht,
     // und die Zurueck-Taste schliesst wie bisher.
-    val anker = remember { List(2) { FocusRequester() } }
-    var wo by remember(name) { mutableStateOf(0) }
-    LaunchedEffect(name) { runCatching { anker.first().requestFocus() } }
+    val anchors = remember { List(2) { FocusRequester() } }
+    var at by remember(name) { mutableStateOf(0) }
+    LaunchedEffect(name) { runCatching { anchors.first().requestFocus() } }
 
     Box(
         modifier = Modifier
@@ -1134,16 +1134,16 @@ private fun ContactChoice(
                 } else {
                     when (taste.key) {
                         Key.DirectionDown -> {
-                            if (wo < anker.lastIndex) {
-                                wo += 1
-                                anker[wo].requestFocus()
+                            if (at < anchors.lastIndex) {
+                                at += 1
+                                anchors[at].requestFocus()
                             }
                             true
                         }
                         Key.DirectionUp -> {
-                            if (wo > 0) {
-                                wo -= 1
-                                anker[wo].requestFocus()
+                            if (at > 0) {
+                                at -= 1
+                                anchors[at].requestFocus()
                             }
                             true
                         }
@@ -1191,16 +1191,16 @@ private fun ContactChoice(
                 icon = Icons.Filled.Call,
                 surface = palette.surfaceAccent,
                 modifier = Modifier
-                    .focusRequester(anker[0])
-                    .onFocusChanged { if (it.isFocused) wo = 0 },
+                    .focusRequester(anchors[0])
+                    .onFocusChanged { if (it.isFocused) at = 0 },
                 onClick = onCall,
             )
             BigRow(
                 label = stringResource(R.string.contacts_action_sms),
                 icon = Icons.AutoMirrored.Filled.Message,
                 modifier = Modifier
-                    .focusRequester(anker[1])
-                    .onFocusChanged { if (it.isFocused) wo = 1 },
+                    .focusRequester(anchors[1])
+                    .onFocusChanged { if (it.isFocused) at = 1 },
                 onClick = onSms,
             )
             Text(
@@ -1239,9 +1239,9 @@ private fun FolderOverlay(
 ) {
     val palette = LocalBigPalette.current
     // Die beiden Wege zwischen dem Inhalt und dem Streifen. Der Inhalt schickt den Fokus
-    // nach unten hierher, der Streifen schickt ihn nach oben zurueck.
-    val untenAnker = remember { FocusRequester() }
-    val zurueckAnker = remember { FocusRequester() }
+    // nach unten hierher, der Streifen schickt ihn nach oben back.
+    val belowAnchor = remember { FocusRequester() }
+    val backAnchor = remember { FocusRequester() }
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -1260,7 +1260,7 @@ private fun FolderOverlay(
             modifier = Modifier.padding(horizontal = 4.dp, vertical = 8.dp),
         )
         banner?.invoke()
-        Box(Modifier.weight(1f)) { content(untenAnker, zurueckAnker) }
+        Box(Modifier.weight(1f)) { content(belowAnchor, backAnchor) }
         // Die Zurueck-Geste schliesst ihn auch. Der Streifen ist fuer alle da, die sie nicht
         // benutzen - und er sagt, was er tut, statt nur ein Kreuz zu zeigen. Mit Tasten war
         // er bis zum 04.09.2026 unerreichbar, obwohl er dastand.
@@ -1268,7 +1268,7 @@ private fun FolderOverlay(
             label = stringResource(schliessen),
             icon = Icons.Filled.Close,
             modifier = Modifier
-                .focusRequester(untenAnker)
+                .focusRequester(belowAnchor)
                 // Der Streifen verbraucht die Richtungstasten wie das Raster darueber, und
                 // aus demselben Grund. Am 04.09.2026 gemessen, an dem Tag, an dem er
                 // ueberhaupt erreichbar wurde: ein Druck nach rechts, und der Fokus war
@@ -1282,7 +1282,7 @@ private fun FolderOverlay(
                     } else {
                         when (taste.key) {
                             Key.DirectionUp -> {
-                                runCatching { zurueckAnker.requestFocus() }
+                                runCatching { backAnchor.requestFocus() }
                                 true
                             }
                             Key.DirectionDown, Key.DirectionLeft, Key.DirectionRight -> true
@@ -1322,9 +1322,9 @@ private fun SignalPermissionExplainer(
     // der Fokus sass auf der ersten und ruehrte sich nicht, weil die Suche nach dem
     // naechsten Ziel unter die Ueberlagerung lief. Also benannte Anker und eine eigene
     // Rechnung, wie in der Kachelliste und in der Kontaktwahl.
-    val anker = remember { List(2) { FocusRequester() } }
-    var wo by remember(blocked) { mutableStateOf(0) }
-    LaunchedEffect(blocked) { runCatching { anker.first().requestFocus() } }
+    val anchors = remember { List(2) { FocusRequester() } }
+    var at by remember(blocked) { mutableStateOf(0) }
+    LaunchedEffect(blocked) { runCatching { anchors.first().requestFocus() } }
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -1340,16 +1340,16 @@ private fun SignalPermissionExplainer(
                             true
                         }
                         Key.DirectionDown -> {
-                            if (wo < anker.lastIndex) {
-                                wo += 1
-                                runCatching { anker[wo].requestFocus() }
+                            if (at < anchors.lastIndex) {
+                                at += 1
+                                runCatching { anchors[at].requestFocus() }
                             }
                             true
                         }
                         Key.DirectionUp -> {
-                            if (wo > 0) {
-                                wo -= 1
-                                runCatching { anker[wo].requestFocus() }
+                            if (at > 0) {
+                                at -= 1
+                                runCatching { anchors[at].requestFocus() }
                             }
                             true
                         }
@@ -1373,7 +1373,7 @@ private fun SignalPermissionExplainer(
             // Der Satz "kann es auch nicht: die Berechtigung dafuer hat es nicht" ist eine
             // Zusage ueber dieses Geraet - also wird nachgesehen. Haelt die App die
             // Telefon-Rolle, hat sie CALL_PHONE, und die starke Fassung waere falsch. Am
-            // Emulator aufgefallen, wo genau das der Fall ist.
+            // Emulator aufgefallen, at genau das der Fall ist.
             text = if (
                 ContextCompat.checkSelfPermission(LocalContext.current, Manifest.permission.CALL_PHONE) ==
                 PackageManager.PERMISSION_GRANTED
@@ -1402,8 +1402,8 @@ private fun SignalPermissionExplainer(
                 label = stringResource(org.biglau.core.ui.R.string.permission_open_settings),
                 surface = palette.surfaceAccent,
                 modifier = Modifier
-                    .focusRequester(anker[0])
-                    .onFocusChanged { if (it.isFocused) wo = 0 },
+                    .focusRequester(anchors[0])
+                    .onFocusChanged { if (it.isFocused) at = 0 },
                 onClick = onSettings,
             )
         } else {
@@ -1411,16 +1411,16 @@ private fun SignalPermissionExplainer(
                 label = stringResource(R.string.signal_permission_ask),
                 surface = palette.surfaceAccent,
                 modifier = Modifier
-                    .focusRequester(anker[0])
-                    .onFocusChanged { if (it.isFocused) wo = 0 },
+                    .focusRequester(anchors[0])
+                    .onFocusChanged { if (it.isFocused) at = 0 },
                 onClick = onAsk,
             )
         }
         BigRow(
             label = stringResource(R.string.signal_permission_no),
             modifier = Modifier
-                .focusRequester(anker[1])
-                .onFocusChanged { if (it.isFocused) wo = 1 },
+                .focusRequester(anchors[1])
+                .onFocusChanged { if (it.isFocused) at = 1 },
             onClick = onDismiss,
         )
     }

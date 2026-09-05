@@ -7,15 +7,14 @@ import org.biglau.data.Screen
 enum class Direction { UP, DOWN, LEFT, RIGHT }
 
 /**
- * Zellen vergroessern und verkleinern - im Original heisst das "stretch" und "shrink".
+ * growing and shrinking cells.
  *
- * Die Regeln sind absichtlich streng: eine Zelle darf nur in Flaechen wachsen, die das Raster
- * hergibt und die keine andere Zelle belegt. Eine Belegung stillschweigend zu ueberschreiben
- * waere Datenverlust an der Stelle, an der der Nutzer am wenigsten damit rechnet.
+ * deliberately strict: a cell may only grow into space the grid has and no other cell holds.
+ * overwriting a tile silently would be data loss exactly where nobody expects it.
  */
 object CellLayout {
 
-    /** Das Rechteck, das die Zelle nach dem Vergroessern haette. */
+    /** the rectangle the cell would have after growing. */
     fun stretched(cell: Cell, direction: Direction): Cell = when (direction) {
         Direction.UP -> cell.copy(y = cell.y - 1, h = cell.h + 1)
         Direction.DOWN -> cell.copy(h = cell.h + 1)
@@ -23,7 +22,7 @@ object CellLayout {
         Direction.RIGHT -> cell.copy(w = cell.w + 1)
     }
 
-    /** Das Rechteck nach dem Verkleinern; die Kante der angegebenen Seite weicht zurueck. */
+    /** after shrinking; the named side's edge moves back. */
     fun shrunk(cell: Cell, direction: Direction): Cell = when (direction) {
         Direction.UP -> cell.copy(y = cell.y + 1, h = cell.h - 1)
         Direction.DOWN -> cell.copy(h = cell.h - 1)
@@ -44,7 +43,7 @@ object CellLayout {
         Direction.LEFT, Direction.RIGHT -> cell.w > 1
     }
 
-    /** Gibt den Screen unveraendert zurueck, wenn der Schritt nicht erlaubt ist. */
+    /** returns the screen unchanged when the step is not allowed. */
     fun stretch(screen: Screen, cell: Cell, direction: Direction): Screen {
         if (!canStretch(screen, cell, direction)) return screen
         return replace(screen, cell, stretched(cell, direction))
@@ -55,7 +54,7 @@ object CellLayout {
         return replace(screen, cell, shrunk(cell, direction))
     }
 
-    /** Alle Richtungen, in die diese Zelle gerade wachsen kann. */
+    /** every direction this cell can currently grow in. */
     fun stretchable(screen: Screen, cell: Cell): List<Direction> =
         Direction.entries.filter { canStretch(screen, cell, it) }
 
@@ -63,10 +62,8 @@ object CellLayout {
         Direction.entries.filter { canShrink(cell, it) }
 
     /**
-     * Versucht, eine Zelle auf die gewuenschte Spannweite zu bringen - erst nach rechts,
-     * dann nach unten, dann nach links und oben. Gibt null zurueck, wenn der Platz nicht
-     * reicht: dann soll die Oberflaeche das sagen, statt eine halb gewachsene Zelle
-     * zurueckzulassen.
+     * grows a cell to the wanted span, right first, then down, then left and up. null when
+     * there is not enough room, so the surface can say so instead of leaving a half-grown cell.
      */
     fun growTo(screen: Screen, cell: Cell, targetWidth: Int, targetHeight: Int): Screen? {
         var board = screen
@@ -89,10 +86,7 @@ object CellLayout {
         return if (current.w >= targetWidth && current.h >= targetHeight) board else null
     }
 
-    /**
-     * Passt einen Screen an ein geaendertes Raster an. Zellen, die ganz herausfallen,
-     * verschwinden; Zellen, die nur ueberstehen, werden gestutzt.
-     */
+    /** fits a screen to a changed grid: cells outside vanish, cells hanging over are trimmed. */
     fun fitToGrid(screen: Screen): Screen {
         val fitted = screen.cells.mapNotNull { cell ->
             if (cell.x >= screen.cols || cell.y >= screen.rows) return@mapNotNull null
@@ -108,41 +102,37 @@ object CellLayout {
             cell.x + cell.w <= screen.cols &&
             cell.y + cell.h <= screen.rows
 
-    /** Rasterplaetze, die nach dem Wachsen belegt waeren und es vorher nicht waren. */
+    /** slots covered after growing that were not covered before. */
     private fun newlyCovered(before: Cell, after: Cell): List<Pair<Int, Int>> =
         (after.y until after.y + after.h).flatMap { y ->
             (after.x until after.x + after.w).map { x -> x to y }
         }.filterNot { (x, y) -> before.covers(x, y) }
 
     /**
-     * Belegt den Platz, den (x, y) ueberdeckt - oder legt dort eine neue 1x1-Zelle an.
+     * fills the slot at (x, y), or creates a 1x1 cell there.
      *
-     * Stand bis zum 03.09.2026 in `ConfigStore.setButton`, im Modul `core:data`, das als
-     * einziges **keinen einzigen Test** hatte. Es ist die Rechnung, die eine Kachel des
-     * Nutzers ueberschreibt; sie gehoert dorthin, wo sie geprueft werden kann.
+     * this is the arithmetic that overwrites a user's tile, so it belongs where it can be
+     * tested, not in `core:data`.
      */
     fun withButton(screen: Screen, x: Int, y: Int, button: Button): Screen {
-        val vorhanden = screen.cellAt(x, y)
-        val zellen = screen.cells.toMutableList()
-        if (vorhanden == null) {
-            zellen.add(Cell(x = x, y = y, button = button))
+        val existing = screen.cellAt(x, y)
+        val cells = screen.cells.toMutableList()
+        if (existing == null) {
+            cells.add(Cell(x = x, y = y, button = button))
         } else {
-            zellen[zellen.indexOf(vorhanden)] = vorhanden.copy(button = button)
+            cells[cells.indexOf(existing)] = existing.copy(button = button)
         }
-        return screen.copy(cells = zellen)
+        return screen.copy(cells = cells)
     }
 
     /**
-     * Leert einen Platz, indem die Zelle **verschwindet**.
-     *
-     * Nicht, indem sie eine Zelle ohne Aktion zuruecklaesst: sonst gaebe es „leer" zweimal
-     * im Modell, und die zweite Sorte blockiert stillschweigend das Vergroessern der
-     * Nachbarn. Ein leerer Platz, der sich nicht wie ein leerer Platz verhaelt, ist genau
-     * die Sorte Fehler, die niemand findet.
+     * empties a slot by making the cell **vanish**, not by leaving one without an action:
+     * that would give "empty" two shapes in the model, and the second silently blocks the
+     * neighbours from growing.
      */
     fun withoutButton(screen: Screen, x: Int, y: Int): Screen {
-        val vorhanden = screen.cellAt(x, y) ?: return screen
-        return screen.copy(cells = screen.cells - vorhanden)
+        val existing = screen.cellAt(x, y) ?: return screen
+        return screen.copy(cells = screen.cells - existing)
     }
 
     private fun replace(screen: Screen, old: Cell, new: Cell): Screen =

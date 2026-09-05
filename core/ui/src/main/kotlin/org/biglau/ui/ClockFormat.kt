@@ -2,61 +2,26 @@ package org.biglau.ui
 
 import org.biglau.data.ClockDisplay
 
-/**
- * Was die Uhr zeigt. PLAN.md 4.2: „aus / Uhrzeit / Uhrzeit+Datum / Uhrzeit+Datum+Wochentag".
- *
- * Der Wochentag ist die Stufe, die am meisten hilft und am meisten Platz kostet. Wer den
- * Tag nicht sicher weiss - und das ist haeufiger, als man denkt, wenn die Tage gleich
- * aussehen -, liest ihn hier ab. Wer ihn weiss, will die Zeile nicht.
- */
+/** what the clock shows. `PLAN.md` 4.2: off / time / time+date / time+date+weekday. */
 object ClockFormat {
 
-    /**
-     * Das Muster fuer eine Uhrzeit - mit oder ohne AM/PM.
-     *
-     * Stand bis zum 3.9.2026 an drei Stellen: zweimal richtig (Kopfzeile und Infokachel
-     * fragten `is24HourFormat`) und einmal falsch - die Nachrichtenliste schrieb fest
-     * `"HH:mm"`. Auf einem Telefon in 12-Stunden-Anzeige stand oben „2:30 PM" und in der
-     * Liste derselben Minute „14:30". Fuer jemanden, der schlecht liest, sind das zwei
-     * verschiedene Uhrzeiten.
-     */
+    /** ask `is24HourFormat`; a hard-coded "HH:mm" shows 14:30 next to a header saying 2:30 PM. */
     fun timePattern(twentyFourHour: Boolean): String = if (twentyFourHour) "HH:mm" else "h:mm a"
 
-    /**
-     * Auf der Kachel gibt es kein „aus": eine Uhr-Kachel ohne Uhrzeit waere eine leere
-     * Kachel, die aussieht, als sei etwas kaputt. „Aus" betrifft die Kopfzeile - dort
-     * bleibt der Ladestand stehen, wenn die Uhr geht.
-     */
+    /** a clock tile with no time would look broken, so "off" only applies to the header. */
     fun showsTime(display: ClockDisplay, onTile: Boolean): Boolean =
         onTile || display != ClockDisplay.OFF
 
-    /**
-     * Welche **Bestandteile** das Datum hat - nicht, wie sie angeordnet sind.
-     *
-     * Hier stand vorher ein fertiges deutsches Muster („EEEE, d. MMMM"). Mit einer anderen
-     * Sprache kam damit Unsinn heraus: am Jelly 2, das auf Englisch steht, hiess der
-     * Wochentag „Wednesday, 2. September" - englischer Name, deutscher Punkt, deutsche
-     * Reihenfolge. Ein Datum, das man zweimal lesen muss, ist auf einer Uhr das Gegenteil
-     * dessen, wofuer sie da ist.
-     *
-     * Ein Skelett sagt nur „Wochentag, Tag, Monat"; die Anordnung holt sich die Anzeige
-     * ueber `DateFormat.getBestDateTimePattern` aus der Sprache. Null heisst: keine
-     * Datumszeile.
-     */
     fun dateSkeleton(display: ClockDisplay, onTile: Boolean): String? =
         dateSkeletons(display, onTile).firstOrNull()
 
     /**
-     * Die Stufen vom langen zum kurzen Datum - erst kuerzen, dann umbrechen.
+     * date *parts*, longest first, not an arrangement: the order comes from the locale via
+     * `DateFormat.getBestDateTimePattern`. a ready-made german pattern gave "Wednesday,
+     * 2. September" on an english phone.
      *
-     * „Auf der Kachel ist Platz fuer die langen Namen" stand hier als Behauptung, und am
-     * Geraet stimmte sie nicht: auf einer 1x1-Kachel brach „Wednesday, September 2" um, und
-     * in der zweiten Zeile stand die **2 allein**. Eine Zahl ohne ihren Monat ist kein
-     * Datum mehr, sondern ein Rest.
-     *
-     * Die Kachel misst deshalb (siehe `ClockContent`): passt der lange Name nicht in eine
-     * Zeile, nimmt sie den kurzen. Die Kopfzeile ist von vornherein schmal und faengt
-     * gleich beim kurzen an.
+     * several steps because a 1x1 tile wraps the long name and leaves the bare day number
+     * on the second line. the tile measures and falls back; the header starts short.
      */
     fun dateSkeletons(display: ClockDisplay, onTile: Boolean): List<String> = when (display) {
         ClockDisplay.OFF -> emptyList()
@@ -67,32 +32,25 @@ object ClockFormat {
     }
 
     /**
-     * Das laengste Datum, das dieses Muster im Lauf eines Jahres ergibt.
+     * the longest date this pattern yields over a year.
      *
-     * Gemessen wird nicht mit dem heutigen Datum: sonst passte die Kachel am Mittwoch und
-     * braeche am Donnerstag um, und der Nutzer saehe einen Fehler, der von der Woche
-     * abhaengt. Durchgegangen werden alle zwoelf Monate an sieben aufeinanderfolgenden
-     * Tagen - das deckt jeden Wochentagsnamen und jeden Monatsnamen ab, und die Tageszahl
-     * ist dabei immer zweistellig.
-     *
-     * **Laenge in Zeichen ist ein Naeherungswert**, nicht die Breite in Pixeln; ein „W"
-     * ist breiter als ein „i". Fuer die Frage „lange oder kurze Namen" reicht das, und die
-     * Alternative waere, vierundachtzig Zeichenketten zu vermessen, bei jeder Minute neu.
+     * twelve months times seven consecutive days covers every weekday and month name with a
+     * two-digit day. measuring today's date instead would fit on wednesday and wrap on
+     * thursday. character count is an approximation of width, and that is enough here.
      */
     fun longestDate(format: java.text.DateFormat): String {
-        val kalender = java.util.Calendar.getInstance()
-        var laengste = ""
-        for (monat in 0..11) {
-            for (tag in 22..28) {
-                kalender.set(2024, monat, tag)
-                val text = format.format(kalender.time)
-                if (text.length > laengste.length) laengste = text
+        val calendar = java.util.Calendar.getInstance()
+        var longest = ""
+        for (month in 0..11) {
+            for (day in 22..28) {
+                calendar.set(2024, month, day)
+                val text = format.format(calendar.time)
+                if (text.length > longest.length) longest = text
             }
         }
-        return laengste
+        return longest
     }
 
-    /** PLAN.md 4.2 „Groesse frei". Die Stufen, die die Kopfzeile noch traegt. */
     val SCALES = listOf(0.75f, 1.0f, 1.25f, 1.5f, 2.0f)
 
     const val SCALE_MIN = 0.75f
@@ -100,44 +58,24 @@ object ClockFormat {
 
     fun scale(value: Float): Float = value.coerceIn(SCALE_MIN, SCALE_MAX)
 
-    /**
-     * Hoehe der Kopfzeile in dp.
-     *
-     * Sie muss mit **beiden** Faktoren wachsen, die die Schrift darin groesser machen: der
-     * globalen Textgroesse und der eigenen Groesse der Uhr. Gerechnet wurde nur mit der
-     * zweiten - wer die Textgroesse auf 150 % stellte, bekam eine Kopfzeile, die ihre
-     * Datumszeile mitten durchschnitt. Am Emulator gesehen, nachdem der Assistent mit
-     * 150 % durchgelaufen war; der Kommentar an der Stelle beschrieb genau diesen Fehler
-     * und die Rechnung deckte nur die Haelfte davon ab.
-     */
+    /** grows with **both** factors; counting only the clock scale cut the date line in half. */
     fun headerHeightDp(hasDate: Boolean, textScale: Float, clockScale: Float): Float =
         (if (hasDate) 78f else 54f) * textScale * scale(clockScale)
 
-    /** Grob die Breite eines fetten serifenlosen Zeichens, gemessen an der Schriftgroesse. */
-    private const val ZEICHENBREITE = 0.62f
+    /** rough width of a bold sans-serif character, relative to the font size. */
+    private const val CHARACTER_WIDTH = 0.62f
 
-    /**
-     * Wie breit die Ladestandsanzeige rechts in der Kopfzeile wird.
-     *
-     * „100 %" plus Blitz plus Abstand. Sie waechst mit der Textgroesse mit, und genau das
-     * macht sie zum Problem: bei 200 % nimmt sie so viel Platz, dass links nichts mehr
-     * bleibt.
-     */
+    /** "100 %" plus bolt plus gap. it grows with the text scale, and at 200 % it eats the row. */
     fun batteryWidthDp(textScale: Float): Float =
-        "100 %".length * ZEICHENBREITE * 20f * textScale + 20f * textScale + 8f
+        "100 %".length * CHARACTER_WIDTH * 20f * textScale + 20f * textScale + 8f
 
     /**
-     * Schriftgroesse der Uhr, damit sie **neben** dem Ladestand Platz hat.
-     *
-     * Bei 200 % Textgroesse liefen die beiden ineinander: die Uhr stand mit
-     * `softWrap = false` da und zeichnete ueber den Ladestand hinweg, „9:37" und „100 %"
-     * uebereinander. Am Emulator gesehen. Die Uhr darf deshalb kleiner werden, als die
-     * Einstellung verlangt - eine Uhr, die man liest, ist mehr wert als eine, die die
-     * gewuenschte Groesse hat und unter dem Ladestand verschwindet.
+     * the clock may end up smaller than asked for: with `softWrap = false` it drew straight
+     * over the battery reading at 200 %. a clock you can read beats one at the wanted size.
      */
     fun clockSizeSp(text: String, availableDp: Float, textScale: Float, clockScale: Float): Float {
-        val gewuenscht = 26f * textScale * scale(clockScale)
-        val passend = availableDp / (text.length.coerceAtLeast(1) * ZEICHENBREITE)
-        return minOf(gewuenscht, passend).coerceAtLeast(14f)
+        val wanted = 26f * textScale * scale(clockScale)
+        val fitting = availableDp / (text.length.coerceAtLeast(1) * CHARACTER_WIDTH)
+        return minOf(wanted, fitting).coerceAtLeast(14f)
     }
 }

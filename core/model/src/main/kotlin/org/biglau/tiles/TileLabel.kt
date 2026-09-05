@@ -6,24 +6,17 @@ import org.biglau.data.ButtonAction
 import org.biglau.web.LinkTarget
 
 /**
- * Was auf einer Kachel steht, wenn niemand sie beschriftet hat.
+ * what a tile says when nobody has labelled it (`PLAN.md` 4.4).
  *
- * PLAN.md 4.4 verlangt automatische Beschriftungen fuer neu angelegte Kacheln. Sie werden
- * nicht in die Konfiguration geschrieben, sondern jedes Mal abgeleitet: benennt der Nutzer
- * eine App um oder einen Ordner, wandert die Kachel mit. Eine einmal hineinkopierte
- * Beschriftung bliebe stehen und waere ab dann falsch.
+ * derived every time rather than written into the config: rename an app or a folder and the
+ * tile follows. a label copied in once would stay put and be wrong from then on.
  *
- * Frueher gab es diese Ableitung zweimal - einmal fuer den Startbildschirm, einmal fuer
- * den Editor - und sie waren bereits auseinander: der Startbildschirm nannte den Ordner
- * beim Namen, der Editor sagte nur "Ordner". Wer zwei Ordner hat, konnte dort nicht mehr
- * erkennen, welcher gemeint war.
+ * this derivation used to exist twice, for the home screen and for the editor, and the two
+ * had already drifted: one named the folder, the other just said "folder".
  */
 object TileLabel {
 
-    /**
-     * Die Woerter, die aus den Ressourcen kommen. Von aussen hereingereicht, damit die
-     * Ableitung selbst ohne Android auskommt und pruefbar bleibt.
-     */
+    /** words from the resources, handed in so the derivation stays free of android. */
     data class Words(
         val emptyTile: String,
         val folder: String,

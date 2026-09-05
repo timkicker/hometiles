@@ -5,24 +5,22 @@ import android.telephony.PhoneNumberUtils
 import android.telephony.TelephonyManager
 
 /**
- * Die Systemteile von [PhoneNumbers] - die einzige Stelle, die dafuer Android anfasst.
+ * the system half of [PhoneNumbers], the only place that touches android for it.
  *
- * [PhoneNumbers] selbst rechnet nur und liegt deshalb in `core:model`, wo der Compiler
- * "kein Android" erzwingt. Zwei Auskuenfte kann es dort aber nicht selbst holen: die
- * Schreibweise einer Nummer (Android bringt die Vorwahltabellen mit) und das Land der SIM.
- * Beide haengt [install] beim Start ein.
+ * [PhoneNumbers] only computes and therefore lives in `core:model`, where the compiler
+ * enforces "no android". two facts cannot be fetched there: how a number is written (android
+ * carries the dialling-code tables) and the sim's country. [install] hooks both up at start.
  *
- * Ohne diesen Aufruf schreibt BigLau Nummern in blossen Dreierbloecken. Das ist kein
- * Absturz, sondern ein leiser Rueckschritt - genau die Sorte Fehler, die niemand meldet.
- * Deshalb prueft `StartAufgabenTest`, dass der Aufruf beim Start steht.
+ * without that call biglau writes numbers in plain blocks of three. that is no crash but a
+ * quiet regression, so `StartAufgabenTest` checks the call is made.
  */
 object SystemNumbers {
 
     fun install(context: Context) {
-        PhoneNumbers.systemFormat = { nummer, land ->
-            runCatching { PhoneNumberUtils.formatNumber(nummer, land) }.getOrNull()
+        PhoneNumbers.systemFormat = { number, country ->
+            runCatching { PhoneNumberUtils.formatNumber(number, country) }.getOrNull()
         }
-        // Braucht keine Berechtigung: die Landeskennung der SIM ist frei lesbar.
+        // needs no permission: the sim's country code is freely readable.
         PhoneNumbers.region = runCatching {
             context.getSystemService(TelephonyManager::class.java)
                 ?.simCountryIso

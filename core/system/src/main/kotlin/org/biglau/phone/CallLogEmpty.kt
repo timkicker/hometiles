@@ -1,44 +1,40 @@
 package org.biglau.phone
 
-/** Warum die Anrufliste leer aussieht. */
 enum class EmptyCallLog {
-    /** Es gab wirklich keine Anrufe. */
     NO_CALLS,
 
-    /** Es gab welche, aber alle sind von einer ausgeblendeten Art. */
+    /** there were calls, but every one is of a hidden type. */
     HIDDEN_BY_TYPE,
 
-    /** Es gab welche, aber gerade steht der Filter auf „nur verpasste". */
+    /** there were calls, but the filter stands on "missed only". */
     NO_MISSED,
 }
 
 /**
- * Eine leere Liste hat drei verschiedene Gründe, und sie dürfen nicht denselben Satz teilen.
+ * an empty list has three different reasons and they must not share one sentence.
  *
- * „Noch keine Anrufe." stand auch dann da, wenn sieben Anrufe im Protokoll lagen und der
- * Nutzer in den Einstellungen jede Art ausgeblendet hatte. Das ist keine Auskunft, sondern
- * eine Falschaussage - und aus ihr führte nichts heraus: mit leerer Liste verschwinden auch
- * der Hinweis und der Knopf darunter. Wer sich nicht erinnert, die Arten je angefasst zu
- * haben, hält das Telefon für kaputt.
+ * "no calls yet" stood there even with seven calls in the log and every type hidden in the
+ * settings. that is not information but a false statement, and nothing led out of it: with
+ * an empty list the hint and the button below it disappear too.
  */
 object CallLogEmpty {
 
-    /** `null`, wenn etwas zu sehen ist. */
+    /** `null` when there is something to see. */
     fun reason(
-        alle: List<CallGroup>,
+        all: List<CallGroup>,
         missedOnly: Boolean,
         allowed: Set<CallDirection>,
     ): EmptyCallLog? {
-        val sichtbar = CallLogGrouping.visible(
-            if (missedOnly) CallLogGrouping.onlyMissed(alle) else alle,
+        val visible = CallLogGrouping.visible(
+            if (missedOnly) CallLogGrouping.onlyMissed(all) else all,
             allowed,
         )
-        if (sichtbar.isNotEmpty()) return null
-        if (alle.isEmpty()) return EmptyCallLog.NO_CALLS
-        // Die Reihenfolge ist die des Nutzers, nicht die des Codes: die Artenwahl steht in
-        // den Einstellungen und ist vergessen, der Filter "nur verpasste" steht als Knopf
-        // ueber der Liste und ist zu sehen. Deshalb zuerst der versteckte Grund.
-        if (CallLogGrouping.visible(alle, allowed).isEmpty()) return EmptyCallLog.HIDDEN_BY_TYPE
+        if (visible.isNotEmpty()) return null
+        if (all.isEmpty()) return EmptyCallLog.NO_CALLS
+        // the user's order, not the code's: the type choice sits in the settings and is
+        // forgotten, the "missed only" filter is a button above the list and is visible.
+        // so the hidden reason comes first.
+        if (CallLogGrouping.visible(all, allowed).isEmpty()) return EmptyCallLog.HIDDEN_BY_TYPE
         return EmptyCallLog.NO_MISSED
     }
 }

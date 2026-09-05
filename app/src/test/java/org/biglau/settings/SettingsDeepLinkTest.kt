@@ -23,44 +23,44 @@ class SettingsDeepLinkTest {
 
     @Test
     fun `bekannter Name ergibt die Seite`() {
-        assertEquals(Page.CALL_TYPES, SettingsDeepLink.ziel("CALL_TYPES"))
-        assertEquals(Page.CONTACTS, SettingsDeepLink.ziel("CONTACTS"))
+        assertEquals(Page.CALL_TYPES, SettingsDeepLink.target("CALL_TYPES"))
+        assertEquals(Page.CONTACTS, SettingsDeepLink.target("CONTACTS"))
     }
 
     /** Eine Sicherung aus einer spaeteren Fassung darf die Einstellungen nicht abschiessen. */
     @Test
     fun `unbekannter oder fehlender Name ergibt nichts`() {
-        assertNull(SettingsDeepLink.ziel("GIBTSNICHT"))
-        assertNull(SettingsDeepLink.ziel(null))
-        assertNull(SettingsDeepLink.ziel(""))
+        assertNull(SettingsDeepLink.target("GIBTSNICHT"))
+        assertNull(SettingsDeepLink.target(null))
+        assertNull(SettingsDeepLink.target(""))
     }
 
     @Test
     fun `ohne Ziel oeffnet die Hauptseite`() {
-        assertEquals(Page.MAIN, SettingsDeepLink.start(locked = false, ziel = null))
+        assertEquals(Page.MAIN, SettingsDeepLink.start(locked = false, target = null))
     }
 
     @Test
     fun `mit Ziel oeffnet die Unterseite`() {
-        assertEquals(Page.MESSAGES, SettingsDeepLink.start(locked = false, ziel = Page.MESSAGES))
+        assertEquals(Page.MESSAGES, SettingsDeepLink.start(locked = false, target = Page.MESSAGES))
     }
 
     /** Sonst waere die PIN mit einem Aufruf von aussen umgangen. */
     @Test
     fun `das Schloss geht dem Ziel vor`() {
-        assertEquals(Page.GATE, SettingsDeepLink.start(locked = true, ziel = Page.MESSAGES))
-        assertNull(SettingsDeepLink.sprung(Page.GATE, Page.MESSAGES))
+        assertEquals(Page.GATE, SettingsDeepLink.start(locked = true, target = Page.MESSAGES))
+        assertNull(SettingsDeepLink.jump(Page.GATE, Page.MESSAGES))
     }
 
     @Test
     fun `eine spaetere Anfrage springt`() {
-        assertEquals(Page.CALL_TYPES, SettingsDeepLink.sprung(Page.MESSAGES, Page.CALL_TYPES))
+        assertEquals(Page.CALL_TYPES, SettingsDeepLink.jump(Page.MESSAGES, Page.CALL_TYPES))
     }
 
     @Test
     fun `ohne Anfrage und auf der eigenen Seite bleibt alles stehen`() {
-        assertNull(SettingsDeepLink.sprung(Page.MESSAGES, null))
-        assertNull(SettingsDeepLink.sprung(Page.MESSAGES, Page.MESSAGES))
+        assertNull(SettingsDeepLink.jump(Page.MESSAGES, null))
+        assertNull(SettingsDeepLink.jump(Page.MESSAGES, Page.MESSAGES))
     }
 
     /**

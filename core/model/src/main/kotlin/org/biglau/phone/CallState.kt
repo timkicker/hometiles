@@ -2,10 +2,8 @@ package org.biglau.phone
 
 import org.biglau.data.AudioRoute
 
-/** Der Zustand eines Anrufs, so weit die Oberflaeche ihn braucht. */
 enum class CallStatus { RINGING, DIALING, CONNECTING, ACTIVE, HOLDING, DISCONNECTING, DISCONNECTED, OTHER }
 
-/** Was der Nutzer gerade tun kann. */
 enum class CallAction {
     ANSWER,
     REJECT,
@@ -16,33 +14,19 @@ enum class CallAction {
     UNMUTE,
     SPEAKER,
 
-    /**
-     * Lautsprecher wieder aus.
-     *
-     * **Den gab es nicht** - "Lautsprecher" schaltete ihn nur ein, ein zweiter Druck tat
-     * dasselbe noch einmal. Wer ihn versehentlich anschaltete, bekam ihn bis zum Auflegen
-     * nicht mehr weg, und das Gespraech lief derweil laut durch den Raum.
-     */
+    /** without this, "speaker" only ever switched on and stayed on until hanging up. */
     SPEAKER_OFF,
 
     /**
-     * Wohin der Ton geht - als Auswahl.
-     *
-     * Steht an der Stelle von [SPEAKER], **sobald ein Bluetooth-Geraet da ist**. Mit drei
-     * Moeglichkeiten reicht ein Umschalter nicht mehr, und eine vierte Knopfzeile passt auf
-     * drei Zoll nicht dazu: fuenf Zeilen fuellen den Bildschirm schon. Also zeigt die Zeile
-     * den derzeitigen Weg an und fuehrt zur Auswahl. Ohne Bluetooth bleibt es beim
-     * Umschalter - ein zusaetzlicher Schritt fuer den haeufigen Fall waere ein schlechter
-     * Tausch.
+     * takes the place of [SPEAKER] **once a bluetooth device is there**: with three routes a
+     * toggle no longer works, and a fourth button row does not fit on three inches. without
+     * bluetooth the toggle stays, because an extra step for the common case is a bad trade.
      */
     AUDIO,
 
     /**
-     * Zum zweiten, gehaltenen Anruf wechseln.
-     *
-     * Steht an der Stelle von [HOLD]: solange noch jemand in der Leitung wartet, ist
-     * "Halten" die falsche Frage. Am Emulator gesehen, dass der gehaltene Anruf sonst
-     * **unerreichbar** war - er stand nirgends, und kein Knopf fuehrte zurueck.
+     * takes the place of [HOLD]: while someone waits on the line, "hold" is the wrong
+     * question. without it the held call was unreachable and no button led back.
      */
     SWITCH,
     KEYPAD,
@@ -52,33 +36,29 @@ data class CallView(
     val status: CallStatus,
     val number: String,
     val name: String?,
-    /** Bildadresse des Kontaktfotos, sofern es eines gibt. `PLAN.md` 4.6. */
     val photoUri: String? = null,
     val startedAtMillis: Long?,
     val muted: Boolean = false,
-    /** Wohin der Ton derzeit geht. */
     val audioRoute: AudioRoute = AudioRoute.EARPIECE,
-    /** Ist ein Bluetooth-Geraet verbunden? Dann wird aus dem Umschalter eine Auswahl. */
+    /** with bluetooth the toggle becomes a choice. */
     val bluetoothAvailable: Boolean = false,
     /**
-     * Name (oder Nummer) des zweiten Anrufs, falls es einen gibt.
+     * name or number of the second call.
      *
-     * Vorher stand hier `otherCallWaiting: Boolean` - gesetzt, aber nirgends gelesen. Ein
-     * zweiter Anruf ging damit spurlos an der Oberflaeche vorbei: waehrend eines
-     * Gespraechs klingelte es, der Bildschirm zeigte nur den neuen Anrufer, und dass
-     * nebenan noch jemand in der Leitung war, stand nirgends.
+     * this used to be a boolean that was set and never read, so a second call passed the
+     * surface without trace: the screen showed only the new caller, and that someone else
+     * was still on the line stood nowhere.
      */
     val otherName: String? = null,
-    /** Der zweite Anruf wird gehalten - dann fuehrt [CallAction.SWITCH] zu ihm zurueck. */
     val otherHeld: Boolean = false,
 )
 
 /**
- * Welcher von mehreren Anrufen im Vordergrund steht.
+ * which of several calls is in front.
  *
- * Vorher wurde der zuletzt veraenderte gezeigt - also mal der eine, mal der andere. Die
- * Reihenfolge hier ist die der Entscheidung, die ansteht: es klingelt (annehmen oder
- * nicht?) vor dem laufenden Gespraech vor dem gehaltenen.
+ * the order is the order of the decision that is due: ringing (answer or not?) before the
+ * running call before the held one. showing the most recently changed one meant sometimes
+ * the one and sometimes the other.
  */
 object CallForeground {
 
@@ -92,11 +72,11 @@ object CallForeground {
 }
 
 /**
- * Welche Knoepfe in welchem Zustand erscheinen.
+ * which buttons appear in which state.
  *
- * Das ist die Stelle, an der ein Fehler richtig wehtut: ein "Auflegen" auf einem klingelnden
- * Anruf sieht aus wie "Ablehnen", ein fehlendes "Annehmen" macht das Telefon unbrauchbar.
- * Deshalb steht es als Tabelle hier und nicht verteilt in der Oberflaeche.
+ * this is where a mistake really hurts: a "hang up" on a ringing call looks like "reject",
+ * and a missing "answer" makes the phone useless. hence one table here instead of scattered
+ * conditions in the surface.
  */
 object CallActions {
 
@@ -105,14 +85,14 @@ object CallActions {
 
         CallStatus.DIALING, CallStatus.CONNECTING -> listOf(
             CallAction.HANG_UP,
-            tonZeile(view),
+            audioRow(view),
             if (view.muted) CallAction.UNMUTE else CallAction.MUTE,
         )
 
         CallStatus.ACTIVE -> listOf(
             CallAction.HANG_UP,
             if (view.muted) CallAction.UNMUTE else CallAction.MUTE,
-            tonZeile(view),
+            audioRow(view),
             if (view.otherHeld) CallAction.SWITCH else CallAction.HOLD,
             CallAction.KEYPAD,
         )
@@ -123,35 +103,27 @@ object CallActions {
     }
 
     /**
-     * Welche Knopfzeilen neben der geoeffneten Tastatur stehenbleiben.
-     *
-     * **Anlass, am Emulator gesehen:** mit allen fuenf Zeilen blieb fuer die Tastatur ein
-     * Streifen von fuenf dp - zwoelf Bildpunkte, ohne dass die Ziffern ueberhaupt noch
-     * gezeichnet wurden. Wer im Gespraech eine Nummer eingeben muss ("fuer Deutsch die 1"),
-     * kam nicht ans Ziel.
-     *
-     * Bleiben duerfen zwei: Auflegen, weil es das Wichtigste ist, und die Tastatur selbst,
-     * damit der Weg zurueck sichtbar bleibt - vorher schloss sie nur die Ruecktaste, was
-     * niemand ahnen kann.
+     * with all five rows the keypad was left a strip of five dp, so entering a number during
+     * a call ("press 1 for english") was impossible. two rows stay: hang up, because it
+     * matters most, and the keypad itself, so the way back stays visible.
      */
     fun whileKeypad(view: CallView): List<CallAction> =
         availableFor(view).filter { it == CallAction.HANG_UP || it == CallAction.KEYPAD }
 
-    /** Die Zeile fuer den Ton: Umschalter, oder Auswahl, sobald Bluetooth da ist. */
-    private fun tonZeile(view: CallView): CallAction = when {
+    private fun audioRow(view: CallView): CallAction = when {
         view.bluetoothAvailable -> CallAction.AUDIO
         view.audioRoute == AudioRoute.SPEAKER -> CallAction.SPEAKER_OFF
         else -> CallAction.SPEAKER
     }
 
-    /** Gespraechsdauer in Sekunden; null, solange nicht verbunden. */
+    /** null until connected. */
     fun durationSeconds(view: CallView, nowMillis: Long): Long? {
         val started = view.startedAtMillis ?: return null
         if (view.status != CallStatus.ACTIVE && view.status != CallStatus.HOLDING) return null
         return ((nowMillis - started) / 1000L).coerceAtLeast(0L)
     }
 
-    /** mm:ss, ab einer Stunde h:mm:ss. */
+    /** mm:ss, and h:mm:ss from an hour on. */
     fun formatDuration(seconds: Long): String {
         val s = seconds.coerceAtLeast(0)
         val hours = s / 3600
@@ -162,15 +134,14 @@ object CallActions {
     }
 
     /**
-     * Was gross ueber dem Anruf steht: Name, sonst Nummer, sonst [unbekannt].
+     * name, else number, else [unknown].
      *
-     * Hier stand ein festes `"?"` - auf Deutsch wie auf Englisch, und ohne jede Aussage.
-     * Bei einer unterdrueckten Nummer, also einem der haeufigsten Faelle ueberhaupt, fuellte
-     * ein Fragezeichen den halben Bildschirm; das sieht aus wie ein Fehler der App und nicht
-     * wie eine Auskunft ueber den Anrufer.
+     * a hard-coded "?" used to fill half the screen for a withheld number, which is one of
+     * the commonest cases: that looks like a fault of the app, not like information about
+     * the caller.
      */
-    fun headline(view: CallView, unbekannt: String): String =
+    fun headline(view: CallView, unknown: String): String =
         view.name?.takeIf { it.isNotBlank() }
             ?: PhoneNumbers.forDisplay(view.number).takeIf { it.isNotBlank() }
-            ?: unbekannt
+            ?: unknown
 }

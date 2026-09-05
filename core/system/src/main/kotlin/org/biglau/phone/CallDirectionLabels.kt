@@ -4,16 +4,14 @@ import androidx.annotation.StringRes
 import org.biglau.core.system.R
 
 /**
- * Das Wort zur Richtung eines Anrufs.
+ * the word for a call's direction.
  *
- * Stand als private Funktion im Einstellungsbaum, wo man die Arten ein- und ausschaltet.
- * Die Anrufliste selbst brauchte dieselben Woerter: dort zeigt ein Pfeil die Richtung, und
- * ein Pfeil hat keinen Namen zum Vorlesen. Zweimal dieselbe Liste zu fuehren waere die
- * sichere Art, sie auseinanderlaufen zu lassen.
+ * this used to be a private function in the settings tree, where the types are switched on
+ * and off. the call log needs the same words: there an arrow shows the direction, and an
+ * arrow has no name to read out. keeping the list twice is the sure way to let it drift.
  *
- * Warum hier und nicht in `:app`: von `settings` nach `phone` waere eine fuenfte Kante
- * zwischen den kuenftigen Modulen geworden - fuer eine Wortliste, also fuer nichts. Sie
- * liegt bei [CallDirection], zu der sie gehoert, und `:app` bekommt keine neue Kante.
+ * it sits beside [CallDirection] rather than in `:app`, so `:app` gains no new edge for what
+ * is only a word list.
  */
 @StringRes
 fun callDirectionLabel(direction: CallDirection): Int = when (direction) {
@@ -26,12 +24,11 @@ fun callDirectionLabel(direction: CallDirection): Int = when (direction) {
 }
 
 /**
- * Dasselbe fuer eine einzelne Zeile - "verpasst" statt "Verpasste Anrufe".
+ * the same for a single row: "missed" instead of "missed calls".
  *
- * Die Ueberschriften der Einstellungen sind Kategorienamen im Plural; an eine Zeile gehaengt
- * lasen sie sich falsch ("Mark Helsi, angenommene Anrufe"), und "Alles andere" sagte an
- * einer einzelnen Zeile gar nichts. Zwei Saetze fuer zwei Zwecke, aber in einer Datei und
- * an derselben Aufzaehlung - auseinanderlaufen koennen sie so nicht.
+ * the settings headings are plural category names, and hung onto a row they read wrong
+ * ("Mark Helsi, answered calls"), while "everything else" said nothing at all. two phrasings
+ * for two purposes, but in one file and on the same enum, so they cannot drift.
  */
 @StringRes
 fun callDirectionSpeech(direction: CallDirection): Int = when (direction) {

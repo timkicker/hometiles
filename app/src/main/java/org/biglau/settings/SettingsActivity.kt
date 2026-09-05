@@ -178,8 +178,8 @@ class SettingsActivity : BigLauActivity() {
     /** Die zuletzt angeforderte Unterseite. Siehe [onNewIntent]. */
     private val zielAnfrage = mutableStateOf<Page?>(null)
 
-    private fun leseZiel(intent: Intent?): Page? =
-        SettingsDeepLink.ziel(intent?.getStringExtra(EXTRA_PAGE))
+    private fun readTarget(intent: Intent?): Page? =
+        SettingsDeepLink.target(intent?.getStringExtra(EXTRA_PAGE))
 
     /**
      * Kommt die Anfrage, waehrend die Einstellungen schon offen sind, aendert Android
@@ -188,13 +188,13 @@ class SettingsActivity : BigLauActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
-        leseZiel(intent)?.let { zielAnfrage.value = it }
+        readTarget(intent)?.let { zielAnfrage.value = it }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        zielAnfrage.value = leseZiel(intent)
+        zielAnfrage.value = readTarget(intent)
         val store = ConfigStore.get(this)
 
         setContent {
@@ -214,14 +214,14 @@ class SettingsActivity : BigLauActivity() {
             // ohne dass sich `intent` aendert. Wer die Einstellungen vorher offen hatte,
             // landete auf der Seite von damals - am Emulator nachgestellt: erst Diagnose
             // aufgerufen, dann die Anrufarten angefordert, und es blieb die Diagnose.
-            val ziel = zielAnfrage.value
-            var page by rememberSaveable { mutableStateOf(SettingsDeepLink.start(locked, ziel)) }
+            val target = zielAnfrage.value
+            var page by rememberSaveable { mutableStateOf(SettingsDeepLink.start(locked, target)) }
             // Die Probe des Notruf-Alarms steht seit dem 03.09.2026 in `SosSettings`
             // selbst, samt ihrem `onDispose`. Das ist strenger, nicht lockerer: die Seite
             // liegt **innerhalb** dieser Komposition, ihr Aufraeumen kommt also immer zuerst -
             // und zusaetzlich schon dann, wenn man nur die Unterseite verlaesst.
-            LaunchedEffect(ziel) {
-                SettingsDeepLink.sprung(page, ziel)?.let { page = it }
+            LaunchedEffect(target) {
+                SettingsDeepLink.jump(page, target)?.let { page = it }
             }
             var renaming by remember { mutableStateOf<Screen?>(null) }
             var switching by remember { mutableStateOf<Screen?>(null) }
@@ -374,7 +374,7 @@ class SettingsActivity : BigLauActivity() {
                             wrongText = stringResource(R.string.security_wrong_pin),
                             confirmLabel = stringResource(R.string.editor_done),
                             onCheck = { entered -> Pin.verify(entered, config.security.pin) },
-                            onAccept = { page = ziel ?: Page.MAIN },
+                            onAccept = { page = target ?: Page.MAIN },
                             acceptOnComplete = true,
                             onEmergencyExit = { page = Page.MAIN },
                         )
@@ -460,15 +460,15 @@ class SettingsActivity : BigLauActivity() {
                         )
 
                         Page.SCREENS -> if (switching != null) {
-                            val ziel = switching!!
+                            val target = switching!!
                             NoSettingsWarning(
-                                name = ziel.name,
-                                canAddTile = ScreenEdits.withSettingsTile(config, ziel.id) != null,
+                                name = target.name,
+                                canAddTile = ScreenEdits.withSettingsTile(config, target.id) != null,
                                 onAddAndSwitch = {
                                     store.update { current ->
-                                        val mitKachel = ScreenEdits.withSettingsTile(current, ziel.id)
+                                        val withTile = ScreenEdits.withSettingsTile(current, target.id)
                                             ?: return@update current
-                                        mitKachel.copy(homeScreenId = ziel.id)
+                                        withTile.copy(homeScreenId = target.id)
                                     }
                                     switching = null
                                 },
@@ -479,13 +479,13 @@ class SettingsActivity : BigLauActivity() {
                             screens = FolderEdits.plainScreens(config),
                             homeId = config.homeScreenId,
                             unreachable = ScreenEdits.unreachable(config),
-                            onAddJumpTile = { ziel ->
+                            onAddJumpTile = { target ->
                                 store.update { current ->
-                                    ScreenEdits.withJumpTile(current, ziel.id) ?: current
+                                    ScreenEdits.withJumpTile(current, target.id) ?: current
                                 }
                             },
-                            jumpTilePossible = { ziel ->
-                                ScreenEdits.withJumpTile(config, ziel.id) != null
+                            jumpTilePossible = { target ->
+                                ScreenEdits.withJumpTile(config, target.id) != null
                             },
                             // Ordner stehen sonst nicht in dieser Liste ("Ordner gehoeren
                             // ihrer Kachel"). Einer ohne Kachel gehoert niemandem mehr -
@@ -519,12 +519,12 @@ class SettingsActivity : BigLauActivity() {
                             borderPercent = config.appearance.safeBorderPercent,
                             theme = config.appearance.theme,
                             onBackground = { hintergrund ->
-                                val ziel = renaming
-                                if (ziel != null) {
+                                val target = renaming
+                                if (target != null) {
                                     store.update { current ->
                                         current.copy(
                                             screens = current.screens.map {
-                                                if (it.id == ziel.id) {
+                                                if (it.id == target.id) {
                                                     it.copy(background = hintergrund)
                                                 } else {
                                                     it

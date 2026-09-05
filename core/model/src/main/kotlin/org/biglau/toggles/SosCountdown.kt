@@ -1,12 +1,6 @@
 package org.biglau.toggles
 
-/**
- * Der Countdown vor dem Absenden.
- *
- * Er ist kein Schmuck: eine Notruf-Kachel wird auch versehentlich getroffen, und eine SMS
- * an drei Menschen laesst sich nicht zurueckholen. Gleichzeitig darf er nicht so lang sein,
- * dass er im Ernstfall im Weg steht.
- */
+/** the countdown before sending. an emergency tile gets hit by accident, and a text cannot be recalled. */
 object SosCountdown {
 
     const val DEFAULT_SECONDS = 5
@@ -14,7 +8,7 @@ object SosCountdown {
 
     fun clamp(seconds: Int): Int = seconds.coerceIn(0, MAX_SECONDS)
 
-    /** Verbleibende Sekunden; 0 heisst: jetzt senden. */
+    /** seconds left; 0 means send now. */
     fun remaining(startedAtMillis: Long, nowMillis: Long, seconds: Int): Int {
         val total = clamp(seconds)
         if (total == 0) return 0
@@ -22,6 +16,5 @@ object SosCountdown {
         return (total - elapsed).coerceAtLeast(0)
     }
 
-    /** Ist der Ablauf ueberhaupt eingerichtet? Ohne Nummern gibt es nichts zu senden. */
     fun isConfigured(numbers: List<String>): Boolean = numbers.any { it.isNotBlank() }
 }

@@ -6,12 +6,11 @@ import javax.crypto.SecretKeyFactory
 import javax.crypto.spec.PBEKeySpec
 
 /**
- * Betreuer-PIN fuer die Einstellungen.
+ * the carer pin for the settings.
  *
- * Das ist kein Geheimnisschutz gegen einen Angreifer mit dem Geraet in der Hand - dagegen
- * hilft die Bildschirmsperre. Es ist eine Huerde gegen versehentliche Aenderungen. Trotzdem
- * wird gesalzen und gestreckt gespeichert: die Datei ist zugleich das Sicherungsformat und
- * landet damit irgendwann auf einem Rechner.
+ * not secrecy against someone holding the device; the lock screen is for that. it is a hurdle
+ * against accidental changes. salted and stretched all the same, because the config file is
+ * also the backup format and ends up on a computer sooner or later.
  */
 object Pin {
 
@@ -23,39 +22,23 @@ object Pin {
     private const val ALGORITHM = "PBKDF2WithHmacSHA256"
 
     /**
-     * Muss vor dem Kachel-Editor eine PIN abgefragt werden?
-     *
-     * Nur, wenn es überhaupt eine gibt **und** der Schutz eingeschaltet ist. Der Sinn ist
-     * nicht Geheimhaltung, sondern dass die Belegung nicht versehentlich zerlegt wird -
-     * ein langer Druck passiert schneller, als man denkt.
-     *
-     * Bewusst **ohne** eigenen Notausstieg: den gibt es genau einmal, auf der PIN-Eingabe
-     * der Einstellungen. Zwei Hintertüren an einem Schloss sind eine zu viel, und von den
-     * Einstellungen aus lässt sich dieser Schutz abschalten.
+     * deliberately **without** an escape hatch of its own: there is exactly one, on the pin
+     * entry of the settings, and from there this protection can be switched off. two back
+     * doors on one lock are one too many.
      */
     fun protectsEditor(stored: String?, enabled: Boolean): Boolean = protects(stored, enabled)
 
-    /**
-     * Die allgemeine Frage: schuetzt die PIN diesen Schritt?
-     *
-     * Ohne gesetzte PIN schuetzt nichts - ein eingeschalteter Schutz ohne Schloss waere
-     * eine Zusage, die beim ersten Antippen zerfaellt.
-     */
+    /** with no pin set nothing protects: an enabled lock without a key would fall apart on first use. */
     fun protects(stored: String?, enabled: Boolean): Boolean = usable(stored) && enabled
 
     /**
-     * Laesst sich der gespeicherte Wert ueberhaupt pruefen?
+     * can the stored value be checked at all?
      *
-     * Gespeichert wird "Runden:Salz:Hash". Steht dort etwas anderes - eine von Hand
-     * bearbeitete Sicherung mit `"pin": "1234"` etwa -, dann lehnt [verify] **jede**
-     * Eingabe ab. Das ist kein Schloss mehr, sondern eine zugemauerte Tuer: am Emulator
-     * gesehen, wo die App-Sperre danach jede App verweigerte und die richtige PIN nichts
-     * half. Die Einstellungen haetten noch den Notausstieg, die Sperre auf dem
-     * Startbildschirm hat keinen.
-     *
-     * Deshalb zaehlt ein unpruefbarer Wert als „keine PIN". Wer die Datei so weit
-     * bearbeiten kann, koennte die Zeile ohnehin auch ganz loeschen - es geht kein Schutz
-     * verloren, der vorher gewirkt haette.
+     * stored as "rounds:salt:hash". anything else - a hand-edited backup with
+     * `"pin": "1234"` - makes [verify] reject **every** input, which is not a lock but a
+     * bricked-up door: the settings still have their escape hatch, the home screen lock does
+     * not. so an uncheckable value counts as "no pin". whoever can edit the file that far
+     * could delete the line anyway, so no protection is lost that ever worked.
      */
     fun usable(stored: String?): Boolean {
         val parts = stored?.split(":") ?: return false
@@ -65,11 +48,10 @@ object Pin {
         return parts.drop(1).all { runCatching { decoder.decode(it) }.isSuccess }
     }
 
-    /** Nur Ziffern, und zwar zwischen vier und acht davon. */
     fun isValid(pin: String): Boolean =
         pin.length in MIN_LENGTH..MAX_LENGTH && pin.all { it.isDigit() }
 
-    /** Ergibt "iterationen:salz:hash", jeweils Base64. Null bei ungueltiger Eingabe. */
+    /** "iterations:salt:hash", each base64. null on invalid input. */
     fun hash(pin: String, salt: ByteArray = randomSalt()): String? {
         if (!isValid(pin)) return null
         val encoder = Base64.getEncoder()
@@ -80,9 +62,8 @@ object Pin {
         ).joinToString(":")
     }
 
-    /** Prueft eine Eingabe gegen einen gespeicherten Wert. */
     fun verify(pin: String, stored: String?): Boolean {
-        if (stored == null) return true // keine PIN gesetzt: alles offen
+        if (stored == null) return true // no pin set: everything open
         val parts = stored.split(":")
         if (parts.size != 3) return false
         val iterations = parts[0].toIntOrNull() ?: return false
@@ -100,7 +81,7 @@ object Pin {
 
     private fun randomSalt(): ByteArray = ByteArray(16).also { SecureRandom().nextBytes(it) }
 
-    /** Vergleicht ohne frueh abzubrechen - sonst verraet die Laufzeit, wie weit man kam. */
+    /** no early exit, or the running time would give away how far one got. */
     private fun constantTimeEquals(a: ByteArray, b: ByteArray): Boolean {
         if (a.size != b.size) return false
         var difference = 0

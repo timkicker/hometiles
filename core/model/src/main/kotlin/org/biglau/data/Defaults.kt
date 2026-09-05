@@ -4,7 +4,7 @@ object Defaults {
 
     const val MAIN_ID = "home"
 
-    /** Startbelegung im 2x3-Raster - das Standardraster fuer 349x581 dp. */
+    /** starting layout in the 2x3 grid, the default for 349x581 dp. */
     fun mainScreen(): Screen {
         val actions = listOf(
             Builtin.DIALER,
@@ -24,7 +24,7 @@ object Defaults {
         return Screen(id = MAIN_ID, name = "Start", cols = 2, rows = 3, cells = cells)
     }
 
-    /** Rastervorgaben. Die Zellmasse dahinter stehen in PLAN.md 3.2. */
+    /** grid choices; the cell sizes behind them are in `PLAN.md` 3.2. */
     val layouts: List<Pair<Int, Int>> = listOf(
         1 to 1,
         1 to 2,

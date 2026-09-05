@@ -3,18 +3,16 @@ package org.biglau.safety
 enum class StartMode { NORMAL, SAFE }
 
 /**
- * Merkt sich, ob der letzte Start durchgekommen ist.
+ * remembers whether the last start got through.
  *
- * Warum es das gibt: ein Absturz in einer Nebenansicht hat BigLau am 31.08.2026 die
- * Launcher-Rolle gekostet - Android raeumt bei wiederholten Abstuerzen die bevorzugten
- * Aktivitaeten. Wer dann kein zweites Telefon und kein adb hat, steht ohne Homescreen da.
+ * a crash in a side screen once cost biglau the launcher role: android clears preferred
+ * activities after repeated crashes, and without a second phone or adb one is then left with
+ * no home screen.
  *
- * Die Regel: zwei aufeinanderfolgende Starts, die nie beim Zeichnen ankamen, schalten in
- * einen abgespeckten Modus. Der zeigt nur, was man zum Zurueckkommen braucht - und zwar
- * ohne die Konfiguration zu laden, denn die koennte ja gerade das Problem sein.
- *
- * Bewusst *zwei*: ein einzelner Absturz kann ein Ausrutscher sein, und wer nach jedem
- * Ausrutscher im Notmodus landet, traut der App nicht mehr.
+ * two consecutive starts that never reached drawing switch to a stripped-down mode which
+ * shows only what one needs to get back, and loads no config, because the config might be
+ * the problem. **two** on purpose: a single crash can be a slip, and landing in safe mode
+ * after every slip destroys trust in the app.
  */
 object CrashGuard {
 
@@ -23,9 +21,8 @@ object CrashGuard {
     fun modeFor(consecutiveFailedStarts: Int): StartMode =
         if (consecutiveFailedStarts >= THRESHOLD) StartMode.SAFE else StartMode.NORMAL
 
-    /** Beim Start hochzaehlen - heruntergesetzt wird erst, wenn wirklich gezeichnet wurde. */
+    /** counted up at start; it only goes down once something was really drawn. */
     fun onStart(previous: Int): Int = (previous + 1).coerceAtMost(THRESHOLD * 5)
 
-    /** Erfolgreich gezeichnet: der Zaehler faellt zurueck auf null. */
     fun onRendered(): Int = 0
 }

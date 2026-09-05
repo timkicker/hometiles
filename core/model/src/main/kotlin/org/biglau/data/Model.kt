@@ -4,10 +4,9 @@ import org.biglau.toggles.SosCountdown
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
-/** Aktuelle Schema-Version. Bei jedem Bruch erhoehen und eine Migration ergaenzen. */
+/** raise on every break and add a migration. */
 const val CONFIG_VERSION = 1
 
-/** Eingebaute Aktionen ohne eigene Parameter. */
 @Serializable
 enum class Builtin {
     DIALER, MESSAGES, CONTACTS, CAMERA, CLOCK, CALCULATOR, APP_LIST, SETTINGS,
@@ -17,7 +16,6 @@ enum class Builtin {
     FAVOURITES, RECENT_APPS,
 }
 
-/** Was beim Antippen einer Kontaktkachel passiert. */
 @Serializable
 enum class ContactMode { CALL, SMS, ASK }
 
@@ -46,17 +44,13 @@ sealed interface ButtonAction {
     data class GoToScreen(val screenId: String) : ButtonAction
 
     /**
-     * Ein Ordner. Sein Inhalt ist ein ganz gewoehnlicher [Screen] mit [ScreenKind.FOLDER] -
-     * damit gilt jede Regel, die fuer Screens schon geprueft ist, hier ohne Zutun weiter.
+     * a folder. its contents are an ordinary [Screen] with [ScreenKind.FOLDER], so every rule
+     * already proven for screens keeps holding here without extra work.
      */
     @Serializable
     @SerialName("folder")
     data class Folder(val screenId: String) : ButtonAction
 
-    /**
-     * Eine Webseite. Die Adresse steht in der Kachel, nicht in einer Liste - sonst müsste
-     * man sie doppelt pflegen.
-     */
     @Serializable
     @SerialName("link")
     data class Link(val url: String) : ButtonAction
@@ -72,9 +66,9 @@ sealed interface ButtonAction {
     @Serializable
     @SerialName("widget")
     data class Widget(
-        /** Flach geschriebene ComponentName des Anbieters. */
+        /** the provider's flattened component name. */
         val provider: String,
-        /** Vom AppWidgetHost vergebene Kennung. */
+        /** handed out by the widget host. */
         val widgetId: Int,
         val label: String = "",
     ) : ButtonAction
@@ -87,39 +81,28 @@ sealed interface ButtonAction {
 @Serializable
 data class Button(
     val action: ButtonAction = ButtonAction.None,
-    /** null = Beschriftung automatisch aus der Aktion ableiten. */
+    /** null derives the label from the action. */
     val label: String? = null,
     /**
-     * Selbst gewaehltes Symbol, `null` = aus der Aktion abgeleitet. `PLAN.md` 2.2 und 3.4.
-     *
-     * Gespeichert wird der **Name** aus [org.biglau.ui.IconCatalogue], nicht das Bild: eine
-     * Sicherung soll auch dann lesbar bleiben, wenn die Symbolbibliothek eine andere ist.
-     * Ein unbekannter Name faellt auf das abgeleitete Symbol zurueck, statt die Kachel leer
-     * zu lassen.
+     * the icon **name** from `IconCatalogue`, not the image, so a backup stays readable with a
+     * different icon set. an unknown name falls back to the derived icon.
      */
     val iconName: String? = null,
-    /** Index in die Kachelpalette; -1 = automatisch aus der Position. */
+    /** index into the tile palette; -1 derives it from the position. */
     val colorIndex: Int = -1,
     /**
-     * Frei gewaehlter Farbton in Grad, die dritte Art aus PLAN.md 4.2 neben Auto und
-     * Palette. Schlaegt [colorIndex], wird aber vom Kontrast-Thema uebergangen.
+     * a free hue in degrees. beats [colorIndex] and is itself overruled by the contrast theme.
      *
-     * Gespeichert wird der Ton und nicht die fertige Farbe: die Helligkeit dazu haengt am
-     * Thema, und ein im dunklen Thema ausgerechneter Wert kann im hellen die Schwelle fuer
-     * die Kachel gegen den Hintergrund verfehlen. Siehe [org.biglau.ui.theme.FreeTileColor].
-     *
-     * Der Vorlaeufer hiess `customColor` und trug einen fertigen ARGB-Wert; er wurde *vor*
-     * der Palette gelesen und waere damit auch im Kontrast-Thema durchgeschlagen.
+     * the hue is stored, not the finished colour: the brightness that goes with it depends on
+     * the theme, and a value computed in the dark theme can miss the tile-against-background
+     * threshold in the light one.
      */
     val colorHue: Float? = null,
     val blink: Boolean = true,
     val longPress: ButtonAction? = null,
 )
 
-/**
- * Eine Zelle belegt ein Rechteck im Raster. w und h groesser 1 sind das, was im Original
- * "join" und "stretch" heisst - deshalb steckt die Spannweite von Anfang an im Modell.
- */
+/** w and h above 1 are what the original calls "join" and "stretch". */
 @Serializable
 data class Cell(
     val x: Int,
@@ -132,14 +115,7 @@ data class Cell(
     fun covers(cx: Int, cy: Int): Boolean = cx in x until (x + w) && cy in y until (y + h)
 }
 
-/**
- * Der Hintergrund eines Screens. PLAN.md 4.1.
- *
- * **Ohne Bild, und das mit Absicht** - siehe [org.biglau.ui.theme.ScreenBackground]. Der
- * Typ stand hier von Anfang an und wurde nie gemalt: ein `else`-Zweig verschluckte ihn.
- * Ein Fall im Modell, den niemand behandelt, ist eine Zusage, die in der Sicherungsdatei
- * steht und nichts tut.
- */
+/** a screen background. deliberately **without** an image, see `ScreenBackground`. */
 @Serializable
 sealed interface Background {
     @Serializable @SerialName("theme") data object Theme : Background
@@ -147,9 +123,8 @@ sealed interface Background {
 }
 
 /**
- * Ein Screen steht fuer sich; ein Ordner gehoert der Kachel, die ihn oeffnet, und wird als
- * Ueberlagerung gezeigt. Der Unterschied ist bewusst nur eine Marke und kein eigener Typ:
- * eine zweite Sorte Kachelraster hiesse jede Regel zweimal zu pflegen.
+ * a screen stands on its own; a folder belongs to the tile that opens it. the difference is
+ * deliberately a marker and not a separate type, or every rule would need maintaining twice.
  */
 @Serializable
 enum class ScreenKind { SCREEN, FOLDER }
@@ -166,73 +141,46 @@ data class Screen(
 ) {
     val isFolder: Boolean get() = kind == ScreenKind.FOLDER
 
-    /** Belegte Zelle an dieser Rasterposition, sofern eine sie ueberdeckt. */
     fun cellAt(x: Int, y: Int): Cell? = cells.firstOrNull { it.covers(x, y) }
 
     /**
-     * Wie viele **Kacheln** hier liegen - nicht wie viele Zellen.
-     *
-     * Der Unterschied ist der zwischen dem Modell und dem, was jemand sieht: eine Zelle
-     * ohne Aktion ist ein freier Platz, keine Kachel. An drei Stellen wurde `cells.size`
-     * gezaehlt und "Kacheln" dazu gesagt - beim Laden einer Sicherung, beim Aufraeumen
-     * eines verwaisten Ordners und in der Rueckfrage vor dem Loeschen. Die Rueckfrage vor
-     * dem Zuruecksetzen zaehlte richtig, und so standen zwei Zahlen fuer dieselbe
-     * Einrichtung nebeneinander. Deshalb gibt es die Zahl jetzt nur einmal.
+     * how many **tiles** lie here, not how many cells: a cell without an action is a free
+     * slot. counting `cells.size` and calling it tiles put two different numbers on the same
+     * setup in three places.
      */
     val tileCount: Int get() = cells.count { it.button.action != ButtonAction.None }
 
-    /** Rasterplaetze, die keine Zelle belegt - dort zeichnen wir Platzhalter. */
     fun freeSlots(): List<Pair<Int, Int>> =
         (0 until rows).flatMap { y -> (0 until cols).map { x -> x to y } }
             .filter { (x, y) -> cellAt(x, y) == null }
 }
 
+/** SYSTEM is a question to the phone, not a look; `paletteFor` resolves it. */
 @Serializable
-/**
- * SYSTEM ist kein eigenes Aussehen, sondern eine Frage ans Telefon: dunkel oder hell.
- * Aufgeloest wird es in [org.biglau.ui.theme.paletteFor], damit an keiner Stelle eine
- * Palette fuer SYSTEM gesucht wird, die es nicht gibt.
- */
 enum class ThemeName { DARK, HIGH_CONTRAST, LIGHT, SYSTEM }
 
 @Serializable
 enum class LabelPosition { BOTTOM_LEFT, BOTTOM_CENTER, TOP_LEFT, HIDDEN }
 
-/** Die Sprache der App - unabhaengig von der des Telefons. Siehe PLAN.md 4.9. */
+/** the app's language, independent of the phone's. `PLAN.md` 4.9. */
 @Serializable
 enum class Language { SYSTEM, GERMAN, ENGLISH, FRENCH, SPANISH, ITALIAN }
 
-/**
- * Wie sich der Bildschirm dreht. PLAN.md 4.2.
- *
- * [PORTRAIT] ist die Vorgabe und war bisher fest verdrahtet. Auf drei Zoll ist quer
- * schmal: die Zeilen werden flach, und die Beschriftung bekommt kaum noch Hoehe. Wer das
- * Telefon aber in einer Halterung hat - am Fahrrad, am Rollator, am Bett -, braucht es
- * vielleicht genau so.
- */
+/** landscape is narrow on three inches, but a phone in a holder may need it. */
 @Serializable
 enum class ScreenOrientation { PORTRAIT, LANDSCAPE, AUTO }
 
-/**
- * Was die Uhr zeigt - in der Kopfzeile und auf der Uhr-Kachel. PLAN.md 4.2.
- */
 @Serializable
 enum class ClockDisplay { OFF, TIME, TIME_DATE, TIME_DATE_WEEKDAY }
 
 /**
- * Ob ein Symbol auf der Kachel steht. PLAN.md 4.2.
- *
- * [IF_ROOM] ist die interessante Stufe: auf einer flachen Kachel drueckt ein Symbol die
- * Beschriftung an den Rand, und ein halbes Wort ist schlechter als gar kein Bild. Wo es
- * eng wird, faellt das Symbol weg und das Wort bekommt den Platz.
+ * [IF_ROOM] is the interesting one: on a flat tile an icon pushes the label to the edge, and
+ * half a word is worse than no picture.
  */
 @Serializable
 enum class IconVisibility { ALWAYS, IF_ROOM, NEVER }
 
-/**
- * Die Schrift. Atkinson Hyperlegible ist die Vorgabe, weil sie fuers Lesen bei schlechten
- * Augen gezeichnet wurde - siehe [org.biglau.ui.theme.Hyperlegible].
- */
+/** atkinson hyperlegible is the default because it was drawn for reading with poor eyes. */
 @Serializable
 enum class FontChoice { HYPERLEGIBLE, SYSTEM }
 
@@ -241,62 +189,49 @@ data class Appearance(
     val theme: ThemeName = ThemeName.DARK,
     val language: Language = Language.SYSTEM,
     val font: FontChoice = FontChoice.HYPERLEGIBLE,
-    /** Faktor auf unsere eigene, aus der Zellhoehe berechnete Schriftgroesse. */
+    /** factor on our own font size, which is computed from the cell height. */
     val textScale: Float = 1.0f,
     val labelPosition: LabelPosition = LabelPosition.BOTTOM_LEFT,
-    /** Beschriftung auf der Kachel, 0,5-1,5 - zusaetzlich zur globalen Textgroesse. */
+    /** tile label, 0.5-1.5, on top of the global text scale. */
     val labelScale: Float = 1.0f,
-    /** Icongroesse als Prozent der kuerzeren Zellenkante, 20-60. */
+    /** icon size as a percentage of the shorter cell edge, 20-60. */
     val iconPercent: Int = 40,
-    /**
-     * Alt: nur ja oder nein. Bleibt stehen, damit eine gesicherte Konfiguration aus einer
-     * frueheren Fassung nicht stumm auf die Vorgabe zurueckfaellt. [Appearance.icons] zaehlt.
-     */
+    /** old yes/no. kept so a saved config does not fall back silently; [icons] counts. */
     val showIcons: Boolean = true,
     val iconVisibility: IconVisibility? = null,
     /**
-     * Beschriftung weglassen, wenn sie nicht in zwei Zeilen passt. `PLAN.md` 3.2.
-     *
-     * Von Haus aus aus. Bei vier Spalten schneidet „WhatsApp" ab, und ein abgeschnittenes
-     * Wort ist auf drei Zoll schlimmer als gar keins - aber das ist eine Abwaegung, die
-     * dem Nutzer gehoert: manche erkennen die Kachel lieber an drei Buchstaben als am Bild.
+     * drop the label when it does not fit in two lines. `PLAN.md` 3.2. off by default: a cut
+     * word is worse than none on three inches, but that trade belongs to the user - some
+     * recognise a tile by three letters rather than by its picture.
      */
     val hideCutLabels: Boolean = false,
     val gutterDp: Int = 4,
-    /** Aussenrand in Prozent der Bildschirmbreite. */
+    /** outer margin as a percentage of the screen width. */
     val safeBorderPercent: Int = 2,
     val cornerRadiusDp: Int = 12,
     val fullScreen: Boolean = false,
-    /**
-     * Alt: nur mit oder ohne Datum. Bleibt stehen, damit eine gesicherte Konfiguration aus
-     * einer frueheren Fassung nicht stumm auf die Vorgabe zurueckfaellt. [Appearance.clock]
-     * zaehlt.
-     */
+    /** old with/without date. kept for the same reason; [clock] counts. */
     val clockShowsDate: Boolean = true,
     val clockDisplay: ClockDisplay? = null,
-    /** Groesse der Uhr in der Kopfzeile, 0,75-2,0 - zusaetzlich zur globalen Textgroesse. */
+    /** clock in the header, 0.75-2.0, on top of the global text scale. */
     val clockScale: Float = 1.0f,
     val orientation: ScreenOrientation = ScreenOrientation.PORTRAIT,
-    /** Zeile ueber dem Raster mit Uhrzeit, Datum und Ladestand. */
     val showHeader: Boolean = true,
 ) {
-    /** Die geltende Uhr-Stufe - aus der neuen Angabe, sonst aus dem alten Schalter. */
     val clock: ClockDisplay
         get() = clockDisplay
             ?: if (clockShowsDate) ClockDisplay.TIME_DATE_WEEKDAY else ClockDisplay.TIME
 
-    /** Setzt beide Felder, damit alt und neu nie widersprechen. */
+    /** sets both fields, so old and new never contradict. */
     fun withClock(display: ClockDisplay): Appearance = copy(
         clockDisplay = display,
         clockShowsDate = display == ClockDisplay.TIME_DATE ||
             display == ClockDisplay.TIME_DATE_WEEKDAY,
     )
 
-    /** Die geltende Wahl - aus der neuen Angabe, sonst aus dem alten Schalter. */
     val icons: IconVisibility
         get() = iconVisibility ?: if (showIcons) IconVisibility.ALWAYS else IconVisibility.NEVER
 
-    /** Setzt beide Felder, damit alt und neu nie widersprechen. */
     fun withIcons(choice: IconVisibility): Appearance = copy(
         iconVisibility = choice,
         showIcons = choice != IconVisibility.NEVER,
@@ -305,31 +240,25 @@ data class Appearance(
 
 @Serializable
 data class Accessibility(
-    /** Langdruck liest die Beschriftung vor. */
     val speakOnLongPress: Boolean = false,
-    /** Langdruck zeigt die Beschriftung gross ueber dem ganzen Bildschirm. */
     val popupOnLongPress: Boolean = false,
-    /** Zwei Knöpfe unter langen Listen statt Wischen - für unruhige Hände. */
+    /** two buttons under long lists instead of swiping, for unsteady hands. */
     val scrollButtons: Boolean = false,
 )
 
 /**
- * Womit eine Kachel ausgelöst wird.
+ * how a tile is triggered.
  *
- * Für zittrige Hände ist [LONG] die wichtigste Einstellung der ganzen App: ein
- * versehentliches Streifen startet dann nichts mehr. Der Preis ist, dass jeder Start eine
- * halbe Sekunde länger dauert - deshalb ist es eine Entscheidung und keine Vorgabe.
+ * for shaky hands [LONG] is the most important setting in the app: brushing past starts
+ * nothing any more. the price is half a second on every launch, so it is a decision and not
+ * a default.
  */
 @Serializable
 enum class PressMode { SHORT, LONG }
 
 /**
- * Wie deutlich sich eine Berührung meldet.
- *
- * [LIGHT] ist ein kurzer Stups, [STRONG] ein spürbarer Schlag. Wer dicke Finger, dicke
- * Handschuhe oder wenig Gefühl in den Händen hat, merkt den leichten Stups nicht - und
- * hält den Treffer dann für einen Fehlgriff. Beim langen Druck ist auch [LIGHT] deutlich:
- * dort meldet die Stärke nicht das Treffen, sondern dass gleich etwas anderes passiert.
+ * [LIGHT] is a nudge, [STRONG] a noticeable thump. thick fingers, gloves or little feeling in
+ * the hands miss the nudge and take a hit for a miss.
  */
 @Serializable
 enum class HapticStrength { OFF, LIGHT, STRONG }
@@ -337,16 +266,12 @@ enum class HapticStrength { OFF, LIGHT, STRONG }
 @Serializable
 data class Behaviour(
     val pressMode: PressMode = PressMode.SHORT,
-    /**
-     * Alt: nur an oder aus. Bleibt stehen, damit eine Konfiguration aus einer früheren
-     * Fassung nicht stumm auf die Vorgabe zurückfällt, und damit ein Export von hier in
-     * einer früheren Fassung noch etwas bedeutet. [haptics] ist die Frage, die zählt.
-     */
+    /** old on/off. kept so a saved config does not fall back silently; [haptics] counts. */
     val hapticFeedback: Boolean = true,
     val hapticStrength: HapticStrength? = null,
     /**
-     * Meldungen bleiben stehen, bis sie weggetippt werden. Eine kurze Einblendung ist nach
-     * zwei Sekunden weg - wer langsam liest, erfaehrt nur, dass etwas aufgeblitzt ist.
+     * notices stay until tapped away. a two-second flash tells a slow reader only that
+     * something flickered.
      */
     val confirmMessages: Boolean = false,
     val blinkOnNotification: Boolean = true,
@@ -354,12 +279,10 @@ data class Behaviour(
     val homeKeyReturnsToStart: Boolean = true,
     val accessibility: Accessibility = Accessibility(),
 ) {
-    /** Die geltende Stärke - aus der neuen Angabe, sonst aus dem alten Schalter. */
     val haptics: HapticStrength
         get() = hapticStrength
             ?: if (hapticFeedback) HapticStrength.LIGHT else HapticStrength.OFF
 
-    /** Setzt beide Felder, damit alt und neu nie widersprechen. */
     fun withHaptics(strength: HapticStrength): Behaviour = copy(
         hapticStrength = strength,
         hapticFeedback = strength != HapticStrength.OFF,
@@ -368,184 +291,119 @@ data class Behaviour(
 
 @Serializable
 data class Security(
-    /** Salted Hash, null = keine PIN gesetzt. */
+    /** salted hash; null means no pin. */
     val pin: String? = null,
     val pinProtectsEditor: Boolean = true,
-    /** Die App-Liste ist der Weg zu jeder App, die auf keiner Kachel liegt. */
+    /** the app list is the way to every app that lies on no tile. */
     val pinProtectsAppList: Boolean = false,
-    /**
-     * Die Anrufliste zu leeren ist nicht rueckgaengig zu machen. Steht eine PIN, wird sie
-     * hier von selbst gefragt - wer eine PIN setzt, will genau solche Schritte sichern.
-     */
+    /** clearing the call log cannot be undone. */
     val pinProtectsCallLogDelete: Boolean = true,
 )
 
 @Serializable
 data class SosConfig(
     val numbers: List<String> = emptyList(),
-    /** Leer heisst: noch nicht gesetzt - dann gilt der Text in der Sprache des Telefons. */
+    /** empty means unset, and then the text in the phone's language applies. */
     val message: String = "",
-    /**
-     * Der Vorgabewert steht in [SosCountdown], nicht hier.
-     *
-     * Bis zum 3.9.2026 stand die 5 an beiden Stellen, und `SosCountdown.DEFAULT_SECONDS`
-     * hatte keinen einzigen Aufrufer: eine benannte Zahl, die niemand benutzt, neben
-     * derselben Zahl ohne Namen. Wer die eine ändert, ändert die andere nicht mit.
-     */
+    /** the default lives in [SosCountdown], not here, or the two would drift apart. */
     val countdownSeconds: Int = SosCountdown.DEFAULT_SECONDS,
     val sendLocation: Boolean = true,
-    /**
-     * Lauter Alarmton während des Notrufs. `PLAN.md` 4.8.
-     *
-     * **Von Haus aus aus**: eine Sirene, die man nicht erwartet, ist der Grund, aus dem
-     * Leute den Notrufknopf abschalten. Siehe [org.biglau.toggles.SosAlarm].
-     */
+    /** **off by default**: an unexpected siren is why people switch the sos button off. */
     val alarmSound: Boolean = false,
-    /** Blinkendes Licht während des Notrufs, aus demselben Grund von Haus aus aus. */
     val alarmFlash: Boolean = false,
 )
 
 @Serializable
 data class AppsConfig(
-    /** Schluessel oder Paketnamen, die in der Liste nicht erscheinen. */
     val hidden: Set<String> = emptySet(),
-    /** Zuletzt gestartet, neueste zuerst. */
+    /** most recently started first. */
     val recent: List<String> = emptyList(),
-    /** Wie viele davon oben in der Liste stehen; 0 blendet die Reihe aus. */
+    /** how many of them head the list; 0 hides the row. */
     val recentCount: Int = 4,
-    /** Apps, die ohne PIN starten. Gilt nur, wenn [lockOthers] an und eine PIN gesetzt ist. */
+    /** apps that start without the pin. only applies with [lockOthers] on and a pin set. */
     val allowed: Set<String> = emptySet(),
-    /** Alles ausser [allowed] fragt nach der PIN. PLAN.md 4.5. */
     val lockOthers: Boolean = false,
 )
 
 @Serializable
 data class SpeedDialTarget(val name: String, val number: String)
 
-/** Nachrichten (`PLAN.md` 4.7). */
 @Serializable
 data class SmsConfig(
     /**
-     * Nummern, deren Nachrichten nicht in der Liste stehen.
-     *
-     * Getrennt von der Anrufsperre und nicht mit ihr verschmolzen: wer eine Nummer nicht
-     * mehr sprechen will, will ihre Nachrichten vielleicht trotzdem lesen - und umgekehrt.
+     * numbers whose messages stay out of the list. separate from the call block list: not
+     * wanting to speak to someone does not mean not wanting to read them, or the reverse.
      */
     val hiddenNumbers: List<String> = emptyList(),
-    /** Woerter, die eine Nachricht aus der Liste nehmen. */
     val hiddenWords: List<String> = emptyList(),
-    /**
-     * Schriftgroesse **nur** im Gespraech. `PLAN.md` 4.7 nennt sie ausdruecklich getrennt
-     * von der globalen, und das hat einen Grund: eine Nachricht liest man am Stueck und
-     * aus der Hand, eine Kachel erkennt man im Vorbeigehen. Wer die Kacheln gross mag,
-     * braucht deshalb nicht auch grosse Nachrichten - und umgekehrt.
-     */
     val conversationScale: Float = 1.0f,
     /**
-     * Wie lange es bei einer neuen Nachricht vibriert, in Millisekunden. `PLAN.md` 4.7.
-     *
-     * Steht im Benachrichtigungskanal und nicht in einem eigenen Vibrationsaufruf - nur so
-     * hält sich die Meldung an „Bitte nicht stören". Siehe
-     * [org.biglau.notify.SmsNotifications].
+     * vibration for a new message, in milliseconds. it lives in the notification channel and
+     * not in a vibrate call of our own, because only that respects do-not-disturb.
      */
     val vibrationMs: Int = 500,
     /**
-     * Bei einer neuen Nachricht den ganzen Bildschirm nehmen. `PLAN.md` 4.7.
-     *
-     * **Von Haus aus aus**, und das ist eine Abwägung: eine Meldung, die alles übernimmt und
-     * bei gesperrtem Bildschirm den Text zeigt, sieht auch jeder, der das Telefon in dem
-     * Moment in der Hand hält. Wer sie will, schaltet sie ein - wer sie nicht kennt, wird
-     * nicht überrascht.
+     * **off by default**: a notice that takes the whole screen and shows the text on the lock
+     * screen is also seen by whoever is holding the phone at that moment.
      */
     val fullScreenAlert: Boolean = false,
-    /**
-     * Alle wie viele Minuten an ungelesene Nachrichten erinnert wird. Null heisst: gar
-     * nicht. `PLAN.md` 4.7, siehe [org.biglau.notify.SmsReminder].
-     */
+    /** minutes between reminders about unread messages; 0 means never. */
     val repeatMinutes: Int = 0,
     /**
-     * Nachfragen, bevor eine Nachricht hinausgeht. `PLAN.md` 4.7.
-     *
-     * **Von Haus aus aus**, und das ist eine Abwaegung: eine versehentlich gesendete halbe
-     * Nachricht ist peinlich, eine zusaetzliche Frage vor *jeder* Nachricht ist eine
-     * dauernde Muehe. Wer zittrige Haende hat, schaltet sie ein - dann steht sie da, wo sie
-     * gebraucht wird, statt allen im Weg zu sein.
+     * **off by default**: an accidentally sent half message is embarrassing, an extra question
+     * before *every* message is a constant chore. shaky hands switch it on.
      */
     val confirmBeforeSending: Boolean = false,
-    /** Sendeknopf ueber statt unter dem Textfeld. `PLAN.md` 4.7. */
     val sendButtonAbove: Boolean = false,
-    /** Groesserer Sendeknopf - fuer Haende, die zittern. `PLAN.md` 4.7. */
     val sendButtonLarge: Boolean = false,
 )
 
 @Serializable
 data class PhoneConfig(
-    /** Taste (als Zeichenkette, damit JSON es mag) auf Ziel. */
+    /** key as a string, because json likes it that way. */
     val speedDial: Map<String, SpeedDialTarget> = emptyMap(),
     /**
-     * Anrufarten, die in der Liste nicht erscheinen - als Namen, damit die Datenschicht
-     * nichts von der Telefonschicht wissen muss.
-     *
-     * Ausblendliste und keine Einblendliste: eine Art, die Android spaeter dazunimmt, ist
-     * dann von selbst sichtbar statt still zu fehlen.
+     * call types kept out of the list, as names, so the data layer needs nothing from the
+     * phone layer. a hide list, not a show list: a type android adds later is then visible by
+     * itself instead of silently missing.
      */
     val hiddenCallTypes: Set<String> = emptySet(),
-    /** Wie die Anrufliste zusammenfasst. `PLAN.md` 4.6. */
     val callGrouping: CallGrouping = CallGrouping.NUMBER,
-    /** Wie gross das Foto des Anrufers auf dem Anrufbildschirm ist. `PLAN.md` 4.6. */
     val callerPhoto: CallerPhoto = CallerPhoto.SMALL,
-    /** Wohin der Ton beim Verbinden geht. `PLAN.md` 4.6. */
     val audioRoute: AudioRoute = AudioRoute.EARPIECE,
-    /** Lautsprecher bei selbst gewaehlten Anrufen. `PLAN.md` 4.6. */
     val speakerOnOutgoing: Boolean = false,
-    /** Gesperrte Nummern, eingehend wie ausgehend. `PLAN.md` 4.6. */
     val blockedNumbers: List<String> = emptyList(),
     /**
-     * Wann die Anrufliste zuletzt offen war, in Millisekunden seit 1970.
+     * when the call log was last open, so the badge needs no write permission.
      *
-     * **Damit ein Abzeichen kein Schreibrecht braucht.** Bisher zaehlte BigLau die vom
-     * System als „neu" gefuehrten verpassten Anrufe und setzte dieses Kennzeichen beim
-     * Oeffnen zurueck - das verlangt `WRITE_CALL_LOG`, und am 03.09.2026 war es auf dem
-     * Geraet des Nutzers nicht erteilt. Die Zahl auf der Kachel waere dort nie erloschen,
-     * egal wie oft er die Liste liest. (Seit dem 04.09.2026 haelt BigLau die Telefon-Rolle
-     * und bekommt das Recht mit - der Weg hier bleibt, weil er an keiner Rolle haengt.)
-     *
-     * Gezaehlt werden jetzt nur Anrufe, die **juenger** sind als dieser Zeitpunkt. Das
-     * Kennzeichen des Systems bleibt zusaetzlich in der Bedingung: raeumt die
-     * System-Telefon-App auf, verschwindet die Zahl hier ebenfalls.
+     * counting the system's "new" flag and clearing it on open requires `WRITE_CALL_LOG`, and
+     * without that the number on the tile would never go out however often the list is read.
+     * the system flag stays in the condition as well, so tidying up in the system phone app
+     * clears the number here too.
      */
     val lastSeenMissedAt: Long = 0L,
 )
 
-/** Standard-Audioausgabe (`PLAN.md` 4.6). */
 @Serializable
 enum class AudioRoute { EARPIECE, SPEAKER, BLUETOOTH }
 
 /**
- * Groesse des Kontaktfotos beim Anruf (`PLAN.md` 4.6).
- *
- * Vier Stufen und kein Schalter: wer schlecht sieht, will das Gesicht gross; wer das
- * Telefon in der Hosentasche hat, will vor allem den Namen lesen koennen, und ein
- * bildschirmfuellendes Foto draengt ihn nach unten.
+ * four steps and no switch: poor eyes want the face large, while a phone in a pocket needs
+ * the name readable, and a full-screen photo pushes it down.
  */
 @Serializable
 enum class CallerPhoto { OFF, SMALL, HALF, FULL }
 
 /**
- * Wonach die Anrufliste zusammenfasst (`PLAN.md` 4.6).
- *
- * Bewusst als Aufzaehlung und nicht als Schalter: „nach nichts" ist kein Aus-Zustand von
- * „nach Nummer", sondern eine eigene Ansicht - wer wissen will, wann genau jemand dreimal
- * angerufen hat, braucht die drei Zeilen einzeln.
+ * an enum and not a switch: "by nothing" is not the off state of "by number" but its own
+ * view, for anyone who wants to know when exactly somebody called three times.
  */
 @Serializable
 enum class CallGrouping { NONE, NUMBER, DIRECTION }
 
 @Serializable
 data class ContactsConfig(
-    /** Sortierung: nach Vornamen oder nach Nachnamen. */
     val sortBySurname: Boolean = false,
-    /** Sucht die Kontaktsuche auch in den Telefonnummern? */
     val searchNumbers: Boolean = true,
     val favouritesFirst: Boolean = true,
 )
@@ -557,9 +415,8 @@ data class LauncherConfig(
     val homeScreenId: String = Defaults.MAIN_ID,
     val swipeOrder: List<String> = emptyList(),
     /**
-     * Screens, die nicht in der Wischkette liegen. PLAN.md 4.1 „welche Screens per Wischen
-     * erreichbar sind". Ausdruecklich als Ausnahmeliste und nicht als Mitgliederliste,
-     * damit ein spaeter angelegter Screen von selbst dabei ist statt still zu fehlen.
+     * screens outside the swipe chain. an exception list, not a membership list, so a screen
+     * created later is part of it by itself instead of silently missing.
      */
     val swipeExcluded: Set<String> = emptySet(),
     val appearance: Appearance = Appearance(),
@@ -570,7 +427,6 @@ data class LauncherConfig(
     val contacts: ContactsConfig = ContactsConfig(),
     val phone: PhoneConfig = PhoneConfig(),
     val sms: SmsConfig = SmsConfig(),
-    /** Ist der Erststart-Assistent durchlaufen? */
     val wizardDone: Boolean = false,
 ) {
     fun screenById(id: String): Screen? = screens.firstOrNull { it.id == id }

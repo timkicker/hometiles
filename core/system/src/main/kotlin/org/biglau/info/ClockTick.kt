@@ -1,11 +1,11 @@
 package org.biglau.info
 
 /**
- * Wann die Uhr das naechste Mal neu gezeichnet werden muss.
+ * when the clock must be redrawn next.
  *
- * Sekuendlich aufzuwachen kostet auf einem 2000-mAh-Akku spuerbar Strom, und die Kachel
- * zeigt ohnehin keine Sekunden. Gerechnet wird deshalb bis zur naechsten vollen Minute -
- * nicht schlicht 60 Sekunden, sonst laeuft die Anzeige langsam aus dem Takt.
+ * waking every second costs noticeable power on a 2000 mAh battery, and the tile shows no
+ * seconds anyway. counted to the next full minute rather than plainly 60 seconds, or the
+ * display slowly drifts out of step.
  */
 object ClockTick {
 

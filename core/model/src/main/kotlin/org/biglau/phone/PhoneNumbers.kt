@@ -1,32 +1,26 @@
 package org.biglau.phone
 
 /**
- * Umgang mit Rufnummern - insbesondere mit Notrufnummern.
+ * handling of phone numbers, emergency ones above all.
  *
- * Warum das hier und nicht nur ueber die Android-API laeuft: manche Geraete lassen einen
- * Notruf aus einer Fremd-App gar nicht zu, andere leiten ihn still um. Das Original hat
- * dafuer eine Einstellung. Wir wollen keine Einstellung, sondern eine Regel: eine Nummer,
- * die *irgendwie* nach Notruf aussieht, waehlt BigLau nie selbst, sondern uebergibt sie an
- * den System-Dialer. Lieber ein Tastendruck mehr als ein verschluckter Notruf.
+ * some devices refuse an emergency call from a third-party app, others reroute it silently.
+ * so a rule instead of a setting: a number that looks *anything* like an emergency number is
+ * never dialled by biglau but handed to the system dialler. one keypress more beats a
+ * swallowed emergency call.
  *
- * Die Liste ergaenzt die Plattformpruefung, sie ersetzt sie nicht.
+ * the list supplements the platform check, it does not replace it.
  */
 object PhoneNumbers {
 
-    /** Notrufnummern, die ohne Netz und ohne SIM gelten sollen. Bewusst grosszuegig. */
+    /** deliberately generous; these should hold without network and without a sim. */
     val WELL_KNOWN_EMERGENCY = setOf(
-        "112", "911", "999", "000", "110", "118", "119", "115", "122", "133", "144", "911",
-        "08", "999", "112",
+        "112", "911", "999", "000", "110", "118", "119", "115", "122", "133", "144", "08",
     )
 
-    /** Nur Ziffern, Plus und die Waehlzeichen, die das Netz kennt. */
     fun clean(number: String): String =
         number.filter { it.isDigit() || it == '+' || it == '*' || it == '#' }
 
-    /**
-     * Sieht die Nummer nach Notruf aus? Bewusst grosszuegig: ein falsch positiver Treffer
-     * kostet einen Tastendruck im System-Dialer, ein falsch negativer kann einen Notruf kosten.
-     */
+    /** a false positive costs a keypress in the system dialler, a false negative can cost a call. */
     fun looksLikeEmergency(number: String, platformSaysYes: Boolean = false): Boolean {
         if (platformSaysYes) return true
         val digits = clean(number).removePrefix("+")
@@ -34,50 +28,35 @@ object PhoneNumbers {
         return digits in WELL_KNOWN_EMERGENCY
     }
 
-    /** Sinnvoll waehlbar? Leere und reine Zeichenfolgen ohne Ziffer sind es nicht. */
     fun isDialable(number: String): Boolean = clean(number).any { it.isDigit() }
 
-    /**
-     * Das Land, in dem eine Nummer ohne Vorwahl gilt (ISO, z. B. "at").
-     *
-     * Wird einmal beim Start aus der SIM gelesen. Null heisst: unbekannt - dann bleibt es
-     * bei der blossen Gruppierung, statt eine Vorwahl zu raten.
-     */
+    /** the region a number without a country code belongs to (iso, e.g. "at"); null means unknown. */
     @Volatile
     var region: String? = null
 
     /**
-     * Wie das System die Nummer schreibt, oder null, wenn es das nicht kann.
+     * how the system writes the number, or null when it cannot.
      *
-     * Von aussen gesetzt, und deshalb liegt diese Datei im reinen Kotlin-Modul: Android
-     * bringt die Vorwahltabellen mit, aber `PhoneNumberUtils` ist Framework, und dieses
-     * Modul soll davon nichts wissen. `SystemNumbers.install` in `core:system` haengt die
-     * echte Schreibweise ein; `StartAufgabenTest` sorgt dafuer, dass das beim Start
-     * geschieht.
+     * injected from outside, which is why this file can live in the pure kotlin module:
+     * android carries the dialling-code tables, but `PhoneNumberUtils` is framework.
+     * `SystemNumbers.install` in `core:system` hooks up the real thing.
      *
-     * Die Vorgabe ist **null**, also der Rueckfall auf blosse Gruppierung. Das ist die
-     * ehrliche Vorgabe: wer die Systemteile nicht einhaengt, bekommt lesbare Bloecke - und
-     * nicht eine geratene Laendervorwahl.
+     * the default is **null**, the fall back to plain grouping. that is the honest default:
+     * without the system parts one gets readable blocks, not a guessed country code.
      */
     @Volatile
     var systemFormat: (String, String?) -> String? = { _, _ -> null }
 
     /**
-     * Die Nummer, wie sie am Bildschirm steht.
+     * the number as it appears on screen.
      *
-     * **Zuerst fragt sie das System.** Android bringt die Vorwahltabellen mit, und ohne sie
-     * wird die Gruppierung falsch: eine oesterreichische Mobilnummer stand auf dem
-     * Startbildschirm als „+436 804 …" da - „+436" ist kein Land, Oesterreich ist „+43".
-     * Wer so etwas abschreibt oder vorliest, schreibt es falsch ab. Das ist am Geraet des
-     * Nutzers aufgefallen, an seinen eigenen Kontakten.
+     * **the system is asked first.** without its tables the grouping goes wrong: an austrian
+     * mobile number showed as "+436 804 ..." on the home screen, and "+436" is not a country.
+     * whoever copies or reads that out gets it wrong.
      *
-     * Bleibt das System die Antwort schuldig, wird gruppiert wie bisher - lesbare Bloecke
-     * ohne geratene Laendervorwahl.
-     *
-     * **Nicht jeder Absender ist eine Nummer.** Banken, Paketdienste und Anmeldecodes
-     * kommen als Buchstabenkennung ("ADAC", "Bank"), und [clean] laesst davon nichts
-     * uebrig: in der Nachrichtenliste stand dann eine **leere Zeile**. Bleibt nach dem
-     * Saeubern nichts, steht deshalb der Text selbst da.
+     * not every sender is a number, though. banks and parcel services arrive as letter ids
+     * ("ADAC"), and [clean] leaves nothing of those, which produced an **empty line** in the
+     * message list. so if nothing survives cleaning, the raw text stands.
      */
     fun forDisplay(number: String): String {
         val cleaned = clean(number)
@@ -88,20 +67,14 @@ object PhoneNumbers {
     }
 
     /**
-     * Dieselbe Nummer, aber zum **Vorlesen**: jedes Zeichen fuer sich.
+     * the same number for **reading aloud**: one character at a time.
      *
-     * Eine Rufnummer ist keine Zahl. Als gewoehnlicher Text gelesen macht ein
-     * Vorleseprogramm aus "123" ein "einhundertdreiundzwanzig" und aus "111001" ein
-     * Wortungetuem - und wer die Nummer nachpruefen will, kann es nicht. Am 04.09.2026 am
-     * Emulator gesehen: die Wähltastatur zeigt die getippte Nummer als schlichten Text,
-     * ohne eine eigene Beschreibung.
+     * a phone number is not a number. read as ordinary text a screen reader turns "123" into
+     * "one hundred and twenty-three", and nobody can check that against a card. spaces
+     * between digits is the form every reader treats separately. grouping gaps fall away;
+     * they are there for the eye, and the ear gets a pause after each digit anyway.
      *
-     * Ziffernweise mit Leerzeichen ist die Fassung, die jedes Vorleseprogramm einzeln
-     * liest. Das Plus bleibt stehen, Gruppierungsluecken fallen weg - sie stehen fuers
-     * Auge da, und das Ohr bekommt ohnehin nach jeder Ziffer eine Pause.
-     *
-     * Buchstabenkennungen ("ADAC") bleiben, wie sie sind: die sind ein Wort und werden als
-     * Wort gelesen.
+     * letter ids stay as they are: they are a word and get read as one.
      */
     fun forSpeech(number: String): String {
         val cleaned = clean(number)
@@ -109,11 +82,11 @@ object PhoneNumbers {
         return cleaned.map { it.toString() }.joinToString(" ")
     }
 
-    /** Der Rueckfall: Dreierbloecke, das Plus bleibt am Anfang stehen. */
+    /** the fallback: blocks of three, the plus stays in front. */
     private fun grouped(cleaned: String): String {
         val plus = cleaned.startsWith("+")
         val body = if (plus) cleaned.drop(1) else cleaned
-        val bloecke = body.chunked(3).joinToString(" ")
-        return if (plus) "+$bloecke" else bloecke
+        val blocks = body.chunked(3).joinToString(" ")
+        return if (plus) "+$blocks" else blocks
     }
 }

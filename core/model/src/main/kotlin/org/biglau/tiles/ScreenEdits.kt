@@ -8,19 +8,15 @@ import org.biglau.data.LauncherConfig
 import org.biglau.data.Screen
 
 /**
- * Screens anlegen, umbenennen und loeschen.
+ * creating, renaming and deleting screens.
  *
- * Zwei Dinge sind hier heikel und deshalb hier und nicht in der Oberflaeche geloest:
- * ein neuer Screen ohne Rueckweg waere eine Sackgasse, weil ein Launcher die
- * Zurueck-Geste nicht abfangen darf; und ein geloeschter Screen laesst Kacheln
- * zurueck, die ins Leere zeigen.
+ * two things are delicate and therefore solved here rather than in the surface: a new screen
+ * without a way back would be a dead end, because a launcher may not swallow the back
+ * gesture; and a deleted screen leaves tiles pointing at nothing.
  */
 object ScreenEdits {
 
-    /**
-     * Neuer Screen im selben Raster wie der Ausgangsscreen, mit einer Heim-Kachel
-     * auf dem letzten Platz - sonst kommt der Nutzer dort nie wieder weg.
-     */
+    /** a home tile on the last slot, or one would never get away from the new screen. */
     fun newScreen(id: String, name: String, like: Screen): Screen {
         val lastX = like.cols - 1
         val lastY = like.rows - 1
@@ -39,11 +35,7 @@ object ScreenEdits {
         )
     }
 
-    /**
-     * Raster, die auf drei Zoll aufgehen. Mehr als drei Spalten wird auf 349 dp Breite
-     * zur Briefmarke - deshalb endet die Liste dort und nicht bei einer freien Eingabe,
-     * mit der man sich den Startbildschirm unbrauchbar machen koennte.
-     */
+    /** grids that work on three inches; past three columns a tile turns into a postage stamp. */
     val GRID_PRESETS: List<Pair<Int, Int>> = listOf(
         1 to 2,
         2 to 2,
@@ -53,20 +45,10 @@ object ScreenEdits {
         3 to 5,
     )
 
-    /**
-     * Welche Kacheln ein kleineres Raster nicht mehr fasst.
-     *
-     * Wird vor dem Umstellen gefragt und dem Nutzer gezeigt: ein Raster zu wechseln und
-     * dabei stillschweigend vier Kacheln zu verlieren, waere derselbe Fehler wie eine
-     * ausgeblendete App ohne Weg zurueck - nur unwiderruflich.
-     */
+    /** asked before changing the grid: losing four tiles silently would be irreversible. */
     fun dropped(screen: Screen, cols: Int, rows: Int): List<Cell> =
         screen.cells.filter { it.x >= cols || it.y >= rows }
 
-    /**
-     * Neues Raster. Kacheln ausserhalb fallen weg, Kacheln die ueber den neuen Rand
-     * ragen werden beschnitten statt hinauszuragen.
-     */
     fun setGrid(config: LauncherConfig, id: String, cols: Int, rows: Int): LauncherConfig {
         if (cols < 1 || rows < 1) return config
         return config.copy(
@@ -74,17 +56,14 @@ object ScreenEdits {
                 if (screen.id != id) {
                     screen
                 } else {
-                    // Dieselbe Rechnung stand hier ein zweites Mal, Zeile fuer Zeile wie
-                    // in CellLayout.fitToGrid - nur dass die getestete Fassung niemand
-                    // aufrief und diese hier lief. Zwei Kopien einer Regel heisst: eine
-                    // wird irgendwann repariert und die andere nicht.
+                    // this arithmetic stood here a second time, line for line as in
+                    // CellLayout.fitToGrid, and the tested copy was the one nobody called.
                     CellLayout.fitToGrid(screen.copy(cols = cols, rows = rows))
                 }
             },
         )
     }
 
-    /** Eine Kennung, die auf keinen bestehenden Screen faellt. */
     fun freeId(config: LauncherConfig, base: String = "screen"): String {
         var index = config.screens.size + 1
         while (config.screens.any { it.id == "$base$index" }) index++
@@ -104,31 +83,29 @@ object ScreenEdits {
     }
 
     /**
-     * Was ein Loeschen kostet: belegte Kacheln des Screens und Ordner, die mit ihm gehen.
+     * what a deletion costs: the screen's filled tiles and the folders going with it.
      *
-     * Steht in der Rueckfrage. Seit das Loeschen auch die Ordner des Screens abraeumt, ist
-     * die Zahl groesser als das, was man auf dem Screen sieht - der Inhalt eines Ordners
-     * ist ja zugeklappt. Genau dann muss sie dastehen.
+     * the number is larger than what one sees on the screen, because a folder's contents are
+     * folded away. that is exactly when it has to be stated.
      */
     fun deletionLosses(config: LauncherConfig, id: String): Pair<Int, Int> {
         val screen = config.screens.firstOrNull { it.id == id } ?: return 0 to 0
-        val kacheln = screen.tileCount
-        val ordner = screen.cells
+        val tiles = screen.tileCount
+        val folders = screen.cells
             .mapNotNull { (it.button.action as? ButtonAction.Folder)?.screenId }
             .distinct()
-            .count { ordnerId ->
-                // Nur die, auf die sonst nichts mehr zeigt.
-                config.screens.flatMap { it.cells }.count { zelle ->
-                    (zelle.button.action as? ButtonAction.Folder)?.screenId == ordnerId
+            .count { folderId ->
+                // only those nothing else points at.
+                config.screens.flatMap { it.cells }.count { cell ->
+                    (cell.button.action as? ButtonAction.Folder)?.screenId == folderId
                 } == 1
             }
-        return kacheln to ordner
+        return tiles to folders
     }
 
     /**
-     * Loescht einen Screen und raeumt hinter ihm auf: Kacheln, die dorthin sprangen,
-     * werden entfernt, und die Wischreihenfolge verliert den Eintrag. Der Startscreen
-     * laesst sich nicht loeschen - sonst haette der Launcher kein Zuhause mehr.
+     * deletes a screen and tidies up after it: tiles jumping there go, and the swipe order
+     * loses its entry. the home screen cannot be deleted, or the launcher would have no home.
      */
     fun delete(config: LauncherConfig, id: String): LauncherConfig {
         if (id == config.homeScreenId) return config
@@ -140,94 +117,78 @@ object ScreenEdits {
             .map { screen ->
                 screen.copy(cells = screen.cells.filterNot { it.button.action == ButtonAction.GoToScreen(id) })
             }
-        val ohneScreen = config.copy(
+        val withoutScreen = config.copy(
             screens = remaining,
             swipeOrder = config.swipeOrder.filterNot { it == id },
         )
-        // Trug der geloeschte Screen eine Ordnerkachel, blieb der Ordner liegen - fuer
-        // niemanden erreichbar, in keiner Liste sichtbar, nicht mehr zu loeschen. Er
-        // gehoerte zum Inhalt dieses Screens und geht mit ihm.
-        //
-        // Nur diese: ein Ordner, der schon vorher verwaist war, hat mit diesem Loeschen
-        // nichts zu tun und verschwindet nicht als Nebenwirkung.
-        val ordnerVonHier = config.screens.first { it.id == id }.cells
+        // a folder tile on the deleted screen used to leave its folder behind: unreachable,
+        // in no list, impossible to delete. only the ones from here, though - a folder
+        // already orphaned has nothing to do with this deletion.
+        val foldersFromHere = config.screens.first { it.id == id }.cells
             .mapNotNull { (it.button.action as? ButtonAction.Folder)?.screenId }
             .toSet()
-        return FolderEdits.orphaned(ohneScreen)
-            .filter { it.id in ordnerVonHier }
-            .fold(ohneScreen) { stand, ordner -> FolderEdits.delete(stand, ordner.id) }
+        return FolderEdits.orphaned(withoutScreen)
+            .filter { it.id in foldersFromHere }
+            .fold(withoutScreen) { state, folder -> FolderEdits.delete(state, folder.id) }
     }
 
-    /**
-     * Screens, zu denen keine einzige Kachel führt.
-     *
-     * Entstanden ist er meist so - angelegt, die Sprungkachel spaeter
-     * mit etwas anderem belegt, und seither ist er nur noch in der Konfiguration. Der
-     * Startbildschirm zaehlt nie dazu; zu ihm fuehrt immer die Zurueck-Geste.
-     */
-    private fun hatBlaetterkachel(config: LauncherConfig): Boolean = config.screens
+    private fun hasPagingTile(config: LauncherConfig): Boolean = config.screens
         .flatMap { it.cells }
         .any {
             (it.button.action as? ButtonAction.Action)?.builtin in
                 setOf(Builtin.NEXT_SCREEN, Builtin.PREV_SCREEN)
         }
 
+    /**
+     * screens no tile leads to. usually created, then the jump tile was reassigned, and since
+     * then it lives only in the config. the home screen never counts; back always leads there.
+     */
     fun unreachable(config: LauncherConfig): List<Screen> {
         val reached = config.screens
             .flatMap { it.cells }
             .mapNotNull { (it.button.action as? ButtonAction.GoToScreen)?.screenId }
             .toSet() +
-            // Wischen zaehlt mit, wenn es eingeschaltet ist. Ohne das warnte die App vor
-            // Screens, die man mit einer Handbewegung erreicht - und eine Warnung, die
-            // nicht stimmt, nimmt man auch dort nicht mehr ernst, wo sie stimmt.
-            //
-            // Aus demselben Grund zaehlen die Blaetterkacheln mit: `NEXT_SCREEN` und
-            // `PREV_SCREEN` laufen durch dieselbe Reihe wie das Wischen, und zwar
-            // unabhaengig davon, ob das Wischen an ist (siehe MainActivity). Wer sie hat,
-            // kommt ueberall hin - und bekam bis zum 03.09.2026 trotzdem die Warnung.
-            if (config.behaviour.swipeBetweenScreens || hatBlaetterkachel(config)) {
+            // swiping counts when it is on, and so do the paging tiles: `NEXT_SCREEN` and
+            // `PREV_SCREEN` run through the same row whether swiping is on or not. warning
+            // about a screen one reaches with a flick makes the warning worthless where it
+            // does apply.
+            if (config.behaviour.swipeBetweenScreens || hasPagingTile(config)) {
                 ScreenOrder.ordered(config).map { it.id }.toSet()
             } else {
                 emptySet()
             }
-        // Ordner sind hier nicht gemeint: zu ihnen fuehrt eine Ordnerkachel, keine
-        // Sprungkachel, und ob eine fehlt, prueft FolderEdits.orphaned.
+        // folders are not meant here: a folder tile leads to them, and whether one is
+        // missing is FolderEdits.orphaned's question.
         return config.screens.filter {
             it.id != config.homeScreenId && it.id !in reached && !it.isFolder
         }
     }
 
     /**
-     * Sind die Einstellungen von diesem Screen aus erreichbar?
+     * are the settings reachable from this screen?
      *
-     * Die schlimmste Sackgasse der ganzen App: wer einen Screen zum Startbildschirm macht,
-     * auf dem keine Einstellungen-Kachel liegt, kommt nie wieder in die Einstellungen -
-     * und damit auch nie wieder zurück. Es hilft dann nur noch ein anderer Launcher oder
-     * ein Rechner mit adb. Genau das ist beim Ausprobieren am 01.09.2026 passiert.
+     * the worst dead end in the whole app: making a screen the home screen when no settings
+     * tile lies on it means never getting back into the settings, and only another launcher
+     * or a computer with adb helps.
      *
-     * Gezählt wird über Sprung- und Ordnerkacheln hinweg, denn ein Weg über zwei Ecken ist
-     * auch ein Weg. Die App-Liste zählt **nicht**: BigLau steht zwar darin, aber ein Start
-     * von dort führt auf den Startbildschirm und nicht in die Einstellungen.
+     * counted across jump and folder tiles, because a way round two corners is still a way.
+     * the app list counts too, since it offers the settings at its end.
      */
     fun settingsReachable(config: LauncherConfig, fromScreenId: String): Boolean {
-        val besucht = mutableSetOf<String>()
-        val offen = ArrayDeque(listOf(fromScreenId))
-        while (offen.isNotEmpty()) {
-            val id = offen.removeFirst()
-            if (!besucht.add(id)) continue
+        val seen = mutableSetOf<String>()
+        val open = ArrayDeque(listOf(fromScreenId))
+        while (open.isNotEmpty()) {
+            val id = open.removeFirst()
+            if (!seen.add(id)) continue
             val screen = config.screens.firstOrNull { it.id == id } ?: continue
-            screen.cells.forEach { zelle ->
-                when (val aktion = zelle.button.action) {
+            screen.cells.forEach { cell ->
+                when (val action = cell.button.action) {
+                    // whoever removes the settings row from the app list has to remove
+                    // APP_LIST here; `SettingsReachableFromDrawerTest` holds the other side.
                     is ButtonAction.Action ->
-                        // Die App-Liste zaehlt seit dem 03.09.2026 als Weg: sie bietet die
-                        // Einstellungen am Ende selbst an. Vorher tat sie es nur, wenn Apps
-                        // ausgeblendet waren - und genau daran hing die Sackgasse, in der
-                        // der Nutzer an diesem Morgen sass. Wer die Zeile aus der App-Liste
-                        // nimmt, muss diese hier mitnehmen; `SettingsReachableFromDrawerTest`
-                        // haelt die andere Seite fest.
-                        if (aktion.builtin == Builtin.SETTINGS || aktion.builtin == Builtin.APP_LIST) return true
-                    is ButtonAction.GoToScreen -> offen.addLast(aktion.screenId)
-                    is ButtonAction.Folder -> offen.addLast(aktion.screenId)
+                        if (action.builtin == Builtin.SETTINGS || action.builtin == Builtin.APP_LIST) return true
+                    is ButtonAction.GoToScreen -> open.addLast(action.screenId)
+                    is ButtonAction.Folder -> open.addLast(action.screenId)
                     else -> Unit
                 }
             }
@@ -236,13 +197,12 @@ object ScreenEdits {
     }
 
     /**
-     * Legt eine Einstellungen-Kachel auf den ersten freien Platz - der Ausweg aus der
-     * Sackgasse oben. Gibt `null` zurueck, wenn kein Platz frei ist; dann darf der Wechsel
-     * nicht stattfinden, denn danach gaebe es keinen Weg mehr zurueck.
+     * the way out of that dead end. `null` when no slot is free; the switch must then not
+     * happen, because afterwards there would be no way back.
      */
     fun withSettingsTile(config: LauncherConfig, screenId: String): LauncherConfig? {
         val screen = config.screens.firstOrNull { it.id == screenId } ?: return null
-        val platz = screen.freeSlots().firstOrNull() ?: return null
+        val slot = screen.freeSlots().firstOrNull() ?: return null
         return config.copy(
             screens = config.screens.map {
                 if (it.id != screenId) {
@@ -250,8 +210,8 @@ object ScreenEdits {
                 } else {
                     it.copy(
                         cells = it.cells + Cell(
-                            x = platz.first,
-                            y = platz.second,
+                            x = slot.first,
+                            y = slot.second,
                             button = Button(action = ButtonAction.Action(Builtin.SETTINGS)),
                         ),
                     )
@@ -261,31 +221,26 @@ object ScreenEdits {
     }
 
     /**
-     * Eine Sprungkachel auf den Startbildschirm legen, die zu [zielId] führt.
+     * puts a jump tile to [targetId] on the **home screen**, where it is certainly reachable.
      *
-     * Das Gegenstück zur Warnung „Auf ‚Screen 2' führt keine Kachel". Die sagte bisher, was
-     * zu tun ist — „legen Sie irgendwo eine Sprungkachel an" —, und liess den Nutzer damit
-     * allein. Dieselbe Regel wie beim Notruf ohne Kontakte und bei der Anrufliste: **der Weg
-     * dorthin statt der Wegbeschreibung.**
-     *
-     * Die Kachel kommt auf den **Startbildschirm**, nicht irgendwohin: von dort aus ist sie
-     * mit Sicherheit erreichbar. Ist er voll, gibt es `null` — dann bleibt nur, erst eine
-     * Kachel frei zu machen, und genau das sagt die Oberfläche dann auch.
+     * the counterpart to the warning "no tile leads to Screen 2", which used to say what to
+     * do and leave the user to it. same rule as elsewhere: **the way there instead of
+     * directions.** `null` when the home screen is full.
      */
-    fun withJumpTile(config: LauncherConfig, zielId: String): LauncherConfig? {
-        if (config.screens.none { it.id == zielId }) return null
-        val heim = config.screens.firstOrNull { it.id == config.homeScreenId } ?: return null
-        val platz = heim.freeSlots().firstOrNull() ?: return null
+    fun withJumpTile(config: LauncherConfig, targetId: String): LauncherConfig? {
+        if (config.screens.none { it.id == targetId }) return null
+        val home = config.screens.firstOrNull { it.id == config.homeScreenId } ?: return null
+        val slot = home.freeSlots().firstOrNull() ?: return null
         return config.copy(
             screens = config.screens.map {
-                if (it.id != heim.id) {
+                if (it.id != home.id) {
                     it
                 } else {
                     it.copy(
                         cells = it.cells + Cell(
-                            x = platz.first,
-                            y = platz.second,
-                            button = Button(action = ButtonAction.GoToScreen(zielId)),
+                            x = slot.first,
+                            y = slot.second,
+                            button = Button(action = ButtonAction.GoToScreen(targetId)),
                         ),
                     )
                 }

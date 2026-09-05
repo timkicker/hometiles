@@ -7,19 +7,15 @@ import org.biglau.data.LauncherConfig
 import org.biglau.data.Screen
 
 /**
- * Einen Screen verdoppeln. PLAN.md 4.1.
+ * duplicating a screen. `PLAN.md` 4.1.
  *
- * Gedacht zum Ausprobieren: eine neue Anordnung bauen, ohne die alte zu verlieren.
- * Deshalb ist der wichtigste Teil nicht das Kopieren, sondern was **nicht** mitkopiert
- * wird - und dass man es erfaehrt.
+ * meant for trying things out: build a new arrangement without losing the old one. the
+ * important part is therefore not the copying but what is **not** copied, and that one is
+ * told about it.
  */
 object ScreenCopy {
 
     sealed interface Result {
-        /**
-         * @param skippedWidgets Widgets, die leer geblieben sind
-         * @param skippedFolders Ordnerkacheln, die leer geblieben sind
-         */
         data class Done(
             val config: LauncherConfig,
             val newId: String,
@@ -28,58 +24,53 @@ object ScreenCopy {
             val skippedFolders: Int,
         ) : Result
 
-        /** Auf dem Original ist keine Zelle frei fuer die Kachel, die zur Kopie fuehrt. */
+        /** no free cell on the original for the tile that leads to the copy. */
         data object NoRoomForJumpTile : Result
 
         data object NoSuchScreen : Result
     }
 
     /**
-     * Widgets werden nicht mitkopiert. Eine Widget-Kachel haelt eine Kennung, die der
-     * AppWidgetHost genau einmal vergeben hat; zweimal dieselbe hiesse, dass das Loeschen
-     * der einen Kachel die andere kaputtmacht. Ein Widget legt man in der Kopie neu an.
-     *
-     * Ordnerkacheln auch nicht. Zu einem Ordner gehoert genau eine Kachel - sein Loeschen
-     * raeumt beides zusammen weg. Zwei Kacheln auf denselben Ordner liessen nach dem
-     * Loeschen eine ins Leere zeigen.
+     * widgets carry an id the widget host handed out exactly once; the same id twice would
+     * mean deleting one tile breaks the other. folders belong to exactly one tile, and
+     * deleting that tile clears both, so a second tile would point at nothing.
      */
     private fun copyable(action: ButtonAction): Boolean =
         action !is ButtonAction.Widget && action !is ButtonAction.Folder
 
     fun duplicate(config: LauncherConfig, id: String, name: String): Result {
         val original = config.screens.firstOrNull { it.id == id } ?: return Result.NoSuchScreen
-        // Erst der Weg hin, dann die Kopie: ein Screen, zu dem keine Kachel fuehrt, ist
-        // eingerichtet und unauffindbar. Lieber gar nicht verdoppeln als so.
-        val platz = original.freeSlots().firstOrNull() ?: return Result.NoRoomForJumpTile
+        // the way there before the copy: a screen no tile leads to is set up and unfindable.
+        val slot = original.freeSlots().firstOrNull() ?: return Result.NoRoomForJumpTile
 
-        val neueId = ScreenEdits.freeId(config)
-        val behalten = original.cells.filter { copyable(it.button.action) }
-        val kopie = Screen(
-            id = neueId,
+        val newId = ScreenEdits.freeId(config)
+        val kept = original.cells.filter { copyable(it.button.action) }
+        val copy = Screen(
+            id = newId,
             name = name,
             cols = original.cols,
             rows = original.rows,
-            cells = behalten,
+            cells = kept,
         )
-        val mitKopie = config.copy(
+        val withCopy = config.copy(
             screens = config.screens.map { screen ->
                 if (screen.id != id) {
                     screen
                 } else {
                     screen.copy(
                         cells = screen.cells + Cell(
-                            x = platz.first,
-                            y = platz.second,
-                            button = Button(action = ButtonAction.GoToScreen(neueId)),
+                            x = slot.first,
+                            y = slot.second,
+                            button = Button(action = ButtonAction.GoToScreen(newId)),
                         ),
                     )
                 }
-            } + kopie,
+            } + copy,
         )
         return Result.Done(
-            config = mitKopie,
-            newId = neueId,
-            copied = behalten.count { it.button.action != ButtonAction.None },
+            config = withCopy,
+            newId = newId,
+            copied = kept.count { it.button.action != ButtonAction.None },
             skippedWidgets = original.cells.count { it.button.action is ButtonAction.Widget },
             skippedFolders = original.cells.count { it.button.action is ButtonAction.Folder },
         )

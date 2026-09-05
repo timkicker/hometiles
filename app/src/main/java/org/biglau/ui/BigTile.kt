@@ -76,16 +76,16 @@ import org.biglau.a11y.TileSpeech
  * Verloren geht dabei nichts. Die Zahl in der Ecke sagt weiterhin, wie viel wartet, und sie
  * sagt es genauer als jede Bewegung.
  */
-private const val BLINKRAND_DP = 2f
+private const val BADGE_BORDER_DP = 2f
 
 /**
  * Die Breite des Fokusrands. Siehe [org.biglau.ui.FokusrandTest].
  *
- * Deutlich mehr als [BLINKRAND_DP], damit auf demselben Bildschirm nicht zwei gleich
+ * Deutlich mehr als [BADGE_BORDER_DP], damit auf demselben Bildschirm nicht zwei gleich
  * aussehende Raender auf zwei verschiedene Ziele zeigen: der duenne sagt "hier ist etwas
  * Neues", der dicke sagt "die Auswahltaste trifft hier".
  */
-private const val FOKUSRAND_DP = 8f
+private const val FOCUS_BORDER_DP = 8f
 
 /**
  * Eine Kachel im Schild-Entwurf (PLAN.md 3.0): vollflaechige Farbe bis an die Kante,
@@ -157,7 +157,7 @@ fun BigTile(
     val textScale = LocalTextScale.current
     val interaction = remember { MutableInteractionSource() }
     val pressed by interaction.collectIsPressedAsState()
-    var fokussiert by remember { mutableStateOf(false) }
+    var focused by remember { mutableStateOf(false) }
     val scale by animateFloatAsState(if (pressed) 0.97f else 1f, label = "press")
 
     val labelWunsch =
@@ -228,10 +228,10 @@ fun BigTile(
     val gedrueckt = if (pressed) darken(background) else background
     // Der Fokus geht vor dem Blinken. Beide setzen den Rand, und die Kachel unter dem Fokus
     // ist die, die gleich startet; welche Neues hat, sagt die Zahl in der Ecke weiter.
-    val border = if (fokussiert || badgeCount > 0) palette.onTile else staticBorder
+    val border = if (focused || badgeCount > 0) palette.onTile else staticBorder
     val borderWidth = when {
-        fokussiert -> FOKUSRAND_DP.dp
-        badgeCount > 0 -> BLINKRAND_DP.dp
+        focused -> FOCUS_BORDER_DP.dp
+        badgeCount > 0 -> BADGE_BORDER_DP.dp
         borderOverride != null -> 2.dp
         else -> 3.dp
     } + if (pressed) 2.dp else 0.dp
@@ -248,7 +248,7 @@ fun BigTile(
                     Modifier
                 }
             )
-            .onFocusChanged { fokussiert = it.isFocused }
+            .onFocusChanged { focused = it.isFocused }
             .combinedClickable(
                 interactionSource = interaction,
                 indication = null,

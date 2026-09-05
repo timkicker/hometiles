@@ -4,35 +4,30 @@ enum class ToggleKind {
     FLASHLIGHT, RINGER, WIFI, BLUETOOTH, AIRPLANE,
 
     /**
-     * Mobile Daten, Standort und Helligkeit. Alle drei darf eine gewöhnliche App nicht
-     * selbst umlegen - mobile Daten nie, den Standort nie, die Helligkeit nur mit
-     * `WRITE_SETTINGS`, was eine eigene Sondererlaubnis ist. Sie öffnen deshalb die
-     * zuständige Systemseite, und die Beschriftung sagt das auch.
+     * an ordinary app may flip none of these itself: mobile data never, location never,
+     * brightness only with `WRITE_SETTINGS`, which is a special permission of its own. they
+     * open the responsible system page, and the label says so.
      */
     MOBILE_DATA, LOCATION, BRIGHTNESS,
 }
 
-/** Was beim Antippen tatsaechlich passieren kann. */
 enum class ToggleAction {
-    /** Wir legen den Schalter selbst um. */
+    /** we flip it ourselves. */
     SWITCH,
 
-    /** Android laesst uns nicht - wir oeffnen die Systemblende. */
+    /** android will not let us; we open the system panel. */
     PANEL,
 
-    /** Nicht einmal eine Blende: nur die Systemeinstellungen. */
+    /** not even a panel: the settings page. */
     SETTINGS,
 }
 
 /**
- * Was eine Schalter-Kachel wirklich tun kann.
+ * what a toggle tile can actually do.
  *
- * Das Original nennt diese Kacheln "Schalter", aber das stimmt seit Jahren nur noch teilweise:
- * Flugmodus darf keine App mehr umlegen (seit Android 4.2), WLAN nicht mehr seit Android 10,
- * Bluetooth nicht mehr seit Android 13. Wer die Kachel trotzdem "WLAN einschalten" nennt,
- * verspricht etwas, das nicht eintritt.
- *
- * Deshalb entscheidet diese Tabelle, und die Beschriftung richtet sich danach.
+ * the original calls these "switches", and that has only been half true for years: airplane
+ * mode has been off limits since android 4.2, wifi since 10, bluetooth since 13. a tile
+ * labelled "turn on wifi" promises something that does not happen.
  */
 object Toggles {
 
@@ -42,8 +37,6 @@ object Toggles {
         ToggleKind.WIFI -> if (sdkInt >= 29) ToggleAction.PANEL else ToggleAction.SWITCH
         ToggleKind.BLUETOOTH -> if (sdkInt >= 33) ToggleAction.SETTINGS else ToggleAction.SWITCH
         ToggleKind.AIRPLANE -> ToggleAction.SETTINGS
-        // Mobile Daten haben ab Android 10 eine eigene Systemblende; darunter bleibt nur
-        // die Einstellungsseite.
         ToggleKind.MOBILE_DATA -> if (sdkInt >= 29) ToggleAction.PANEL else ToggleAction.SETTINGS
         ToggleKind.LOCATION -> ToggleAction.SETTINGS
         ToggleKind.BRIGHTNESS -> ToggleAction.SETTINGS

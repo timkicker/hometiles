@@ -1,12 +1,12 @@
 package org.biglau.widgets
 
-/** Ein Widget-Anbieter, so weit ihn die Auswahl braucht. */
+/** a widget provider, as far as the picker needs it. */
 data class WidgetProviderRow(
     val packageName: String,
     val className: String,
     val label: String,
     val appLabel: String,
-    /** Mindestmasse in dp, wie der Anbieter sie meldet. */
+    /** minimum size in dp as the provider reports it. */
     val minWidthDp: Int,
     val minHeightDp: Int,
     val resizeHorizontal: Boolean = false,
@@ -17,20 +17,14 @@ data class WidgetProviderRow(
 }
 
 /**
- * Welche Widgets in welche Zelle passen.
+ * which widgets fit into which cell.
  *
- * Ein Widget, das breiter ist als die Zelle, wird nicht abgeschnitten sondern gestaucht -
- * und sieht dann kaputt aus. Deshalb wird vorher gerechnet und dem Nutzer gesagt, wie viele
- * Felder es braucht, statt ihn ein unbrauchbares Ergebnis herstellen zu lassen.
+ * a widget wider than its cell is squeezed, not cropped, and then looks broken. so the size
+ * is worked out beforehand and stated, instead of letting someone build an unusable result.
  */
 object WidgetFit {
 
-    /** Wie viele Rasterfelder das Widget mindestens braucht. */
-    fun cellsNeeded(
-        minDp: Int,
-        cellDp: Float,
-        gutterDp: Float,
-    ): Int {
+    fun cellsNeeded(minDp: Int, cellDp: Float, gutterDp: Float): Int {
         if (minDp <= 0) return 1
         if (cellDp <= 0f) return 1
         var cells = 1
@@ -38,7 +32,6 @@ object WidgetFit {
         return cells
     }
 
-    /** Passt der Anbieter in eine Zelle dieser Spannweite? */
     fun fits(
         row: WidgetProviderRow,
         spanX: Int,
@@ -50,7 +43,7 @@ object WidgetFit {
         cellsNeeded(row.minWidthDp, cellWidthDp, gutterDp) <= spanX &&
             cellsNeeded(row.minHeightDp, cellHeightDp, gutterDp) <= spanY
 
-    /** Text wie "braucht 2 x 1 Felder" - der Nutzer soll es vor dem Antippen wissen. */
+    /** for a line like "needs 2 x 1 cells", said before tapping rather than after. */
     fun requirement(
         row: WidgetProviderRow,
         cellWidthDp: Float,
@@ -62,18 +55,13 @@ object WidgetFit {
     )
 
     /**
-     * Hat das Widget eine feste Groesse?
-     *
-     * Der Anbieter meldet, ob er sich strecken laesst. Wer eine 2 x 2 grosse Kachel mit
-     * einem Widget belegt, das nur 1 x 1 kann, bekommt es trotzdem hineingezogen - und
-     * dann sieht es aus wie ein Fehler der App. Deshalb steht es vor dem Antippen da,
-     * genau wie die Mindestgroesse. (Die Angabe kam vom System und lag bis hierher
-     * ungelesen im Modell.)
+     * a widget that cannot stretch gets pulled into a larger tile anyway, and then it looks
+     * like a fault of this app. the provider reports it, so it can be said in advance.
      */
     fun fixedSize(row: WidgetProviderRow): Boolean =
         !row.resizeHorizontal && !row.resizeVertical
 
-    /** Sortiert nach App, dann nach Widgetname - so sucht man auch. */
+    /** by app, then by widget name: that is how one looks for them. */
     fun sorted(rows: List<WidgetProviderRow>): List<WidgetProviderRow> = rows
         .filter { it.label.isNotBlank() }
         .distinctBy { it.component }

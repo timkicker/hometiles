@@ -3,48 +3,43 @@ package org.biglau.phone
 import org.biglau.data.CallerPhoto
 
 /**
- * Wie viel Höhe das Foto des Anrufers bekommt (`PLAN.md` 4.6).
+ * how much height the caller's photo gets (`PLAN.md` 4.6).
  *
- * Gerechnet als Anteil der Bildschirmhöhe und **nach oben begrenzt**: was übrig bleibt,
- * muss den Namen, den Zustand und die Knöpfe tragen. Ein Foto, das den Annehmen-Knopf aus
- * dem Bild schiebt, wäre auf genau dem Bildschirm ein Fehler, auf dem ein Fehler bedeutet,
- * dass jemand einen Anruf nicht annehmen kann.
+ * a fraction of the screen height, capped: what is left has to carry the name, the state and
+ * the buttons. a photo that pushes the answer button off screen would be a fault on exactly
+ * the screen where a fault means somebody cannot take a call.
  */
 object CallerPhotoSize {
 
-    /** Höhe einer Knopfzeile - dieselben 72 dp wie in `ActionRow`. */
+    /** height of one button row, the same 72 dp as in `ActionRow`. */
     const val ROW_DP = 72f
 
-    /** Abstand zwischen den Zeilen - dasselbe `spacedBy(8.dp)` wie im Aufbau. */
+    /** the same `spacedBy(8.dp)` as in the layout. */
     const val ROW_GAP_DP = 8f
 
-    /** Was Name und Zustand darüber brauchen (Name bis zu zwei Zeilen). */
+    /** name (up to two lines) and state above it. */
     const val HEADER_DP = 120f
 
     /**
-     * Der Leerraum über den Knöpfen, `PLAN.md` 4.6 („Anzahl leerer Zeilen … gegen
-     * Fehlbedienung mit dem Ohr").
+     * empty space above the buttons, `PLAN.md` 4.6 ("against mis-taps with the ear").
      *
-     * Er ist keine Einstellung, sondern eine Untergrenze - und die gehört hierher, weil
-     * das Foto das Einzige ist, was dafür Platz abgeben kann.
+     * not a setting but a lower bound, and it belongs here because the photo is the only
+     * thing that can give up room for it.
      */
     const val EAR_GAP_DP = 56f
 
-    /** Unter dieser Höhe lohnt kein Foto mehr; ein Streifen zeigt kein Gesicht. */
+    /** below this a strip shows no face. */
     const val MIN_PHOTO_DP = 64f
 
-    /** Die Zeile „Gespräch mit … läuft", wenn es während eines Gesprächs klingelt. */
+    /** the "call with ... in progress" line when a second call comes in. */
     const val NOTICE_DP = 44f
 
     /**
-     * Was unter dem Foto stehen muss, bei [buttons] Knopfzeilen.
+     * what must fit below the photo, for [buttons] rows.
      *
-     * **Das war der Fehler:** hier stand eine feste Zahl (220 dp), während die Zahl der
-     * Knöpfe zwischen zwei (es klingelt) und fünf (Gespräch läuft) schwankt. Am Emulator
-     * mit „halbes Display": beim Klingeln passte es knapp, nach dem Annehmen standen von
-     * fünf Knöpfen nur noch zwei im Bild — Lautsprecher, Halten und Tastenfeld waren
-     * unerreichbar, und gescrollt wird auf diesem Bildschirm nicht. Ausgerechnet der
-     * Lautsprecher, den ein schwerhöriger Mensch im Gespräch braucht.
+     * a fixed number here was the fault: the button count swings between two while ringing
+     * and five during a call, and with a half-height photo only two of five stayed on
+     * screen. speaker, hold and keypad were unreachable, and this screen does not scroll.
      */
     fun reservedDp(buttons: Int, notice: Boolean = false): Float =
         HEADER_DP + buttons * ROW_DP + (buttons + 1) * ROW_GAP_DP + EAR_GAP_DP +
@@ -57,19 +52,14 @@ object CallerPhotoSize {
         CallerPhoto.FULL -> 1f
     }
 
-    /** Was auf dem Anrufbildschirm über dem Namen steht. */
     enum class Image { NONE, PHOTO, INITIALS }
 
     /**
-     * Foto, Initialen oder nichts.
+     * with a contact but no photo, half of the most important screen used to stay black.
+     * initials fill that place everywhere else in the app, and a coloured field with "AB" is
+     * recognised faster on three inches than a name is read.
      *
-     * Am Emulator gesehen: mit „halber Bildschirm" und einem Kontakt **ohne** Foto blieb die
-     * halbe Fläche des wichtigsten Bildschirms schwarz. Die Initialen stehen überall sonst
-     * in der App an dieser Stelle - ein farbiges Feld mit „AB" ist auf drei Zoll schneller
-     * erkannt als ein Name gelesen.
-     *
-     * Bei einer unbekannten Nummer bleibt es leer: aus „+43" ließe sich kein Zeichen machen,
-     * das etwas bedeutet.
+     * an unknown number stays empty: "+43" yields no character that means anything.
      */
     fun imageFor(heightDp: Float, photoUri: String?, name: String?): Image = when {
         heightDp <= 0f -> Image.NONE
@@ -79,13 +69,11 @@ object CallerPhotoSize {
     }
 
     /**
-     * Die Höhe in dp. Null heißt: kein Foto zeigen.
+     * null height means: show no photo.
      *
-     * [availableDp] ist die ganze nutzbare Höhe, [buttons] die Zahl der Knopfzeilen
-     * darunter. Abgezogen wird, was der Rest braucht — im Zweifel weicht das Foto und
-     * nicht der Knopf. Auf drei Zoll heißt das: während des Gesprächs bleibt für ein Foto
-     * kein Platz mehr. Das ist die richtige Reihenfolge; ein Bild, das den Lautsprecher
-     * verdeckt, nützt niemandem.
+     * in doubt the photo yields, not the button. on three inches that means no room for a
+     * photo during a call, and that is the right order: a picture covering the speaker
+     * button helps nobody.
      */
     fun heightDp(
         size: CallerPhoto,
@@ -94,8 +82,8 @@ object CallerPhotoSize {
         notice: Boolean = false,
     ): Float {
         if (size == CallerPhoto.OFF) return 0f
-        val platz = (availableDp - reservedDp(buttons, notice)).coerceAtLeast(0f)
-        if (platz < MIN_PHOTO_DP) return 0f
-        return (availableDp * fractionOf(size)).coerceAtMost(platz)
+        val room = (availableDp - reservedDp(buttons, notice)).coerceAtLeast(0f)
+        if (room < MIN_PHOTO_DP) return 0f
+        return (availableDp * fractionOf(size)).coerceAtMost(room)
     }
 }

@@ -5,35 +5,33 @@ import android.speech.tts.TextToSpeech
 import java.util.Locale
 
 /**
- * Liest Beschriftungen vor.
+ * reads labels aloud.
  *
- * Bewusst eine eigene Sprachausgabe und nicht TalkBack: TalkBack aendert die gesamte
- * Bedienung des Telefons - jeder Tipp wird zum Doppeltipp. Wer nur wissen will, was auf
- * einer Kachel steht, soll dafuer nicht die Bedienung des ganzen Geraets umstellen muessen.
+ * deliberately our own speech and not talkback: talkback changes how the whole phone is
+ * operated, turning every tap into a double tap. wanting to know what a tile says should not
+ * cost that.
  *
- * Die Sprache wird **mitgegeben**, nicht geholt. Vorher fragte diese Datei selbst beim
- * `ConfigStore` und bei `AppLocale` nach - und hing damit an `core:ui`, obwohl an ihr nichts
- * Oberflaeche ist. Wer vorlesen laesst, weiss ohnehin, in welcher Sprache.
+ * the language is **passed in**, not fetched: this file used to ask the config store and
+ * `AppLocale` itself and hung off `core:ui` for it, although nothing here is surface.
  */
 object Speaker {
 
     private var engine: TextToSpeech? = null
     private var ready = false
 
-    fun warmUp(context: Context, sprache: Locale) {
+    fun warmUp(context: Context, language: Locale) {
         if (engine != null) return
         engine = TextToSpeech(context.applicationContext) { status ->
             ready = status == TextToSpeech.SUCCESS
-            // Die Stimme spricht die Sprache der App, nicht die des Telefons. Sonst
-            // liest sie eine deutsche Kachelbeschriftung englisch vor, und heraus kommt
-            // Kauderwelsch - ausgerechnet fuer den, der aufs Vorlesen angewiesen ist.
-            if (ready) runCatching { engine?.language = sprache }
+            // the voice speaks the app's language, not the phone's, or it reads a german
+            // label in english - to the very person who depends on being read to.
+            if (ready) runCatching { engine?.language = language }
         }
     }
 
-    fun say(context: Context, text: String, sprache: Locale) {
+    fun say(context: Context, text: String, language: Locale) {
         if (text.isBlank()) return
-        warmUp(context, sprache)
+        warmUp(context, language)
         val instance = engine ?: return
         runCatching { instance.speak(text, TextToSpeech.QUEUE_FLUSH, null, "biglau") }
     }

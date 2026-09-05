@@ -1,34 +1,30 @@
 package org.biglau.tiles
 
 /**
- * Wischen zwischen Screens - standardmäßig aus, und aus gutem Grund.
+ * swiping between screens, off by default (`PLAN.md` 3.2).
  *
- * Auf diesem Gerät läuft Gestennavigation: das Wischen von den Seitenrändern gehört der
- * Zurück-Geste, und Android reserviert dafür Streifen an beiden Kanten. Ein Wisch, der dort
- * beginnt, kommt bei uns nie an. Deshalb zählt nur, was **innerhalb** der Fläche beginnt,
- * und erst ab einer Strecke, die niemand versehentlich zurücklegt.
- *
- * `PLAN.md` 3.2: „Screenwechsel über Kacheln statt Wischen; Wischen bleibt optional und
- * standardmäßig aus."
+ * gesture navigation owns the strips along both edges for its back gesture, so a swipe that
+ * starts there never reaches us. only what starts *inside* counts, and only past a distance
+ * nobody covers by accident.
  */
 object SwipeGesture {
 
-    /** Ab hier ist es ein Wisch und kein verrutschter Tipp. */
+    /** past this it is a swipe and not a slipped tap. */
     const val THRESHOLD_DP = 64f
 
-    /** Wie breit die Streifen an den Kanten sind, die der Zurück-Geste gehören. */
+    /** width of the edge strips that belong to the back gesture. */
     const val EDGE_DP = 24f
 
     enum class Direction { NEXT, PREVIOUS, NONE }
 
     /**
-     * @param startXDp wo der Finger aufgesetzt hat, vom linken Rand aus
-     * @param dragDp zurückgelegte Strecke; negativ heißt nach links
-     * @param widthDp Breite der Fläche
+     * @param startXDp where the finger went down, from the left edge
+     * @param dragDp distance covered; negative means leftwards
+     * @param widthDp width of the area
      */
     fun decide(startXDp: Float, dragDp: Float, widthDp: Float): Direction {
-        // An den Kanten gehört die Geste dem System. Dort gar nicht erst mitzuhören ist
-        // ehrlicher, als sich mit Android um denselben Finger zu streiten.
+        // not listening at the edges at all is honester than fighting android over the
+        // same finger.
         if (startXDp < EDGE_DP || startXDp > widthDp - EDGE_DP) return Direction.NONE
         return when {
             dragDp <= -THRESHOLD_DP -> Direction.NEXT

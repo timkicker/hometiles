@@ -4,11 +4,10 @@ import org.biglau.data.PhoneConfig
 import org.biglau.data.SpeedDialTarget
 
 /**
- * Kurzwahl auf den Zifferntasten.
+ * speed dial on the number keys.
  *
- * Belegbar sind nur 2 bis 9. Die 1 ist auf vielen Netzen die Mailbox und die 0 die
- * Auslandsvorwahl - beide zu belegen wuerde Gewohnheiten brechen, die aelter sind als
- * dieses Telefon.
+ * 2 to 9 only: on many networks 1 is the mailbox and 0 the international prefix, and those
+ * habits are older than this phone.
  */
 object SpeedDial {
 
@@ -19,7 +18,7 @@ object SpeedDial {
     fun targetFor(config: PhoneConfig, key: Char): SpeedDialTarget? =
         if (!isAssignable(key)) null else config.speedDial[key.toString()]
 
-    /** Belegt eine Taste. Eine unbelegbare Taste laesst die Konfiguration unveraendert. */
+    /** an unassignable key leaves the config untouched. */
     fun assign(config: PhoneConfig, key: Char, target: SpeedDialTarget): PhoneConfig {
         if (!isAssignable(key)) return config
         if (target.number.isBlank() || !PhoneNumbers.isDialable(target.number)) return config
@@ -29,13 +28,6 @@ object SpeedDial {
     fun clear(config: PhoneConfig, key: Char): PhoneConfig =
         config.copy(speedDial = config.speedDial - key.toString())
 
-    /**
-     * Ist ueberhaupt eine Taste belegt?
-     *
-     * Danach richtet sich, was ein Langdruck **tut**: auf einer leeren Taste fuehrt er ins
-     * Belegen, auf einer belegten waehlt er sofort. Der Hinweis ueber der Tastatur sagte
-     * bis zum 04.09.2026 in beiden Faellen dasselbe („Halten fuer Kurzwahl") - also im
-     * harmlosen Zustand denselben Satz wie im gefaehrlichen.
-     */
+    /** decides what a long press *does*: assign on an empty key, dial straight away on a full one. */
     fun anyAssigned(config: PhoneConfig): Boolean = ASSIGNABLE.any { targetFor(config, it) != null }
 }

@@ -38,8 +38,8 @@ class BlinkrandTest {
 
     @Test
     fun `der Rand fuer Neues ist duenn`() {
-        val zahl = Regex("""BLINKRAND_DP = ([0-9.]+)f""").find(kachel)
-            ?: throw AssertionError("BLINKRAND_DP steht nicht mehr im Quelltext")
+        val zahl = Regex("""BADGE_BORDER_DP = ([0-9.]+)f""").find(kachel)
+            ?: throw AssertionError("BADGE_BORDER_DP steht nicht mehr im Quelltext")
         val dp = zahl.groupValues[1].toFloat()
         assertTrue("Der Rand fuer Neues ist mit $dp dp kein duenner Rand mehr", dp <= 3f)
     }

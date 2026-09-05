@@ -1,16 +1,15 @@
 package org.biglau.data
 
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 
 /**
- * Konfiguration aus- und wieder einlesen - gedacht fuer den Wechsel auf ein anderes Telefon.
+ * exporting and importing the config, for moving to another phone.
  *
- * Die Datei muss fuer sich stehen: auf dem Zielgeraet gibt es kein altes BigLau, das etwas
- * ergaenzen koennte. Deshalb wird alles geschrieben, auch die Vorgabewerte, und die
- * Schema-Version steht mit drin.
- *
- * Was bewusst *nicht* mitwandert, steht in [strippedForTransfer]: Dinge, die auf dem neuen
- * Geraet ohnehin nicht gelten.
+ * the file has to stand on its own: there is no old biglau on the target device to fill in
+ * gaps. so everything is written, defaults included, with the schema version.
  */
 object ConfigTransfer {
 
@@ -21,12 +20,9 @@ object ConfigTransfer {
     }
 
     /**
-     * Bereinigt die Konfiguration fuers Ausschreiben.
-     *
-     * Widget-Kennungen sind vom AppWidgetHost des *alten* Geraets vergeben - auf dem neuen
-     * zeigen sie auf nichts oder, schlimmer, auf ein fremdes Widget. Solche Kacheln werden
-     * geleert statt kaputt uebertragen. Die zuletzt benutzten Apps sind ebenfalls
-     * geraetegebunden und tragen nichts bei.
+     * widget ids come from the *old* device's widget host; on the new one they point at
+     * nothing or, worse, at somebody else's widget. those tiles are emptied rather than
+     * transferred broken. recently used apps are device-bound too and add nothing.
      */
     fun strippedForTransfer(config: LauncherConfig): LauncherConfig = config.copy(
         screens = config.screens.map { screen ->
@@ -49,43 +45,34 @@ object ConfigTransfer {
     )
 
     /**
-     * Stammt diese Sicherung aus einer neueren Fassung von BigLau?
-     *
-     * Dann enthaelt sie Felder, die diese Fassung nicht kennt - und `ignoreUnknownKeys`
-     * wirft sie beim Einlesen wortlos weg. Wer eine Sicherung vom neuen Telefon auf ein
-     * altes zurueckspielt, verliert also Einstellungen, ohne dass irgendetwas es sagt. Das
-     * ist genau der Fall, fuer den das Feld `version` in jeder Datei steht; bis hierher
-     * hat es niemand gelesen.
+     * a backup from a newer release carries fields this one does not know, and
+     * `ignoreUnknownKeys` drops them without a word. that is what the `version` field is for.
      */
     fun isFromNewerVersion(text: String): Boolean = runCatching {
-        val root = json.parseToJsonElement(text) as? kotlinx.serialization.json.JsonObject
-        val version = (root?.get("version") as? kotlinx.serialization.json.JsonPrimitive)
-            ?.content?.toIntOrNull()
+        val root = json.parseToJsonElement(text) as? JsonObject
+        val version = (root?.get("version") as? JsonPrimitive)?.content?.toIntOrNull()
         version != null && version > CONFIG_VERSION
     }.getOrDefault(false)
 
     /**
-     * Null, wenn der Text keine brauchbare Konfiguration ist - der Aufrufer sagt das dann.
+     * null when the text is no usable config.
      *
-     * Wichtig: es reicht nicht, dass sich der Text irgendwie einlesen laesst. Weil jedes Feld
-     * einen Vorgabewert hat, ergaebe `{}` klaglos die Werkseinstellung - der Import wuerde
-     * die gesamte Belegung des Nutzers loeschen und dabei aussehen, als haette er geklappt.
-     * Die Datei muss ihre Screens deshalb ausdruecklich mitbringen.
+     * parsing alone is not enough: every field has a default, so `{}` would yield the
+     * factory setting without complaint, and the import would wipe the user's whole layout
+     * while looking as if it had worked. the file must bring its screens explicitly.
      */
     fun import(text: String): LauncherConfig? = runCatching {
-        val root = json.parseToJsonElement(text) as? kotlinx.serialization.json.JsonObject
-            ?: return null
-        val screens = root["screens"] as? kotlinx.serialization.json.JsonArray ?: return null
+        val root = json.parseToJsonElement(text) as? JsonObject ?: return null
+        val screens = root["screens"] as? JsonArray ?: return null
         if (screens.isEmpty()) return null
 
-        val gelesen = json.decodeFromString<LauncherConfig>(text)
-        if (gelesen.screens.isEmpty()) return null
-        // Die Nummer wird auf die eigene gesetzt. Was hier ankommt, ist ab jetzt genau das,
-        // was diese Fassung versteht - alles andere ist beim Einlesen weggefallen. Bliebe
-        // die hoehere Nummer stehen, behauptete **jede spaetere Sicherung**, sie stamme aus
-        // einem neueren BigLau, und die Warnung dazu erschiene fuer immer.
-        val loaded = gelesen.copy(version = CONFIG_VERSION)
-        // Zeigt der Startscreen ins Leere, nimm den ersten - sonst startet nichts.
+        val parsed = json.decodeFromString<LauncherConfig>(text)
+        if (parsed.screens.isEmpty()) return null
+        // the version is set to our own: what arrived is from now on exactly what this
+        // release understands. leaving a higher number would make **every later backup**
+        // claim it came from a newer biglau, and the warning would show for good.
+        val loaded = parsed.copy(version = CONFIG_VERSION)
+        // a home screen pointing at nothing would start nothing.
         if (loaded.screenById(loaded.homeScreenId) == null) {
             loaded.copy(homeScreenId = loaded.screens.first().id)
         } else {
@@ -93,7 +80,7 @@ object ConfigTransfer {
         }
     }.getOrNull()
 
-    /** Dateiname mit Datum, damit mehrere Sicherungen nebeneinander liegen koennen. */
+    /** dated, so several backups can lie side by side. */
     fun suggestedFileName(epochMillis: Long): String {
         val date = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US)
             .format(java.util.Date(epochMillis))

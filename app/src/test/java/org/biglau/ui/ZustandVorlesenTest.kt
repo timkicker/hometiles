@@ -46,7 +46,7 @@ class ZustandVorlesenTest {
     fun `die Anrufliste sagt die Richtung`() {
         val liste = Quelltext.ohneKommentare("org/biglau/phone/DialerActivity.kt")
         assertTrue(
-            "Die Anrufliste zeigt die Richtung nur als Pfeil. Ein Pfeil hat keinen Namen.",
+            "Die Anrufliste zeigt die PadDirection nur als Pfeil. Ein Pfeil hat keinen Namen.",
             liste.contains("state = stringResource(callDirectionSpeech("),
         )
     }
@@ -66,7 +66,7 @@ class ZustandVorlesenTest {
                 "CallDirection.MISSED -> R.string.call_dir_missed" in t
         }
         assertEquals(
-            "Die Zuordnung Richtung -> Wort steht mehr als einmal: " +
+            "Die Zuordnung PadDirection -> Wort steht mehr als einmal: " +
                 stellen.map { it.name },
             1,
             stellen.size,
@@ -105,7 +105,7 @@ class ZustandVorlesenTest {
             liste.contains("a11y_message_in") && liste.contains("a11y_message_out"),
         )
         assertTrue(
-            "Die Richtung wird gebaut, aber nicht angesagt.",
+            "Die PadDirection wird gebaut, aber nicht angesagt.",
             liste.contains("semantics(mergeDescendants = true)"),
         )
     }

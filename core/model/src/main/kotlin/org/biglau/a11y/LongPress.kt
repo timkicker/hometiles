@@ -6,17 +6,16 @@ import org.biglau.data.PressMode
 enum class LongPressAction { EDIT, SPEAK, POPUP, ACTIVATE, SECOND_ACTION, NOTHING }
 
 /**
- * Was ein langer Druck auf eine Kachel tut.
+ * what a long press on a tile does.
  *
- * Hier kollidieren zwei Wuensche aus dem Plan: der Kachel-Editor haengt am Langdruck, und
- * die Barrierefreiheit will ihn zum Vorlesen. Beides gleichzeitig geht nicht, also entscheidet
- * eine Regel statt einer Ueberlagerung:
+ * two wishes from the plan collide here: the tile editor hangs off the long press, and
+ * accessibility wants it for reading aloud. a rule decides instead of a pile-up:
  *
- * - Im Bearbeitungsmodus fuehrt jeder Druck zum Editor. Wer bearbeitet, will bearbeiten.
- * - Sonst gewinnt die Barrierefreiheit, wenn sie eingeschaltet ist. Wer sich Kacheln vorlesen
- *   laesst, weil er sie nicht liest, darf nicht versehentlich im Editor landen.
- * - Ist beides eingeschaltet, wird gesprochen *und* angezeigt - das widerspricht sich nicht.
- * - Sonst der Editor, wie bisher.
+ * - in edit mode every press leads to the editor. whoever edits wants to edit.
+ * - otherwise accessibility wins when it is on: whoever has tiles read out because they
+ *   cannot read them must not land in the editor by accident.
+ * - with both on, it speaks *and* shows; those do not contradict each other.
+ * - otherwise the editor, as before.
  */
 object LongPress {
 
@@ -24,15 +23,15 @@ object LongPress {
         accessibility: Accessibility,
         editMode: Boolean,
         pressMode: PressMode = PressMode.SHORT,
-        /** Hat diese Kachel eine eigene Zweitbelegung? (`PLAN.md` 4.3, Zeile 485) */
+        /** does this tile carry a second action of its own? (`PLAN.md` 4.3) */
         hasSecondAction: Boolean = false,
     ): List<LongPressAction> = when {
         editMode -> listOf(LongPressAction.EDIT)
-        // Eine Zweitbelegung ist eine Entscheidung fuer genau diese Kachel und geht
-        // deshalb den allgemeinen Vorgaben vor. Wer sie setzt, will sie auch ausloesen.
+        // a second action is a decision about this one tile and comes before the general
+        // settings. whoever sets it wants to trigger it.
         hasSecondAction -> listOf(LongPressAction.SECOND_ACTION)
-        // Wer den Langdruck zum Ausloesen gewaehlt hat, bekommt genau das. Vorlesen und
-        // Editor muessen dann anderswo hin - beides geht ueber die Einstellungen.
+        // whoever chose the long press for triggering gets exactly that; speaking and the
+        // editor then go through the settings.
         pressMode == PressMode.LONG -> listOf(LongPressAction.ACTIVATE)
         accessibility.speakOnLongPress && accessibility.popupOnLongPress ->
             listOf(LongPressAction.SPEAK, LongPressAction.POPUP)
@@ -41,7 +40,6 @@ object LongPress {
         else -> listOf(LongPressAction.EDIT)
     }
 
-    /** Erreicht der Nutzer den Editor ueberhaupt noch per Langdruck? */
     fun editorReachableByLongPress(
         accessibility: Accessibility,
         editMode: Boolean,
@@ -49,11 +47,7 @@ object LongPress {
         hasSecondAction: Boolean = false,
     ): Boolean = LongPressAction.EDIT in decide(accessibility, editMode, pressMode, hasSecondAction)
 
-    /**
-     * Muss die Oberflaeche einen anderen Weg zum Editor anbieten?
-     * Genau dann, wenn der Langdruck ihn nicht mehr oeffnet - sonst waere die Belegung
-     * unerreichbar, sobald jemand das Vorlesen einschaltet.
-     */
+    /** a second way into the editor is needed exactly when the long press no longer opens it. */
     fun needsEditModeEntry(
         accessibility: Accessibility,
         pressMode: PressMode = PressMode.SHORT,
