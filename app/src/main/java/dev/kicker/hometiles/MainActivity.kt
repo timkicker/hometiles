@@ -985,7 +985,7 @@ private fun EditModeBanner(onLeave: () -> Unit) {
 private fun LabelPopup(label: String, onDismiss: () -> Unit) {
     val palette = LocalBigPalette.current
     // this surface has exactly one action: go away. so *every* key closes it, and the hint
-    // says so. `tools/unerreichbar.py` reported one clickable area and none reached; back
+    // says so. `tools/unreachable.py` reported one clickable area and none reached; back
     // did close it, but nothing said so, and the text offered a tap. on the very screen made
     // for someone who cannot read the label otherwise.
     val anchors = remember { FocusRequester() }

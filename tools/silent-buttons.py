@@ -5,7 +5,7 @@ Das ist der Knopf, den ein Mensch mit einem Vorleseprogramm findet und ueber den
 gesagt wird. Ein Unit-Test sieht ihn nicht: er entsteht erst aus dem fertig gezeichneten
 Bildschirm, und genau den liest `uiautomator dump` aus.
 
-    tools/stumme-knoepfe.py [geraet]
+    tools/silent-buttons.py [geraet]
 
 Ausgegeben werden die Masse der stummen Flaechen. Ein Treffer ist ein Anfangsverdacht, kein
 Urteil - dazu gehoert ein Blick aufs Bildschirmfoto: manchmal traegt ein groesserer Knoten

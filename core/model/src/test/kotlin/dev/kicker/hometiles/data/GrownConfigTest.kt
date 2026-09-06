@@ -15,7 +15,7 @@ import org.junit.Test
  *
  * so a copy of the same mixture lies here in the repository - three screens, one folder,
  * fourteen tiles, all tile kinds side by side. program names, numbers and pin are replaced
- * (`tools/fassung-anonymisieren.py`); count, position, colours and switch positions stand
+ * (`tools/anonymise-config.py`); count, position, colours and switch positions stand
  * character for character as they do on the device.
  */
 class GrownConfigTest {

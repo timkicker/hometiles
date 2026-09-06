@@ -5,7 +5,7 @@
 # nachrechnet, will nicht zwei Befehle abtippen und die Zeichenketten mit dem Auge
 # vergleichen - dabei übersieht man genau die eine Stelle, an der sie sich unterscheiden.
 #
-#   tools/nachbauen.sh
+#   tools/rebuild.sh
 #
 # Dauert zwei volle Neubauten (auf einem Laptop je rund eine Minute).
 #

@@ -10,3 +10,8 @@ build/
 # das Arbeitstagebuch. Es protokolliert Messungen am echten Telefon des Nutzers,
 # mitsamt dem, was dabei auf dem Bildschirm stand. Es bleibt lokal, siehe tools/opsec.py.
 STATUS.md
+
+# der Plan und die Sprachuebergabe. Deutsche Arbeitsdokumente, so wie STATUS.md:
+# sie gehoeren zur Arbeit, nicht zur Auslieferung.
+PLAN.md
+SPRACHEN.md

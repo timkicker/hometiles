@@ -112,7 +112,6 @@ tasks.withType<Test>().configureEach {
     // README.md, neither of which stood here. an entry in STATUS.md, then a test run, and
     // gradle reported the success from before. the rule did not run. the lesson from 10:18
     // was written down but applied only to the one file where it showed.
-    inputs.file("../PLAN.md").withPathSensitivity(PathSensitivity.RELATIVE)
     // the working log is the one input that may be absent: it is not in the repository, so
     // a fresh clone has none. declared as required it stopped the whole task before a single
     // rule ran - the first CI run on 06.09.2026 failed exactly there, on a machine that had

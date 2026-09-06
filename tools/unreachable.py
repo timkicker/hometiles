@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """Laeuft die Fokusreihenfolge ab und meldet, was anklickbar ist und nie den Fokus bekommt.
 
-Das Gegenstueck zu `tools/kleine-knoepfe.py`. Dort lautet die Frage *gross genug*, hier
+Das Gegenstueck zu `tools/small-buttons.py`. Dort lautet die Frage *gross genug*, hier
 lautet sie **erreichbar**. Mit dem Finger faellt der Unterschied nie auf: was ein Rechteck
 hat, nimmt einen Tipp an. Mit Tasten kommt man nur dorthin, wohin der Fokus laeuft, und das
 ist eine ganz andere Menge.
 
-    tools/unerreichbar.py [geraet]
+    tools/unreachable.py [geraet]
 
 Am 04.09.2026 haette dieses Werkzeug an einem Abend dreimal gespart:
 
@@ -36,7 +36,7 @@ Fenster aus diesem Zustand. Der erste Druck des Werkzeugs tut genau das.
 **Warum nach Beschriftungen gezaehlt wird und nicht nach Massen:** eine Liste scrollt, und
 dabei wandern die Rechtecke. Derselbe Knopf hiesse in jedem Abzug anders. Der Preis ist,
 dass zwei Zeilen mit demselben Wort zu einer verschmelzen - dafuer gibt es
-`tools/gleiche-namen.py`.
+`tools/same-names.py`.
 
 **Die Falle dabei, am 04.09.2026 zweimal hineingetappt:** waehrend eine Liste scrollt, meldet
 `uiautomator` eine Zeile nur zum Teil - mit halber Hoehe *und halbem Text*. In den
@@ -227,7 +227,7 @@ def main(argv):
     if halbe:
         print("(%d halb gemeldete Zeilen zusammengelegt)" % halbe)
     if stumm:
-        print("(%d Flaechen ohne jede Beschriftung - ein Fall fuer stumme-knoepfe.py)" % stumm)
+        print("(%d Flaechen ohne jede Beschriftung - ein Fall fuer silent-buttons.py)" % stumm)
 
     nie_fokussierbar = echte_befunde(lambda kann: not kann)
     nie_erreicht = echte_befunde(lambda kann: kann)

@@ -35,12 +35,12 @@ ohne Grund ist eine Abschaltung mit Umweg. Rufnummern in Platzhalterform (`...12
 `OpsecTest` im Regelwerk ruft dasselbe Werkzeug auf, damit nichts zweimal geschrieben steht,
 und prüft mit `probe` zugleich, dass die Suche nicht bloß nichts mehr findet.
 
-## `bildschirm-wache.sh`
+## `screen-watch.sh`
 
 Schreibt jede Änderung des Bildschirmzustands mit, mit Grund, Ladestand und Schloss.
 
 ```sh
-tools/bildschirm-wache.sh <seriennummer> wache.log
+tools/screen-watch.sh <seriennummer> wache.log
 ```
 
 Entstanden aus einer Beschwerde, die sich nicht nachstellen ließ: „es wird immer wieder
@@ -55,15 +55,15 @@ Nacht, beide Male steht nichts da. Am 3.9.2026 wurde deshalb eine laufende Wache
 gehalten.
 
 ```sh
-tools/bildschirm-wache.sh <seriennummer> wache.log 0 20   # ganze Nacht, alle 20 s
+tools/screen-watch.sh <seriennummer> wache.log 0 20   # ganze Nacht, alle 20 s
 ```
 
-## `gleiche-namen.py`
+## `same-names.py`
 
 Sucht anklickbare Flächen, die auf demselben Bildschirm **denselben Namen** tragen.
 
 ```sh
-tools/gleiche-namen.py emulator-5554
+tools/same-names.py emulator-5554
 ```
 
 Zwei Angebote, die gleich heissen, sind für jemanden mit einem Vorleseprogramm dasselbe
@@ -75,12 +75,12 @@ Ein Treffer ist ein Anfangsverdacht. Doppelknoten auf **denselben** Massen, die 
 für eine Zeile oft anlegt (einen anklickbaren und einen benannten), rechnet das Werkzeug selbst
 heraus und sagt am Ende, wie viele es waren.
 
-## `stumme-knoepfe.py`
+## `silent-buttons.py`
 
 Sucht anklickbare Flächen ohne Namen auf dem gerade sichtbaren Bildschirm.
 
 ```sh
-tools/stumme-knoepfe.py <seriennummer>
+tools/silent-buttons.py <seriennummer>
 ```
 
 Das ist der Knopf, den ein Mensch mit einem Vorleseprogramm findet und über den nichts
@@ -103,12 +103,12 @@ Baum. Solche Flächen stehen jetzt getrennt unter „am Rand abgeschnitten". Der
 ist nicht eine feste Pixelzahl (die erste Fassung hatte 33 und liess den zweiten Fall mit 60
 Pixeln durch), sondern die mittlere Höhe der anklickbaren Zeilen dieses Bildschirms.
 
-## `kleine-knoepfe.py`
+## `small-buttons.py`
 
 Sucht antippbare Flächen unter 48 dp auf dem gerade sichtbaren Bildschirm.
 
 ```sh
-tools/kleine-knoepfe.py <seriennummer>
+tools/small-buttons.py <seriennummer>
 ```
 
 48 dp ist das Mindestmaß für einen Fingertipp; auf dem Jelly 2 (220 dpi) sind das 66
@@ -131,14 +131,14 @@ Am 04.09.2026 damit die Suchzeile der App-Liste gefunden: gezeichnet 64 dp, Feld
 (mit Trefferzahl darunter nur 38), und ein Tipp auf die oberen vierzehn Bildpunkte tat
 nichts. Seitdem nimmt die ganze Zeile den Tipp an.
 
-## `kontrast.py`
+## `contrast.py`
 
 Misst den Kontrast dort, wo er ankommt: in einem Bildschirmfoto.
 
 ```sh
 adb -s <seriennummer> exec-out screencap -p > home.png
-tools/kontrast.py home.png 20 284 130 314        # die Beschriftungszone einer Kachel
-tools/kontrast.py home.png --grund 240 45 28 59 200 103   # Text gegen den Hintergrund
+tools/contrast.py home.png 20 284 130 314        # die Beschriftungszone einer Kachel
+tools/contrast.py home.png --grund 240 45 28 59 200 103   # Text gegen den Hintergrund
 ```
 
 `SurfaceContrastTest` prüft die Farbkonstanten gegeneinander, jedes Flächenpaar jedes
@@ -159,41 +159,41 @@ liegt bei 18,1 / 15,7 / 17,2. Damit ist die Zusage aus `PLAN.md` („alle sechs 
 absichtlich auf demselben Kontrastniveau") nicht nur in den Konstanten wahr, sondern auch
 auf dem Glas.
 
-## `kontrastgang.py`
+## `contrast-walk.py`
 
 Misst den Kontrast **jeder** beschrifteten Fläche eines Bildschirms auf einmal.
 
 ```sh
-tools/kontrastgang.py emulator-5554
+tools/contrast-walk.py emulator-5554
 ```
 
-`kontrast.py` misst ein Rechteck, das man ihm nennt. Das ist richtig, wenn man eine Stelle im
+`contrast.py` misst ein Rechteck, das man ihm nennt. Das ist richtig, wenn man eine Stelle im
 Verdacht hat, und mühsam, wenn man einen ganzen Bildschirm durchsehen will: am 04.09.2026
 waren es sechs Bildschirme mit zusammen über achtzig beschrifteten Flächen. Von Hand hieße
 das, achtzig Rechtecke abzutippen, und wer abtippt, lässt welche aus, meist die
 unauffälligen.
 
 Deshalb kommen die Rechtecke aus dem Knotenabzug: jeder Knoten mit Text ist eine Stelle, an
-der jemand etwas lesen muss. Gerechnet wird mit den Funktionen aus `kontrast.py`, damit es
+der jemand etwas lesen muss. Gerechnet wird mit den Funktionen aus `contrast.py`, damit es
 nur eine Formel gibt.
 
 Am Ende steht immer die schlechteste Stelle, auch wenn sie besteht. Eine Messung, die nur
 schweigt, sagt nicht, ob sie hingesehen hat.
 
 Zwei Grenzen: gemessen wird der hellste gegen den dunkelsten Punkt im Rechteck, was bei
-Feldern mit fast nur Schrift zu streng oder zu milde sein kann; dort ist `kontrast.py
+Feldern mit fast nur Schrift zu streng oder zu milde sein kann; dort ist `contrast.py
 --grund` genauer. Und abgetastet wird jeder zweite Bildpunkt, sonst dauert ein Bildschirm
 eine Minute.
 
 Erster Durchgang am 04.09.2026 über sechs Bildschirme: Startbildschirm, Nachrichten,
 Telefon, Kontakte, App-Liste, Einstellungen. Nichts unter 4,5:1, schlechteste Stelle 5,61:1.
 
-## `tippen.py`
+## `tap.py`
 
 Tippt erst, wenn der Bildschirm der erwartete ist.
 
 ```sh
-tools/tippen.py <seriennummer> 123 715 MainActivity Apps
+tools/tap.py <seriennummer> 123 715 MainActivity Apps
 ```
 
 Drei Prüfungen vor jedem Tipp: ein frisches Bildschirmfoto wird geholt, `mResumedActivity`
@@ -212,7 +212,7 @@ Nachgestellt: derselbe Griff mit diesem Werkzeug verweigert den Tipp.
 ### Wischen
 
 ```sh
-tools/tippen.py <seriennummer> wischen AppDrawerActivity 14
+tools/tap.py <seriennummer> wischen AppDrawerActivity 14
 ```
 
 Rollt in einer langen Liste nach unten und sieht vor **jedem** Zug nach, ob noch dieselbe
@@ -225,13 +225,13 @@ Am 03.09.2026 um 09:52 schickte ich zehn Wischer ab y=750 mit 80 ms, die
 Benachrichtigungsleiste ging auf, der Bildschirm aus, das Telefon sperrte sich, und danach
 stand eine fremde App im Vordergrund.
 
-## `status-eintrag.py`
+## `log-entry.py`
 
 Schreibt einen Abschnitt in `STATUS.md`, und sieht nach, ob er wirklich dasteht. `STATUS.md`
 liegt in `.gitignore` und bleibt lokal - im Protokoll stehen Messungen vom echten Telefon.
 
 ```sh
-echo "Rumpf des Abschnitts" | tools/status-eintrag.py "## 🔧 Ueberschrift (03.09.2026, 14:05)"
+echo "Rumpf des Abschnitts" | tools/log-entry.py "## 🔧 Ueberschrift (03.09.2026, 14:05)"
 ```
 
 Der Abschnitt kommt direkt unter die Marke `<!-- chronik:` in `STATUS.md`; dort fängt die
@@ -251,12 +251,12 @@ Die erste Fassung suchte nach dem „ersten datierten Abschnitt" statt nach eine
 traf daneben: die bleibenden Abschnitte oben (Sperre, Geräteliste, Übergabe) tragen selbst
 Daten. Eine ausdrückliche Marke ist langweiliger und richtig.
 
-## `echte-fassung.sh`
+## `real-config.sh`
 
 Prüft die **echte** Konfiguration vom Telefon gegen den Import-Weg.
 
 ```sh
-tools/echte-fassung.sh <seriennummer>
+tools/real-config.sh <seriennummer>
 ```
 
 `RealConfigRoundTripTest` braucht eine gewachsene Konfiguration: mehrere Bildschirme, ein
@@ -272,12 +272,12 @@ Telefon, der Grund für die ganze Sicherungsfunktion, war ungeprüft. Am 03.09.2
 zum ersten Mal wirklich gelaufen, mit der Fassung des Jelly 2 (13 194 Bytes, drei
 Bildschirme, vierzehn Kacheln): bestanden.
 
-## `nachbauen.sh`
+## `rebuild.sh`
 
 Baut die Release-Fassung zweimal ohne Build-Cache und vergleicht die Prüfsummen.
 
 ```sh
-tools/nachbauen.sh
+tools/rebuild.sh
 ```
 
 Der Nachweis, den der README des Projekts behauptet: derselbe Quelltext ergibt dieselbe
@@ -298,12 +298,12 @@ Commit, zweimal dieselbe Prüfsumme
 `0c3915e`). Ein falsches „nicht reproduzierbar" ist die schlimmste Antwort von allen: sie
 lässt an einer Zusage zweifeln, die stimmt.
 
-## `fassung-anonymisieren.py`
+## `anonymise-config.py`
 
 Macht aus der Konfiguration eines echten Telefons eine Prüfdatei fürs Repository.
 
 ```sh
-tools/fassung-anonymisieren.py ~/config.json > core/model/src/test/resources/gewachsene-fassung.json
+tools/anonymise-config.py ~/config.json > core/model/src/test/resources/gewachsene-fassung.json
 ```
 
 Der Umzugstest braucht eine *gewachsene* Konfiguration: mehrere Bildschirme, ein Ordner,
@@ -317,13 +317,13 @@ Vorher gab es dafür nur `RealConfigRoundTripTest`, der sich ohne die echte Date
 stillschweigend übersprang, und das tat er seit seiner Entstehung. Die Prüfdatei läuft bei
 jedem Lauf mit (`GrownConfigTest`).
 
-## `mehrzahlformen.py`
+## `plurals.py`
 
 Sagt, welche Mehrzahlformen eine Sprache wirklich braucht, aus CLDR statt geraten.
 
 ```sh
-tools/mehrzahlformen.py
-tools/mehrzahlformen.py es it pl
+tools/plurals.py
+tools/plurals.py es it pl
 ```
 
 Android füllt eine fehlende Form stillschweigend aus `other` auf. Kein Absturz, sondern ein
@@ -343,13 +343,13 @@ Italienischen nicht. Ich hatte das Gegenteil aufgeschrieben, bevor ich nachgeseh
 
 Braucht `python-babel`, das die CLDR-Regeln mitbringt.
 
-## `entstrichen.py`
+## `dashes.py`
 
 Nimmt die langen Gedankenstriche aus einer Textdatei, nach Muster statt Zeichen gegen Zeichen.
 
 ```sh
-tools/entstrichen.py STATUS.md          # nur zaehlen
-tools/entstrichen.py STATUS.md schreiben
+tools/dashes.py STATUS.md          # nur zaehlen
+tools/dashes.py STATUS.md schreiben
 ```
 
 Gedacht war es für einen einzigen Einsatz: 1470 Striche in 361 alten Einträgen von
@@ -370,16 +370,16 @@ Geprüft wurde an einer Stichprobe und daran, dass die Zeilenzahl gleich bleibt,
 jedem der 1470 Fälle. Ein Teil liest sich danach als Ellipse statt als ganzer Satz. Für ein
 Arbeitstagebuch reicht das; für Bildschirmtexte wäre es zu grob.
 
-## `unerreichbar.py`
+## `unreachable.py`
 
 Läuft die Fokusreihenfolge des sichtbaren Bildschirms ab und meldet, was anklickbar ist und
 dabei nie den Fokus bekommt.
 
 ```sh
-tools/unerreichbar.py emulator-5554
+tools/unreachable.py emulator-5554
 ```
 
-Das Gegenstück zu `kleine-knoepfe.py`. Dort heißt die Frage *groß genug*, hier heißt sie
+Das Gegenstück zu `small-buttons.py`. Dort heißt die Frage *groß genug*, hier heißt sie
 **erreichbar**. Mit dem Finger fällt der Unterschied nie auf: was ein Rechteck hat, nimmt
 einen Tipp an. Mit Tasten kommt man nur dorthin, wohin der Fokus läuft.
 
@@ -394,7 +394,7 @@ diesem Durchlauf nicht erreicht, also ein Anfangsverdacht.
 
 Gezählt wird nach **Beschriftungen**, nicht nach Maßen: eine Liste scrollt, und dabei wandern
 die Rechtecke; derselbe Knopf hieße in jedem Abzug anders. Der Preis ist, dass zwei Zeilen
-mit demselben Wort verschmelzen. Dafür gibt es `gleiche-namen.py`.
+mit demselben Wort verschmelzen. Dafür gibt es `same-names.py`.
 
 Die Falle dabei ist, dass `uiautomator` eine scrollende Zeile nur zum Teil meldet, mit halber
 Höhe **und halbem Text**. In den Einstellungen kam die zweizeilige Zeile „HomeTiles ist Ihr

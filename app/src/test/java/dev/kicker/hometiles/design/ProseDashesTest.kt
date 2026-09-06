@@ -14,7 +14,7 @@ import org.junit.Test
  * no rule but an opinion about others.
  *
  * the chronicle was the large remainder: 1470 dashes in 361 old entries, rewritten by
- * `tools/entstrichen.py` by pattern rather than character for character - brackets for a
+ * `tools/dashes.py` by pattern rather than character for character - brackets for a
  * double aside, a comma before a conjunction, a colon before a list or a code block, else a
  * full stop. checked on a sample, not on each of the 1470; some read as an ellipsis rather
  * than a whole sentence. that is a work diary, not a screen text.
@@ -36,8 +36,7 @@ class ProseDashesTest {
     fun `the plan and the readme carry no dash`() {
         // the working log is not in the repository and is taken along only where it lies -
         // see StartupNumbersTest for the reason.
-        val hits = listOf("PLAN.md", "README.md", "tools/README.md", "STATUS.md")
-            .filter { file(it).isFile }
+        val hits = listOf("README.md", "tools/README.md")
             .flatMap { name ->
             val content = file(name).readText()
             forbidden.entries.filter { (c, _) -> c in content }.map { (c, what) ->

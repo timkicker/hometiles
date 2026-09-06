@@ -41,7 +41,7 @@ class LinksTest {
 
     @Test
     fun `every named path exists`() {
-        val dead = listOf("PLAN.md", "README.md", "tools/README.md")
+        val dead = listOf("README.md", "tools/README.md")
             .flatMap { name ->
                 val text = withoutUrls(File("../$name").readText())
                 pattern.findAll(text).map { it.groupValues[1] }.map { name to it }
@@ -62,7 +62,7 @@ class LinksTest {
 
     @Test
     fun `the rule finds any paths at all`() {
-        val count = listOf("PLAN.md", "README.md", "tools/README.md")
+        val count = listOf("README.md", "tools/README.md")
             .sumOf { pattern.findAll(withoutUrls(File("../$it").readText())).count() }
         assertTrue("only $count paths found - does the rule still search?", count >= 5)
     }

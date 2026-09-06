@@ -98,7 +98,7 @@ ERLAUBT = {
                 "43664111. Geprueft wird nur, dass zwei verschiedene Nummern nicht in "
                 "dieselbe Gruppe fallen.",
     "49301234": "kein Fund, sondern der Anfang einer erzeugten Nummer: "
-                "`tools/fassung-anonymisieren.py` haengt vier Ziffern an und ersetzt damit "
+                "`tools/anonymise-config.py` haengt vier Ziffern an und ersetzt damit "
                 "echte Nummern in einer Sicherung. 030 ist das Berliner Ortsnetz und "
                 "1234xxxx eine Reihe, die niemandem gehoert.",
     "4366412345": "abgeschnittene Platzhalternummer aus einem alten Test zur Eingabe "

@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Misst den Kontrast **jeder** beschrifteten Flaeche eines Bildschirms auf einmal.
 
-    tools/kontrastgang.py [geraet]
+    tools/contrast-walk.py [geraet]
 
-`kontrast.py` misst ein Rechteck, das man ihm nennt. Das ist richtig, wenn man eine Stelle
+`contrast.py` misst ein Rechteck, das man ihm nennt. Das ist richtig, wenn man eine Stelle
 im Verdacht hat, und muehsam, wenn man einen ganzen Bildschirm durchsehen will: am
 04.09.2026 waren es sechs Bildschirme mit zusammen ueber achtzig beschrifteten Flaechen.
 Von Hand haette das geheissen, achtzig Rechtecke abzutippen - und wer abtippt, laesst welche
@@ -15,11 +15,11 @@ fuer Schrift auf einer Kachel, siehe `Tokens.kt`), und am Ende immer die schlech
 Stelle des Bildschirms - auch wenn sie besteht. Eine Messung, die nur schweigt, sagt nicht,
 ob sie hingesehen hat.
 
-Gerechnet wird mit den Funktionen aus `kontrast.py`, damit es nur eine Formel gibt.
+Gerechnet wird mit den Funktionen aus `contrast.py`, damit es nur eine Formel gibt.
 
 **Zwei Grenzen.** Gemessen wird der hellste gegen den dunkelsten Punkt im Rechteck; wo in
 einem Feld fast nur Schrift steht, ist das zu streng oder zu milde, und dann ist
-`kontrast.py --grund` das genauere Werkzeug. Und abgetastet wird jeder zweite Bildpunkt,
+`contrast.py --grund` das genauere Werkzeug. Und abgetastet wird jeder zweite Bildpunkt,
 sonst dauert ein Bildschirm eine Minute; eine einzelne helle Kante kann damit durchrutschen.
 """
 import importlib.util
@@ -32,7 +32,7 @@ import xml.etree.ElementTree as ET
 from PIL import Image
 
 HIER = os.path.dirname(os.path.abspath(__file__))
-_spec = importlib.util.spec_from_file_location("kontrast", os.path.join(HIER, "kontrast.py"))
+_spec = importlib.util.spec_from_file_location("kontrast", os.path.join(HIER, "contrast.py"))
 kontrast = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(kontrast)
 

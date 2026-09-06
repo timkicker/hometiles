@@ -2,7 +2,7 @@
 <!--
   Erste Fassung vom 04.09.2026, maschinell uebersetzt und ungeprueft. Laut CLDR reichen im
   Spanischen one und other; das many trifft nur volle Millionen, und die Null nimmt other,
-  anders als im Franzoesischen (tools/mehrzahlformen.py). Die Formen behalten dieselben
+  anders als im Franzoesischen (tools/plurals.py). Die Formen behalten dieselben
   Platzhalter wie das Englische.
 -->
 <resources>

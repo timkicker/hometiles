@@ -6,12 +6,12 @@ Bildschirm wird, steht auf einem anderen Blatt: eine Kachel kann eine eigene Far
 ein Foto tragen, unter einem Verlauf liegen, und die Schrift wird mit Kantenglaettung
 gezeichnet. Dieses Werkzeug liest die Bildpunkte.
 
-    tools/kontrast.py bild.png x0 y0 x1 y1 [x0 y0 x1 y1 ...]
+    tools/contrast.py bild.png x0 y0 x1 y1 [x0 y0 x1 y1 ...]
 
 Fuer jedes Rechteck: der hellste und der dunkelste Bildpunkt darin und ihr Verhaeltnis
 nach WCAG. In einem Feld mit Text sind das die Schrift und ihr Grund.
 
-    tools/kontrast.py bild.png --grund X Y  x0 y0 x1 y1
+    tools/contrast.py bild.png --grund X Y  x0 y0 x1 y1
 
 Vergleicht stattdessen gegen einen festen Punkt - fuer Text auf dem Hintergrund, wo im
 Rechteck sonst nur Schrift liegt.

@@ -119,7 +119,7 @@ fun HomeScreenView(
      *
      * a folder and the menu-key list carry a closing row under the grid. it is a sibling of
      * the frame, not its child, and the frame consumes every direction key, so the focus
-     * never reached it: `tools/unerreichbar.py` reported nine clickable areas in a folder
+     * never reached it: `tools/unreachable.py` reported nine clickable areas in a folder
      * and eight reached.
      *
      * a blind `moveFocus(Down)` would be wrong here, taking the next focusable node, which
@@ -627,7 +627,7 @@ private fun EmptyTile(
         label = invite,
         // where the slot is stands only in the picture: two empty tiles were both called
         // tap, so anyone not seeing them had the same offer twice. found with
-        // `tools/gleiche-namen.py`. the same words as in the move view.
+        // `tools/same-names.py`. the same words as in the move view.
         contentDescription = TileSpeech.describe(
             label = invite,
             state = stringResource(R.string.move_spot, row + 1, column + 1),

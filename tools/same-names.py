@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Sucht anklickbare Flaechen, die auf demselben Bildschirm denselben Namen tragen.
 
-    tools/gleiche-namen.py [geraet]
+    tools/same-names.py [geraet]
 
 Zwei Angebote, die gleich heissen, sind fuer jemanden mit einem Vorleseprogramm dasselbe
 Angebot. Am Bildschirm unterscheiden sie sich dann durch etwas, das nicht gesagt wird - eine
@@ -79,7 +79,7 @@ def main(argv):
             continue
         name = gesprochen(k)
         if not name:
-            continue  # das ist der Fall fuer stumme-knoepfe.py, nicht fuer diesen hier
+            continue  # das ist der Fall fuer silent-buttons.py, nicht fuer diesen hier
         nach_namen.setdefault(name, []).append(wert(k, "bounds"))
 
     doppelt = []

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Welche Mehrzahlformen eine Sprache wirklich braucht, aus CLDR statt geraten.
 
-    tools/mehrzahlformen.py [sprache ...]
+    tools/plurals.py [sprache ...]
 
 Ohne Argumente nimmt es die Sprachen, die HomeTiles ausliefert, plus ein paar Kandidaten.
 

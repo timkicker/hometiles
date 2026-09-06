@@ -6,7 +6,7 @@ Ordner, gemischte Kachelarten. Die echte Datei darf nicht ins Repository: sie ve
 welche Programme auf dem Telefon liegen. Dieses Werkzeug behält die Mischung und wirft
 die Person weg.
 
-    tools/fassung-anonymisieren.py /pfad/config.json > core/model/src/test/resources/gewachsene-fassung.json
+    tools/anonymise-config.py /pfad/config.json > core/model/src/test/resources/gewachsene-fassung.json
 
 Ersetzt werden: Programmnamen, zuletzt benutzte Programme, Kurzwahl, gesperrte und
 versteckte Nummern, SOS-Nummern, die PIN und der Zeitstempel der zuletzt gesehenen

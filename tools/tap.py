@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Tippt erst, wenn der Bildschirm der erwartete ist.
 
-    tools/tippen.py <geraet> <x> <y> <erwartete-activity> [erwartete-beschriftung] [--lang]
-    tools/tippen.py <geraet> wischen <erwartete-activity> [wieoft] [--hoch]
-    tools/tippen.py <geraet> zeile "<Beschriftung>" <erwartete-activity> [--lang]
+    tools/tap.py <geraet> <x> <y> <erwartete-activity> [erwartete-beschriftung] [--lang]
+    tools/tap.py <geraet> wischen <erwartete-activity> [wieoft] [--hoch]
+    tools/tap.py <geraet> zeile "<Beschriftung>" <erwartete-activity> [--lang]
 
 Prueft drei Dinge, bevor es tippt:
 

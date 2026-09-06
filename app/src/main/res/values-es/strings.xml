@@ -2,7 +2,7 @@
 <!--
   Erste Fassung vom 04.09.2026, maschinell uebersetzt und von niemandem gelesen, der
   Spanisch spricht. Siehe PLAN.md 10.4. Mehrzahlformen laut CLDR: one und other reichen,
-  und die Null verhaelt sich wie im Deutschen (tools/mehrzahlformen.py).
+  und die Null verhaelt sich wie im Deutschen (tools/plurals.py).
   Solange es nicht in resourceConfigurations steht, geht diese Datei nicht ins Archiv.
 -->
 <resources>

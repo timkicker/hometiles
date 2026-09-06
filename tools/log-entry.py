@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Schreibt einen Abschnitt in STATUS.md - und sieht nach, ob er wirklich dasteht.
 
-    tools/status-eintrag.py "## 🔧 Ueberschrift (03.09.2026, 14:05)" < text.md
-    echo "Rumpf" | tools/status-eintrag.py "## 🔧 Ueberschrift"
+    tools/log-entry.py "## 🔧 Ueberschrift (03.09.2026, 14:05)" < text.md
+    echo "Rumpf" | tools/log-entry.py "## 🔧 Ueberschrift"
 
 Der neue Abschnitt kommt direkt unter die Marke `<!-- chronik:` in STATUS.md - dort faengt
 die Chronik an. Oben darueber stehen die bleibenden Abschnitte (die Sperre, die Geraeteliste,

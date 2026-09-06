@@ -3,7 +3,7 @@
   Erste Fassung vom 04.09.2026, maschinell uebersetzt und von niemandem gelesen, der
   Italienisch spricht. Siehe PLAN.md 10.4. Laut CLDR reichen one und other; das many trifft
   nur volle Millionen, und die Null nimmt other wie im Spanischen
-  (tools/mehrzahlformen.py). Wortwahl: riquadro fuer Kachel, casella fuer Feld.
+  (tools/plurals.py). Wortwahl: riquadro fuer Kachel, casella fuer Feld.
 -->
 <resources>
     <string name="intent_no_app">Nessuna app di questo telefono può farlo</string>

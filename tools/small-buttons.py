@@ -5,7 +5,7 @@
 Bildpunkte. Ein Unit-Test sieht die fertige Flaeche nicht - sie entsteht erst aus Schrift,
 Fuellung und dem Platz, der uebrig bleibt.
 
-    tools/kleine-knoepfe.py [geraet]
+    tools/small-buttons.py [geraet]
 
 Ein Treffer ist ein Anfangsverdacht, kein Urteil. Zwei haeufige Faelle sind keine:
 
@@ -37,7 +37,7 @@ def main(argv):
     # **Beide** Raender, nicht nur der untere. Bis zum 04.09.2026 stand hier nur `unten`,
     # und der Notmodus-Bildschirm meldete nach dem Blaettern eine Flaeche von 333 x 6,5 dp
     # am **oberen** Rand - die erste Zeile der Liste, nach oben hinausgeschoben.
-    # `stumme-knoepfe.py` rechnet seit dem 03.09. mit beiden; die beiden Werkzeuge waren
+    # `silent-buttons.py` rechnet seit dem 03.09. mit beiden; die beiden Werkzeuge waren
     # sich uneins, und das faellt nur auf, wenn man sie nebeneinander laufen laesst.
     raender = [
         (int(m.group(2)), int(m.group(4)))

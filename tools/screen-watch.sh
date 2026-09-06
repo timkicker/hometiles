@@ -6,7 +6,7 @@
 # Diese Wache sieht alle paar Sekunden nach und schreibt **nur die Aenderungen** auf; eine
 # ruhige Nacht ist dann eine Datei mit einer Zeile.
 #
-#   tools/bildschirm-wache.sh [geraet] [logdatei] [runden] [sekunden]
+#   tools/screen-watch.sh [geraet] [logdatei] [runden] [sekunden]
 #
 # Alle 100 Runden schreibt sie ausserdem ein Lebenszeichen. Ohne das sieht eine Wache, die
 # laengst abgestuerzt ist, genauso aus wie eine ruhige Nacht - beide Male steht nichts da.

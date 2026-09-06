@@ -12,7 +12,7 @@ import org.junit.Test
  * source, and the next commit makes it uncheckable without it *looking* wrong.
  *
  * this rule does not check the number itself - that costs two full rebuilds,
- * `tools/nachbauen.sh` - but that it is written down so it can be recomputed.
+ * `tools/rebuild.sh` - but that it is written down so it can be recomputed.
  */
 class RebuildChecksumTest {
 
@@ -65,9 +65,9 @@ class RebuildChecksumTest {
 
     @Test
     fun `the tool for recomputing exists`() {
-        val tool = File("../tools/nachbauen.sh")
-        assertTrue("tools/nachbauen.sh is missing, the README names it", tool.isFile)
+        val tool = File("../tools/rebuild.sh")
+        assertTrue("tools/rebuild.sh is missing, the README names it", tool.isFile)
         assertEquals(true, tool.canExecute())
-        assertTrue("the README does not name the tool", "tools/nachbauen.sh" in readme)
+        assertTrue("the README does not name the tool", "tools/rebuild.sh" in readme)
     }
 }

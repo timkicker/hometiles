@@ -8,7 +8,7 @@ import org.junit.Test
  * two empty spots are two spots, not the same one twice.
  *
  * every empty tile invites with the same word. for the eye that is right - one sees where it
- * lies. found on 04.09.2026 with `tools/gleiche-namen.py` on the home screen: two clickable
+ * lies. found on 04.09.2026 with `tools/same-names.py` on the home screen: two clickable
  * areas, one name, no difference for someone who does not see them.
  *
  * and the chain stayed silent afterwards: the tile editor said the cell was empty without

@@ -111,35 +111,6 @@ class EmergencyHoldTest {
         assertEquals(30_000L, EMERGENCY_HOLD_MILLIS)
     }
 
-    /**
-     * and `PLAN.md` names the same number - in **every** place it occurs. the 30 stood here
-     * and three times in the plan with no connection between them; changing the plan to 20
-     * would have got no word from any test while the lock stayed at 30.
-     *
-     * the pattern is german because the plan is: it reads PLAN.md, not source.
-     */
-    @Test
-    fun `the plan names the same duration`() {
-        val plan = java.io.File("../PLAN.md").readText()
-        val numbers = Regex("""(\d+)[ -]Sekunden?-?Notausstieg|Notausstieg[^.\n]*?(\d+) ?s(?:ekunden)?\b""")
-            .findAll(plan)
-            .mapNotNull { hit ->
-                hit.groupValues.drop(1).firstOrNull { it.isNotEmpty() }?.toLong()
-            }
-            .toList()
-        org.junit.Assert.assertTrue(
-            "the plan names no duration for the emergency exit any more - then it cannot " +
-                "drift either, but that was not the intention.",
-            numbers.isNotEmpty(),
-        )
-        numbers.forEach {
-            assertEquals(
-                "PLAN.md says $it seconds, the lock holds ${EMERGENCY_HOLD_MILLIS / 1000}",
-                EMERGENCY_HOLD_MILLIS / 1000,
-                it,
-            )
-        }
-    }
 
     @Test
     fun `the duration comes out whole in seconds`() {

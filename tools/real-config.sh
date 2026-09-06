@@ -1,7 +1,7 @@
 #!/bin/sh
 # Prueft die **echte** Konfiguration vom Telefon gegen den Import-Weg.
 #
-#   tools/echte-fassung.sh [geraet]
+#   tools/real-config.sh [geraet]
 #
 # `RealConfigRoundTripTest` braucht eine gewachsene Konfiguration - mehrere Bildschirme, ein
 # Ordner, eigene Beschriftungen, Farben. Genau die entsteht nicht im Testquelltext, sondern
