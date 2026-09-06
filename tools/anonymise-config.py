@@ -1,65 +1,66 @@
 #!/usr/bin/env python3
-"""Aus einer echten Konfiguration eine Prüffassung machen.
+"""Turns a real configuration into one that can be checked in.
 
-Der Umzugstest braucht eine *gewachsene* Konfiguration - mehrere Bildschirme, ein
-Ordner, gemischte Kachelarten. Die echte Datei darf nicht ins Repository: sie verrät,
-welche Programme auf dem Telefon liegen. Dieses Werkzeug behält die Mischung und wirft
-die Person weg.
+The migration test needs a *grown* configuration - several screens, a folder, mixed kinds
+of tile. The real file must not go into the repository: it gives away which programs lie
+on the phone. This tool keeps the mixture and throws the person away.
 
-    tools/anonymise-config.py /pfad/config.json > core/model/src/test/resources/gewachsene-fassung.json
+    tools/anonymise-config.py /path/config.json > core/model/src/test/resources/grown-config.json
 
-Ersetzt werden: Programmnamen, zuletzt benutzte Programme, Kurzwahl, gesperrte und
-versteckte Nummern, SOS-Nummern, die PIN und der Zeitstempel der zuletzt gesehenen
-verpassten Anrufe. Alles andere - Anzahl, Lage und Grösse der Kacheln, Farben,
-Schalterstellungen - bleibt Zeichen für Zeichen stehen.
+Replaced are: package names, recently used programs, speed dial, blocked and hidden
+numbers, SOS numbers, the PIN and the timestamp of the last seen missed calls. Everything
+else - number, place and size of the tiles, colours, switch positions - stays character
+for character.
 """
 import json
 import sys
 
-paket_nummern = {}
+package_numbers = {}
 
 
-def paket(name):
-    if name not in paket_nummern:
-        paket_nummern[name] = f"com.example.programm{len(paket_nummern) + 1}"
-    return paket_nummern[name]
+def package_for(name):
+    if name not in package_numbers:
+        package_numbers[name] = f"com.example.program{len(package_numbers) + 1}"
+    return package_numbers[name]
 
 
-def nummer(index):
+def number(index):
+    # 030 is the Berlin area code and 1234xxxx a run that belongs to nobody, see
+    # tools/opsec.py.
     return f"+49301234{index:04d}"
 
 
-def anonymisieren(d):
-    for schirm in d.get("screens", []):
-        for zelle in schirm.get("cells", []):
-            aktion = zelle["button"]["action"]
-            if aktion.get("type") == "app":
-                alt = aktion["packageName"]
-                aktion["packageName"] = paket(alt)
-                if aktion.get("activityName"):
-                    aktion["activityName"] = paket(alt) + ".MainActivity"
-            if aktion.get("type") in ("call", "sms", "contact"):
-                for feld in ("number", "uri", "lookupKey"):
-                    if aktion.get(feld):
-                        aktion[feld] = nummer(len(paket_nummern) + 1)
+def anonymise(d):
+    for screen in d.get("screens", []):
+        for cell in screen.get("cells", []):
+            action = cell["button"]["action"]
+            if action.get("type") == "app":
+                old = action["packageName"]
+                action["packageName"] = package_for(old)
+                if action.get("activityName"):
+                    action["activityName"] = package_for(old) + ".MainActivity"
+            if action.get("type") in ("call", "sms", "contact"):
+                for field in ("number", "uri", "lookupKey"):
+                    if action.get(field):
+                        action[field] = number(len(package_numbers) + 1)
     apps = d.get("apps", {})
     apps["recent"] = [
-        paket(e.split("/")[0]) + "/" + paket(e.split("/")[0]) + ".MainActivity"
+        package_for(e.split("/")[0]) + "/" + package_for(e.split("/")[0]) + ".MainActivity"
         for e in apps.get("recent", [])
     ]
-    apps["hidden"] = [paket(e) for e in apps.get("hidden", [])]
-    telefon = d.get("phone", {})
-    telefon["speedDial"] = {k: nummer(int(k) if str(k).isdigit() else 9) for k in telefon.get("speedDial", {})}
-    telefon["blockedNumbers"] = [nummer(i) for i, _ in enumerate(telefon.get("blockedNumbers", []))]
-    telefon["lastSeenMissedAt"] = 0
+    apps["hidden"] = [package_for(e) for e in apps.get("hidden", [])]
+    phone = d.get("phone", {})
+    phone["speedDial"] = {k: number(int(k) if str(k).isdigit() else 9) for k in phone.get("speedDial", {})}
+    phone["blockedNumbers"] = [number(i) for i, _ in enumerate(phone.get("blockedNumbers", []))]
+    phone["lastSeenMissedAt"] = 0
     sms = d.get("sms", {})
-    sms["hiddenNumbers"] = [nummer(i) for i, _ in enumerate(sms.get("hiddenNumbers", []))]
-    sms["hiddenWords"] = ["wort" for _ in sms.get("hiddenWords", [])]
-    d.get("sos", {})["numbers"] = [nummer(i) for i, _ in enumerate(d.get("sos", {}).get("numbers", []))]
+    sms["hiddenNumbers"] = [number(i) for i, _ in enumerate(sms.get("hiddenNumbers", []))]
+    sms["hiddenWords"] = ["word" for _ in sms.get("hiddenWords", [])]
+    d.get("sos", {})["numbers"] = [number(i) for i, _ in enumerate(d.get("sos", {}).get("numbers", []))]
     d.get("security", {})["pin"] = None
     return d
 
 
 if __name__ == "__main__":
-    quelle = json.load(open(sys.argv[1], encoding="utf-8"))
-    print(json.dumps(anonymisieren(quelle), indent=1, ensure_ascii=False))
+    source = json.load(open(sys.argv[1], encoding="utf-8"))
+    print(json.dumps(anonymise(source), indent=1, ensure_ascii=False))

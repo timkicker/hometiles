@@ -1,73 +1,72 @@
 #!/usr/bin/env python3
-"""Misst den Kontrast in einem Bildschirmfoto - dort, wo er wirklich ankommt.
+"""Measures contrast in a screenshot - where it actually arrives.
 
-`SurfaceContrastTest` prueft die Farbkonstanten gegeneinander. Was daraus auf dem
-Bildschirm wird, steht auf einem anderen Blatt: eine Kachel kann eine eigene Farbe haben,
-ein Foto tragen, unter einem Verlauf liegen, und die Schrift wird mit Kantenglaettung
-gezeichnet. Dieses Werkzeug liest die Bildpunkte.
+`SurfaceContrastTest` checks the colour constants against each other. What becomes of them
+on the screen is another matter: a tile can carry a colour of its own, hold a photo, lie
+under a gradient, and the text is drawn with anti-aliasing. This tool reads the pixels.
 
-    tools/contrast.py bild.png x0 y0 x1 y1 [x0 y0 x1 y1 ...]
+    tools/contrast.py picture.png x0 y0 x1 y1 [x0 y0 x1 y1 ...]
 
-Fuer jedes Rechteck: der hellste und der dunkelste Bildpunkt darin und ihr Verhaeltnis
-nach WCAG. In einem Feld mit Text sind das die Schrift und ihr Grund.
+For each rectangle: the brightest and the darkest pixel in it and their WCAG ratio. In a
+field with text those are the letters and their ground.
 
-    tools/contrast.py bild.png --grund X Y  x0 y0 x1 y1
+    tools/contrast.py picture.png --ground X Y  x0 y0 x1 y1
 
-Vergleicht stattdessen gegen einen festen Punkt - fuer Text auf dem Hintergrund, wo im
-Rechteck sonst nur Schrift liegt.
+Compares against a fixed point instead - for text on the background, where the rectangle
+holds nothing but letters.
 
-Die Schwellen von HomeTiles (`Tokens.kt`): 4.5 fuer Schrift auf einer Kachel, 3.0 fuer eine
-Kachel gegen den Hintergrund, 7.0 fuer Text ausserhalb einer Kachel.
+The thresholds of HomeTiles (`Tokens.kt`): 4.5 for text on a tile, 3.0 for a tile against
+the background, 7.0 for text outside a tile.
 """
 import sys
 
 from PIL import Image
 
-SCHWELLEN = "4.5 Schrift/Kachel, 3.0 Kachel/Grund, 7.0 Text/Grund"
+THRESHOLDS = "4.5 text/tile, 3.0 tile/ground, 7.0 text/ground"
 
 
-def helligkeit(rgb):
-    def kanal(wert):
-        wert = wert / 255.0
-        return wert / 12.92 if wert <= 0.03928 else ((wert + 0.055) / 1.055) ** 2.4
+def luminance(rgb):
+    def channel(value):
+        value = value / 255.0
+        return value / 12.92 if value <= 0.03928 else ((value + 0.055) / 1.055) ** 2.4
 
-    rot, gruen, blau = rgb[:3]
-    return 0.2126 * kanal(rot) + 0.7152 * kanal(gruen) + 0.0722 * kanal(blau)
+    red, green, blue = rgb[:3]
+    return 0.2126 * channel(red) + 0.7152 * channel(green) + 0.0722 * channel(blue)
 
 
-def verhaeltnis(eins, zwei):
-    hell, dunkel = sorted((helligkeit(eins), helligkeit(zwei)), reverse=True)
-    return (hell + 0.05) / (dunkel + 0.05)
+def ratio(one, two):
+    bright, dark = sorted((luminance(one), luminance(two)), reverse=True)
+    return (bright + 0.05) / (dark + 0.05)
 
 
 def main(argv):
     if len(argv) < 6:
         print(__doc__.strip().split("\n\n")[2].strip())
         return 2
-    bild = Image.open(argv[1]).convert("RGB")
-    reste = argv[2:]
-    grund = None
-    if reste[0] == "--grund":
-        grund = bild.getpixel((int(reste[1]), int(reste[2])))
-        reste = reste[3:]
-    if len(reste) % 4 != 0:
-        print("Ein Rechteck braucht vier Zahlen: x0 y0 x1 y1")
+    picture = Image.open(argv[1]).convert("RGB")
+    rest = argv[2:]
+    ground = None
+    if rest[0] == "--ground":
+        ground = picture.getpixel((int(rest[1]), int(rest[2])))
+        rest = rest[3:]
+    if len(rest) % 4 != 0:
+        print("A rectangle needs four numbers: x0 y0 x1 y1")
         return 2
-    for i in range(0, len(reste), 4):
-        x0, y0, x1, y1 = (int(z) for z in reste[i:i + 4])
-        punkte = [bild.getpixel((x, y)) for x in range(x0, x1) for y in range(y0, y1)]
-        if not punkte:
-            print("Leeres Rechteck: %d %d %d %d" % (x0, y0, x1, y1))
+    for i in range(0, len(rest), 4):
+        x0, y0, x1, y1 = (int(n) for n in rest[i:i + 4])
+        pixels = [picture.getpixel((x, y)) for x in range(x0, x1) for y in range(y0, y1)]
+        if not pixels:
+            print("Empty rectangle: %d %d %d %d" % (x0, y0, x1, y1))
             continue
-        hellster = max(punkte, key=helligkeit)
-        dunkelster = min(punkte, key=helligkeit)
-        if grund is None:
-            print("[%d,%d][%d,%d] %s auf %s = %.2f:1"
-                  % (x0, y0, x1, y1, hellster, dunkelster, verhaeltnis(hellster, dunkelster)))
+        brightest = max(pixels, key=luminance)
+        darkest = min(pixels, key=luminance)
+        if ground is None:
+            print("[%d,%d][%d,%d] %s on %s = %.2f:1"
+                  % (x0, y0, x1, y1, brightest, darkest, ratio(brightest, darkest)))
         else:
-            schrift = hellster if helligkeit(grund) < 0.5 else dunkelster
-            print("[%d,%d][%d,%d] %s auf Grund %s = %.2f:1"
-                  % (x0, y0, x1, y1, schrift, grund, verhaeltnis(schrift, grund)))
+            text = brightest if luminance(ground) < 0.5 else darkest
+            print("[%d,%d][%d,%d] %s on ground %s = %.2f:1"
+                  % (x0, y0, x1, y1, text, ground, ratio(text, ground)))
     return 0
 
 

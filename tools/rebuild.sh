@@ -1,59 +1,58 @@
 #!/bin/sh
-# Baut die Release-Fassung zweimal ohne Build-Cache und vergleicht die Prüfsummen.
+# Builds the release twice without the build cache and compares the checksums.
 #
-# Der Nachweis, den das README behauptet: derselbe Quelltext ergibt dieselbe Datei. Wer das
-# nachrechnet, will nicht zwei Befehle abtippen und die Zeichenketten mit dem Auge
-# vergleichen - dabei übersieht man genau die eine Stelle, an der sie sich unterscheiden.
+# The proof the readme claims: the same source gives the same file. Whoever recomputes that
+# does not want to type two commands and compare the strings by eye - that is exactly how
+# one misses the single place where they differ.
 #
 #   tools/rebuild.sh
 #
-# Dauert zwei volle Neubauten (auf einem Laptop je rund eine Minute).
+# Takes two full rebuilds (about a minute each on a laptop).
 #
-# WICHTIG: waehrenddessen darf **kein anderer Gradle-Lauf** an diesem Projekt arbeiten, und
-# es darf keine Datei geaendert werden. Am 03.09.2026 um 10:57 habe ich beides missachtet -
-# nebenher liefen Tests und ich habe zur Gegenprobe kurz das README verbogen. Ergebnis:
-# "VERSCHIEDEN - der Bau ist nicht reproduzierbar". Allein wiederholt, mit demselben Commit:
-# zweimal dieselbe Pruefsumme. Ein falsches "nicht reproduzierbar" ist die schlimmste Antwort
-# von allen - sie laesst an einer Zusage zweifeln, die stimmt. Deshalb passt das Skript jetzt
-# selbst darauf auf.
+# IMPORTANT: while it runs, **no other gradle run** may work on this project, and no file may
+# change. On 03.09.2026 at 10:57 both were ignored - tests were running alongside and the
+# readme was bent for a counter-check. Result: "DIFFERENT - the build is not reproducible".
+# Repeated alone, on the same commit: the same checksum twice. A wrong "not reproducible" is
+# the worst answer of all - it casts doubt on a promise that holds. So the script now watches
+# for that itself.
 set -e
 cd "$(dirname "$0")/.."
 [ -f env.sh ] && . ./env.sh
 APK=app/build/outputs/apk/release/app-release-unsigned.apk
 
-lauf() {
+run() {
   ./gradlew --no-build-cache clean assembleRelease -q > /dev/null
   sha256sum "$APK" | cut -d' ' -f1
 }
 
-zustand() { git rev-parse HEAD; git status --porcelain; }
+state() { git rev-parse HEAD; git status --porcelain; }
 
-vorher=$(zustand)
-echo "erster Lauf ..."
-eins=$(lauf)
-echo "zweiter Lauf ..."
-zwei=$(lauf)
-nachher=$(zustand)
+before=$(state)
+echo "first run ..."
+one=$(run)
+echo "second run ..."
+two=$(run)
+after=$(state)
 
 echo
-echo "1: $eins"
-echo "2: $zwei"
-echo "Grösse: $(stat -c%s "$APK") Bytes"
-echo "Commit: $(git rev-parse --short HEAD)$(git diff --quiet || echo ' (mit ungespeicherten Änderungen!)')"
-if [ "$vorher" != "$nachher" ]; then
+echo "1: $one"
+echo "2: $two"
+echo "size: $(stat -c%s "$APK") bytes"
+echo "commit: $(git rev-parse --short HEAD)$(git diff --quiet || echo ' (with unsaved changes!)')"
+if [ "$before" != "$after" ]; then
   echo
-  echo "ACHTUNG: waehrend der beiden Laeufe hat sich der Arbeitsbaum geaendert."
-  echo "Das Ergebnis sagt nichts aus - weder so noch so. Nochmal, und nichts nebenher tun:"
-  echo "  keine Datei bearbeiten, keinen zweiten ./gradlew starten."
+  echo "CAREFUL: the working tree changed during the two runs."
+  echo "The result says nothing, either way. Again, and nothing alongside:"
+  echo "  edit no file, start no second ./gradlew."
   exit 2
 fi
 
-if [ "$eins" = "$zwei" ]; then
-  echo "gleich - der Bau ist reproduzierbar"
+if [ "$one" = "$two" ]; then
+  echo "same - the build is reproducible"
 else
-  echo "VERSCHIEDEN - der Bau ist nicht reproduzierbar"
+  echo "DIFFERENT - the build is not reproducible"
   echo
-  echo "Bevor du das glaubst: lief nebenher ein anderer ./gradlew? Dann zaehlt es nicht."
-  echo "Wiederhole es allein. Genau daran bin ich am 03.09.2026 hereingefallen."
+  echo "Before believing that: was another ./gradlew running alongside? Then it does not count."
+  echo "Repeat it alone. That is exactly what went wrong on 03.09.2026."
   exit 1
 fi

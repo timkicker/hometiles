@@ -33,7 +33,6 @@
 - [Contributing](#contributing)
 - [License and credits](#license-and-credits)
 
----
 
 ## Why HomeTiles?
 
@@ -41,7 +40,7 @@ Large-tile launchers exist, but the well known one now spreads phone, messages a
 launcher itself over three paid apps. HomeTiles puts them back in one place, gives the source
 away, and asks for no account.
 
-- **One app, not three.** Home screen, dialler, messages and contacts ship together and look
+- **3 in one.** Home screen, dialler, messages and contacts ship together and look
   the same.
 - **Made for a small screen.** Developed on a **Unihertz Jelly 2**: 3 inches, 480 x 854 px at
   220 dpi, which leaves **349 x 597 dp** once the system bars are off. Big tiles are hardest
@@ -72,7 +71,7 @@ away, and asks for no account.
   <img src="docs/screenshots/09-sos.png" alt="Setting up SOS" width="30%"/>
 </p>
 
-## What it does
+## Features
 
 **Home screen**
 - A grid of large tiles, each one freely assigned: an app, a contact, a shortcut, a widget, a
@@ -162,7 +161,7 @@ build cache, both times
 ```
 
 for **Commit `0afeb50`**. A checksum belongs to one state of the source, not to the project:
-whoever wants to recompute it builds that commit. `tools/nachbauen.sh` does both runs and the
+whoever wants to recompute it builds that commit. `tools/rebuild.sh` does both runs and the
 comparison in one call.
 
 ## Permissions
@@ -200,7 +199,7 @@ language it was thought in. The running log it refers to stays on the machine it
 on - it records measurements taken on a real phone, screen contents included, and that is
 nobody's business but its owner's.
 
-## How it is tested
+## Testing
 
 There is no test framework here beyond JUnit, and there are **1546 rules** in 313 classes.
 Most of them do not run the app; they read its source and hold it to a promise:

@@ -1,72 +1,77 @@
 #!/usr/bin/env python3
-"""Schreibt einen Abschnitt in STATUS.md - und sieht nach, ob er wirklich dasteht.
+"""Writes a section into the working log - and then looks whether it is really there.
 
-    tools/log-entry.py "## 🔧 Ueberschrift (03.09.2026, 14:05)" < text.md
-    echo "Rumpf" | tools/log-entry.py "## 🔧 Ueberschrift"
+    tools/log-entry.py "## Heading (03.09.2026, 14:05)" < text.md
+    echo "Body" | tools/log-entry.py "## Heading"
 
-Der neue Abschnitt kommt direkt unter die Marke `<!-- chronik:` in STATUS.md - dort faengt
-die Chronik an. Oben darueber stehen die bleibenden Abschnitte (die Sperre, die Geraeteliste,
-der Morgenstand), und die tragen teils selbst ein Datum; nach dem "ersten datierten
-Abschnitt" zu suchen traf deshalb daneben. Eine ausdrueckliche Marke ist langweiliger und
-richtig. Danach wird die Datei neu gelesen und geprueft: die
-Ueberschrift muss genau einmal vorkommen. Sonst Rueckgabewert 1 und kein Wort darueber, dass
-es geklappt haette.
+The new section goes directly under the marker `<!-- chronik:` in `STATUS.md` - that is
+where the chronicle begins. Above it stand the lasting sections, and some of those carry a
+date of their own; searching for the "first dated section" therefore hit the wrong place.
+An explicit marker is duller and correct. Afterwards the file is read again and checked:
+the heading has to appear exactly once. Otherwise exit code 1 and not a word about it
+having worked.
 
-Entstanden am 03.09.2026 um 14:05 aus einem stillen Verlust: ein Bash-Aufruf mit deutschen
-Anfuehrungszeichen in einem Python-Schnipsel scheiterte an der Shell (`unmatched '`), **bevor
-irgendetwas lief**. Ich habe danach nur den Rest wiederholt und committet - dabei fehlten
-zwei README-Korrekturen und ein ganzer STATUS-Abschnitt. Aufgefallen ist es erst einen Takt
-spaeter, weil eine Ueberschrift nicht zu finden war.
+The marker is german because it stands in a german file that is not in this repository -
+the log records measurements taken on a real phone and stays on the machine it was written
+on.
 
-Ein fehlgeschlagener Befehl sieht einem erledigten zum Verwechseln aehnlich, wenn man nur auf
-den Commit schaut. Also schaut das hier nach.
+Written on 03.09.2026 at 14:05 after a silent loss: a bash call with german quotation marks
+inside a python snippet failed in the shell (`unmatched '`) **before anything ran**. Only
+the rest was repeated and committed - two readme corrections and a whole log section were
+missing. It came out one round later, because a heading could not be found.
+
+A failed command looks exactly like a finished one if you only look at the commit. So this
+one looks.
 """
 import sys
 from pathlib import Path
 
-MARKE = "<!-- chronik:"
+MARKER = "<!-- chronik:"
 
 
 def main():
     if len(sys.argv) < 2:
         print(__doc__.strip().splitlines()[2].strip())
         return 2
-    ueberschrift = sys.argv[1].rstrip()
-    if not ueberschrift.startswith("## "):
-        print(f"Die Ueberschrift muss mit '## ' anfangen, nicht: {ueberschrift[:40]}")
+    heading = sys.argv[1].rstrip()
+    if not heading.startswith("## "):
+        print(f"The heading has to start with '## ', not: {heading[:40]}")
         return 2
-    rumpf = sys.stdin.read().strip("\n")
-    if not rumpf:
-        print("Kein Rumpf auf der Standardeingabe - der Abschnitt waere leer.")
+    body = sys.stdin.read().strip("\n")
+    if not body:
+        print("No body on standard input - the section would be empty.")
         return 2
 
-    datei = Path(__file__).resolve().parent.parent / "STATUS.md"
-    zeilen = datei.read_text(encoding="utf-8").split("\n")
-    if sum(1 for z in zeilen if z.rstrip() == ueberschrift) > 0:
-        print(f"Diese Ueberschrift steht schon in STATUS.md: {ueberschrift}")
+    file = Path(__file__).resolve().parent.parent / "STATUS.md"
+    if not file.is_file():
+        print("There is no STATUS.md beside this repository - nothing to write into.")
+        return 1
+    lines = file.read_text(encoding="utf-8").split("\n")
+    if sum(1 for line in lines if line.rstrip() == heading) > 0:
+        print(f"This heading is already in STATUS.md: {heading}")
         return 1
 
-    marke = next((i for i, z in enumerate(zeilen) if z.startswith(MARKE)), None)
-    if marke is None:
-        print(f"Die Marke {MARKE} fehlt in STATUS.md - wo soll der neue Abschnitt hin?")
+    marker = next((i for i, line in enumerate(lines) if line.startswith(MARKER)), None)
+    if marker is None:
+        print(f"The marker {MARKER} is missing in STATUS.md - where should the section go?")
         return 1
-    # Bis zum Ende des Kommentars, dann die Leerzeile dahinter.
-    ende = marke
-    while ende < len(zeilen) and "-->" not in zeilen[ende]:
-        ende += 1
-    stelle = ende + 2
+    # To the end of the comment, then the empty line behind it.
+    end = marker
+    while end < len(lines) and "-->" not in lines[end]:
+        end += 1
+    place = end + 2
 
-    zeilen[stelle:stelle] = [ueberschrift, ""] + rumpf.split("\n") + [""]
-    datei.write_text("\n".join(zeilen), encoding="utf-8")
+    lines[place:place] = [heading, ""] + body.split("\n") + [""]
+    file.write_text("\n".join(lines), encoding="utf-8")
 
-    # Und jetzt nachsehen. Genau dafuer gibt es dieses Programm.
-    neu = datei.read_text(encoding="utf-8").split("\n")
-    treffer = sum(1 for z in neu if z.rstrip() == ueberschrift)
-    if treffer != 1:
-        print(f"NICHT geschrieben: die Ueberschrift steht {treffer}-mal in STATUS.md.")
+    # And now look. That is what this program is for.
+    written = file.read_text(encoding="utf-8").split("\n")
+    hits = sum(1 for line in written if line.rstrip() == heading)
+    if hits != 1:
+        print(f"NOT written: the heading stands {hits} times in STATUS.md.")
         return 1
-    zeile = neu.index(ueberschrift) + 1
-    print(f"geschrieben: STATUS.md:{zeile}  {ueberschrift}")
+    line = written.index(heading) + 1
+    print(f"written: STATUS.md:{line}  {heading}")
     return 0
 
 

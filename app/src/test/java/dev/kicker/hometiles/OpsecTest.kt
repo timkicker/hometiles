@@ -54,13 +54,13 @@ class OpsecTest {
         val (_, output) = run("probe")
         assertTrue(
             "a pattern no longer finds its own sample:\n$output",
-            "NICHT GEFUNDEN" !in output,
+            "NOT FOUND" !in output,
         )
     }
 
     @Test
     fun `no personal data in the tracked files`() {
-        val (code, output) = run("baum")
+        val (code, output) = run("tree")
         assertEquals(
             "the search found something in a tracked file. either it goes, or it goes into " +
                 "ERLAUBT in tools/opsec.py with a reason:\n$output",

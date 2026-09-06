@@ -16,15 +16,15 @@ class SosTest {
     fun `without a location only the text stands in the message`() {
         // a message that looks as if it had a location and has none would be worse in earnest
         // than no place at all.
-        assertEquals("Hilfe!", SosMessage.compose("Hilfe!", null, null, "Notfall"))
-        assertEquals("Hilfe!", SosMessage.compose("Hilfe!", 48.20, null, "Notfall"))
-        assertEquals("Hilfe!", SosMessage.compose("Hilfe!", null, 16.37, "Notfall"))
+        assertEquals("Help!", SosMessage.compose("Help!", null, null, "Emergency"))
+        assertEquals("Help!", SosMessage.compose("Help!", 48.20, null, "Emergency"))
+        assertEquals("Help!", SosMessage.compose("Help!", null, 16.37, "Emergency"))
     }
 
     @Test
     fun `with a location a tappable link is appended`() {
-        val message = SosMessage.compose("Hilfe!", 48.20849, 16.37208, "Notfall")
-        assertTrue(message.startsWith("Hilfe!\n"))
+        val message = SosMessage.compose("Help!", 48.20849, 16.37208, "Emergency")
+        assertTrue(message.startsWith("Help!\n"))
         assertTrue(message.contains("https://maps.google.com/?q=48.20849,16.37208"))
     }
 
@@ -42,8 +42,8 @@ class SosTest {
 
     @Test
     fun `an empty text falls back to the default`() {
-        assertEquals("Notfall", SosMessage.compose("", null, null, "Notfall"))
-        assertEquals("Notfall", SosMessage.compose("   ", null, null, "  Notfall  "))
+        assertEquals("Emergency", SosMessage.compose("", null, null, "Emergency"))
+        assertEquals("Emergency", SosMessage.compose("   ", null, null, "  Emergency  "))
     }
 
     @Test
@@ -114,7 +114,7 @@ class SosLocaleTest {
     @Test
     fun `a german system language still writes a full stop`() {
         withLocale(java.util.Locale.GERMANY) {
-            val message = SosMessage.compose("Hilfe!", 48.20849, 16.37208, "Notfall")
+            val message = SosMessage.compose("Help!", 48.20849, 16.37208, "Emergency")
             assertTrue("a full stop instead of a comma", message.contains("48.20849,16.37208"))
             assertFalse("no comma as the decimal separator", message.contains("47,26543"))
         }
@@ -160,29 +160,29 @@ class SosLocaleTest {
     @Test
     fun `the note stands on a line of its own behind the link`() {
         val message = SosMessage.compose(
-            text = "Hilfe!",
+            text = "Help!",
             latitude = 48.20849,
             longitude = 16.37208,
-            fallback = "Notfall",
-            ageNote = "Standort von vor 3 Stunden",
+            fallback = "Emergency",
+            ageNote = "location from 3 hours ago",
         )
         val lines = message.lines()
-        assertEquals("Hilfe!", lines[0])
+        assertEquals("Help!", lines[0])
         assertTrue(lines[1].startsWith("https://"))
-        assertEquals("Standort von vor 3 Stunden", lines[2])
+        assertEquals("location from 3 hours ago", lines[2])
     }
 
     @Test
     fun `without a location no age stands there either`() {
         // otherwise the message would carry a note about something that is not in it.
         val message = SosMessage.compose(
-            text = "Hilfe!",
+            text = "Help!",
             latitude = null,
             longitude = null,
-            fallback = "Notfall",
-            ageNote = "Standort von vor 3 Stunden",
+            fallback = "Emergency",
+            ageNote = "location from 3 hours ago",
         )
-        assertEquals("Hilfe!", message)
+        assertEquals("Help!", message)
     }
 
     /**
@@ -194,9 +194,9 @@ class SosLocaleTest {
     @Test
     fun `the age line can cost a second message`() {
         val text = "Bitte kommt schnell, mir ist schwindlig und ich kann nicht mehr aufstehen."
-        val without = SosMessage.compose(text, 48.20849, 16.37208, "Notfall")
+        val without = SosMessage.compose(text, 48.20849, 16.37208, "Emergency")
         val with = SosMessage.compose(
-            text, 48.20849, 16.37208, "Notfall", ageNote = "Standort von vor 24 Stunden",
+            text, 48.20849, 16.37208, "Emergency", ageNote = "location from 24 hours ago",
         )
         assertTrue("the line does not make the message longer", with.length > without.length)
         assertTrue(
@@ -207,7 +207,7 @@ class SosLocaleTest {
 
     @Test
     fun `a short message with a location stays one message`() {
-        val short = SosMessage.compose("Hilfe!", 48.20849, 16.37208, "Notfall")
+        val short = SosMessage.compose("Help!", 48.20849, 16.37208, "Emergency")
         assertEquals(1, SosMessage.partsNeeded(short))
     }
 }

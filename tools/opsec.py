@@ -1,321 +1,320 @@
 #!/usr/bin/env python3
-"""Sucht personenbezogene Daten und Geheimnisse - im Arbeitsbaum und in der ganzen Geschichte.
+"""Looks for personal data and secrets - in the working tree and in the whole history.
 
-    tools/opsec.py            # beides, Rueckgabewert 1 bei jedem Fund
-    tools/opsec.py baum       # nur die Dateien, die git heute kennt
-    tools/opsec.py geschichte # jeden Blob in jedem Commit auf jedem Zweig
+    tools/opsec.py            # both, exit code 1 on any finding
+    tools/opsec.py tree       # only the files git knows today
+    tools/opsec.py history    # every blob in every commit on every branch
+    tools/opsec.py history main   # only what is reachable from that branch
+    tools/opsec.py probe      # counter-check: does the search still find what it searches for
 
-Warum die Geschichte mitgeprueft wird: ein Push veroeffentlicht alle Commits auf einmal.
-Eine Nummer, die vor 300 Commits drinstand und laengst geloescht ist, steht danach trotzdem
-fuer immer im Netz. Am 06.09.2026 hat genau das gefehlt - drei echte Rufnummern aus dem
-Adressbuch des Nutzers lagen in 815 Commits, und aufgefallen ist es erst, weil vor dem
-Veroeffentlichen von Hand nachgesehen wurde. Von Hand nachsehen ist keine Pruefung.
+Why the history is checked too: a push publishes every commit at once. A number that stood in
+three hundred commits ago and was deleted long since is then published for good.
 
-Jeder Fund muss entweder verschwinden oder unten in ERLAUBT stehen, mit Grund. Eine
-Ausnahmeliste ohne Grund ist eine Abschaltung mit Umweg.
+Why the tool exists. On 06.09.2026, one command before `gh repo create --public`, three real
+mobile numbers from the owner's address book lay in the repository: in the working log, in a
+source comment, and in 815 commits behind them. They were found because somebody looked by
+hand. Looking by hand is not a check.
+
+Every finding has to go, or stand in ALLOWED below with a reason. An allow-list without
+reasons is a switch-off by detour.
 """
 import io
 import re
 import subprocess
 import sys
 
-# ---------------------------------------------------------------- was nie hineingehoert
+# ---------------------------------------------------------------- what never belongs in
 
-VERBOTENE_DATEIEN = {
-    "STATUS.md": "das Arbeitstagebuch. Es protokolliert Messungen am echten Telefon des "
-                 "Nutzers, mitsamt dem, was auf dem Bildschirm stand. Es bleibt lokal.",
-    "local.properties": "enthaelt lokale Pfade und manchmal Schluessel.",
+FORBIDDEN_FILES = {
+    "STATUS.md": "the working log. It records measurements taken on the owner's real phone, "
+                 "along with what stood on the screen. It stays local.",
+    "PLAN.md": "the plan. A german working document, and it names the phone it was written "
+               "against.",
+    "SPRACHEN.md": "the language handover, german, and a working document like the plan.",
+    "local.properties": "holds local paths and sometimes keys.",
 }
 
-VERBOTENE_ENDUNGEN = {
-    ".keystore": "Signierschluessel gehoeren nie in ein Repository.",
-    ".jks": "Signierschluessel gehoeren nie in ein Repository.",
-    ".pem": "privater Schluessel.",
-    ".p12": "privater Schluessel.",
+FORBIDDEN_SUFFIXES = {
+    ".keystore": "signing keys never belong in a repository.",
+    ".jks": "signing keys never belong in a repository.",
+    ".pem": "a private key.",
+    ".p12": "a private key.",
 }
 
-# ---------------------------------------------------------------- wonach gesucht wird
+# ---------------------------------------------------------------- what is searched for
 
-MUSTER = [
-    # Eine Klammer gehoert nur dann dazu, wenn sie sich schliesst. Die erste Fassung nahm
-    # jedes `(` mit und meldete `+44 7700 900123 (7` als eigene Nummer - eine Nummer, die
-    # es nicht gibt, und ein Fund, den niemand aufloesen kann.
-    ("Rufnummer",
+PATTERNS = [
+    # A bracket belongs to the number only when it closes. The first version took every `(`
+    # along and reported `+44 7700 900123 (7` as a number of its own - a number that does not
+    # exist, and a finding nobody can resolve.
+    ("phone number",
      re.compile(r"\+[0-9]{1,3}[ /-]*(?:\([0-9]{1,5}\)[ /-]*)?[0-9](?:[ /-]?[0-9]){5,16}"
                 r"|\b00[0-9]{2}[ /-]?[0-9][0-9 /-]{6,}\b"
                 r"|\b0[1-9][0-9]{0,2}[ /-]?[0-9]{6,}\b")),
-    ("Koordinate",
+    ("coordinate",
      re.compile(r"\b[0-9]{1,3}\.[0-9]{4,}\s*,\s*[0-9]{1,3}\.[0-9]{4,}\b")),
-    ("E-Mail",
+    ("e-mail",
      re.compile(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b")),
-    ("Geraetekennung",
+    ("device id",
      re.compile(r"\bJELLY[0-9]{6,}\b|\b89[0-9]{17,}\b|\b[0-9]{15}\b")),
-    ("MAC-Adresse",
+    ("mac address",
      re.compile(r"\b(?:[0-9a-fA-F]{2}:){5}[0-9a-fA-F]{2}\b")),
-    ("Geheimnis",
+    ("secret",
      re.compile(r"\bgh[pousr]_[A-Za-z0-9]{20,}\b|\bgithub_pat_[A-Za-z0-9_]{20,}\b"
                 r"|\bAKIA[0-9A-Z]{16}\b|-----BEGIN [A-Z ]*PRIVATE KEY-----"
                 r"|\bxox[baprs]-[A-Za-z0-9-]{10,}\b")),
-    ("Heimatpfad",
+    ("home path",
      re.compile(r"/home/[a-z][a-z0-9_-]{1,31}/")),
 ]
 
-# ---------------------------------------------------------------- was stehen bleiben darf
+# ---------------------------------------------------------------- what may stand
 #
-# Der Schluessel ist der **wortwoertliche Fund**, nicht ein Muster: eine Ausnahme, die auf
-# ein Muster passt, laesst beim naechsten Mal auch etwas anderes durch.
+# The key is the **literal finding**, not a pattern: an exception that matches a pattern
+# lets something else through the next time as well.
 
-ERLAUBT = {
-    # --- Rufnummern. Der Schluessel ist die reine Ziffernfolge, damit keine Schreibweise
-    #     mit anderen Leerzeichen an der Liste vorbeikommt.
-    "447700900123": "Ofcom-Bereich fuer Film und Fernsehen (07700 900000-900999). Diese "
-                    "Nummern sind niemandem zugeteilt und koennen es nicht werden.",
-    "447700900124": "derselbe Bereich, die zweite Probennummer.",
-    "447700900125": "derselbe Bereich.",
-    "447700900": "abgeschnittener Fund aus demselben Bereich.",
-    "15550100": "der nordamerikanische 555-01xx-Bereich, ebenfalls fuer Erfundenes.",
-    "15550101": "derselbe Bereich.",
-    "43664111001": "erfundene Probennummer dieses Projekts, seit dem ersten SMS-Test. Die "
-                   "Ziffernfolge ist absichtlich stumpf (111, 001) und steht nur in Tests.",
-    "4366411100": "dieselbe Nummer, an einer Stelle um eine Ziffer beschnitten geprueft.",
-    "664111001": "dieselbe Nummer in der Schreibweise ohne Landesvorwahl.",
-    "43664000111": "erfundene zweite Probennummer, gleiche Machart.",
-    "436649998888": "erfundene Nummer fuer die Sperrliste, reine Wiederholziffern.",
-    "436809999999": "erfundene Nummer fuer den Nachrichtenfilter, reine Wiederholziffern.",
-    "43512999888": "erfundene Festnetznummer. 0512 ist die Ortsvorwahl von Innsbruck und "
-                   "steht hier, weil die Regel das Gruppieren nach Ortsnetz prueft; die "
-                   "Teilnehmernummer 999888 ist ausgedacht.",
-    "4351299988": "dieselbe Nummer, beschnitten geprueft.",
-    "512999888": "dieselbe Nummer ohne Landesvorwahl.",
-    "43660123": "erfundenes Bruchstueck aus einem Test zur Eingabe halber Nummern.",
-    "43660111001": "erfundene Nummer in `CallBackTest`, gleiche Machart wie 43664111001.",
-    "436601234568": "erfundene **zweite** Nummer in `RespondNoticeTest`. Sie steht genau "
-                    "eine Ziffer neben der ersten, weil die Regel prueft, dass zwei "
-                    "Unterhaltungen verschiedene Meldungsnummern bekommen.",
-    "436641234568": "dieselbe Machart in `CallBlockingTest`: eine Nummer, die der "
-                    "gesperrten aehnelt und trotzdem nicht gesperrt sein darf.",
-    "43664222": "zweite abgeschnittene Nummer in `CallLogGroupingTest`, Gegenstueck zu "
-                "43664111. Geprueft wird nur, dass zwei verschiedene Nummern nicht in "
-                "dieselbe Gruppe fallen.",
-    "49301234": "kein Fund, sondern der Anfang einer erzeugten Nummer: "
-                "`tools/anonymise-config.py` haengt vier Ziffern an und ersetzt damit "
-                "echte Nummern in einer Sicherung. 030 ist das Berliner Ortsnetz und "
-                "1234xxxx eine Reihe, die niemandem gehoert.",
-    "4366412345": "abgeschnittene Platzhalternummer aus einem alten Test zur Eingabe "
-                  "halber Nummern. Die volle Form ist +43 664 1234567.",
-    "43664111": "abgeschnittene erfundene Nummer in `ContactSortTest`. Geprueft wird nur, "
-                "ob Leerzeichen und Plus als Teil einer Nummer gelten.",
-    "436601234": "dasselbe Bruchstueck, eine Ziffer weiter.",
-    "43660124": "das Gegenstueck dazu in einem aelteren `SmsThreadsTest`: zwei Nummern, die "
-                "sich in der letzten Ziffer unterscheiden und darum nicht dieselbe "
-                "Unterhaltung sein duerfen.",
+ALLOWED = {
+    # --- Phone numbers. The key is the bare run of digits, so that no spelling with other
+    #     spaces slips past the list.
+    "447700900123": "the ofcom range for film and television (07700 900000-900999). These "
+                    "numbers are assigned to nobody and cannot become assigned.",
+    "447700900124": "the same range, the second probe number.",
+    "447700900125": "the same range.",
+    "447700900": "a truncated finding from the same range.",
+    "15550100": "the north american 555-01xx range, likewise for invented things.",
+    "15550101": "the same range.",
+    "43664111001": "this project's invented probe number, since the first sms test. The run "
+                   "of digits is deliberately dull (111, 001) and stands only in tests.",
+    "4366411100": "the same number, checked in one place cut by a digit.",
+    "664111001": "the same number in the spelling without a country code.",
+    "43664000111": "an invented second probe number, same make.",
+    "436649998888": "an invented number for the block list, nothing but repeated digits.",
+    "436809999999": "an invented number for the message filter, nothing but repeated digits.",
+    "43512999888": "an invented landline number. 0512 is the area code of Innsbruck and "
+                   "stands here because the rule checks grouping by area; the subscriber "
+                   "number 999888 is made up.",
+    "4351299988": "the same number, checked truncated.",
+    "512999888": "the same number without a country code.",
+    "43660123": "an invented fragment from a test about entering half a number.",
+    "436601234": "the same fragment, one digit further.",
+    "43660111001": "an invented number in `CallBackTest`, same make as 43664111001.",
+    "436601234568": "an invented **second** number in `RespondNoticeTest`. It stands exactly "
+                    "one digit beside the first, because the rule checks that two "
+                    "conversations get different notification ids.",
+    "436641234568": "the same make in `CallBlockingTest`: a number that resembles the "
+                    "blocked one and must nevertheless not be blocked.",
+    "43664222": "a second truncated number in `CallLogGroupingTest`, counterpart to "
+                "43664111. Checked is only that two different numbers do not fall into the "
+                "same group.",
+    "49301234": "no finding but the start of a generated number: "
+                "`tools/anonymise-config.py` appends four digits and replaces real numbers "
+                "in a backup with it. 030 is the Berlin area code and 1234xxxx a run that "
+                "belongs to nobody.",
+    "4366412345": "a truncated placeholder number from an older test about entering half a "
+                  "number. The full form is +43 664 1234567.",
+    "43664111": "a truncated invented number in `ContactSortTest`. Checked is only whether "
+                "spaces and a plus count as part of a number.",
+    "43660124": "its counterpart in an older `SmsThreadsTest`: two numbers differing in the "
+                "last digit, which must therefore not be the same conversation.",
 
-    # --- Koordinaten. Wahrzeichen, keine Adressen: an einem Wahrzeichen wohnt niemand.
-    "33.86880,151.20930": "Opernhaus Sydney, das Lehrbuchbeispiel fuer eine negative Breite.",
-    "33.8688,151.2093": "dasselbe, ungerundet.",
-    "48.20849,16.37208": "Stephansplatz in Wien. Steht hier, weil der Test einen Ort in "
-                         "Europa braucht, an dem das deutsche Komma als Dezimaltrenner "
-                         "auffiele. Vorher stand hier eine Innsbrucker Koordinate, die eine "
-                         "Wohnadresse haette sein koennen.",
+    # --- Coordinates. Landmarks, not addresses: nobody lives at a landmark.
+    "33.86880,151.20930": "Sydney Opera House, the textbook example for a negative latitude.",
+    "33.8688,151.2093": "the same, unrounded.",
+    "48.20849,16.37208": "Stephansplatz in Vienna. It stands here because the test needs a "
+                         "place in Europe where a german comma as a decimal separator would "
+                         "show. Before it there stood a coordinate in Innsbruck that could "
+                         "have been somebody's home address.",
 
-    # --- Adressen
-    "tim@kicker.dev": "die oeffentliche Adresse des Autors, steht schon in seinen anderen "
-                      "Repositories.",
-    "noreply@github.com": "GitHub selbst.",
+    # --- Addresses
+    "tim@kicker.dev": "the author's public address, already in his other repositories.",
+    "noreply@github.com": "GitHub itself.",
 
-    # --- Pfade
-    "/home/runner/": "der Arbeitsordner der GitHub-Werkstatt, kein Mensch.",
+    # --- Paths
+    "/home/runner/": "the working directory of the GitHub workshop, not a person.",
 }
 
-ERLAUBTE_ENDEN = (
+ALLOWED_ENDINGS = (
     "@example.at", "@example.com", "@example.org", "@example.de",
 )
 
+# The dirty probe stands in a file of its own, and that is the **only** one the search skips.
+# Standing here, the tool would report itself; standing nowhere, nobody could check whether
+# the search still searches.
+PROBE_FILE = "tools/opsec-probe.txt"
 
-def _folge(ziffern: str) -> bool:
-    """Ist der Teilnehmerteil eine gerade Ziffernreihe oder eine einzige Ziffer?
 
-    Das ist keine Heuristik, sondern eine Form: die Nummer endet auf mindestens fuenf
-    gleiche Ziffern (`...11111`) oder auf mindestens sechs aufeinanderfolgende
-    (`...1234567`, `...7654321`). So schreibt man Platzhalter, und so schreibt niemand
-    eine Nummer ab.
+def probes() -> dict:
+    pairs = {}
+    for line in io.open(PROBE_FILE, encoding="utf-8").read().splitlines():
+        if line.startswith("#") or "|" not in line:
+            continue
+        kind, sentence = line.split("|", 1)
+        pairs[kind] = sentence
+    return pairs
 
-    Die erste Fassung dieser Pruefung liess alles durch, was hoechstens drei verschiedene
-    Ziffern hatte. Das war zu weit: eine echte Nummer mit wenig Abwechslung waere
-    mitgegangen. Was hier nicht passt, gehoert in ERLAUBT - eine Zeile, ein Grund.
+
+def _run(digits: str) -> bool:
+    """Is the subscriber part a straight run of digits, or a single digit?
+
+    That is no heuristic but a shape: the number ends in at least five identical digits
+    (`...11111`) or in at least six consecutive ones (`...1234567`, `...7654321`). That is
+    how one writes a placeholder, and not how anybody copies a number down.
+
+    The first version of this check let through everything with at most three different
+    digits. That was too wide: a real number with little variety would have gone along. What
+    does not fit here belongs in ALLOWED - one line, one reason.
     """
-    if len(ziffern) < 6:
+    if len(digits) < 6:
         return False
-    if len(set(ziffern[-5:])) == 1:
+    if len(set(digits[-5:])) == 1:
         return True
-    for laenge in range(len(ziffern), 5, -1):
-        teil = ziffern[-laenge:]
-        schritte = {ord(b) - ord(a) for a, b in zip(teil, teil[1:])}
-        if schritte in ({1}, {-1}):
+    for length in range(len(digits), 5, -1):
+        part = digits[-length:]
+        steps = {ord(b) - ord(a) for a, b in zip(part, part[1:])}
+        if steps in ({1}, {-1}):
             return True
     return False
 
 
-def erlaubt(art: str, fund: str) -> bool:
-    """Was hier durchkommt, steht in ERLAUBT mit Grund oder hat die Form eines Platzhalters."""
-    schmal = fund.strip().rstrip(".,;:)")
-    if schmal in ERLAUBT:
+def allowed(kind: str, finding: str) -> bool:
+    """What gets through here stands in ALLOWED with a reason, or has a placeholder shape."""
+    narrow = finding.strip().rstrip(".,;:)")
+    if narrow in ALLOWED:
         return True
-    if art == "E-Mail":
-        return any(schmal.endswith(e) for e in ERLAUBTE_ENDEN)
-    if art == "Rufnummer":
-        ziffern = re.sub(r"\D", "", schmal)
-        return (ziffern in ERLAUBT
-                or ziffern.lstrip("0") in ERLAUBT
-                or _folge(ziffern))
-    if art == "Koordinate":
-        return re.sub(r"\s", "", schmal) in ERLAUBT
+    if kind == "e-mail":
+        return any(narrow.endswith(e) for e in ALLOWED_ENDINGS)
+    if kind == "phone number":
+        digits = re.sub(r"\D", "", narrow)
+        return (digits in ALLOWED
+                or digits.lstrip("0") in ALLOWED
+                or _run(digits))
+    if kind == "coordinate":
+        return re.sub(r"\s", "", narrow) in ALLOWED
     return False
 
 
-def pruefe(text: str, wo: str) -> list:
-    treffer = []
-    for name, muster in MUSTER:
-        for m in muster.finditer(text):
-            fund = m.group(0)
-            if erlaubt(name, fund):
+def examine(text: str, where: str) -> list:
+    hits = []
+    for kind, pattern in PATTERNS:
+        for m in pattern.finditer(text):
+            finding = m.group(0)
+            if allowed(kind, finding):
                 continue
-            zeile = text.count("\n", 0, m.start()) + 1
-            treffer.append((name, fund.strip(), wo, zeile))
-    return treffer
+            line = text.count("\n", 0, m.start()) + 1
+            hits.append((kind, finding.strip(), where, line))
+    return hits
 
 
 def git(*args) -> str:
     return subprocess.run(["git", *args], capture_output=True, text=True).stdout
 
 
-def baum() -> list:
-    treffer = []
-    for pfad in git("ls-files").splitlines():
-        if pfad == PROBENDATEI:
+def tree() -> list:
+    hits = []
+    for path in git("ls-files").splitlines():
+        if path == PROBE_FILE:
             continue
-        for name, grund in VERBOTENE_DATEIEN.items():
-            if pfad == name or pfad.endswith("/" + name):
-                treffer.append(("Verbotene Datei", pfad, pfad, 0))
-        for endung, grund in VERBOTENE_ENDUNGEN.items():
-            if pfad.endswith(endung) and "debug" not in pfad:
-                treffer.append(("Verbotene Datei", pfad, pfad, 0))
-        # von der Platte, nicht aus HEAD: geprueft gehoert, was gleich hineingeht,
-        # nicht was zuletzt hineinging.
+        for name in FORBIDDEN_FILES:
+            if path == name or path.endswith("/" + name):
+                hits.append(("forbidden file", path, path, 0))
+        for suffix in FORBIDDEN_SUFFIXES:
+            if path.endswith(suffix) and "debug" not in path:
+                hits.append(("forbidden file", path, path, 0))
+        # From disk, not from HEAD: what belongs checked is what goes in next, not what went
+        # in last.
         try:
-            text = io.open(pfad, encoding="utf-8").read()
+            text = io.open(path, encoding="utf-8").read()
         except (UnicodeDecodeError, FileNotFoundError, IsADirectoryError):
             continue
-        treffer += pruefe(text, pfad)
-    return treffer
+        hits += examine(text, path)
+    return hits
 
 
-def geschichte(ref: str = "") -> list:
-    """Jeder Blob genau einmal - nicht jeder Commit, das waere dieselbe Datei hundertfach.
+def history(ref: str = "") -> list:
+    """Every blob exactly once - not every commit, that would be the same file a hundred times.
 
-    Ohne `ref` wird alles geprueft, was im Objektspeicher liegt. Mit `ref` nur das, was von
-    diesem Zweig aus erreichbar ist - das ist die Frage vor einem Push: was geht wirklich
-    hinaus. Ein alter Zweig, der liegen bleibt, gehoert nicht dazu.
+    Without `ref` everything in the object store is checked. With `ref` only what is reachable
+    from that branch - which is the question before a push: what really goes out. An old
+    branch left lying does not belong to it.
     """
     if ref:
-        zeilen = subprocess.run(["git", "rev-list", "--objects", ref],
-                                capture_output=True, text=True).stdout.splitlines()
-        kandidaten = [z.split()[0] for z in zeilen if z.strip()]
-        arten = subprocess.run(["git", "cat-file", "--batch-check"],
-                               input="\n".join(kandidaten), capture_output=True,
+        lines = subprocess.run(["git", "rev-list", "--objects", ref],
+                               capture_output=True, text=True).stdout.splitlines()
+        candidates = [line.split()[0] for line in lines if line.strip()]
+        kinds = subprocess.run(["git", "cat-file", "--batch-check"],
+                               input="\n".join(candidates), capture_output=True,
                                text=True).stdout.splitlines()
-        blobs = [z.split()[0] for z in arten if z.split()[1:2] == ["blob"]]
+        blobs = [k.split()[0] for k in kinds if k.split()[1:2] == ["blob"]]
     else:
-        zeilen = subprocess.run(
+        lines = subprocess.run(
             ["git", "cat-file", "--batch-check", "--batch-all-objects"],
             capture_output=True, text=True).stdout.splitlines()
-        blobs = [z.split()[0] for z in zeilen if z.split()[1:2] == ["blob"]]
-    # der Inhalt der Probendatei ist in jedem Commit derselbe und kein Fund
-    probentext = io.open(PROBENDATEI, encoding="utf-8").read()
-    gesehen, treffer = set(), []
+        blobs = [line.split()[0] for line in lines if line.split()[1:2] == ["blob"]]
+    # the content of the probe file is the same in every commit and is no finding
+    probe_text = io.open(PROBE_FILE, encoding="utf-8").read()
+    seen, hits = set(), []
     for h in blobs:
-        roh = subprocess.run(["git", "cat-file", "blob", h], capture_output=True).stdout
-        if b"\0" in roh[:8000]:
+        raw = subprocess.run(["git", "cat-file", "blob", h], capture_output=True).stdout
+        if b"\0" in raw[:8000]:
             continue
         try:
-            text = roh.decode("utf-8")
+            text = raw.decode("utf-8")
         except UnicodeDecodeError:
             continue
-        if text == probentext:
+        if text == probe_text:
             continue
-        for name, fund, _, _ in pruefe(text, h):
-            if (name, fund) not in gesehen:
-                gesehen.add((name, fund))
-                treffer.append((name, fund, f"Blob {h[:10]}", 0))
-    # welche Dateien je im Baum lagen
-    pfade = git("log", ref or "--all", "--pretty=format:", "--name-only").split("\n")
-    for pfad in set(pfade):
-        for name in VERBOTENE_DATEIEN:
-            if pfad == name or pfad.endswith("/" + name):
-                treffer.append(("Verbotene Datei", pfad, "in der Geschichte", 0))
-    return treffer
-
-
-# Eine schmutzige Probe, an der sich die Suche selbst messen laesst. Jede Art muss
-# gefunden werden; findet eine Art nichts, ist ihr Muster kaputt und die Suche sagt nur
-# noch nichts mehr, statt nichts zu finden.
-# Die schmutzige Probe steht in einer eigenen Datei, und die ist die **einzige**, die der
-# Suchlauf ueberspringt. Stuende sie hier, meldete das Werkzeug sich selbst; stuende sie
-# nirgends, koennte niemand pruefen, ob die Suche noch sucht.
-PROBENDATEI = "tools/opsec-probe.txt"
-
-
-def proben() -> dict:
-    paare = {}
-    for zeile in io.open(PROBENDATEI, encoding="utf-8").read().splitlines():
-        if zeile.startswith("#") or "|" not in zeile:
-            continue
-        art, satz = zeile.split("|", 1)
-        paare[art] = satz
-    return paare
+        for kind, finding, _, _ in examine(text, h):
+            if (kind, finding) not in seen:
+                seen.add((kind, finding))
+                hits.append((kind, finding, f"blob {h[:10]}", 0))
+    paths = git("log", ref or "--all", "--pretty=format:", "--name-only").split("\n")
+    for path in set(paths):
+        for name in FORBIDDEN_FILES:
+            if path == name or path.endswith("/" + name):
+                hits.append(("forbidden file", path, "in the history", 0))
+    return hits
 
 
 def probe() -> int:
-    """Gegenprobe: findet die Suche noch, wonach sie sucht?"""
-    print("\n=== Gegenprobe ===")
-    schlecht = 0
-    for art, satz in proben().items():
-        gefunden = [a for a, _, _, _ in pruefe(satz, "probe") if a == art]
-        if gefunden:
-            print(f"  {art:18s} gefunden")
+    """Counter-check: does the search still find what it searches for?"""
+    print("\n=== counter-check ===")
+    bad = 0
+    for kind, sentence in probes().items():
+        found = [k for k, _, _, _ in examine(sentence, "probe") if k == kind]
+        if found:
+            print(f"  {kind:16s} found")
         else:
-            print(f"  {art:18s} NICHT GEFUNDEN - das Muster ist kaputt")
-            schlecht = 1
-    return schlecht
+            print(f"  {kind:16s} NOT FOUND - the pattern is broken")
+            bad = 1
+    return bad
 
 
-def bericht(titel: str, treffer: list) -> int:
-    print(f"\n=== {titel} ===")
-    if not treffer:
-        print("  nichts gefunden")
+def report(title: str, hits: list) -> int:
+    print(f"\n=== {title} ===")
+    if not hits:
+        print("  nothing found")
         return 0
-    for art, fund, wo, zeile in sorted(set(treffer)):
-        ort = f"{wo}:{zeile}" if zeile else wo
-        print(f"  {art:18s} {fund:34s} {ort}")
-    print(f"  {len(set(treffer))} Funde")
+    for kind, finding, where, line in sorted(set(hits)):
+        place = f"{where}:{line}" if line else where
+        print(f"  {kind:16s} {finding:34s} {place}")
+    print(f"  {len(set(hits))} findings")
     return 1
 
 
 def main() -> int:
-    was = sys.argv[1] if len(sys.argv) > 1 else "beides"
+    what = sys.argv[1] if len(sys.argv) > 1 else "both"
     ref = sys.argv[2] if len(sys.argv) > 2 else ""
-    schlecht = 0
-    if was in ("probe", "beides", "baum"):
-        schlecht |= probe()
-    if was in ("baum", "beides"):
-        schlecht |= bericht("Arbeitsbaum", baum())
-    if was in ("geschichte", "beides"):
-        schlecht |= bericht(f"Geschichte {ref or 'aller Zweige'}", geschichte(ref))
-    if schlecht:
-        print("\nNICHT veroeffentlichen. Jeder Fund gehoert weg oder mit Grund in ERLAUBT.")
+    bad = 0
+    if what in ("probe", "both", "tree"):
+        bad |= probe()
+    if what in ("tree", "both"):
+        bad |= report("working tree", tree())
+    if what in ("history", "both"):
+        bad |= report(f"history of {ref or 'every branch'}", history(ref))
+    if bad:
+        print("\nDo NOT publish. Every finding goes, or into ALLOWED with a reason.")
     else:
-        print("\nsauber")
-    return schlecht
+        print("\nclean")
+    return bad
 
 
 if __name__ == "__main__":

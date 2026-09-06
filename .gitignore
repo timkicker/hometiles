@@ -7,11 +7,9 @@ build/
 !debug.keystore
 .kotlin/
 
-# das Arbeitstagebuch. Es protokolliert Messungen am echten Telefon des Nutzers,
-# mitsamt dem, was dabei auf dem Bildschirm stand. Es bleibt lokal, siehe tools/opsec.py.
+# The working documents. They belong to the work, not to what is shipped: the log records
+# measurements taken on a real phone, along with what stood on its screen. tools/opsec.py
+# refuses to publish if one of them ever turns up in a commit.
 STATUS.md
-
-# der Plan und die Sprachuebergabe. Deutsche Arbeitsdokumente, so wie STATUS.md:
-# sie gehoeren zur Arbeit, nicht zur Auslieferung.
 PLAN.md
 SPRACHEN.md

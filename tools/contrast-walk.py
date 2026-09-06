@@ -1,26 +1,25 @@
 #!/usr/bin/env python3
-"""Misst den Kontrast **jeder** beschrifteten Flaeche eines Bildschirms auf einmal.
+"""Measures the contrast of **every** labelled area of a screen at once.
 
-    tools/contrast-walk.py [geraet]
+    tools/contrast-walk.py [device]
 
-`contrast.py` misst ein Rechteck, das man ihm nennt. Das ist richtig, wenn man eine Stelle
-im Verdacht hat, und muehsam, wenn man einen ganzen Bildschirm durchsehen will: am
-04.09.2026 waren es sechs Bildschirme mit zusammen ueber achtzig beschrifteten Flaechen.
-Von Hand haette das geheissen, achtzig Rechtecke abzutippen - und wer abtippt, laesst welche
-aus, meist die unauffaelligen.
+`contrast.py` measures a rectangle it is told about. That is right when one place is under
+suspicion, and laborious when a whole screen is to be gone through: on 04.09.2026 there were
+six screens with over eighty labelled areas between them. By hand that would have meant
+typing eighty rectangles - and whoever types leaves some out, usually the inconspicuous
+ones.
 
-Deshalb kommen die Rechtecke hier aus dem Knotenabzug: **jeder Knoten mit Text ist eine
-Stelle, an der jemand etwas lesen muss.** Gemeldet wird, was unter 4,5:1 liegt (die Schwelle
-fuer Schrift auf einer Kachel, siehe `Tokens.kt`), und am Ende immer die schlechteste
-Stelle des Bildschirms - auch wenn sie besteht. Eine Messung, die nur schweigt, sagt nicht,
-ob sie hingesehen hat.
+So here the rectangles come out of the node dump: **every node with text is a place where
+somebody has to read something.** Reported is whatever lies under 4.5:1 (the threshold for
+text on a tile, see `Tokens.kt`), and at the end always the worst place on the screen - even
+when it passes. A measurement that only stays silent does not say whether it looked.
 
-Gerechnet wird mit den Funktionen aus `contrast.py`, damit es nur eine Formel gibt.
+The arithmetic comes from `contrast.py`, so that there is only one formula.
 
-**Zwei Grenzen.** Gemessen wird der hellste gegen den dunkelsten Punkt im Rechteck; wo in
-einem Feld fast nur Schrift steht, ist das zu streng oder zu milde, und dann ist
-`contrast.py --grund` das genauere Werkzeug. Und abgetastet wird jeder zweite Bildpunkt,
-sonst dauert ein Bildschirm eine Minute; eine einzelne helle Kante kann damit durchrutschen.
+**Two limits.** Measured is the brightest against the darkest pixel in the rectangle; where a
+field holds almost nothing but text, that is too strict or too lenient, and then
+`contrast.py --ground` is the more precise tool. And every second pixel is sampled, otherwise
+a screen takes a minute; a single bright edge can slip through that way.
 """
 import importlib.util
 import os
@@ -31,69 +30,67 @@ import xml.etree.ElementTree as ET
 
 from PIL import Image
 
-HIER = os.path.dirname(os.path.abspath(__file__))
-_spec = importlib.util.spec_from_file_location("kontrast", os.path.join(HIER, "contrast.py"))
-kontrast = importlib.util.module_from_spec(_spec)
-_spec.loader.exec_module(kontrast)
+HERE = os.path.dirname(os.path.abspath(__file__))
+_spec = importlib.util.spec_from_file_location("contrast", os.path.join(HERE, "contrast.py"))
+contrast = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(contrast)
 
-# Die Schwelle fuer Schrift auf einer Kachel. Die anderen beiden aus Tokens.kt (3,0 fuer
-# eine Kachel gegen den Grund, 7,0 fuer Text ausserhalb) braucht dieses Werkzeug nicht: es
-# sieht nur Knoten mit Text an.
-SCHWELLE = 4.5
+# The threshold for text on a tile. The other two from Tokens.kt (3.0 for a tile against the
+# ground, 7.0 for text outside) this tool does not need: it only looks at nodes with text.
+THRESHOLD = 4.5
 
 
 def main(argv):
-    geraet = argv[1] if len(argv) > 1 else None
-    vor = ["adb"] + (["-s", geraet] if geraet else [])
-    foto = "/tmp/kontrastgang.png"
-    with open(foto, "wb") as datei:
-        datei.write(subprocess.run(vor + ["exec-out", "screencap", "-p"],
-                                   capture_output=True).stdout)
-    roh = subprocess.run(vor + ["exec-out", "uiautomator", "dump", "--compressed", "/dev/tty"],
+    device = argv[1] if len(argv) > 1 else None
+    prefix = ["adb"] + (["-s", device] if device else [])
+    shot = "/tmp/contrast-walk.png"
+    with open(shot, "wb") as file:
+        file.write(subprocess.run(prefix + ["exec-out", "screencap", "-p"],
+                                  capture_output=True).stdout)
+    raw = subprocess.run(prefix + ["exec-out", "uiautomator", "dump", "--compressed", "/dev/tty"],
                          capture_output=True).stdout.decode("utf-8", "replace")
-    ende = roh.rfind("</hierarchy>")
-    if ende < 0:
-        print("Kein Knotenabzug - haengt das Geraet?")
+    end = raw.rfind("</hierarchy>")
+    if end < 0:
+        print("No node dump - is the device attached?")
         return 1
-    wurzel = ET.fromstring(roh[: ende + len("</hierarchy>")])
-    bild = Image.open(foto).convert("RGB")
+    root = ET.fromstring(raw[: end + len("</hierarchy>")])
+    picture = Image.open(shot).convert("RGB")
 
-    schlecht = []
-    schlimmste = None
-    gemessen = 0
-    for zweig in wurzel.iter("node"):
-        text = (zweig.get("text") or "").strip()
-        if not text or not zweig.get("package", "").startswith("dev.kicker.hometiles"):
+    poor = []
+    worst = None
+    measured = 0
+    for branch in root.iter("node"):
+        text = (branch.get("text") or "").strip()
+        if not text or not branch.get("package", "").startswith("dev.kicker.hometiles"):
             continue
-        masse = re.match(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]", zweig.get("bounds", ""))
-        if not masse:
+        box = re.match(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]", branch.get("bounds", ""))
+        if not box:
             continue
-        x0, y0, x1, y1 = (int(z) for z in masse.groups())
-        # Ein Streifen von wenigen Bildpunkten ist eine angeschnittene Zeile, kein Text.
+        x0, y0, x1, y1 = (int(n) for n in box.groups())
+        # A strip of a few pixels is a clipped row, not text.
         if x1 - x0 < 8 or y1 - y0 < 8:
             continue
-        punkte = [bild.getpixel((x, y)) for x in range(x0, x1, 2) for y in range(y0, y1, 2)]
-        if not punkte:
+        pixels = [picture.getpixel((x, y)) for x in range(x0, x1, 2) for y in range(y0, y1, 2)]
+        if not pixels:
             continue
-        gemessen += 1
-        hell = max(punkte, key=kontrast.helligkeit)
-        dunkel = min(punkte, key=kontrast.helligkeit)
-        wert = kontrast.verhaeltnis(hell, dunkel)
-        if schlimmste is None or wert < schlimmste[0]:
-            schlimmste = (wert, text, f"[{x0},{y0}][{x1},{y1}]")
-        if wert < SCHWELLE:
-            schlecht.append((wert, text, f"[{x0},{y0}][{x1},{y1}]"))
+        measured += 1
+        bright = max(pixels, key=contrast.luminance)
+        dark = min(pixels, key=contrast.luminance)
+        value = contrast.ratio(bright, dark)
+        if worst is None or value < worst[0]:
+            worst = (value, text, f"[{x0},{y0}][{x1},{y1}]")
+        if value < THRESHOLD:
+            poor.append((value, text, f"[{x0},{y0}][{x1},{y1}]"))
 
-    if gemessen == 0:
-        print("Keine beschriftete Flaeche gefunden - steht HomeTiles ueberhaupt im Vordergrund?")
+    if measured == 0:
+        print("No labelled area found - is HomeTiles in front at all?")
         return 1
-    print("%d beschriftete Flaechen gemessen." % gemessen)
-    for wert, text, masse in sorted(schlecht):
-        print("  unter %.1f: %.2f:1  %r  %s" % (SCHWELLE, wert, text[:46], masse))
-    if not schlecht:
-        print("  nichts unter %.1f:1." % SCHWELLE)
-    print("  schlechteste Stelle: %.2f:1  %r  %s"
-          % (schlimmste[0], schlimmste[1][:46], schlimmste[2]))
+    print("%d labelled areas measured." % measured)
+    for value, text, box in sorted(poor):
+        print("  under %.1f: %.2f:1  %r  %s" % (THRESHOLD, value, text[:46], box))
+    if not poor:
+        print("  nothing under %.1f:1." % THRESHOLD)
+    print("  worst place: %.2f:1  %r  %s" % (worst[0], worst[1][:46], worst[2]))
     return 0
 
 

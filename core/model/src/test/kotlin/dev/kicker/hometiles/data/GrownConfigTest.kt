@@ -22,8 +22,8 @@ class GrownConfigTest {
 
     // the resource keeps its german name: the german tool writes it, tools/README.md names it.
     private val text: String = requireNotNull(
-        javaClass.getResourceAsStream("/gewachsene-fassung.json"),
-    ) { "gewachsene-fassung.json is missing" }.readBytes().decodeToString()
+        javaClass.getResourceAsStream("/grown-config.json"),
+    ) { "grown-config.json is missing" }.readBytes().decodeToString()
 
     private val json = Json { ignoreUnknownKeys = true }
 

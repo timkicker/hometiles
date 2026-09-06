@@ -1,68 +1,67 @@
 #!/usr/bin/env python3
-"""Welche Mehrzahlformen eine Sprache wirklich braucht, aus CLDR statt geraten.
+"""Which plural forms a language really needs, from CLDR instead of guessed.
 
-    tools/plurals.py [sprache ...]
+    tools/plurals.py [language ...]
 
-Ohne Argumente nimmt es die Sprachen, die HomeTiles ausliefert, plus ein paar Kandidaten.
+Without arguments it takes the languages HomeTiles ships, plus a few candidates.
 
-Android faellt fuer eine fehlende Form stillschweigend auf `other` zurueck. Kein Absturz,
-sondern ein grammatisch falscher Satz, den nur jemand bemerkt, der die Sprache spricht. Wer
-eine Sprache anlegt, muss also **vorher** wissen, welche Formen sie verlangt.
+Android falls back silently to `other` for a missing form. No crash, but a grammatically
+wrong sentence that only somebody who speaks the language notices. Whoever adds a language
+therefore has to know **beforehand** which forms it demands.
 
-Die Liste der Kategorien allein reicht dabei nicht. Franzoesisch, Spanisch und Italienisch
-fuehren alle drei ein `many`, und das klingt nach Arbeit; nachgerechnet trifft es aber nur
-volle Millionen. HomeTiles zaehlt Kacheln, Kontakte, Sekunden und Bildschirme. Deshalb sagt
-dieses Programm nicht nur, welche Kategorien es gibt, sondern welche **unterhalb der
-Schwelle** ueberhaupt vorkommen. Das ist die Zahl, an der die Entscheidung haengt.
+The list of categories alone is not enough for that. French, Spanish and Italian all three
+carry a `many`, and that sounds like work; computed, it only hits full millions. HomeTiles
+counts tiles, contacts, seconds and screens. So this program does not only say which
+categories exist but which ones occur at all **below the threshold**. That is the number the
+decision hangs on.
 
-Entstanden am 04.09.2026 aus der Ansage, in CLDR nachzusehen statt zu raten. Das Nachsehen
-hat sofort zwei Dinge geliefert, die ich falsch angenommen hatte: dass Franzoesisch mit
-`one` und `other` auskommt (stimmt, aber nur wegen der Schwelle), und dass die Form fuer
-eins in romanischen Sprachen auch fuer null gilt (stimmt **nur** fuer Franzoesisch, nicht
-fuer Spanisch und Italienisch).
+Written on 04.09.2026 after being told to look it up in CLDR instead of guessing. Looking it
+up delivered two things at once that had been assumed wrongly: that French gets by with
+`one` and `other` (true, but only because of the threshold), and that the form for one also
+covers zero in romance languages (true **only** for French, not for Spanish and Italian).
 
-Braucht `python-babel`, das die CLDR-Regeln mitbringt.
+Needs `python-babel`, which brings the CLDR rules with it.
 """
 import sys
 
 try:
     from babel import Locale
 except ImportError:
-    print("python-babel fehlt: pip install babel")
+    print("python-babel is missing: pip install babel")
     raise SystemExit(2)
 
-SCHWELLE = 1000
-VORGABE = ["en", "de", "fr", "es", "it", "pt", "nl", "tr", "pl", "ru", "ar"]
+THRESHOLD = 1000
+DEFAULT = ["en", "de", "fr", "es", "it", "pt", "nl", "tr", "pl", "ru", "ar"]
 
 
-def formen(code: str) -> tuple[set[str], set[str]]:
-    """Alle Kategorien der Sprache, und die unterhalb der Schwelle vorkommenden."""
+def forms(code: str) -> tuple[set[str], set[str]]:
+    """All categories of the language, and the ones occurring below the threshold."""
     loc = Locale.parse(code)
-    alle = set(loc.plural_form.rules.keys()) | {"other"}
-    gebraucht = {loc.plural_form(n) for n in range(0, SCHWELLE)}
-    return alle, gebraucht
+    every = set(loc.plural_form.rules.keys()) | {"other"}
+    used = {loc.plural_form(n) for n in range(0, THRESHOLD)}
+    return every, used
 
 
 def main() -> int:
-    sprachen = sys.argv[1:] or VORGABE
-    print(f"Kategorien laut CLDR, und was davon unter {SCHWELLE} vorkommt:\n")
-    for code in sprachen:
+    languages = sys.argv[1:] or DEFAULT
+    print(f"Categories according to CLDR, and which of them occur under {THRESHOLD}:\n")
+    for code in languages:
         try:
-            alle, gebraucht = formen(code)
-        except Exception as fehler:  # noqa: BLE001
-            print(f"  {code:<3} FEHLER: {fehler}")
+            every, used = forms(code)
+        except Exception as error:  # noqa: BLE001
+            print(f"  {code:<3} ERROR: {error}")
             continue
-        nur_gross = sorted(alle - gebraucht)
-        zusatz = f"   (nur bei grossen Zahlen: {', '.join(nur_gross)})" if nur_gross else ""
-        print(f"  {code:<3} braucht: {', '.join(sorted(gebraucht)):<24}{zusatz}")
-    print("\nWelche Form null bekommt (die Falle, die man nicht sieht):")
-    for code in sprachen:
+        large_only = sorted(every - used)
+        note = f"   (only for large numbers: {', '.join(large_only)})" if large_only else ""
+        print(f"  {code:<3} needs: {', '.join(sorted(used)):<24}{note}")
+    print("\nWhich form zero gets (the trap one cannot see):")
+    for code in languages:
         try:
             loc = Locale.parse(code)
         except Exception:  # noqa: BLE001
             continue
-        marke = "  <== null wie eins" if loc.plural_form(0) == loc.plural_form(1) else ""
-        print(f"  {code:<3} 0 -> {loc.plural_form(0):<6} 1 -> {loc.plural_form(1)}{marke}")
+        mark = "  <== zero like one" if loc.plural_form(0) == loc.plural_form(1) else ""
+        print(f"  {code:<3} 0 -> {loc.plural_form(0):<6} 1 -> {loc.plural_form(1)}{mark}")
     return 0
 
 

@@ -1,205 +1,202 @@
 #!/usr/bin/env python3
-"""Tippt erst, wenn der Bildschirm der erwartete ist.
+"""Taps only once the screen is the expected one.
 
-    tools/tap.py <geraet> <x> <y> <erwartete-activity> [erwartete-beschriftung] [--lang]
-    tools/tap.py <geraet> wischen <erwartete-activity> [wieoft] [--hoch]
-    tools/tap.py <geraet> zeile "<Beschriftung>" <erwartete-activity> [--lang]
+    tools/tap.py <device> <x> <y> <expected-activity> [expected-label] [--long]
+    tools/tap.py <device> scroll <expected-activity> [times] [--up]
+    tools/tap.py <device> row "<Label>" <expected-activity> [--long]
 
-Prueft drei Dinge, bevor es tippt:
+Checks three things before it taps:
 
-1. **Ein frisches Bildschirmfoto** wird geholt - nicht zum Ansehen, sondern damit es
-   ueberhaupt eines gibt und der Bildschirm wach ist.
-2. `mResumedActivity` **muss** den erwarteten Namen enthalten.
-3. Ist eine Beschriftung angegeben, muss sie an genau dieser Stelle stehen: der Knoten unter
-   dem Finger (oder einer um ihn herum) traegt sie.
+1. **A fresh screenshot** is fetched - not to look at, but so that there is one at all and
+   the screen is awake.
+2. `mResumedActivity` **must** hold the expected name.
+3. Where a label is given, it has to stand at exactly this place: the node under the finger
+   (or one around it) carries it.
 
-Entstanden am 03.09.2026 um 07:30 aus einem Fehlgriff: nach zwei Mal „Zurueck" war statt der
-Einstellungsseite die App-Liste offen. `mResumedActivity` sagte das auch - ich hatte es
-gelesen und trotzdem die alte Koordinate benutzt. Getroffen hat der Tipp eine fremde App,
-die daraufhin ihren Zustimmungsdialog aufmachte.
+Written on 03.09.2026 at 07:30 after a misfire: after two taps on "back" the app list was
+open instead of the settings page. `mResumedActivity` said so too - it had been read and the
+old coordinate used anyway. The tap hit a foreign app, which opened its consent dialog.
 
-`zeile` sucht die Stelle selbst: es liest den Bildschirm, findet den Knoten mit dieser
-Beschriftung und tippt in seine Mitte. Dazugekommen am 03.09.2026 um 23:35, nachdem ich
-zweimal die Koordinate in einer Shell-Variablen ausgerechnet hatte - und beim zweiten Mal
-fand die Suche nichts, die Variable war leer, und der Aufruf traf eine Zeile weiter oben.
-Gefangen hat es die Pruefung; entstanden ist es daneben, in der Zeile, die sie aufruft.
+`row` finds the place itself: it reads the screen, finds the node with this label and taps
+its middle. Added on 03.09.2026 at 23:35, after the coordinate had twice been computed in a
+shell variable - and the second time the search found nothing, the variable was empty, and
+the call hit a row further up. The check caught it; it arose beside the check, in the line
+that calls it.
 
-`--lang` haelt den Finger 900 ms statt kurz - der Langdruck, der den Kachel-Editor oeffnet.
-Er kam am 03.09.2026 um 21:10 dazu, weil ich ihn sonst von Hand mit `input swipe` geschickt
-haette: an genau der Stelle, an der die drei Pruefungen nicht gelten.
+`--long` holds the finger for 900 ms instead of briefly - the long press that opens the tile
+editor. It came on 03.09.2026 at 21:10, because otherwise it would have been sent by hand
+with `input swipe`: at exactly the place where the three checks do not apply.
 
-Die Regel „vor jedem Tippen ein frisches Foto und ein Blick auf mResumedActivity" stand da
-schon seit Stunden. Sie hing an meiner Aufmerksamkeit. Jetzt haengt sie an einem Programm.
+The rule "a fresh photo and a look at mResumedActivity before every tap" had stood for hours
+by then. It hung on attention. Now it hangs on a program.
 
-`wischen` kam am 03.09.2026 um 09:52 dazu, aus dem naechsten Fehlgriff derselben Art: um in
-einer langen Liste nach unten zu kommen, schickte ich zehn schnelle Wischer ab y=750. Auf
-diesem Bildschirm (854 px hoch) ist das die **Gestenzone** des Systems. Die
-Benachrichtigungsleiste ging auf, der Bildschirm aus, das Telefon war gesperrt, und danach
-stand eine fremde App im Vordergrund. Jetzt wischt das Programm: innerhalb der Liste, nicht
-zu schnell, und nach jedem Zug sieht es nach, ob noch dieselbe Activity offen ist.
+`scroll` came on 03.09.2026 at 09:52, out of the next misfire of the same kind: to get down a
+long list, ten fast swipes were sent from y=750. On this screen (854 px high) that is the
+system's **gesture zone**. The notification shade opened, the screen went off, the phone was
+locked, and afterwards a foreign app stood in front. Now the program scrolls: inside the
+list, not too fast, and after every pull it looks whether the same activity is still open.
 """
 import re
 import subprocess
 import sys
 
 
-def adb(geraet, *args, binaer=False):
-    befehl = ["adb"] + (["-s", geraet] if geraet else []) + list(args)
-    fertig = subprocess.run(befehl, capture_output=True)
-    return fertig.stdout if binaer else fertig.stdout.decode("utf-8", "replace")
+def adb(device, *args, binary=False):
+    command = ["adb"] + (["-s", device] if device else []) + list(args)
+    done = subprocess.run(command, capture_output=True)
+    return done.stdout if binary else done.stdout.decode("utf-8", "replace")
 
 
-def masse(text):
+def bounds(text):
     x1, y1, x2, y2 = map(int, re.findall(r"-?\d+", text))
     return x1, y1, x2, y2
 
 
-def beschriftung_bei(geraet, x, y):
-    """Die Beschriftung, die an dieser Stelle steht - vom kleinsten Knoten nach aussen."""
-    roh = adb(geraet, "exec-out", "uiautomator", "dump", "/dev/tty")
-    treffer = []
-    for knoten in re.findall(r"<node ([^>]*?)/?>", roh):
-        grenzen = re.search(r'bounds="([^"]*)"', knoten)
-        if not grenzen:
+def label_at(device, x, y):
+    """The label standing at this place - from the smallest node outwards."""
+    raw = adb(device, "exec-out", "uiautomator", "dump", "/dev/tty")
+    hits = []
+    for node in re.findall(r"<node ([^>]*?)/?>", raw):
+        box = re.search(r'bounds="([^"]*)"', node)
+        if not box:
             continue
-        x1, y1, x2, y2 = masse(grenzen.group(1))
+        x1, y1, x2, y2 = bounds(box.group(1))
         if not (x1 <= x <= x2 and y1 <= y <= y2):
             continue
-        text = re.search(r'text="([^"]*)"', knoten)
-        beschreibung = re.search(r'content-desc="([^"]*)"', knoten)
-        name = (text.group(1) if text else "") or (beschreibung.group(1) if beschreibung else "")
+        text = re.search(r'text="([^"]*)"', node)
+        description = re.search(r'content-desc="([^"]*)"', node)
+        name = (text.group(1) if text else "") or (description.group(1) if description else "")
         if name:
-            treffer.append(((x2 - x1) * (y2 - y1), name))
-    treffer.sort()
-    return [name for _, name in treffer]
+            hits.append(((x2 - x1) * (y2 - y1), name))
+    hits.sort()
+    return [name for _, name in hits]
 
 
-def rand(geraet):
-    """Hoehe und Breite des Bildschirms."""
-    roh = adb(geraet, "shell", "wm size")
-    treffer = re.search(r"(\d+)x(\d+)", roh)
-    return (int(treffer.group(1)), int(treffer.group(2))) if treffer else (480, 854)
+def screen(device):
+    """Height and width of the screen."""
+    raw = adb(device, "shell", "wm size")
+    hit = re.search(r"(\d+)x(\d+)", raw)
+    return (int(hit.group(1)), int(hit.group(2))) if hit else (480, 854)
 
 
-def offen(geraet):
-    for zeile in adb(geraet, "shell", "dumpsys activity activities").splitlines():
-        if "mResumedActivity" in zeile:
-            return zeile.strip()
+def in_front(device):
+    for line in adb(device, "shell", "dumpsys activity activities").splitlines():
+        if "mResumedActivity" in line:
+            return line.strip()
     return ""
 
 
-def wischen(geraet, erwartet, wieoft, hoch=False):
-    """Rollt in einer Liste nach unten - innerhalb, nicht am Rand.
+def scroll(device, expected, times, up=False):
+    """Rolls down inside a list - inside it, not at the edge.
 
-    Anfang und Ende bleiben im mittleren Drittel: unten sitzt die Gestenzone des Systems
-    (Startbildschirm, letzte Apps), oben die Benachrichtigungsleiste. 350 ms statt 80 -
-    ein schneller Wisch wird als Geste gelesen, ein langsamer als Rollen.
+    Start and end stay in the middle third: below sits the system's gesture zone (home
+    screen, recent apps), above the notification shade. 350 ms instead of 80 - a fast swipe
+    is read as a gesture, a slow one as scrolling.
     """
-    breite, hoehe = rand(geraet)
-    x, von, nach = breite // 2, int(hoehe * 0.72), int(hoehe * 0.30)
-    # Zurueck nach oben: dieselbe Bahn, andere Richtung. Dazugekommen am 04.09.2026,
-    # nachdem ich an einer Zeile vorbeigescrollt war und mangels Rueckweg den ganzen
-    # Bildschirm neu aufbauen musste.
-    if hoch:
-        von, nach = nach, von
-    for zug in range(wieoft):
-        aktiv = offen(geraet)
-        if erwartet not in aktiv:
-            print(f"NICHT gewischt (Zug {zug + 1}): erwartet war „{erwartet}“, offen ist:\n    {aktiv}")
+    width, height = screen(device)
+    x, start, end = width // 2, int(height * 0.72), int(height * 0.30)
+    # Back up: same path, other direction. Added on 04.09.2026, after scrolling past a row
+    # and having to rebuild the whole screen for lack of a way back.
+    if up:
+        start, end = end, start
+    for pull in range(times):
+        active = in_front(device)
+        if expected not in active:
+            print(f"NOT scrolled (pull {pull + 1}): expected {expected!r}, in front is:\n    {active}")
             return 1
-        adb(geraet, "shell", f"input swipe {x} {von} {x} {nach} 350")
-    aktiv = offen(geraet)
-    if erwartet not in aktiv:
-        print(f"gewischt, aber danach ist etwas anderes offen:\n    {aktiv}")
+        adb(device, "shell", f"input swipe {x} {start} {x} {end} 350")
+    active = in_front(device)
+    if expected not in active:
+        print(f"scrolled, but afterwards something else is in front:\n    {active}")
         return 1
-    print(f"{wieoft}x gewischt in {erwartet} ({von} → {nach})")
+    print(f"scrolled {times}x in {expected} ({start} -> {end})")
     return 0
 
 
-def stelle_von(geraet, beschriftung):
-    """Wo steht die Zeile mit dieser Beschriftung? Mitte des kleinsten passenden Knotens."""
-    roh = adb(geraet, "exec-out", "uiautomator", "dump", "/dev/tty")
-    treffer = []
-    for knoten in re.findall(r"<node ([^>]*?)/?>", roh):
-        grenzen = re.search(r'bounds="([^"]*)"', knoten)
-        text = re.search(r'text="([^"]*)"', knoten)
-        beschreibung = re.search(r'content-desc="([^"]*)"', knoten)
-        name = (text.group(1) if text else "") or (beschreibung.group(1) if beschreibung else "")
-        if not grenzen or not name:
+def place_of(device, label):
+    """Where is the row with this label? Middle of the smallest matching node."""
+    raw = adb(device, "exec-out", "uiautomator", "dump", "/dev/tty")
+    hits = []
+    for node in re.findall(r"<node ([^>]*?)/?>", raw):
+        box = re.search(r'bounds="([^"]*)"', node)
+        text = re.search(r'text="([^"]*)"', node)
+        description = re.search(r'content-desc="([^"]*)"', node)
+        name = (text.group(1) if text else "") or (description.group(1) if description else "")
+        if not box or not name:
             continue
-        if beschriftung.lower() not in name.lower():
+        if label.lower() not in name.lower():
             continue
-        x1, y1, x2, y2 = masse(grenzen.group(1))
-        treffer.append(((x2 - x1) * (y2 - y1), (x1 + x2) // 2, (y1 + y2) // 2))
-    treffer.sort()
-    return (treffer[0][1], treffer[0][2]) if treffer else (None, None)
+        x1, y1, x2, y2 = bounds(box.group(1))
+        hits.append(((x2 - x1) * (y2 - y1), (x1 + x2) // 2, (y1 + y2) // 2))
+    hits.sort()
+    return (hits[0][1], hits[0][2]) if hits else (None, None)
 
 
 def main():
-    lang = "--lang" in sys.argv
-    if lang:
-        sys.argv.remove("--lang")
-    if len(sys.argv) >= 5 and sys.argv[2] == "zeile":
-        beschriftung, erwartet = sys.argv[3], sys.argv[4]
-        aktiv = offen(sys.argv[1])
-        if erwartet not in aktiv:
-            print(f"NICHT gesucht: erwartet war „{erwartet}“, offen ist:\n    {aktiv}")
+    long_press = "--long" in sys.argv
+    if long_press:
+        sys.argv.remove("--long")
+    if len(sys.argv) >= 5 and sys.argv[2] == "row":
+        label, expected = sys.argv[3], sys.argv[4]
+        active = in_front(sys.argv[1])
+        if expected not in active:
+            print(f"NOT searched: expected {expected!r}, in front is:\n    {active}")
             return 1
-        x, y = stelle_von(sys.argv[1], beschriftung)
+        x, y = place_of(sys.argv[1], label)
         if x is None:
-            print(f"NICHT getippt: „{beschriftung}“ steht nicht auf diesem Bildschirm")
+            print(f"NOT tapped: {label!r} does not stand on this screen")
             return 1
-        return tippen(sys.argv[1], x, y, erwartet, beschriftung, lang)
+        return tap(sys.argv[1], x, y, expected, label, long_press)
 
-    if len(sys.argv) >= 4 and sys.argv[2] == "wischen":
-        hoch = "--hoch" in sys.argv
-        if hoch:
-            sys.argv.remove("--hoch")
-        wieoft = int(sys.argv[4]) if len(sys.argv) > 4 else 1
-        return wischen(sys.argv[1], sys.argv[3], wieoft, hoch)
+    if len(sys.argv) >= 4 and sys.argv[2] == "scroll":
+        up = "--up" in sys.argv
+        if up:
+            sys.argv.remove("--up")
+        times = int(sys.argv[4]) if len(sys.argv) > 4 else 1
+        return scroll(sys.argv[1], sys.argv[3], times, up)
     if len(sys.argv) < 5:
         print(__doc__.strip().splitlines()[2].strip())
         return 2
-    return tippen(
+    return tap(
         sys.argv[1],
         int(sys.argv[2]),
         int(sys.argv[3]),
         sys.argv[4],
         sys.argv[5] if len(sys.argv) > 5 else None,
-        lang,
+        long_press,
     )
 
 
-def tippen(geraet, x, y, erwartet, beschriftung, lang):
-    """Die drei Pruefungen und dann der Tipp. Beide Betriebsarten gehen hier durch."""
-    foto = adb(geraet, "exec-out", "screencap", "-p", binaer=True)
-    if len(foto) < 1000:
-        print("kein Bildschirmfoto - ist der Bildschirm an?")
+def tap(device, x, y, expected, label, long_press):
+    """The three checks and then the tap. Both modes go through here."""
+    shot = adb(device, "exec-out", "screencap", "-p", binary=True)
+    if len(shot) < 1000:
+        print("no screenshot - is the screen on?")
         return 2
 
-    aktiv = ""
-    for zeile in adb(geraet, "shell", "dumpsys activity activities").splitlines():
-        if "mResumedActivity" in zeile:
-            aktiv = zeile.strip()
+    active = ""
+    for line in adb(device, "shell", "dumpsys activity activities").splitlines():
+        if "mResumedActivity" in line:
+            active = line.strip()
             break
-    if erwartet not in aktiv:
-        print(f"NICHT getippt: erwartet war „{erwartet}“, offen ist:\n    {aktiv}")
+    if expected not in active:
+        print(f"NOT tapped: expected {expected!r}, in front is:\n    {active}")
         return 1
 
-    if beschriftung:
-        namen = beschriftung_bei(geraet, x, y)
-        if not any(beschriftung.lower() in n.lower() for n in namen):
-            print(f"NICHT getippt: an ({x},{y}) steht {namen or 'nichts Benanntes'}, erwartet war „{beschriftung}“")
+    if label:
+        names = label_at(device, x, y)
+        if not any(label.lower() in n.lower() for n in names):
+            print(f"NOT tapped: at ({x},{y}) stands {names or 'nothing named'}, expected {label!r}")
             return 1
 
-    if lang:
-        # Ein Langdruck ist ein Wisch von der Stelle auf die Stelle. 900 ms liegen ueber
-        # jeder Schwelle, die HomeTiles einstellen laesst.
-        adb(geraet, "shell", f"input swipe {x} {y} {x} {y} 900")
+    if long_press:
+        # A long press is a swipe from the place to the place. 900 ms lies above every
+        # threshold HomeTiles lets one set.
+        adb(device, "shell", f"input swipe {x} {y} {x} {y} 900")
     else:
-        adb(geraet, "shell", f"input tap {x} {y}")
-    wie = "lang gedrueckt" if lang else "getippt"
-    print(f"{wie} auf ({x},{y}) in {erwartet}" + (f", Beschriftung „{beschriftung}“" if beschriftung else ""))
+        adb(device, "shell", f"input tap {x} {y}")
+    how = "long pressed" if long_press else "tapped"
+    print(f"{how} at ({x},{y}) in {expected}" + (f", label {label!r}" if label else ""))
     return 0
 
 

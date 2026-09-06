@@ -1,47 +1,46 @@
 #!/bin/sh
-# Schreibt jede Aenderung des Bildschirmzustands mit - mit Grund, Ladestand und Schloss.
+# Writes down every change of the screen state - with reason, charge and lock.
 #
-# Entstanden aus einer Beschwerde, die sich nicht nachstellen liess: "es wird immer wieder
-# dunkel". Ein Bildschirmfoto beantwortet das nicht, weil man im Moment des Fotos hinsieht.
-# Diese Wache sieht alle paar Sekunden nach und schreibt **nur die Aenderungen** auf; eine
-# ruhige Nacht ist dann eine Datei mit einer Zeile.
+# Grown out of a complaint that could not be reproduced: "it keeps going dark". A screenshot
+# does not answer that, because at the moment of the shot somebody is looking. This watch
+# looks every few seconds and writes down **only the changes**; a quiet night is then a file
+# with one line in it.
 #
-#   tools/screen-watch.sh [geraet] [logdatei] [runden] [sekunden]
+#   tools/screen-watch.sh [device] [logfile] [rounds] [seconds]
 #
-# Alle 100 Runden schreibt sie ausserdem ein Lebenszeichen. Ohne das sieht eine Wache, die
-# laengst abgestuerzt ist, genauso aus wie eine ruhige Nacht - beide Male steht nichts da.
+# Every 100 rounds it also writes a sign of life. Without that a watch that crashed long ago
+# looks exactly like a quiet night - both times there is nothing there.
 #
-# Ohne Angaben: erstes adb-Geraet, wache.log im Arbeitsverzeichnis, eine Stunde in
-# 15-Sekunden-Schritten. `runden = 0` heisst: bis jemand sie abbricht - fuer eine ganze
-# Nacht ist das gemeint. Mit der Vorgabe endet die Wache nach einer Stunde, und der Rest
-# der Nacht stuende nirgends; da sie nur Aenderungen aufschreibt, sieht eine beendete
-# Wache genauso aus wie eine ruhige.
-GERAET="${1:-$(adb devices | awk 'NR==2 {print $1}')}"
-LOG="${2:-wache.log}"
-RUNDEN="${3:-240}"
+# Without arguments: first adb device, watch.log in the working directory, one hour in steps
+# of 15 seconds. `rounds = 0` means: until somebody stops it - that is what a whole night is
+# for. With the default the watch ends after an hour and the rest of the night would stand
+# nowhere; since it only writes changes, a finished watch looks exactly like a quiet one.
+DEVICE="${1:-$(adb devices | awk 'NR==2 {print $1}')}"
+LOG="${2:-watch.log}"
+ROUNDS="${3:-240}"
 PAUSE="${4:-15}"
-[ -n "$GERAET" ] || { echo "kein Geraet gefunden"; exit 1; }
+[ -n "$DEVICE" ] || { echo "no device found"; exit 1; }
 
-vorher=""
+before=""
 i=0
-seit=0
-while [ "$RUNDEN" -eq 0 ] || [ "$i" -lt "$RUNDEN" ]; do
-  st=$(adb -s "$GERAET" shell dumpsys display 2>/dev/null | grep -oE "mScreenState=[A-Z]+" | head -1)
-  if [ "$st" != "$vorher" ]; then
-    grund=$(adb -s "$GERAET" shell dumpsys power 2>/dev/null |
+since=0
+while [ "$ROUNDS" -eq 0 ] || [ "$i" -lt "$ROUNDS" ]; do
+  st=$(adb -s "$DEVICE" shell dumpsys display 2>/dev/null | grep -oE "mScreenState=[A-Z]+" | head -1)
+  if [ "$st" != "$before" ]; then
+    reason=$(adb -s "$DEVICE" shell dumpsys power 2>/dev/null |
       grep -oE "mLastSleepReason=[a-z_]+|mLastWakeReason=[a-zA-Z_ ]+" | tr '\n' ' ')
-    akku=$(adb -s "$GERAET" shell dumpsys battery 2>/dev/null | grep -E "^  level|USB powered" | tr -d ' \n')
-    schloss=$(adb -s "$GERAET" shell dumpsys trust 2>/dev/null | grep -oE "deviceLocked=[01]" | head -1)
-    echo "$(date +%H:%M:%S) $st $grund $akku $schloss" >> "$LOG"
-    vorher="$st"
-    seit=0
+    battery=$(adb -s "$DEVICE" shell dumpsys battery 2>/dev/null | grep -E "^  level|USB powered" | tr -d ' \n')
+    lock=$(adb -s "$DEVICE" shell dumpsys trust 2>/dev/null | grep -oE "deviceLocked=[01]" | head -1)
+    echo "$(date +%H:%M:%S) $st $reason $battery $lock" >> "$LOG"
+    before="$st"
+    since=0
   fi
-  seit=$((seit + 1))
-  if [ "$seit" -ge 100 ]; then
-    echo "$(date +%H:%M:%S) noch da, unveraendert $vorher" >> "$LOG"
-    seit=0
+  since=$((since + 1))
+  if [ "$since" -ge 100 ]; then
+    echo "$(date +%H:%M:%S) still here, unchanged $before" >> "$LOG"
+    since=0
   fi
   sleep "$PAUSE"
   i=$((i + 1))
 done
-echo "$(date +%H:%M:%S) Wache beendet" >> "$LOG"
+echo "$(date +%H:%M:%S) watch ended" >> "$LOG"

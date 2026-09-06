@@ -1,100 +1,99 @@
 #!/usr/bin/env python3
-"""Sucht anklickbare Flaechen ohne Namen auf dem gerade sichtbaren Bildschirm.
+"""Looks for clickable areas without a name on the screen as it stands.
 
-Das ist der Knopf, den ein Mensch mit einem Vorleseprogramm findet und ueber den nichts
-gesagt wird. Ein Unit-Test sieht ihn nicht: er entsteht erst aus dem fertig gezeichneten
-Bildschirm, und genau den liest `uiautomator dump` aus.
+That is the button somebody using a screen reader finds and about which nothing is said. A
+unit test does not see it: it arises only from the finished drawn screen, and that is
+exactly what `uiautomator dump` reads out.
 
-    tools/silent-buttons.py [geraet]
+    tools/silent-buttons.py [device]
 
-Ausgegeben werden die Masse der stummen Flaechen. Ein Treffer ist ein Anfangsverdacht, kein
-Urteil - dazu gehoert ein Blick aufs Bildschirmfoto: manchmal traegt ein groesserer Knoten
-*um* die Flaeche herum den Namen, und dann ist alles in Ordnung.
+Printed are the bounds of the silent areas. A hit is a first suspicion, not a verdict - a
+look at the screenshot belongs with it: sometimes a larger node *around* the area carries
+the name, and then everything is in order.
 
-Flaechen, die am oberen oder unteren Rand haengen und **niedriger sind als eine gewoehnliche
-Zeile dieses Bildschirms**, werden getrennt gemeldet: das ist eine halb hereingeblaetterte
-Zeile. Ihre Beschriftung ist dann aus dem Baum geschnitten, und die Zeile sieht stumm aus,
-obwohl sie es nicht ist. Am 03.09.2026 zweimal passiert - einmal fuenf Pixel hoch am unteren
-Rand ("Use as phone app"), einmal sechzig Pixel am oberen. Die erste Fassung hatte dafuer
-eine feste Grenze von 33 Pixeln und liess den zweiten Fall durch; der Maszstab ist deshalb
-jetzt der Bildschirm selbst - die mittlere Hoehe seiner benannten Zeilen.
+Areas hanging at the top or bottom edge and **lower than an ordinary row of this screen**
+are reported separately: that is a row half scrolled in. Its label is then cut out of the
+tree, and the row looks silent although it is not. It happened twice on 03.09.2026 - once
+five pixels high at the bottom edge ("Use as phone app"), once sixty at the top. The first
+version had a fixed bound of 33 pixels for that and let the second case through; the measure
+is therefore now the screen itself - the median height of its named rows.
 """
 import re
 import subprocess
 import sys
 
 
-def masse(text: str) -> tuple[int, int, int, int]:
+def bounds(text: str) -> tuple[int, int, int, int]:
     x1, y1, x2, y2 = map(int, re.findall(r"-?\d+", text))
     return x1, y1, x2, y2
 
 
-def enthaelt(aussen: str, innen: str) -> bool:
-    ax1, ay1, ax2, ay2 = masse(aussen)
-    ix1, iy1, ix2, iy2 = masse(innen)
+def contains(outer: str, inner: str) -> bool:
+    ax1, ay1, ax2, ay2 = bounds(outer)
+    ix1, iy1, ix2, iy2 = bounds(inner)
     return ax1 <= ix1 and ay1 <= iy1 and ix2 <= ax2 and iy2 <= ay2
 
 
 def main() -> int:
-    geraet = sys.argv[1] if len(sys.argv) > 1 else None
-    befehl = ["adb"] + (["-s", geraet] if geraet else []) + ["exec-out", "uiautomator", "dump", "/dev/tty"]
-    roh = subprocess.run(befehl, capture_output=True, text=True).stdout
-    knoten = re.findall(r"<node ([^>]*?)/?>", roh)
-    if not knoten:
-        print("kein Baum gelesen - ist der Bildschirm an und das Geraet entsperrt?")
+    device = sys.argv[1] if len(sys.argv) > 1 else None
+    command = ["adb"] + (["-s", device] if device else []) + ["exec-out", "uiautomator", "dump", "/dev/tty"]
+    raw = subprocess.run(command, capture_output=True, text=True).stdout
+    nodes = re.findall(r"<node ([^>]*?)/?>", raw)
+    if not nodes:
+        print("no tree read - is the screen on and the device unlocked?")
         return 2
 
-    def wert(k: str, name: str) -> str:
-        treffer = re.search(r'%s="([^"]*)"' % name, k)
-        return treffer.group(1) if treffer else ""
+    def value(node: str, name: str) -> str:
+        hit = re.search(r'%s="([^"]*)"' % name, node)
+        return hit.group(1) if hit else ""
 
-    benannt = [wert(k, "bounds") for k in knoten if wert(k, "text") or wert(k, "content-desc")]
-    # Der untere Rand des Baums: alles, was daran klebt, kann abgeschnitten sein.
-    unten = max((masse(wert(k, "bounds"))[3] for k in knoten if wert(k, "bounds")), default=0)
-    oben = min((masse(wert(k, "bounds"))[1] for k in knoten if wert(k, "bounds")), default=0)
-    # Wie hoch ist eine gewoehnliche Zeile hier? Der Median der benannten anklickbaren
-    # Flaechen. Eine feste Zahl taugt nicht: die Zeilen wachsen mit der Schriftgroesse des
-    # Nutzers, und beim Zweiten der beiden Faelle am 03.09. waren es sechzig Pixel.
-    # Ueber **alle** anklickbaren Flaechen, nicht nur die benannten: in Compose sind der
-    # anklickbare und der benannte Knoten zwei verschiedene, und die Liste der benannten
-    # anklickbaren war auf der Einstellungsseite schlicht leer.
-    hoehen = sorted(
-        masse(wert(k, "bounds"))[3] - masse(wert(k, "bounds"))[1]
-        for k in knoten
-        if wert(k, "clickable") == "true"
+    named = [value(n, "bounds") for n in nodes if value(n, "text") or value(n, "content-desc")]
+    # The lower edge of the tree: whatever sticks to it may be cut off.
+    bottom = max((bounds(value(n, "bounds"))[3] for n in nodes if value(n, "bounds")), default=0)
+    top = min((bounds(value(n, "bounds"))[1] for n in nodes if value(n, "bounds")), default=0)
+    # How high is an ordinary row here? The median of the clickable areas. A fixed number is
+    # no good: rows grow with the user's text size, and in the second of the two cases on
+    # 03.09. they were sixty pixels.
+    # Over **all** clickable areas, not only the named ones: in compose the clickable and the
+    # named node are two different ones, and the list of named clickable areas was simply
+    # empty on the settings page.
+    heights = sorted(
+        bounds(value(n, "bounds"))[3] - bounds(value(n, "bounds"))[1]
+        for n in nodes
+        if value(n, "clickable") == "true"
     )
-    zeilenhoehe = hoehen[len(hoehen) // 2] if hoehen else 66
-    duenn = int(zeilenhoehe * 0.9)
-    abgeschnitten = []
-    stumm = []
-    for k in knoten:
-        if wert(k, "clickable") != "true":
+    row_height = heights[len(heights) // 2] if heights else 66
+    thin = int(row_height * 0.9)
+    cut_off = []
+    silent = []
+    for node in nodes:
+        if value(node, "clickable") != "true":
             continue
-        if wert(k, "text") or wert(k, "content-desc"):
+        if value(node, "text") or value(node, "content-desc"):
             continue
-        flaeche = wert(k, "bounds")
-        # Ein Name darf innerhalb liegen (die Beschriftung im Knopf), aussen herum (der
-        # Knopf ist ein Teilstueck einer benannten Kachel) oder **auf denselben Massen**:
-        # Compose legt fuer eine Kachel zwei Knoten an, den anklickbaren und den benannten.
-        # Wer das nicht zulaesst, meldet jede Kachel der App als stumm - erst gemacht, dann
-        # am Bildschirmfoto gesehen, dass die Meldung falsch war.
-        if any(enthaelt(flaeche, b) or enthaelt(b, flaeche) for b in benannt):
+        area = value(node, "bounds")
+        # A name may lie inside (the label in the button), around it (the button is a piece
+        # of a named tile) or **on the same bounds**: compose lays out two nodes for a tile,
+        # the clickable and the named one. Whoever does not allow that reports every tile of
+        # the app as silent - done first, then seen on the screenshot that the report was
+        # wrong.
+        if any(contains(area, b) or contains(b, area) for b in named):
             continue
-        x1, y1, x2, y2 = masse(flaeche)
-        haengt_am_rand = y1 <= oben or y2 >= unten
-        if haengt_am_rand and (y2 - y1) < duenn:
-            abgeschnitten.append(flaeche)
+        x1, y1, x2, y2 = bounds(area)
+        at_the_edge = y1 <= top or y2 >= bottom
+        if at_the_edge and (y2 - y1) < thin:
+            cut_off.append(area)
             continue
-        stumm.append(flaeche)
+        silent.append(area)
 
-    print(f"stumme anklickbare Flaechen: {len(stumm)}")
-    for flaeche in stumm:
-        print("   ", flaeche)
-    if abgeschnitten:
-        print(f"am Rand abgeschnitten (kein Befund, weiterblaettern): {len(abgeschnitten)}")
-        for flaeche in abgeschnitten:
-            print("   ", flaeche)
-    return 1 if stumm else 0
+    print(f"silent clickable areas: {len(silent)}")
+    for area in silent:
+        print("   ", area)
+    if cut_off:
+        print(f"cut off at the edge (no finding, scroll on): {len(cut_off)}")
+        for area in cut_off:
+            print("   ", area)
+    return 1 if silent else 0
 
 
 if __name__ == "__main__":
