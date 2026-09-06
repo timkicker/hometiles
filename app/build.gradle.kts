@@ -113,7 +113,19 @@ tasks.withType<Test>().configureEach {
     // gradle reported the success from before. the rule did not run. the lesson from 10:18
     // was written down but applied only to the one file where it showed.
     inputs.file("../PLAN.md").withPathSensitivity(PathSensitivity.RELATIVE)
-    inputs.file("../STATUS.md").withPathSensitivity(PathSensitivity.RELATIVE)
+    // the working log is the one input that may be absent: it is not in the repository, so
+    // a fresh clone has none. declared as required it stopped the whole task before a single
+    // rule ran - the first CI run on 06.09.2026 failed exactly there, on a machine that had
+    // never seen the file.
+    // the working log is the one input that may be absent: it is not in the repository, so
+    // a fresh clone has none. declared as a plain input it stopped the whole task before a
+    // single rule ran - the first CI run on 06.09.2026 failed exactly there, on a machine
+    // that had never seen the file. `optional(true)` was not enough, gradle still checked
+    // it; so it is registered only where it lies. where it lies, changing it re-runs the
+    // rules, which is what the entry was for.
+    rootProject.file("STATUS.md").takeIf { it.isFile }?.let {
+        inputs.file(it).withPathSensitivity(PathSensitivity.RELATIVE)
+    }
     inputs.file("../README.md").withPathSensitivity(PathSensitivity.RELATIVE)
     inputs.file("../gradle/libs.versions.toml").withPathSensitivity(PathSensitivity.RELATIVE)
     inputs.file("../LICENSE-Atkinson-Hyperlegible.txt").withPathSensitivity(PathSensitivity.RELATIVE)
