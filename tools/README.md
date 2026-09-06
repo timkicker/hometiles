@@ -4,6 +4,37 @@ Kleine Programme fürs Prüfen am Gerät, für Dinge, die kein Unit-Test sehen k
 gezeichneten Bildschirm oder auf einem gewachsenen Telefon entstehen. Die ersten beiden
 brauchen nur `adb`.
 
+## `opsec.py`
+
+Sucht personenbezogene Daten und Geheimnisse - **vor jeder Veröffentlichung**.
+
+```sh
+tools/opsec.py             # Arbeitsbaum und ganze Geschichte
+tools/opsec.py baum        # nur die Dateien, die git heute kennt
+tools/opsec.py geschichte  # jeder Blob in jedem Commit auf jedem Zweig
+tools/opsec.py probe       # Gegenprobe: findet die Suche noch, wonach sie sucht?
+```
+
+Gesucht wird nach Rufnummern, Koordinaten, E-Mail-Adressen, Gerätekennungen,
+MAC-Adressen, Zugangsschlüsseln und Heimatpfaden, dazu nach Dateien, die nie hineingehören
+(`STATUS.md`, `local.properties`, Signierschlüssel). Rückgabewert 1 bei jedem Fund.
+
+**Warum die Geschichte mitgeprüft wird:** ein Push veröffentlicht alle Commits auf einmal.
+Eine Nummer, die vor dreihundert Commits drinstand und längst gelöscht ist, steht danach
+trotzdem für immer im Netz.
+
+**Warum es das Werkzeug gibt.** Am 06.09.2026, einen Befehl vor `gh repo create --public`,
+lagen drei echte Mobilnummern aus dem Adressbuch des Nutzers im Repository: im Arbeitstagebuch,
+in einem Kommentar im Quelltext und in 815 Commits dahinter. Gefunden wurden sie, weil von
+Hand nachgesehen wurde. Von Hand nachsehen ist keine Prüfung.
+
+Jeder Fund muss verschwinden oder in `ERLAUBT` stehen, **mit Grund**. Eine Ausnahmeliste
+ohne Grund ist eine Abschaltung mit Umweg. Rufnummern in Platzhalterform (`...1234567`,
+`...99999`) kommen ohne Eintrag durch; was diese Form nicht hat, braucht eine Zeile.
+
+`OpsecTest` im Regelwerk ruft dasselbe Werkzeug auf, damit nichts zweimal geschrieben steht,
+und prüft mit `probe` zugleich, dass die Suche nicht bloß nichts mehr findet.
+
 ## `bildschirm-wache.sh`
 
 Schreibt jede Änderung des Bildschirmzustands mit, mit Grund, Ladestand und Schloss.
@@ -196,7 +227,8 @@ stand eine fremde App im Vordergrund.
 
 ## `status-eintrag.py`
 
-Schreibt einen Abschnitt in `STATUS.md`, und sieht nach, ob er wirklich dasteht.
+Schreibt einen Abschnitt in `STATUS.md`, und sieht nach, ob er wirklich dasteht. `STATUS.md`
+liegt in `.gitignore` und bleibt lokal - im Protokoll stehen Messungen vom echten Telefon.
 
 ```sh
 echo "Rumpf des Abschnitts" | tools/status-eintrag.py "## 🔧 Ueberschrift (03.09.2026, 14:05)"

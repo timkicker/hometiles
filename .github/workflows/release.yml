@@ -39,6 +39,11 @@ jobs:
           echo "tag $tag, versionName $name"
           test "$tag" = "$name"
 
+      # A release is the loudest moment there is. Nothing personal goes out with it, and
+      # the history is checked too, not only today's tree.
+      - name: Look for personal data
+        run: tools/opsec.py
+
       # Every release has run the rules. A build that ships without them shipped nothing
       # that was checked.
       - name: Run the rules

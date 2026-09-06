@@ -6,3 +6,7 @@ build/
 *.keystore
 !debug.keystore
 .kotlin/
+
+# das Arbeitstagebuch. Es protokolliert Messungen am echten Telefon des Nutzers,
+# mitsamt dem, was dabei auf dem Bildschirm stand. Es bleibt lokal, siehe tools/opsec.py.
+STATUS.md

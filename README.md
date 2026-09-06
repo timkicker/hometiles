@@ -195,8 +195,10 @@ bottom left inside a zone of fixed height, so the baselines line up even when a 
 All colour pairs meet at least 4.5:1, and a rule checks that for every combination the app is
 able to draw.
 
-More in [PLAN.md](PLAN.md), section 3. That file and [STATUS.md](STATUS.md) are in German:
-the plan and the running log are written in the language they were thought in.
+More in [PLAN.md](PLAN.md), section 3. That file is in German: the plan is written in the
+language it was thought in. The running log it refers to stays on the machine it was written
+on - it records measurements taken on a real phone, screen contents included, and that is
+nobody's business but its owner's.
 
 ## How it is tested
 

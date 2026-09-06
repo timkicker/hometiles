@@ -34,7 +34,11 @@ class ProseDashesTest {
 
     @Test
     fun `the plan and the readme carry no dash`() {
-        val hits = listOf("PLAN.md", "README.md", "tools/README.md", "STATUS.md").flatMap { name ->
+        // the working log is not in the repository and is taken along only where it lies -
+        // see StartupNumbersTest for the reason.
+        val hits = listOf("PLAN.md", "README.md", "tools/README.md", "STATUS.md")
+            .filter { file(it).isFile }
+            .flatMap { name ->
             val content = file(name).readText()
             forbidden.entries.filter { (c, _) -> c in content }.map { (c, what) ->
                 "$name: $what, ${content.count { it == c }} times"

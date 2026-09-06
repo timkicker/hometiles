@@ -17,8 +17,8 @@ class SosTest {
         // a message that looks as if it had a location and has none would be worse in earnest
         // than no place at all.
         assertEquals("Hilfe!", SosMessage.compose("Hilfe!", null, null, "Notfall"))
-        assertEquals("Hilfe!", SosMessage.compose("Hilfe!", 47.26, null, "Notfall"))
-        assertEquals("Hilfe!", SosMessage.compose("Hilfe!", null, 11.39, "Notfall"))
+        assertEquals("Hilfe!", SosMessage.compose("Hilfe!", 48.20, null, "Notfall"))
+        assertEquals("Hilfe!", SosMessage.compose("Hilfe!", null, 16.37, "Notfall"))
     }
 
     @Test
@@ -32,7 +32,7 @@ class SosTest {
     fun `coordinates are written with a full stop`() {
         // with a german comma the link would be broken - hence a fixed locale.
         assertEquals("https://maps.google.com/?q=48.20849,16.37208", SosMessage.mapsLink(48.20849, 16.37208))
-        assertTrue(!SosMessage.mapsLink(48.20849, 16.37208).contains(","+"26"))
+        assertTrue(!SosMessage.mapsLink(48.20849, 16.37208).contains(","+"20"))
     }
 
     @Test

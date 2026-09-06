@@ -1,0 +1,11 @@
+# Die schmutzige Probe fuer tools/opsec.py: je Art ein Satz, der gefunden werden MUSS.
+# Diese Datei ist die einzige, die der Suchlauf ueberspringt - sonst meldete er sich selbst.
+# Die Werte sind darum mit Absicht unmoeglich: +99 ist keinem Land zugeteilt, .example ist
+# als nie erreichbare Spitzendomaene reserviert, die Seriennummer ist erfunden.
+Rufnummer|erreichbar unter +99 164 3827194, sonst gar nicht
+Koordinate|der Ort war 47.06714, 15.44120 laut Karte
+E-Mail|geschrieben an anna.berger@post.example am Montag
+Geraetekennung|adb -s JELLY29999999998 shell
+MAC-Adresse|die Station meldete a4:83:e7:2f:19:c0
+Geheimnis|token ghp_abcdefghijklmnopqrstuvwxyz0123456789
+Heimatpfad|liegt unter /home/beispiel/Repositories/

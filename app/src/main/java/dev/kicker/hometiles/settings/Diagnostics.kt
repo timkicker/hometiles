@@ -72,7 +72,7 @@ object Diagnostics {
             add(text(R.string.diag_android) to "${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT})")
             add(text(R.string.diag_device) to "${Build.MANUFACTURER} ${Build.MODEL}")
             // whether the system spelling is hooked up shows on a number only if its
-            // country is known: "+436 804 ..." against "+43 680 1234567" is the difference
+            // country is known: "+436 641 110 01" against "+43 664 111001" is the difference
             // between copying it right and wrong. see SystemNumbers.install.
             add(
                 // the country's name, not its code: the code does not answer the question

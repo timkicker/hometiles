@@ -24,7 +24,14 @@ class StartupNumbersTest {
     private val COMMAND = "compile -m speed"
 
     private val plan = File("../PLAN.md").readText()
-    private val status = File("../STATUS.md").readText()
+
+    /**
+     * the working log is **not** in the repository - it records measurements taken on the
+     * user's own phone. so this rule binds `PLAN.md`, which is always there, and takes the
+     * log along only where somebody is working with it. the check is never empty: without
+     * the log it still reads the plan.
+     */
+    private val status = File("../STATUS.md").let { if (it.isFile) it.readText() else "" }
 
     /** paragraphs: separated by empty lines. that is as far as a label reaches. */
     private fun paragraphs(text: String): List<String> = text.split(Regex("\n[ \t]*\n"))

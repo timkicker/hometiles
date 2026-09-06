@@ -34,6 +34,12 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v4
 
+      # before anything else: nothing personal in the tree, nothing personal in the
+      # history. a push publishes every commit at once, so a number deleted three hundred
+      # commits ago would still be published for good.
+      - name: Look for personal data
+        run: tools/opsec.py
+
       - name: Run the rules
         run: ./gradlew test
 
