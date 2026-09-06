@@ -173,8 +173,11 @@ SIM or without a granted role the launcher keeps working.
 | `READ_CALL_LOG`, `WRITE_CALL_LOG` | showing and deleting the call log |
 | `READ_CONTACTS`, `WRITE_CONTACTS` | contacts and the favourite mark |
 | `SEND_SMS`, `READ_SMS`, `RECEIVE_SMS` | messages |
-| `ACCESS_FINE_LOCATION` | the location in an emergency message |
-| `VIBRATE`, `EXPAND_STATUS_BAR`, `SET_WALLPAPER` | feedback, toggles, wallpaper |
+| `READ_PHONE_STATE` | the signal bars |
+| `ACCESS_FINE_LOCATION`, `ACCESS_COARSE_LOCATION` | the location in an emergency message |
+| `POST_NOTIFICATIONS` | showing a new message and an incoming call |
+| `USE_FULL_SCREEN_INTENT` | an incoming call on a sleeping screen |
+| `VIBRATE` | feedback on a press |
 
 No `INTERNET`, and no `QUERY_ALL_PACKAGES`: a launcher gets by with `<queries>` and
 `LauncherApps`.

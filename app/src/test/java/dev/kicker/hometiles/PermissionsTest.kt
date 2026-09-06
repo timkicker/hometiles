@@ -48,6 +48,32 @@ class PermissionsTest {
         )
     }
 
+    /**
+     * and the readme names exactly these, no more and no fewer.
+     *
+     * the table promised `EXPAND_STATUS_BAR` and `SET_WALLPAPER`, which the app has not held
+     * for a long time, and kept quiet about `READ_PHONE_STATE`, `ACCESS_COARSE_LOCATION`,
+     * `POST_NOTIFICATIONS` and `USE_FULL_SCREEN_INTENT`, which it does hold. Six errors in
+     * one table, in the one place a reader looks to decide whether to trust this app with
+     * their contacts.
+     *
+     * found on 06.09.2026 by F-Droid's scan on the merge request, not here. the rule above
+     * held the manifest to the source and nobody held the readme to the manifest.
+     */
+    @Test
+    fun `the readme names the same permissions as the manifest`() {
+        val readme = File("../README.md").readText()
+        val table = Quelltext.cut(readme, "| Permission | What for |", "\n\n")
+        val named = Regex("""`([A-Z][A-Z_]{3,})`""").findAll(table)
+            .map { it.groupValues[1] }.toSortedSet()
+        assertEquals(
+            "the permission table in the README does not match the manifest. it is what " +
+                "somebody reads who wants to know what this app may do.",
+            permissions().toSortedSet(),
+            named,
+        )
+    }
+
     @Test
     fun `every exception names its reason`() {
         neededWithoutMention.forEach { (name, reason) ->

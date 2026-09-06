@@ -32,15 +32,31 @@ class ProseDashesTest {
 
     private fun file(name: String) = File("../$name")
 
+    /**
+     * the store texts belong here too, and did not until 06.09.2026.
+     *
+     * the rule read the readme and the tools page and stopped there. the german store
+     * description carried two long dashes all along, and it took F-Droid's own scan on the
+     * merge request to show them - on the page every visitor sees first. a rule that covers
+     * what one happens to think of is not a rule.
+     */
+    private fun prose(): List<File> =
+        listOf(file("README.md"), file("tools/README.md")) +
+            File("../fastlane/metadata/android")
+                .listFiles().orEmpty()
+                .flatMap { language ->
+                    listOf("full_description.txt", "short_description.txt", "title.txt")
+                        .map { File(language, it) } +
+                        File(language, "changelogs").listFiles().orEmpty()
+                }
+                .filter { it.isFile }
+
     @Test
-    fun `the plan and the readme carry no dash`() {
-        // the working log is not in the repository and is taken along only where it lies -
-        // see StartupNumbersTest for the reason.
-        val hits = listOf("README.md", "tools/README.md")
-            .flatMap { name ->
-            val content = file(name).readText()
+    fun `the readme and the store texts carry no dash`() {
+        val hits = prose().flatMap { file ->
+            val content = file.readText()
             forbidden.entries.filter { (c, _) -> c in content }.map { (c, what) ->
-                "$name: $what, ${content.count { it == c }} times"
+                "${file.path}: $what, ${content.count { it == c }} times"
             }
         }
         assertEquals(

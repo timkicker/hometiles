@@ -1,4 +1,4 @@
-HomeTiles ist ein Startbildschirm aus großen, klar beschrifteten Kacheln — mit Telefon und
+HomeTiles ist ein Startbildschirm aus großen, klar beschrifteten Kacheln, mit Telefon und
 Nachrichten in derselben App. Gedacht für kleine Bildschirme, unruhige Hände und Augen,
 die nicht zusammenkneifen wollen.
 
@@ -22,7 +22,7 @@ Was dabei ist:
 * Startet der Launcher einmal nicht, erscheint ein einfacher Auffangbildschirm mit
   Telefon, Kontakten und Einstellungen statt eines schwarzen Geräts.
 
-Kein Konto, keine Werbung, keine Verfolgung — und gar keine Internet-Berechtigung.
+Kein Konto, keine Werbung, keine Verfolgung. Und gar keine Internet-Berechtigung.
 
 HomeTiles ist der freie Ersatz für BIG Launcher, dessen Funktionen inzwischen auf drei
 gekaufte Apps verteilt sind.
