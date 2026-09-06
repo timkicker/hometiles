@@ -49,15 +49,21 @@ class RebuildChecksumTest {
         if (!File("../.git").exists()) return
         val commit = Regex("""Commit\s+`([0-9a-f]{7,40})`""").find(readme)?.groupValues?.get(1)
         assertTrue("no commit in the README - see the rule above", commit != null)
+        // `cat-file -e` only asks whether the object lies around. That is too little: after
+        // a rewritten history the old commit is still in the object store for a while and
+        // the rule stayed green here while it was long gone from the branch. In a fresh
+        // clone - which is what a reader has - it is missing. So: is it an **ancestor** of
+        // what is checked out?
         val found = runCatching {
-            ProcessBuilder("git", "cat-file", "-e", "$commit^{commit}")
+            ProcessBuilder("git", "merge-base", "--is-ancestor", commit, "HEAD")
                 .directory(File(".."))
                 .start()
                 .waitFor()
         }.getOrNull()
         assertEquals(
-            "the README names commit $commit for the checksum, but it does not exist in " +
-                "this directory. the number is then not recomputable.",
+            "the README names commit $commit for the checksum, but it is not an ancestor " +
+                "of this branch. Whoever clones cannot recompute the number - measure again " +
+                "with tools/rebuild.sh and write down the commit it names.",
             0,
             found,
         )
