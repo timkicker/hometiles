@@ -18,21 +18,19 @@
   <img alt="Network" src="https://img.shields.io/badge/internet%20permission-none-informational">
 </p>
 
----
 
 ## Table of Contents
 - [Why HomeTiles?](#why-hometiles)
 - [Screenshots](#screenshots)
-- [What it does](#what-it-does)
+- [Features](#features)
 - [Install](#install)
 - [Build](#build)
 - [Reproducible builds](#reproducible-builds)
 - [Permissions](#permissions)
 - [Looks](#looks)
-- [How it is tested](#how-it-is-tested)
+- [Testing](#testing)
 - [Contributing](#contributing)
 - [License and credits](#license-and-credits)
-
 
 ## Why HomeTiles?
 
