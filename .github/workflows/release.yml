@@ -52,38 +52,33 @@ jobs:
       - name: Build (unsigned)
         run: ./gradlew --no-build-cache clean assembleRelease
 
-      # Unsigned on purpose: signing with the debug key would be a lie about where the
-      # file came from, and F-Droid signs its own builds. Whoever wants a signed apk
-      # brings their own key.
-      - name: Checksums
+      # No apk is attached, on purpose. `assembleRelease` builds without a signing key,
+      # and android refuses an archive without a signature - measured on 06.09.2026:
+      # `INSTALL_PARSE_FAILED_NO_CERTIFICATES`. A file nobody can install has no business on
+      # a release page. HomeTiles is shipped through F-Droid, which builds from this source
+      # and signs with its own key; the build above stays as a check that the tag builds at
+      # all.
+      - name: The checksum of what F-Droid will build
         run: |
           cd app/build/outputs/apk/release
-          mv app-release-unsigned.apk "hometiles-${GITHUB_REF_NAME}-unsigned.apk"
-          sha256sum "hometiles-${GITHUB_REF_NAME}-unsigned.apk" > SHA256SUMS
-          cat SHA256SUMS
+          sha256sum app-release-unsigned.apk
 
       - name: Draft the release
         uses: softprops/action-gh-release@v2
         with:
           name: HomeTiles ${{ github.ref_name }}
           tag_name: ${{ github.ref_name }}
-          # A draft, not a publication: someone reads it before the world does.
+          # A draft, not a publication: somebody reads it before the world does.
           draft: true
           prerelease: ${{ contains(github.ref_name, '-') }}
-          files: |
-            app/build/outputs/apk/release/hometiles-*-unsigned.apk
-            app/build/outputs/apk/release/SHA256SUMS
           body: |
             ## HomeTiles ${{ github.ref_name }}
 
-            The apk here is **unsigned**. Install it only if you sign it yourself; the
-            usual way to get HomeTiles is F-Droid, which builds from this source and signs
-            with its own key.
+            Install it from **F-Droid**. F-Droid builds this tag from source and signs it
+            with its own key, so nothing here has to be trusted on our word.
 
-            Verify what you downloaded:
+            There is deliberately no apk on this page: a build without a signing key cannot
+            be installed, and a file nobody can install would only be in the way.
 
-            ```sh
-            sha256sum -c SHA256SUMS
-            ```
-
-            The same source gives the same file: see "Reproducible builds" in the README.
+            The same source gives the same file - see "Reproducible builds" in the README if
+            you want to check that F-Droid built what is written here.
