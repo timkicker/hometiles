@@ -157,10 +157,10 @@ Checked on 6 September 2026 with AGP 8.7.3, Gradle 8.11.1 and JDK 21, built twic
 build cache, both times
 
 ```
-80e2235c6b7b0c511b2a3e8a198039d0c1e0cd3994099436af5c98b9e050c302   1 953 039 bytes
+e7e0ab8dcd47e7ab514c2bc45fb0bfe8c367ec57e222738a8b0cf31430eaf991   1 953 039 bytes
 ```
 
-for **Commit `0afeb50`**. A checksum belongs to one state of the source, not to the project:
+for **Commit `33a4df0`**. A checksum belongs to one state of the source, not to the project:
 whoever wants to recompute it builds that commit. `tools/rebuild.sh` does both runs and the
 comparison in one call.
 
