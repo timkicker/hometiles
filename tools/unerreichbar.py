@@ -40,7 +40,7 @@ dass zwei Zeilen mit demselben Wort zu einer verschmelzen - dafuer gibt es
 
 **Die Falle dabei, am 04.09.2026 zweimal hineingetappt:** waehrend eine Liste scrollt, meldet
 `uiautomator` eine Zeile nur zum Teil - mit halber Hoehe *und halbem Text*. In den
-Einstellungen kam die zweizeilige Zeile `BigLau ist Ihr Startbildschirm` so als eigene
+Einstellungen kam die zweizeilige Zeile `HomeTiles ist Ihr Startbildschirm` so als eigene
 Flaeche namens `Antippen, um das in den Systemeinstellungen zu aendern` heraus, und die
 bekam nie den Fokus, weil es sie nicht gibt.
 
@@ -133,7 +133,7 @@ def main(argv):
         if wurzel is None:
             return
         for zweig in wurzel.iter("node"):
-            if not zweig.get("package", "").startswith("org.biglau"):
+            if not zweig.get("package", "").startswith("dev.kicker.hometiles"):
                 continue
             if zweig.get("clickable") == "true":
                 titel = name(zweig)

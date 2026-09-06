@@ -7,7 +7,7 @@
         errorLine1="        configuration.setLocale(locale)"
         errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/kotlin/org/biglau/ui/AppLocale.kt"
+            file="src/main/kotlin/dev/kicker/hometiles/ui/AppLocale.kt"
             line="33"
             column="9"/>
     </issue>
@@ -18,7 +18,7 @@
         errorLine1="fun PinDots(length: Int, total: Int = 8, modifier: Modifier = Modifier) {"
         errorLine2="                                         ~~~~~~~~">
         <location
-            file="src/main/kotlin/org/biglau/ui/BigKeypad.kt"
+            file="src/main/kotlin/dev/kicker/hometiles/ui/BigKeypad.kt"
             line="248"
             column="42"/>
     </issue>
@@ -29,7 +29,7 @@
         errorLine1="    var heldSeconds by remember { mutableStateOf(0) }"
         errorLine2="                                  ~~~~~~~~~~~~~~">
         <location
-            file="src/main/kotlin/org/biglau/ui/PinGate.kt"
+            file="src/main/kotlin/dev/kicker/hometiles/ui/PinGate.kt"
             line="67"
             column="35"/>
     </issue>
@@ -40,7 +40,7 @@
         errorLine1="    val layout = state.layoutInfo"
         errorLine2="                 ~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/kotlin/org/biglau/ui/ScrollButtons.kt"
+            file="src/main/kotlin/dev/kicker/hometiles/ui/ScrollButtons.kt"
             line="66"
             column="18"/>
     </issue>
@@ -51,7 +51,7 @@
         errorLine1="        state.firstVisibleItemIndex,"
         errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/kotlin/org/biglau/ui/ScrollButtons.kt"
+            file="src/main/kotlin/dev/kicker/hometiles/ui/ScrollButtons.kt"
             line="75"
             column="9"/>
     </issue>

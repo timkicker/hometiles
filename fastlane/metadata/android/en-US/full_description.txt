@@ -1,4 +1,4 @@
-BigLau is a home screen made of large, plainly labelled tiles, with a phone dialler and a
+HomeTiles is a home screen made of large, plainly labelled tiles, with a phone dialler and a
 messaging app in the same package. It is meant for small screens, unsteady hands and eyes
 that would rather not squint.
 
@@ -24,5 +24,5 @@ What you get:
 
 No account, no advertising, no tracking, and no internet permission at all.
 
-BigLau is a free replacement for BIG Launcher, whose features are now spread across three
+HomeTiles is a free replacement for BIG Launcher, whose features are now spread across three
 paid apps.

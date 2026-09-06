@@ -23,7 +23,7 @@ android {
         abortOnError = true
     }
 
-    namespace = "org.biglau.core.system"
+    namespace = "dev.kicker.hometiles.core.system"
     compileSdk = 35
 
     defaultConfig {

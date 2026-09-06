@@ -22,7 +22,7 @@ kotlin {
 // the round trip test against a real configuration gets its path handed through - the same
 // hand-through as in :app, since the test moved here with the model.
 tasks.withType<Test> {
-    System.getenv("BIGLAU_REAL_CONFIG")?.let { environment("BIGLAU_REAL_CONFIG", it) }
+    System.getenv("HOMETILES_REAL_CONFIG")?.let { environment("HOMETILES_REAL_CONFIG", it) }
 }
 
 dependencies {

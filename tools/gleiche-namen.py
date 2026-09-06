@@ -75,7 +75,7 @@ def main(argv):
     for k in knoten:
         if wert(k, "clickable") != "true":
             continue
-        if not wert(k, "package").startswith("org.biglau"):
+        if not wert(k, "package").startswith("dev.kicker.hometiles"):
             continue
         name = gesprochen(k)
         if not name:

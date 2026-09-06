@@ -300,7 +300,7 @@ anlegt, muss deshalb vorher wissen, welche Formen sie verlangt.
 
 Die Liste der Kategorien allein reicht dabei nicht, und genau das macht dieses Werkzeug
 anders. Französisch, Spanisch und Italienisch führen alle ein `many`, was nach Arbeit klingt;
-nachgerechnet trifft es nur volle Millionen, und BigLau zählt Kacheln und Kontakte. Umgekehrt
+nachgerechnet trifft es nur volle Millionen, und HomeTiles zählt Kacheln und Kontakte. Umgekehrt
 brauchen Polnisch und Russisch `few`, `many` und `one` genau bei den alltäglichen Zahlen.
 Deshalb steht hier nicht nur, welche Kategorien es gibt, sondern welche unterhalb von tausend
 überhaupt vorkommen.
@@ -365,7 +365,7 @@ die Rechtecke; derselbe Knopf hieße in jedem Abzug anders. Der Preis ist, dass 
 mit demselben Wort verschmelzen. Dafür gibt es `gleiche-namen.py`.
 
 Die Falle dabei ist, dass `uiautomator` eine scrollende Zeile nur zum Teil meldet, mit halber
-Höhe **und halbem Text**. In den Einstellungen kam die zweizeilige Zeile „BigLau ist Ihr
+Höhe **und halbem Text**. In den Einstellungen kam die zweizeilige Zeile „HomeTiles ist Ihr
 Startbildschirm" so als eigene Fläche namens „Antippen, um das in den Systemeinstellungen zu
 ändern" heraus. Der erste Versuch, das über die Geometrie zu lösen, war falsch: wer jede
 Zeile wegwirft, die an einer Kante klebt, wirft die unterste Zeile jeder Liste mit weg, und

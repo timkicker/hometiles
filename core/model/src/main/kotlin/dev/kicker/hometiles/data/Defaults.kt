@@ -1,0 +1,37 @@
+package dev.kicker.hometiles.data
+
+object Defaults {
+
+    const val MAIN_ID = "home"
+
+    /** starting layout in the 2x3 grid, the default for 349x581 dp. */
+    fun mainScreen(): Screen {
+        val actions = listOf(
+            Builtin.DIALER,
+            Builtin.MESSAGES,
+            Builtin.CONTACTS,
+            Builtin.CAMERA,
+            Builtin.APP_LIST,
+            Builtin.SETTINGS,
+        )
+        val cells = actions.mapIndexed { i, builtin ->
+            Cell(
+                x = i % 2,
+                y = i / 2,
+                button = Button(action = ButtonAction.Action(builtin)),
+            )
+        }
+        return Screen(id = MAIN_ID, name = "Start", cols = 2, rows = 3, cells = cells)
+    }
+
+    /** grid choices; the cell sizes behind them are in `PLAN.md` 3.2. */
+    val layouts: List<Pair<Int, Int>> = listOf(
+        1 to 1,
+        1 to 2,
+        2 to 2,
+        2 to 3,
+        2 to 4,
+        3 to 4,
+        3 to 5,
+    )
+}

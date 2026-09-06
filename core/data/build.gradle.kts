@@ -10,7 +10,7 @@ plugins {
 }
 
 android {
-    namespace = "org.biglau.core.data"
+    namespace = "dev.kicker.hometiles.core.data"
     compileSdk = 35
 
     defaultConfig {

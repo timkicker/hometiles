@@ -9,7 +9,7 @@ plugins {
 
 // the round trip test against a real configuration gets its path handed through.
 tasks.withType<Test> {
-    System.getenv("BIGLAU_REAL_CONFIG")?.let { environment("BIGLAU_REAL_CONFIG", it) }
+    System.getenv("HOMETILES_REAL_CONFIG")?.let { environment("HOMETILES_REAL_CONFIG", it) }
 }
 
 android {
@@ -23,11 +23,11 @@ android {
         abortOnError = true
     }
 
-    namespace = "org.biglau"
+    namespace = "dev.kicker.hometiles"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "org.biglau"
+        applicationId = "dev.kicker.hometiles"
         minSdk = 26
         targetSdk = 35
         versionCode = 1

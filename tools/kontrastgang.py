@@ -63,7 +63,7 @@ def main(argv):
     gemessen = 0
     for zweig in wurzel.iter("node"):
         text = (zweig.get("text") or "").strip()
-        if not text or not zweig.get("package", "").startswith("org.biglau"):
+        if not text or not zweig.get("package", "").startswith("dev.kicker.hometiles"):
             continue
         masse = re.match(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]", zweig.get("bounds", ""))
         if not masse:
@@ -85,7 +85,7 @@ def main(argv):
             schlecht.append((wert, text, f"[{x0},{y0}][{x1},{y1}]"))
 
     if gemessen == 0:
-        print("Keine beschriftete Flaeche gefunden - steht BigLau ueberhaupt im Vordergrund?")
+        print("Keine beschriftete Flaeche gefunden - steht HomeTiles ueberhaupt im Vordergrund?")
         return 1
     print("%d beschriftete Flaechen gemessen." % gemessen)
     for wert, text, masse in sorted(schlecht):

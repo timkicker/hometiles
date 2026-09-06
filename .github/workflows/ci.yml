@@ -87,7 +87,7 @@ jobs:
       - name: Keep the unsigned APK
         uses: actions/upload-artifact@v4
         with:
-          name: biglau-unsigned
+          name: hometiles-unsigned
           path: app/build/outputs/apk/release/*.apk
           retention-days: 14
 

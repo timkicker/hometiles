@@ -16,7 +16,7 @@ nach WCAG. In einem Feld mit Text sind das die Schrift und ihr Grund.
 Vergleicht stattdessen gegen einen festen Punkt - fuer Text auf dem Hintergrund, wo im
 Rechteck sonst nur Schrift liegt.
 
-Die Schwellen von BigLau (`Tokens.kt`): 4.5 fuer Schrift auf einer Kachel, 3.0 fuer eine
+Die Schwellen von HomeTiles (`Tokens.kt`): 4.5 fuer Schrift auf einer Kachel, 3.0 fuer eine
 Kachel gegen den Hintergrund, 7.0 fuer Text ausserhalb einer Kachel.
 """
 import sys

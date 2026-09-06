@@ -1,4 +1,4 @@
-BigLau es una pantalla de inicio hecha de mosaicos grandes y claramente rotulados, con
+HomeTiles es una pantalla de inicio hecha de mosaicos grandes y claramente rotulados, con
 teléfono y mensajes en la misma aplicación. Está pensada para pantallas pequeñas, manos
 inseguras y ojos que preferirían no entrecerrarse.
 
@@ -24,5 +24,5 @@ Lo que incluye:
 
 Sin cuenta, sin publicidad, sin seguimiento, y sin ningún permiso de internet.
 
-BigLau es el sustituto libre de BIG Launcher, cuyas funciones están hoy repartidas entre
+HomeTiles es el sustituto libre de BIG Launcher, cuyas funciones están hoy repartidas entre
 tres aplicaciones de pago.

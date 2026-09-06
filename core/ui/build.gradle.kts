@@ -20,7 +20,7 @@ android {
         abortOnError = true
     }
 
-    namespace = "org.biglau.core.ui"
+    namespace = "dev.kicker.hometiles.core.ui"
     compileSdk = 35
 
     defaultConfig {
@@ -55,7 +55,7 @@ dependencies {
     // `ContactAvatar` shows the contact photo; the same library :app already uses.
     implementation(libs.coil.compose)
     implementation(libs.androidx.core.ktx)
-    // `BigLauActivity` is the base of every screen and switches the language.
+    // `HomeTilesActivity` is the base of every screen and switches the language.
     api(libs.androidx.activity.compose)
     testImplementation(libs.junit)
 }

@@ -20,23 +20,23 @@ GERAET=${1:-}
 ADB="adb"
 [ -n "$GERAET" ] && ADB="adb -s $GERAET"
 
-ZIEL=$(mktemp -t biglau-config-XXXXXX.json)
+ZIEL=$(mktemp -t hometiles-config-XXXXXX.json)
 trap 'rm -f "$ZIEL"' EXIT
 
 echo "hole die Konfiguration vom Telefon ..."
-$ADB shell 'run-as org.biglau.debug cat files/config.json' > "$ZIEL"
+$ADB shell 'run-as dev.kicker.hometiles.debug cat files/config.json' > "$ZIEL"
 if [ ! -s "$ZIEL" ]; then
   echo "nichts bekommen - haengt das Telefon dran, und ist die Debug-Fassung installiert?"
   exit 2
 fi
 echo "$(wc -c < "$ZIEL") Bytes, $(md5sum "$ZIEL" | cut -d' ' -f1)"
 
-BIGLAU_REAL_CONFIG="$ZIEL" ./gradlew :core:model:test --tests '*RealConfigRoundTripTest*' \
+HOMETILES_REAL_CONFIG="$ZIEL" ./gradlew :core:model:test --tests '*RealConfigRoundTripTest*' \
   --rerun-tasks -q
 
 # Grün allein genuegt nicht: ein uebersprungener Test ist auch gruen. Deshalb nachsehen,
 # ob er wirklich gelaufen ist.
-BERICHT=core/model/build/test-results/test/TEST-org.biglau.data.RealConfigRoundTripTest.xml
+BERICHT=core/model/build/test-results/test/TEST-dev.kicker.hometiles.data.RealConfigRoundTripTest.xml
 if grep -q 'skipped="0"' "$BERICHT" 2>/dev/null; then
   echo "gelaufen und bestanden - die echte Fassung uebersteht den Umzug"
 else

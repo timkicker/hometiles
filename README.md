@@ -1,5 +1,5 @@
 <p align="center">
-  <img alt="BigLau" src="docs/logo.png" width="140">
+  <img alt="HomeTiles" src="docs/logo.png" width="140">
 </p>
 
 <p align="center">
@@ -7,8 +7,8 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/timkicker/biglau/actions/workflows/ci.yml">
-    <img alt="CI" src="https://img.shields.io/github/actions/workflow/status/timkicker/biglau/ci.yml?branch=main&label=ci">
+  <a href="https://github.com/timkicker/hometiles/actions/workflows/ci.yml">
+    <img alt="CI" src="https://img.shields.io/github/actions/workflow/status/timkicker/hometiles/ci.yml?branch=main&label=ci">
   </a>
   <a href="LICENSE">
     <img alt="License" src="https://img.shields.io/badge/license-GPLv3-blue.svg">
@@ -21,7 +21,7 @@
 ---
 
 ## Table of Contents
-- [Why BigLau?](#why-biglau)
+- [Why HomeTiles?](#why-hometiles)
 - [Screenshots](#screenshots)
 - [What it does](#what-it-does)
 - [Install](#install)
@@ -35,10 +35,10 @@
 
 ---
 
-## Why BigLau?
+## Why HomeTiles?
 
 Large-tile launchers exist, but the well known one now spreads phone, messages and the
-launcher itself over three paid apps. BigLau puts them back in one place, gives the source
+launcher itself over three paid apps. HomeTiles puts them back in one place, gives the source
 away, and asks for no account.
 
 - **One app, not three.** Home screen, dialler, messages and contacts ship together and look
@@ -53,8 +53,6 @@ away, and asks for no account.
   their own text before they cut it, and every colour pair at 4.5:1 or better.
 - **It does not dial by itself.** Not even the SOS tile: it writes, then offers a button that
   opens the keypad with the number in it.
-
-> Working title. The name is not final and will change before any release.
 
 ## Screenshots
 
@@ -88,7 +86,7 @@ away, and asks for no account.
 - Keypad with big keys, speed dial on 2 to 9, call log with grouping.
 - Its own call screen: answer, reject, mute, speaker, hold, keypad, bluetooth.
 - Turn a call down with a short written answer.
-- BigLau can take the phone role, but it works without it.
+- HomeTiles can take the phone role, but it works without it.
 - Emergency numbers always go to the system dialler.
 
 **Messages**
@@ -102,12 +100,12 @@ away, and asks for no account.
 
 **App list**
 - One long list with search and "recently used", and apps can be hidden.
-- The last row is always **BigLau settings**, so there is a way in even when no tile leads
+- The last row is always **HomeTiles settings**, so there is a way in even when no tile leads
   there. The search finds that row too.
 
 **SOS**
 - A countdown, then a message to up to five people, with the location if there is one.
-- After sending, a button opens the keypad with the first number. **BigLau never dials by
+- After sending, a button opens the keypad with the first number. **HomeTiles never dials by
   itself.**
 
 **Safety net**
@@ -185,7 +183,7 @@ No `INTERNET`, and no `QUERY_ALL_PACKAGES`: a launcher gets by with `<queries>` 
 `LauncherApps`.
 
 Anyone reading the archive will still find `okhttp3/.../publicsuffixes.gz`: the image library
-Coil brings an HTTP client that BigLau never calls, since contact photos come through
+Coil brings an HTTP client that HomeTiles never calls, since contact photos come through
 `content://`. R8 removes the code, the 41 kB of data stay. Without the `INTERNET` permission
 none of it can reach the network.
 

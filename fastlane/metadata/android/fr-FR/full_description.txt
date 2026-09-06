@@ -1,4 +1,4 @@
-BigLau est un écran d'accueil fait de grandes tuiles clairement étiquetées, avec le
+HomeTiles est un écran d'accueil fait de grandes tuiles clairement étiquetées, avec le
 téléphone et les messages dans la même application. Il est pensé pour les petits écrans,
 les mains qui tremblent et les yeux qui préfèrent ne pas plisser.
 
@@ -24,5 +24,5 @@ Ce qui est inclus :
 
 Pas de compte, pas de publicité, pas de suivi, et aucune autorisation d'accès à internet.
 
-BigLau est le remplaçant libre de BIG Launcher, dont les fonctions sont aujourd'hui
+HomeTiles est le remplaçant libre de BIG Launcher, dont les fonctions sont aujourd'hui
 réparties entre trois applications payantes.

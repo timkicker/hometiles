@@ -1,4 +1,4 @@
-BigLau è una schermata iniziale fatta di riquadri grandi e chiaramente etichettati, con
+HomeTiles è una schermata iniziale fatta di riquadri grandi e chiaramente etichettati, con
 telefono e messaggi nella stessa applicazione. È pensata per schermi piccoli, mani
 malferme e occhi che preferirebbero non strizzarsi.
 
@@ -24,5 +24,5 @@ Che cosa c'è:
 
 Nessun account, nessuna pubblicità, nessun tracciamento, e nessun permesso di internet.
 
-BigLau è il sostituto libero di BIG Launcher, le cui funzioni sono oggi distribuite su tre
+HomeTiles è il sostituto libero di BIG Launcher, le cui funzioni sono oggi distribuite su tre
 applicazioni a pagamento.

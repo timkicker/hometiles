@@ -1,4 +1,4 @@
-BigLau ist ein Startbildschirm aus großen, klar beschrifteten Kacheln — mit Telefon und
+HomeTiles ist ein Startbildschirm aus großen, klar beschrifteten Kacheln — mit Telefon und
 Nachrichten in derselben App. Gedacht für kleine Bildschirme, unruhige Hände und Augen,
 die nicht zusammenkneifen wollen.
 
@@ -24,5 +24,5 @@ Was dabei ist:
 
 Kein Konto, keine Werbung, keine Verfolgung — und gar keine Internet-Berechtigung.
 
-BigLau ist der freie Ersatz für BIG Launcher, dessen Funktionen inzwischen auf drei
+HomeTiles ist der freie Ersatz für BIG Launcher, dessen Funktionen inzwischen auf drei
 gekaufte Apps verteilt sind.

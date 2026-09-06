@@ -194,7 +194,7 @@ def tippen(geraet, x, y, erwartet, beschriftung, lang):
 
     if lang:
         # Ein Langdruck ist ein Wisch von der Stelle auf die Stelle. 900 ms liegen ueber
-        # jeder Schwelle, die BigLau einstellen laesst.
+        # jeder Schwelle, die HomeTiles einstellen laesst.
         adb(geraet, "shell", f"input swipe {x} {y} {x} {y} 900")
     else:
         adb(geraet, "shell", f"input tap {x} {y}")

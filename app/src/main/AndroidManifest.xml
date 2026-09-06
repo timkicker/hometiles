@@ -19,7 +19,7 @@
 
     <uses-permission android:name="android.permission.CALL_PHONE" />
     <uses-permission android:name="android.permission.READ_CALL_LOG" />
-    <!-- only to show reception and network type on the signal tile. reading only: BigLau
+    <!-- only to show reception and network type on the signal tile. reading only: HomeTiles
          dials nothing through it and registers nowhere. -->
     <uses-permission android:name="android.permission.READ_PHONE_STATE" />
     <uses-permission android:name="android.permission.WRITE_CALL_LOG" />
@@ -43,12 +43,12 @@
     <uses-feature android:name="android.hardware.telephony" android:required="false" />
 
     <application
-        android:name=".BigLauApp"
+        android:name=".HomeTilesApp"
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:supportsRtl="true"
-        android:theme="@style/Theme.BigLau">
+        android:theme="@style/Theme.HomeTiles">
 
         <activity
             android:name=".MainActivity"
@@ -58,7 +58,7 @@
             android:excludeFromRecents="true"
             android:configChanges="keyboardHidden|navigation|orientation|screenSize|screenLayout|smallestScreenSize"
             android:windowSoftInputMode="adjustPan"
-            android:theme="@style/Theme.BigLau">
+            android:theme="@style/Theme.HomeTiles">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.HOME" />
@@ -74,7 +74,7 @@
             android:name=".tiles.TileEditorActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize"
-            android:theme="@style/Theme.BigLau" />
+            android:theme="@style/Theme.HomeTiles" />
 
         <!-- the call screen. showWhenLocked so a call can be worked on a locked screen -
              otherwise nobody reaches the answer button. -->
@@ -85,9 +85,9 @@
             android:excludeFromRecents="true"
             android:showWhenLocked="true"
             android:turnScreenOn="true"
-            android:theme="@style/Theme.BigLau" />
+            android:theme="@style/Theme.HomeTiles" />
 
-        <!-- the four components a default sms app must have. with one missing BigLau does
+        <!-- the four components a default sms app must have. with one missing HomeTiles does
              not appear in the chooser at all, regardless of whether it would work. see
              SmsComponents.kt. -->
         <receiver
@@ -127,7 +127,7 @@
             android:name=".sms.SmsActivity"
             android:exported="true"
             android:windowSoftInputMode="adjustResize"
-            android:theme="@style/Theme.BigLau">
+            android:theme="@style/Theme.HomeTiles">
             <intent-filter>
                 <action android:name="android.intent.action.SENDTO" />
                 <category android:name="android.intent.category.DEFAULT" />
@@ -171,14 +171,14 @@
         <activity
             android:name=".toggles.SosActivity"
             android:exported="false"
-            android:theme="@style/Theme.BigLau" />
+            android:theme="@style/Theme.HomeTiles" />
 
-        <!-- for the phone role android demands an ACTION_DIAL entry. without it BigLau does
+        <!-- for the phone role android demands an ACTION_DIAL entry. without it HomeTiles does
              not show up in the default phone app chooser at all. -->
         <activity
             android:name=".phone.DialerActivity"
             android:exported="true"
-            android:theme="@style/Theme.BigLau">
+            android:theme="@style/Theme.HomeTiles">
             <intent-filter>
                 <action android:name="android.intent.action.DIAL" />
                 <category android:name="android.intent.category.DEFAULT" />
@@ -196,23 +196,23 @@
             android:name=".contacts.ContactsActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize"
-            android:theme="@style/Theme.BigLau" />
+            android:theme="@style/Theme.HomeTiles" />
 
         <activity
             android:name=".apps.AppDrawerActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize"
-            android:theme="@style/Theme.BigLau" />
+            android:theme="@style/Theme.HomeTiles" />
 
         <!-- the waiting notice is opened through an intent: `Notice` lives in the design
-             system and must not know the activity by name. see org.biglau.ui.Notice.ACTION. -->
+             system and must not know the activity by name. see dev.kicker.hometiles.ui.Notice.ACTION. -->
         <activity
             android:name=".ui.NoticeActivity"
             android:exported="false"
             android:excludeFromRecents="true"
-            android:theme="@style/Theme.BigLau">
+            android:theme="@style/Theme.HomeTiles">
             <intent-filter>
-                <action android:name="org.biglau.action.NOTICE" />
+                <action android:name="dev.kicker.hometiles.action.NOTICE" />
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
@@ -221,7 +221,7 @@
         <activity
             android:name=".settings.ImportActivity"
             android:exported="true"
-            android:theme="@style/Theme.BigLau">
+            android:theme="@style/Theme.HomeTiles">
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
@@ -235,19 +235,19 @@
         <activity
             android:name=".wizard.WizardActivity"
             android:exported="false"
-            android:theme="@style/Theme.BigLau" />
+            android:theme="@style/Theme.HomeTiles" />
 
         <!-- a jump to a subpage goes through this intent instead of the class: otherwise
              every screen that jumps there knows the settings by name. not exported - the
-             intent is kept inside the app with setPackage. see org.biglau.ui.SettingsLink. -->
+             intent is kept inside the app with setPackage. see dev.kicker.hometiles.ui.SettingsLink. -->
         <activity
             android:name=".settings.SettingsActivity"
             android:exported="false"
             android:launchMode="singleTop"
             android:windowSoftInputMode="adjustResize"
-            android:theme="@style/Theme.BigLau">
+            android:theme="@style/Theme.HomeTiles">
             <intent-filter>
-                <action android:name="org.biglau.action.SETTINGS" />
+                <action android:name="dev.kicker.hometiles.action.SETTINGS" />
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>

@@ -7,7 +7,7 @@
 -->
 <resources>
     <string name="intent_no_app">Nessuna app di questo telefono può farlo</string>
-    <string name="intent_no_permission">BigLau non ha il permesso di farlo</string>
+    <string name="intent_no_permission">HomeTiles non ha il permesso di farlo</string>
     <string name="keypad_backspace">Cancella l’ultima cifra</string>
     <string name="search_clear">Cancella la ricerca</string>
     <string name="permission_allow">Consenti l’accesso</string>

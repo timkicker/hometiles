@@ -19,7 +19,7 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "BigLau"
+rootProject.name = "HomeTiles"
 include(":app")
 include(":core:model")
 include(":core:data")

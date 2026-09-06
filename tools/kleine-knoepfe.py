@@ -75,7 +75,7 @@ def main(argv):
 
         if wert("clickable") != "true" and wert("long-clickable") != "true":
             continue
-        if not wert("package").startswith("org.biglau"):
+        if not wert("package").startswith("dev.kicker.hometiles"):
             continue
         masse = re.match(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]", wert("bounds"))
         if not masse:

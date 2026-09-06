@@ -6,7 +6,7 @@
 -->
 <resources>
     <string name="intent_no_app">No app on this phone can do that</string>
-    <string name="intent_no_permission">BigLau is not allowed to do that</string>
+    <string name="intent_no_permission">HomeTiles is not allowed to do that</string>
     <string name="keypad_backspace">Delete last digit</string>
     <string name="search_clear">Clear the search</string>
     <string name="permission_allow">Allow access</string>

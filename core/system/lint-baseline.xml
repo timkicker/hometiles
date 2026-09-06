@@ -7,7 +7,7 @@
         errorLine1="/**"
         errorLine2="^">
         <location
-            file="src/main/kotlin/org/biglau/phone/InCallRepository.kt"
+            file="src/main/kotlin/dev/kicker/hometiles/phone/InCallRepository.kt"
             line="10"
             column="1"/>
     </issue>
@@ -18,7 +18,7 @@
         errorLine1="    // `InCallService`, not `BigInCallService`: only `setMuted` and `setAudioRoute` are"
         errorLine2="    ^">
         <location
-            file="src/main/kotlin/org/biglau/phone/InCallRepository.kt"
+            file="src/main/kotlin/dev/kicker/hometiles/phone/InCallRepository.kt"
             line="25"
             column="5"/>
     </issue>

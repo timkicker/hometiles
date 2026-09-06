@@ -3,7 +3,7 @@
 
     tools/mehrzahlformen.py [sprache ...]
 
-Ohne Argumente nimmt es die Sprachen, die BigLau ausliefert, plus ein paar Kandidaten.
+Ohne Argumente nimmt es die Sprachen, die HomeTiles ausliefert, plus ein paar Kandidaten.
 
 Android faellt fuer eine fehlende Form stillschweigend auf `other` zurueck. Kein Absturz,
 sondern ein grammatisch falscher Satz, den nur jemand bemerkt, der die Sprache spricht. Wer
@@ -11,7 +11,7 @@ eine Sprache anlegt, muss also **vorher** wissen, welche Formen sie verlangt.
 
 Die Liste der Kategorien allein reicht dabei nicht. Franzoesisch, Spanisch und Italienisch
 fuehren alle drei ein `many`, und das klingt nach Arbeit; nachgerechnet trifft es aber nur
-volle Millionen. BigLau zaehlt Kacheln, Kontakte, Sekunden und Bildschirme. Deshalb sagt
+volle Millionen. HomeTiles zaehlt Kacheln, Kontakte, Sekunden und Bildschirme. Deshalb sagt
 dieses Programm nicht nur, welche Kategorien es gibt, sondern welche **unterhalb der
 Schwelle** ueberhaupt vorkommen. Das ist die Zahl, an der die Entscheidung haengt.
 

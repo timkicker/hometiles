@@ -53,26 +53,26 @@ jobs:
       - name: Checksums
         run: |
           cd app/build/outputs/apk/release
-          mv app-release-unsigned.apk "biglau-${GITHUB_REF_NAME}-unsigned.apk"
-          sha256sum "biglau-${GITHUB_REF_NAME}-unsigned.apk" > SHA256SUMS
+          mv app-release-unsigned.apk "hometiles-${GITHUB_REF_NAME}-unsigned.apk"
+          sha256sum "hometiles-${GITHUB_REF_NAME}-unsigned.apk" > SHA256SUMS
           cat SHA256SUMS
 
       - name: Draft the release
         uses: softprops/action-gh-release@v2
         with:
-          name: BigLau ${{ github.ref_name }}
+          name: HomeTiles ${{ github.ref_name }}
           tag_name: ${{ github.ref_name }}
           # A draft, not a publication: someone reads it before the world does.
           draft: true
           prerelease: ${{ contains(github.ref_name, '-') }}
           files: |
-            app/build/outputs/apk/release/biglau-*-unsigned.apk
+            app/build/outputs/apk/release/hometiles-*-unsigned.apk
             app/build/outputs/apk/release/SHA256SUMS
           body: |
-            ## BigLau ${{ github.ref_name }}
+            ## HomeTiles ${{ github.ref_name }}
 
             The apk here is **unsigned**. Install it only if you sign it yourself; the
-            usual way to get BigLau is F-Droid, which builds from this source and signs
+            usual way to get HomeTiles is F-Droid, which builds from this source and signs
             with its own key.
 
             Verify what you downloaded:
