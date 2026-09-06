@@ -249,8 +249,14 @@ def history(ref: str = "") -> list:
             ["git", "cat-file", "--batch-check", "--batch-all-objects"],
             capture_output=True, text=True).stdout.splitlines()
         blobs = [line.split()[0] for line in lines if line.split()[1:2] == ["blob"]]
-    # the content of the probe file is the same in every commit and is no finding
-    probe_text = io.open(PROBE_FILE, encoding="utf-8").read()
+    # Every version the probe file ever had is skipped - by blob, not by content. Comparing
+    # against today's text was not enough: an older wording of the same file stands in the
+    # history as a different blob and reported itself as seven findings.
+    probe_blobs = set()
+    for commit in git("log", ref or "--all", "--format=%H", "--", PROBE_FILE).split():
+        blob = git("rev-parse", f"{commit}:{PROBE_FILE}").strip()
+        if blob:
+            probe_blobs.add(blob)
     seen, hits = set(), []
     for h in blobs:
         raw = subprocess.run(["git", "cat-file", "blob", h], capture_output=True).stdout
@@ -260,7 +266,7 @@ def history(ref: str = "") -> list:
             text = raw.decode("utf-8")
         except UnicodeDecodeError:
             continue
-        if text == probe_text:
+        if h in probe_blobs:
             continue
         for kind, finding, _, _ in examine(text, h):
             if (kind, finding) not in seen:
