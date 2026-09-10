@@ -1,0 +1,2 @@
+Nothing changed in the app itself. The licence notice and the permission list in the readme
+were put right.

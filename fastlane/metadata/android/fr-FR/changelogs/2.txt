@@ -1,0 +1,2 @@
+Rien n'a changé dans l'application. L'avis de licence et la liste des autorisations du readme
+ont été corrigés.

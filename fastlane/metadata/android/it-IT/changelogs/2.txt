@@ -1,0 +1,2 @@
+Nell'app non è cambiato nulla. L'avviso di licenza e l'elenco dei permessi nel readme sono
+stati corretti.
