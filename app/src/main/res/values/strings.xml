@@ -258,6 +258,7 @@
     <string name="shortcut_gone">That shortcut is gone. Assign the tile again.</string>
     <string name="app_gone">That app is no longer on this phone. Assign the tile again.</string>
     <string name="app_gone_list">That app is no longer on this phone. The list has been refreshed.</string>
+    <string name="tile_app_missing">%1$s is missing</string>
     <string name="editor_pick_shortcut">Choose shortcut</string>
     <string name="shortcut_needs_home_role">Android only hands shortcuts to the app that runs the home screen. Make HomeTiles your home screen to use them.</string>
     <string name="shortcut_none">This app offers no shortcuts.</string>

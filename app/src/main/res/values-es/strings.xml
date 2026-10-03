@@ -263,6 +263,7 @@
     <string name="shortcut_gone">Ese acceso directo ya no existe. Asigne el mosaico otra vez.</string>
     <string name="app_gone">Esa aplicación ya no está en este teléfono. Asigne el mosaico otra vez.</string>
     <string name="app_gone_list">Esa aplicación ya no está en este teléfono. La lista se ha actualizado.</string>
+    <string name="tile_app_missing">Falta %1$s</string>
     <string name="editor_pick_shortcut">Elegir acceso directo</string>
     <string name="shortcut_needs_home_role">Android solo da los accesos directos a la aplicación que hace la pantalla de inicio. Haga de HomeTiles su pantalla de inicio.</string>
     <string name="shortcut_none">Esta aplicación no ofrece accesos directos.</string>

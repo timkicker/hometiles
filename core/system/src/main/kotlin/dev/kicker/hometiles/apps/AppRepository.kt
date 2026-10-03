@@ -5,8 +5,14 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.LauncherApps
 import android.graphics.drawable.Drawable
+import android.os.Handler
+import android.os.Looper
 import android.os.Process
 import android.os.UserHandle
+import java.util.concurrent.atomic.AtomicInteger
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.callbackFlow
 
 data class LaunchableApp(
     val label: String,
@@ -23,6 +29,36 @@ class AppRepository(context: Context) {
     private val launcherApps =
         appContext.getSystemService(Context.LAUNCHER_APPS_SERVICE) as LauncherApps
     private val user: UserHandle = Process.myUserHandle()
+
+    /** shared by every listener, so a new one never starts at a number an old one had. */
+    private val ticks = AtomicInteger()
+
+    /**
+     * ticks when an app is installed, removed or changed, and once whenever someone starts
+     * listening. the once matters most: an app is usually removed while the home screen sits
+     * in the background, where nobody listens, and the way back is when it has to ask again.
+     */
+    fun changes(): Flow<Int> = callbackFlow {
+        val tick = { trySend(ticks.incrementAndGet()) }
+        val callback = object : LauncherApps.Callback() {
+            override fun onPackageRemoved(packageName: String, user: UserHandle) { tick() }
+            override fun onPackageAdded(packageName: String, user: UserHandle) { tick() }
+            override fun onPackageChanged(packageName: String, user: UserHandle) { tick() }
+            override fun onPackagesAvailable(
+                packageNames: Array<out String>,
+                user: UserHandle,
+                replacing: Boolean,
+            ) { tick() }
+            override fun onPackagesUnavailable(
+                packageNames: Array<out String>,
+                user: UserHandle,
+                replacing: Boolean,
+            ) { tick() }
+        }
+        launcherApps.registerCallback(callback, Handler(Looper.getMainLooper()))
+        tick()
+        awaitClose { launcherApps.unregisterCallback(callback) }
+    }
 
     fun loadApps(): List<LaunchableApp> =
         launcherApps.getActivityList(null, user)

@@ -262,6 +262,7 @@
     <string name="shortcut_gone">Quella scorciatoia non c’è più. Assegni di nuovo il riquadro.</string>
     <string name="app_gone">Quell’app non è più su questo telefono. Assegni di nuovo il riquadro.</string>
     <string name="app_gone_list">Quell’app non è più su questo telefono. L’elenco è stato aggiornato.</string>
+    <string name="tile_app_missing">Manca %1$s</string>
     <string name="editor_pick_shortcut">Scegliere una scorciatoia</string>
     <string name="shortcut_needs_home_role">Android dà le scorciatoie solo all’app che fa la schermata iniziale. Faccia di HomeTiles la sua schermata iniziale.</string>
     <string name="shortcut_none">Questa app non offre scorciatoie.</string>

@@ -262,6 +262,7 @@
     <string name="shortcut_gone">Ce raccourci n’existe plus. Réattribuez la tuile.</string>
     <string name="app_gone">Cette application n’est plus sur ce téléphone. Réattribuez la tuile.</string>
     <string name="app_gone_list">Cette application n’est plus sur ce téléphone. La liste a été actualisée.</string>
+    <string name="tile_app_missing">%1$s introuvable</string>
     <string name="editor_pick_shortcut">Choisir un raccourci</string>
     <string name="shortcut_needs_home_role">Android ne donne les raccourcis qu’à l’application qui fait l’écran d’accueil. Faites de HomeTiles votre écran d’accueil.</string>
     <string name="shortcut_none">Cette application n’offre aucun raccourci.</string>

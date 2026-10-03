@@ -45,6 +45,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.ui.Alignment
 import androidx.compose.material3.Icon
 import androidx.compose.material.icons.filled.Apps
+import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.Widgets
 import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.Person
@@ -434,29 +435,40 @@ private fun TileFor(
             onLongClick = onLongClick,
         )
 
-        is ButtonAction.App -> BigTile(
-            label = button.label ?: appLabel(action.packageName, action.activityName) ?: action.packageName,
-            background = color,
-            cellHeight = cellHeight,
-            cellWidth = cellWidth,
-            // a chosen icon beats the app's own image too: choosing one was deliberate.
-            icon = if (appearance.icons != IconVisibility.NEVER) {
-                IconCatalogue.vectorFor(button.iconName)
-            } else {
-                null
-            },
-            iconBitmap = if (appearance.icons != IconVisibility.NEVER && button.iconName == null) {
-                appIcon(action.packageName, action.activityName)
-            } else {
-                null
-            },
-            badgeCount = badge,
-            labelPosition = appearance.labelPosition,
-            cornerRadius = appearance.cornerRadiusDp.dp,
-            modifier = modifier,
-            onClick = onClick,
-            onLongClick = onLongClick,
-        )
+        is ButtonAction.App -> {
+            // null when the package is gone, uninstalled or installed again under another
+            // name. asked before the own label, or a tile called whatsapp keeps that name
+            // while pointing at nothing. the tile stays: tapping it leads to the editor.
+            val installed = appLabel(action.packageName, action.activityName)
+            val name = button.label ?: installed ?: action.packageName
+            val missing = installed == null
+            BigTile(
+                label = if (missing) stringResource(R.string.tile_app_missing, name) else name,
+                background = color,
+                cellHeight = cellHeight,
+                cellWidth = cellWidth,
+                // a chosen icon beats the app's own image too: choosing one was deliberate.
+                // a missing app beats both, the problem is what the tile has to show.
+                icon = when {
+                    appearance.icons == IconVisibility.NEVER -> null
+                    missing -> Icons.Filled.ErrorOutline
+                    else -> IconCatalogue.vectorFor(button.iconName)
+                },
+                iconBitmap = if (
+                    !missing && appearance.icons != IconVisibility.NEVER && button.iconName == null
+                ) {
+                    appIcon(action.packageName, action.activityName)
+                } else {
+                    null
+                },
+                badgeCount = badge,
+                labelPosition = appearance.labelPosition,
+                cornerRadius = appearance.cornerRadiusDp.dp,
+                modifier = modifier,
+                onClick = onClick,
+                onLongClick = onLongClick,
+            )
+        }
 
         is ButtonAction.Contact -> BigTile(
             label = button.label ?: action.name,

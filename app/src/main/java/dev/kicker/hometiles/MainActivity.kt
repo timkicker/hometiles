@@ -42,6 +42,7 @@ import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -341,6 +342,11 @@ class MainActivity : HomeTilesActivity() {
             val systemPackages = remember(counts) { SystemPackagesReader.read(context) }
             val battery by remember { BatteryRepository.readings(context) }
                 .collectAsStateWithLifecycle(initialValue = null)
+            // ticks when an app comes or goes and on every return. app tiles then ask again
+            // whether their app is still there; without it a removed app showed only after a
+            // cold start.
+            val packages by remember { apps.changes() }
+                .collectAsStateWithLifecycle(initialValue = 0)
             // read only: the flow listens to telephony and registers nothing.
             val signal by remember { SignalRepository.readings(context) }
                 .collectAsStateWithLifecycle(initialValue = null)
@@ -413,62 +419,64 @@ class MainActivity : HomeTilesActivity() {
                 dev.kicker.hometiles.data.Screen, Modifier, Boolean, FocusRequester?, FocusRequester?,
             ) -> Unit =
                 { shown, gestalt, onTop, strip, back ->
-                    HomeScreenView(
-                        screen = shown,
-                        active = onTop,
-                        below = strip,
-                        gridAnchor = back,
-                        appearance = config.appearance,
-                        modifier = gestalt,
-                        appIcon = { pkg, act ->
-                            apps.iconFor(pkg, act)?.toBitmap(96, 96)?.asImageBitmap()
-                        },
-                        appLabel = { pkg, act -> apps.labelFor(pkg, act) },
-                        shortcutIcon = { pkg, id ->
-                            ShortcutRepository.get(context)
-                                .iconFor(pkg, id, resources.displayMetrics.densityDpi)
-                                ?.toBitmap(96, 96)?.asImageBitmap()
-                        },
-                        folderOf = { id -> config.screens.firstOrNull { it.id == id && it.isFolder } },
-                        notificationCounts =
-                            if (config.behaviour.blinkOnNotification) counts else emptyMap(),
-                        missedCalls = if (config.behaviour.blinkOnNotification) missed else 0,
-                        unreadMessages =
-                            if (config.behaviour.blinkOnNotification) unread else null,
-                        systemPackages = systemPackages,
-                        battery = battery,
-                        signal = signal,
-                        // in edit mode a short tap already opens the editor: a long press
-                        // must not be a precondition, or whoever cannot manage one could
-                        // never change their tiles.
-                        onActivate = { cell ->
-                            when {
-                                editMode -> context.startActivity(
-                                    TileEditorActivity.intent(context, shown.id, cell.x, cell.y),
+                    key(packages) {
+                        HomeScreenView(
+                            screen = shown,
+                            active = onTop,
+                            below = strip,
+                            gridAnchor = back,
+                            appearance = config.appearance,
+                            modifier = gestalt,
+                            appIcon = { pkg, act ->
+                                apps.iconFor(pkg, act)?.toBitmap(96, 96)?.asImageBitmap()
+                            },
+                            appLabel = { pkg, act -> apps.labelFor(pkg, act) },
+                            shortcutIcon = { pkg, id ->
+                                ShortcutRepository.get(context)
+                                    .iconFor(pkg, id, resources.displayMetrics.densityDpi)
+                                    ?.toBitmap(96, 96)?.asImageBitmap()
+                            },
+                            folderOf = { id -> config.screens.firstOrNull { it.id == id && it.isFolder } },
+                            notificationCounts =
+                                if (config.behaviour.blinkOnNotification) counts else emptyMap(),
+                            missedCalls = if (config.behaviour.blinkOnNotification) missed else 0,
+                            unreadMessages =
+                                if (config.behaviour.blinkOnNotification) unread else null,
+                            systemPackages = systemPackages,
+                            battery = battery,
+                            signal = signal,
+                            // in edit mode a short tap already opens the editor: a long press
+                            // must not be a precondition, or whoever cannot manage one could
+                            // never change their tiles.
+                            onActivate = { cell ->
+                                when {
+                                    editMode -> context.startActivity(
+                                        TileEditorActivity.intent(context, shown.id, cell.x, cell.y),
+                                    )
+                                    // having chosen the long press means wanting nothing from a
+                                    // short one, or the setting would have no effect.
+                                    config.behaviour.pressMode == PressMode.LONG -> Unit
+                                    else -> activate(cell, shown.id, apps) { currentScreen.value = it }
+                                }
+                            },
+                            editMode = editMode,
+                            onEdit = { x, y ->
+                                perform(
+                                    shown, x, y,
+                                    LongPress.decide(
+                                        config.behaviour.accessibility,
+                                        editMode,
+                                        config.behaviour.pressMode,
+                                        hasSecondAction = shown.cellAt(x, y)?.button?.longPress != null,
+                                    ),
                                 )
-                                // having chosen the long press means wanting nothing from a
-                                // short one, or the setting would have no effect.
-                                config.behaviour.pressMode == PressMode.LONG -> Unit
-                                else -> activate(cell, shown.id, apps) { currentScreen.value = it }
-                            }
-                        },
-                        editMode = editMode,
-                        onEdit = { x, y ->
-                            perform(
-                                shown, x, y,
-                                LongPress.decide(
-                                    config.behaviour.accessibility,
-                                    editMode,
-                                    config.behaviour.pressMode,
-                                    hasSecondAction = shown.cellAt(x, y)?.button?.longPress != null,
-                                ),
-                            )
-                        },
-                        // `PLAN.md` 10.3.4: the menu key opens the list instead of doing
-                        // something at once. the long press can do only one of three, and the
-                        // settings decide which; by key the other two would be out of reach.
-                        onMenu = { x, y -> tileMenu.value = Triple(shown.id, x, y) },
-                    )
+                            },
+                            // `PLAN.md` 10.3.4: the menu key opens the list instead of doing
+                            // something at once. the long press can do only one of three, and the
+                            // settings decide which; by key the other two would be out of reach.
+                            onMenu = { x, y -> tileMenu.value = Triple(shown.id, x, y) },
+                        )
+                    }
                 }
 
             HomeTilesTheme(
