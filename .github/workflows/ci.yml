@@ -31,6 +31,10 @@ jobs:
 
       - name: Set up the Android SDK
         uses: android-actions/setup-android@v3
+        # without this it installs `tools`, which the command line tools 16.0 on the
+        # runner no longer have; every job failed there on 03.10.2026.
+        with:
+          packages: platform-tools
 
       - uses: gradle/actions/setup-gradle@v4
 
@@ -78,6 +82,10 @@ jobs:
 
       - name: Set up the Android SDK
         uses: android-actions/setup-android@v3
+        # without this it installs `tools`, which the command line tools 16.0 on the
+        # runner no longer have; every job failed there on 03.10.2026.
+        with:
+          packages: platform-tools
 
       - uses: gradle/actions/setup-gradle@v4
 
@@ -112,6 +120,10 @@ jobs:
 
       - name: Set up the Android SDK
         uses: android-actions/setup-android@v3
+        # without this it installs `tools`, which the command line tools 16.0 on the
+        # runner no longer have; every job failed there on 03.10.2026.
+        with:
+          packages: platform-tools
 
       - uses: gradle/actions/setup-gradle@v4
 
