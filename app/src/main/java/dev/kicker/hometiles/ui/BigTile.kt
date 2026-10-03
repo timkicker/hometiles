@@ -172,12 +172,14 @@ fun BigTile(
         val widthPx = with(density) { labelWidthDp(cellWidth.value, cellHeight.value).dp.roundToPx() }
         // the zone height bounds it too: two lines often fit the width but not the zone.
         val heightPx = with(density) { zoneDp.dp.roundToPx() }
+        // and the longest word alone: "Einstellunge" over "n" fits two lines as well.
+        val word = AnnotatedString(longestWord(label))
         fun measures(style: TextStyle) = !measurer.measure(
             text = AnnotatedString(label),
             style = style,
             maxLines = 2,
             constraints = Constraints(maxWidth = widthPx, maxHeight = heightPx),
-        ).hasVisualOverflow
+        ).hasVisualOverflow && measurer.measure(word, style).size.width <= widthPx
         val hit = steps.firstOrNull { measures(it.second) }
         Triple(
             hit?.first ?: steps.last().first,

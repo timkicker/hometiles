@@ -12,9 +12,12 @@ import org.junit.Test
  * list. compose splits a word right through as soon as it no longer fits the line on its own
  * - and whoever sets 200 percent has gained nothing from a torn word.
  *
- * all three places measure now and step down in size before they split: the tile measures the
- * whole text, heading and row measure the **longest word**, because that is where the line
- * breaks.
+ * all three places measure now and step down in size before they split, and all three
+ * measure the **longest word**, because that is where the line breaks.
+ *
+ * the tile used to measure only the whole text against two lines. on 03.10.2026, default
+ * settings, a pixel 6 in german, the settings tile read "Einstellunge" and "n" below: two
+ * lines, so it counted as fitting, and the smaller step was never tried.
  */
 class ShrinkBeforeBreakTest {
 
@@ -54,6 +57,16 @@ class ShrinkBeforeBreakTest {
         assertTrue(
             "it is not checked against the available room",
             "constraints.maxHeight" in text,
+        )
+    }
+
+    @Test
+    fun `the tile measures the longest word too`() {
+        val text = source("dev/kicker/hometiles/ui/BigTile.kt")
+        assertTrue(
+            "the tile only asks whether the text fits two lines. a word torn in half fits " +
+                "two lines as well.",
+            "longestWord(" in text,
         )
     }
 }
