@@ -54,7 +54,7 @@ object CallNotifications {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
         val notification = Notification.Builder(context, CHANNEL)
-            .setSmallIcon(R.drawable.ic_stat_message)
+            .setSmallIcon(R.drawable.ic_stat_call)
             .setContentTitle(name ?: PhoneNumbers.forDisplay(number).ifBlank {
                 texts.getString(R.string.call_unknown)
             })
