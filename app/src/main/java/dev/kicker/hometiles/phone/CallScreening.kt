@@ -1,5 +1,6 @@
 package dev.kicker.hometiles.phone
 
+import android.os.Build
 import android.telecom.Call
 import android.telecom.CallScreeningService
 import dev.kicker.hometiles.data.ConfigStore
@@ -20,11 +21,23 @@ class CallScreening : CallScreeningService() {
         val number = callDetails.handle?.schemeSpecificPart.orEmpty()
         val isBlocked = CallBlocking.blocksIncoming(
             number = number,
-            incoming = callDetails.callDirection == Call.Details.DIRECTION_INCOMING,
+            incoming = isIncoming(callDetails),
             blocked = ConfigStore.get(this).current.phone.blockedNumbers,
         )
         respondToCall(callDetails, response(isBlocked))
     }
+
+    /**
+     * [Call.Details.getCallDirection] arrived with android 10, and so did screening of
+     * outgoing calls. before that this service was only ever asked about a call coming in,
+     * so there is nothing to read: the answer is always the same one.
+     */
+    private fun isIncoming(details: Call.Details): Boolean =
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            details.callDirection == Call.Details.DIRECTION_INCOMING
+        } else {
+            true
+        }
 
     /**
      * `skipCallLog = false`: the call belongs in the list. a block that makes calls vanish

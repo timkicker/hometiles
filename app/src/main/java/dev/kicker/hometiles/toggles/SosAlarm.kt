@@ -4,6 +4,7 @@ import android.content.Context
 import android.media.AudioAttributes
 import android.media.RingtoneManager
 import android.media.Ringtone
+import android.os.Build
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
@@ -30,8 +31,12 @@ object SosAlarm {
     /** slow enough to read as blinking. */
     const val BLINK_MS = 500L
 
+    /** short enough that the gap between two runs of the sound is not heard as silence. */
+    const val LOOP_CHECK_MS = 300L
+
     private var ringtone: Ringtone? = null
     private var blinking: Job? = null
+    private var looping: Job? = null
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
     /** both off means do not start at all. */
@@ -45,6 +50,8 @@ object SosAlarm {
     fun stop(context: Context) {
         runCatching { ringtone?.stop() }
         ringtone = null
+        looping?.cancel()
+        looping = null
         blinking?.cancel()
         blinking = null
         // the light would stay on and the user would go looking for its switch.
@@ -62,9 +69,25 @@ object SosAlarm {
                     .setUsage(AudioAttributes.USAGE_ALARM)
                     .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
                     .build()
-                isLooping = true
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) isLooping = true
                 play()
                 ringtone = this
+            }
+        }
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.P) startLoop()
+    }
+
+    /**
+     * before android 9 a [Ringtone] cannot repeat itself. an alarm that plays once and then
+     * goes quiet is not an alarm, so it is started again each time it has run out.
+     */
+    private fun startLoop() {
+        if (looping != null) return
+        looping = scope.launch {
+            while (isActive) {
+                delay(LOOP_CHECK_MS)
+                val tone = ringtone ?: break
+                if (!tone.isPlaying) runCatching { tone.play() }
             }
         }
     }

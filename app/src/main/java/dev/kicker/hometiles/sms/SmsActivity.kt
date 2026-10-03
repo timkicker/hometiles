@@ -10,6 +10,7 @@ import android.content.Intent
 import android.database.ContentObserver
 import android.provider.Telephony
 import android.os.Bundle
+import android.view.WindowManager
 import android.os.Handler
 import android.os.Looper
 import android.telephony.SmsManager
@@ -112,8 +113,7 @@ class SmsActivity : HomeTilesActivity() {
         // only when the notice itself took the screen. fixed in the manifest it would be a
         // different promise: then every conversation would lie over the lock screen.
         if (intent?.getBooleanExtra(EXTRA_FULL_SCREEN, false) == true) {
-            setShowWhenLocked(true)
-            setTurnScreenOn(true)
+            showOverLockScreen()
         }
 
         setContent {
@@ -449,6 +449,27 @@ var granted by remember(resumes.intValue) { mutableStateOf(repository.hasReadPer
             )
         }
     }
+
+    /**
+     * let this conversation lie over the lock screen and wake the screen for it.
+     *
+     * the two methods arrived with android 8.1. on android 8.0 the same thing is asked for
+     * with the two window flags they replaced, which are deprecated but still obeyed.
+     */
+    private fun showOverLockScreen() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
+            setShowWhenLocked(true)
+            setTurnScreenOn(true)
+        } else {
+            // deprecated since 8.1 in favour of the two methods above, and the only way
+            // left on 8.0, which is the oldest android the app promises.
+            @Suppress("DEPRECATION")
+            window.addFlags(
+                WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED or
+                    WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON,
+            )
+        }
+    }
 }
 
 @Composable
@@ -732,4 +753,5 @@ private fun Conversation(
             sendButton()
         }
     }
+
 }

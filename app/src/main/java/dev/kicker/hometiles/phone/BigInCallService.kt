@@ -1,6 +1,7 @@
 package dev.kicker.hometiles.phone
 
 import android.content.Intent
+import android.os.Build
 import android.telecom.Call
 import dev.kicker.hometiles.data.AudioRoute
 import dev.kicker.hometiles.data.ConfigStore
@@ -19,6 +20,9 @@ class BigInCallService : InCallService() {
 
     /** calls whose audio has been set once already; see [CallAudio]. */
     private val audioSet = mutableSetOf<Call>()
+
+    /** calls that were dialled from here, on the androids that do not say so; see [noteDirection]. */
+    private val dialledOut = mutableSetOf<Call>()
 
     private val callback = object : Call.Callback() {
         override fun onStateChanged(call: Call, state: Int) {
@@ -40,6 +44,7 @@ class BigInCallService : InCallService() {
             runCatching { call.reject(false, null) }
             return
         }
+        noteDirection(call)
         InCallRepository.attach(this)
         call.registerCallback(callback)
         publish(call)
@@ -65,7 +70,7 @@ class BigInCallService : InCallService() {
      */
     private fun setAudio(call: Call, state: Int) {
         if (state != Call.STATE_ACTIVE || !audioSet.add(call)) return
-        val outgoing = call.details?.callDirection == Call.Details.DIRECTION_OUTGOING
+        val outgoing = isOutgoing(call)
         val route = CallAudio.routeOnConnect(
             ConfigStore.get(this).current.phone,
             outgoing = outgoing,
@@ -73,9 +78,30 @@ class BigInCallService : InCallService() {
         runCatching { setAudioRoute(AudioRoutes.toTelecom(route)) }
     }
 
+    /**
+     * [Call.Details.getCallDirection] arrived with android 10. the state a call carries when
+     * it turns up says the same thing: one that was dialled starts out connecting, one that
+     * comes in starts out ringing. it has to be read here, because by the time the audio
+     * route is set the call is long since active and the starting state is gone.
+     */
+    private fun noteDirection(call: Call) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) return
+        if (call.state == Call.STATE_CONNECTING || call.state == Call.STATE_DIALING) {
+            dialledOut.add(call)
+        }
+    }
+
+    private fun isOutgoing(call: Call): Boolean =
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            call.details?.callDirection == Call.Details.DIRECTION_OUTGOING
+        } else {
+            call in dialledOut
+        }
+
     override fun onCallRemoved(call: Call) {
         super.onCallRemoved(call)
         audioSet.remove(call)
+        dialledOut.remove(call)
         call.unregisterCallback(callback)
         CallNotifications.clear(this)
         if (calls.isEmpty()) {

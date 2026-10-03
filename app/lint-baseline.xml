@@ -45,82 +45,12 @@
             column="37"/>
     </issue>
 
-    <issue
-        id="InlinedApi"
-        message="Field requires API level 29 (current min is 26): `android.telecom.Call.Details#DIRECTION_OUTGOING`"
-        errorLine1="        val outgoing = call.details?.callDirection == Call.Details.DIRECTION_OUTGOING"
-        errorLine2="                                                      ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/java/dev/kicker/hometiles/phone/BigInCallService.kt"
-            line="68"
-            column="55"/>
-    </issue>
 
-    <issue
-        id="InlinedApi"
-        message="Field requires API level 29 (current min is 26): `android.telecom.Call.Details#DIRECTION_INCOMING`"
-        errorLine1="            incoming = callDetails.callDirection == Call.Details.DIRECTION_INCOMING,"
-        errorLine2="                                                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/java/dev/kicker/hometiles/phone/CallScreening.kt"
-            line="23"
-            column="53"/>
-    </issue>
 
-    <issue
-        id="NewApi"
-        message="Call requires API level 29 (current min is 26): `android.telecom.Call.Details#getCallDirection`"
-        errorLine1="        val outgoing = call.details?.callDirection == Call.Details.DIRECTION_OUTGOING"
-        errorLine2="                                     ~~~~~~~~~~~~~">
-        <location
-            file="src/main/java/dev/kicker/hometiles/phone/BigInCallService.kt"
-            line="68"
-            column="38"/>
-    </issue>
 
-    <issue
-        id="NewApi"
-        message="Call requires API level 29 (current min is 26): `android.telecom.Call.Details#getCallDirection`"
-        errorLine1="            incoming = callDetails.callDirection == Call.Details.DIRECTION_INCOMING,"
-        errorLine2="                                   ~~~~~~~~~~~~~">
-        <location
-            file="src/main/java/dev/kicker/hometiles/phone/CallScreening.kt"
-            line="23"
-            column="36"/>
-    </issue>
 
-    <issue
-        id="NewApi"
-        message="Call requires API level 27 (current min is 26): `android.app.Activity#setShowWhenLocked`"
-        errorLine1="            setShowWhenLocked(true)"
-        errorLine2="            ~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/java/dev/kicker/hometiles/sms/SmsActivity.kt"
-            line="115"
-            column="13"/>
-    </issue>
 
-    <issue
-        id="NewApi"
-        message="Call requires API level 27 (current min is 26): `android.app.Activity#setTurnScreenOn`"
-        errorLine1="            setTurnScreenOn(true)"
-        errorLine2="            ~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/java/dev/kicker/hometiles/sms/SmsActivity.kt"
-            line="116"
-            column="13"/>
-    </issue>
 
-    <issue
-        id="NewApi"
-        message="Call requires API level 28 (current min is 26): `android.media.Ringtone#setLooping`"
-        errorLine1="                isLooping = true"
-        errorLine2="                ~~~~~~~~~">
-        <location
-            file="src/main/java/dev/kicker/hometiles/toggles/SosAlarm.kt"
-            line="65"
-            column="17"/>
-    </issue>
 
     <issue
         id="UnusedAttribute"
