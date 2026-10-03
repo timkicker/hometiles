@@ -1,0 +1,3 @@
+Fixes crashes on Android 8 and 9 in the SOS alarm, the call screen and the message notice on
+the lock screen. A tile whose app has been removed now says so. Labels get smaller instead of
+breaking a word. An incoming call shows a phone in the status bar instead of an envelope.

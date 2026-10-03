@@ -1,0 +1,4 @@
+Behebt Abstürze unter Android 8 und 9 beim SOS-Alarm, im Anrufbildschirm und bei der Nachricht
+auf dem Sperrbildschirm. Eine Kachel, deren App entfernt wurde, sagt das jetzt. Beschriftungen
+werden kleiner, statt ein Wort zu trennen. Ein Anruf zeigt in der Statusleiste ein Telefon statt
+eines Briefumschlags.

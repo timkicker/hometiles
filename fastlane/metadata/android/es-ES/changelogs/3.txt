@@ -1,0 +1,4 @@
+Corrige cierres en Android 8 y 9 en la alarma SOS, la pantalla de llamada y el aviso de mensaje
+en la pantalla bloqueada. Un mosaico cuya aplicación se ha eliminado ahora lo indica. Los textos
+se hacen más pequeños en lugar de partir una palabra. Una llamada muestra un teléfono en la
+barra de estado en lugar de un sobre.

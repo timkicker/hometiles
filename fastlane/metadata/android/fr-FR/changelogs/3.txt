@@ -1,0 +1,4 @@
+Corrige des plantages sous Android 8 et 9 dans l'alarme SOS, l'écran d'appel et l'avis de
+message sur l'écran verrouillé. Une tuile dont l'application a été supprimée l'indique
+désormais. Les libellés rétrécissent au lieu de couper un mot. Un appel affiche un téléphone
+dans la barre d'état au lieu d'une enveloppe.

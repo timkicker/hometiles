@@ -1,0 +1,4 @@
+Corregge arresti su Android 8 e 9 nell'allarme SOS, nella schermata di chiamata e nell'avviso
+di messaggio sullo schermo bloccato. Un riquadro la cui app è stata rimossa ora lo dice. Le
+etichette diventano più piccole invece di spezzare una parola. Una chiamata mostra un telefono
+nella barra di stato invece di una busta.
