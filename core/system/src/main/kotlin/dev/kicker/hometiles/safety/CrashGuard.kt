@@ -9,10 +9,11 @@ enum class StartMode { NORMAL, SAFE }
  * activities after repeated crashes, and without a second phone or adb one is then left with
  * no home screen.
  *
- * two consecutive starts that never reached drawing switch to a stripped-down mode which
- * shows only what one needs to get back, and loads no config, because the config might be
- * the problem. **two** on purpose: a single crash can be a slip, and landing in safe mode
- * after every slip destroys trust in the app.
+ * two crashed starts in a row, before the one now running, switch to a stripped-down mode
+ * which shows only what one needs to get back, and loads no config, because the config might
+ * be the problem. **two** on purpose: a single crash can be a slip, and landing in safe mode
+ * after every slip destroys trust in the app. the count includes the running start, hence
+ * a threshold of three.
  *
  * a start that never drew counts only if it ended in a crash. an update, the low memory
  * killer or switching off end a start just as well, and a single one of those put the next
@@ -20,7 +21,7 @@ enum class StartMode { NORMAL, SAFE }
  */
 object CrashGuard {
 
-    const val THRESHOLD = 2
+    const val THRESHOLD = 3
 
     fun modeFor(consecutiveFailedStarts: Int): StartMode =
         if (consecutiveFailedStarts >= THRESHOLD) StartMode.SAFE else StartMode.NORMAL

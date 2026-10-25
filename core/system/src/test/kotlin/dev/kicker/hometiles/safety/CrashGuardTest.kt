@@ -6,17 +6,24 @@ import org.junit.Test
 
 class CrashGuardTest {
 
-    @Test
-    fun `a single failed start changes nothing`() {
-        // whoever lands in safe mode after every slip stops trusting the app.
-        assertEquals(StartMode.NORMAL, CrashGuard.modeFor(0))
-        assertEquals(StartMode.NORMAL, CrashGuard.modeFor(1))
+    /** the count this start reaches after [crashes] crashed starts in a row. */
+    private fun after(crashes: Int): Int {
+        var count = CrashGuard.onStart(0, previousCrashed = false)
+        repeat(crashes) { count = CrashGuard.onStart(count, previousCrashed = true) }
+        return count
     }
 
     @Test
-    fun `two failed starts in a row switch over`() {
-        assertEquals(StartMode.SAFE, CrashGuard.modeFor(2))
-        assertEquals(StartMode.SAFE, CrashGuard.modeFor(7))
+    fun `a single crash changes nothing`() {
+        // whoever lands in safe mode after every slip stops trusting the app.
+        assertEquals(StartMode.NORMAL, CrashGuard.modeFor(after(0)))
+        assertEquals(StartMode.NORMAL, CrashGuard.modeFor(after(1)))
+    }
+
+    @Test
+    fun `two crashes in a row switch over`() {
+        assertEquals(StartMode.SAFE, CrashGuard.modeFor(after(2)))
+        assertEquals(StartMode.SAFE, CrashGuard.modeFor(after(7)))
     }
 
     @Test
@@ -36,7 +43,14 @@ class CrashGuardTest {
 
     @Test
     fun `a crashed start still counts`() {
-        assertEquals(StartMode.SAFE, CrashGuard.modeFor(CrashGuard.onStart(1, previousCrashed = true)))
+        assertEquals(2, CrashGuard.onStart(1, previousCrashed = true))
+    }
+
+    @Test
+    fun `starts ended from outside never add up`() {
+        var count = after(1)
+        repeat(5) { count = CrashGuard.onStart(count, previousCrashed = false) }
+        assertEquals(StartMode.NORMAL, CrashGuard.modeFor(count))
     }
 
     @Test
