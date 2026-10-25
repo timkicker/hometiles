@@ -214,6 +214,13 @@ fun BigTile(
         else -> 3.dp
     } + if (pressed) 2.dp else 0.dp
 
+    // the tile's white ink melted into the light theme's page, on focus and on the blink border
+    // alike, the same fault as on the rows (issue #2). see tileFocusRingsFor.
+    val inkRings = tileFocusRingsFor(
+        focusArgb(palette.onTile),
+        focusArgb(palette.onBackground),
+        focusArgb(palette.background),
+    )
     Box(
         modifier = modifier
             .scale(scale)
@@ -221,15 +228,12 @@ fun BigTile(
             .background(pressedColour)
             .then(
                 when {
-                    // the tile's white ink melted into the light theme's page, the same fault
-                    // as on the rows (issue #2). see tileFocusRingsFor.
-                    focused -> Modifier.focusRings(
-                        tileFocusRingsFor(
-                            focusArgb(palette.onTile),
-                            focusArgb(palette.onBackground),
-                            focusArgb(palette.background),
-                        ),
+                    focused -> Modifier.focusRings(inkRings, RoundedCornerShape(cornerRadius))
+                    // each ring as thin as the single one: still clearly not the focus.
+                    badgeCount > 0 -> Modifier.focusRings(
+                        inkRings,
                         RoundedCornerShape(cornerRadius),
+                        width = if (inkRings.inner == null) BADGE_BORDER_DP else 2 * BADGE_BORDER_DP,
                     )
                     border != null -> Modifier.border(borderWidth, border, RoundedCornerShape(cornerRadius))
                     else -> Modifier

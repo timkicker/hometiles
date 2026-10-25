@@ -74,11 +74,14 @@ fun tileFocusRingsFor(onTile: Long, onBackground: Long, background: Long): Focus
     else -> FocusRings(onBackground, onTile)
 }
 
-/** one border, or two of half the width: the inner one is drawn first, the outer over it. */
-fun Modifier.focusRings(rings: FocusRings, shape: Shape): Modifier {
-    val inner = rings.inner ?: return border(FOCUS_BORDER_DP.dp, Color(rings.outer), shape)
-    return border((FOCUS_BORDER_DP / 2).dp, Color(rings.outer), shape)
-        .border(FOCUS_BORDER_DP.dp, Color(inner), shape)
+/**
+ * one border of [width], or two of half of it: the inner one is drawn first, the outer over
+ * it. the blink border of a tile passes its own width.
+ */
+fun Modifier.focusRings(rings: FocusRings, shape: Shape, width: Float = FOCUS_BORDER_DP): Modifier {
+    val inner = rings.inner ?: return border(width.dp, Color(rings.outer), shape)
+    return border((width / 2).dp, Color(rings.outer), shape)
+        .border(width.dp, Color(inner), shape)
 }
 
 fun focusArgb(colour: Color): Long = colour.toArgb().toLong() and 0xFFFFFFFFL
