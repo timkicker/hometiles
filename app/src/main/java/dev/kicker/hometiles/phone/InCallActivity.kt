@@ -102,7 +102,9 @@ class InCallActivity : HomeTilesActivity() {
                 val tone = dialChar(event)?.takeIf { it.isDigit() || it == '*' || it == '#' }
                     ?: return@ScreenKeys false
                 if (event.action == KeyEvent.ACTION_DOWN && event.repeatCount == 0) {
-                    InCallRepository.playDigit(tone)
+                    if (InCallRepository.playDigit(tone).isFailure) {
+                        Notice.show(this@InCallActivity, R.string.call_action_failed)
+                    }
                     showKeypad = true
                 }
                 true

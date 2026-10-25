@@ -3,6 +3,8 @@ package dev.kicker.hometiles.phone
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import dev.kicker.hometiles.R
+import dev.kicker.hometiles.ui.Notice
 
 /**
  * answer and reject from the ringing notice.
@@ -14,10 +16,13 @@ import android.content.Intent
 class CallActionReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent) {
-        when (intent.action) {
+        val outcome = when (intent.action) {
             ANSWER -> InCallRepository.answer()
             REJECT -> InCallRepository.reject()
+            else -> return
         }
+        // a button that does nothing while the phone rings is the worst kind. see SilentFailureTest.
+        if (outcome.isFailure) Notice.show(context, R.string.call_action_failed)
     }
 
     companion object {
