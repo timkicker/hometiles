@@ -64,6 +64,11 @@ fun BigKeypad(
     /** extra key bottom left: the dialer puts the plus there, the pin entry leaves it empty. */
     extraKey: Char? = null,
     /**
+     * a key bottom right in place of delete. during a call a sent tone cannot be taken back,
+     * but a mailbox pin ends on the pound key, which the call keypad did not have (issue #2).
+     */
+    lastKey: Char? = null,
+    /**
      * only where the keypad is the screen's main thing, the pin entry: the dialer has a
      * number field above it and must not take the focus from it.
      */
@@ -84,7 +89,8 @@ fun BigKeypad(
     // only the first press counts; delete may repeat.
     ScreenKeys { event ->
         val typed = dialChar(event)
-        val drawn = typed != null && (typed.isDigit() || typed == extraKey || typed in alsoTyped)
+        val drawn = typed != null &&
+            (typed.isDigit() || typed == extraKey || typed == lastKey || typed in alsoTyped)
         when {
             drawn -> {
                 if (event.action == android.view.KeyEvent.ACTION_DOWN && event.repeatCount == 0) {
@@ -104,7 +110,7 @@ fun BigKeypad(
         listOf("1", "2", "3"),
         listOf("4", "5", "6"),
         listOf("7", "8", "9"),
-        listOf(extraKey?.toString() ?: "", "0", "⌫"),
+        listOf(extraKey?.toString() ?: "", "0", lastKey?.toString() ?: "⌫"),
     )
 
     // the movement is led, not searched.

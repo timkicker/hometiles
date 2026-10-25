@@ -24,6 +24,9 @@ class BigInCallService : InCallService() {
     /** calls that were dialled from here, on the androids that do not say so; see [noteDirection]. */
     private val dialledOut = mutableSetOf<Call>()
 
+    /** calls that rang here and have not been taken yet. */
+    private val ringing = mutableSetOf<Call>()
+
     private val callback = object : Call.Callback() {
         override fun onStateChanged(call: Call, state: Int) {
             setAudio(call, state)
@@ -31,6 +34,10 @@ class BigInCallService : InCallService() {
             // in the shade through the whole conversation.
             if (state != Call.STATE_RINGING) CallNotifications.clear(this@BigInCallService)
             publish(call)
+            // taken without the call screen - from the notice, a headset button, the green
+            // key - the call ran with no screen and no notice, and nothing to hang up with
+            // (issue #2, probe call on the emulator 25.10.2026).
+            if (state == Call.STATE_ACTIVE && ringing.remove(call)) openCallScreen()
         }
         override fun onDetailsChanged(call: Call, details: Call.Details) = publish(call)
     }
@@ -48,20 +55,29 @@ class BigInCallService : InCallService() {
         InCallRepository.attach(this)
         call.registerCallback(callback)
         publish(call)
-        // a ringing call goes through the notice: with the screen off this service is in the
-        // background, where android refuses the direct start. see CallNotifications.
+        // a ringing call goes through the notice: with the screen off android refuses the
+        // direct start, see CallNotifications. with the screen on the notice stays small, so
+        // the call screen is also opened directly; where android refuses that too, the
+        // notice carries answer and reject.
         if (call.state == Call.STATE_RINGING) {
+            ringing.add(call)
             CallNotifications.showIncoming(
                 this,
                 name = CallerName.lookup(this, number),
                 number = number,
             )
-            return
         }
-        startActivity(
-            Intent(this, InCallActivity::class.java)
-                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP),
-        )
+        openCallScreen()
+    }
+
+    /** singleTask: a screen that is already open comes to the front and keeps its state. */
+    private fun openCallScreen() {
+        runCatching {
+            startActivity(
+                Intent(this, InCallActivity::class.java)
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP),
+            )
+        }
     }
 
     /**
@@ -102,6 +118,7 @@ class BigInCallService : InCallService() {
         super.onCallRemoved(call)
         audioSet.remove(call)
         dialledOut.remove(call)
+        ringing.remove(call)
         call.unregisterCallback(callback)
         CallNotifications.clear(this)
         if (calls.isEmpty()) {

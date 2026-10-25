@@ -1,6 +1,7 @@
 package dev.kicker.hometiles.phone
 
 import android.os.Bundle
+import android.view.KeyEvent
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
@@ -62,6 +63,8 @@ import dev.kicker.hometiles.R
 import dev.kicker.hometiles.data.AudioRoute
 import dev.kicker.hometiles.data.ConfigStore
 import dev.kicker.hometiles.ui.BigKeypad
+import dev.kicker.hometiles.ui.ScreenKeys
+import dev.kicker.hometiles.ui.dialChar
 import dev.kicker.hometiles.ui.BigHeading
 import dev.kicker.hometiles.ui.BigRow
 import dev.kicker.hometiles.ui.ContactAvatar
@@ -91,6 +94,19 @@ class InCallActivity : HomeTilesActivity() {
             val config by store.config.collectAsStateWithLifecycle()
             val view by InCallRepository.call.collectAsStateWithLifecycle()
             var showKeypad by remember { mutableStateOf(false) }
+            // a phone with keys sends the tone at once and opens the keypad with it, so the
+            // rest goes there and what was sent can be seen. before, the keys only reached a
+            // call once "keypad" had been chosen, and a mailbox pin went nowhere (issue #2).
+            // while the keypad is open it listens itself.
+            ScreenKeys(enabled = !showKeypad && view?.status == CallStatus.ACTIVE) { event ->
+                val tone = dialChar(event)?.takeIf { it.isDigit() || it == '*' || it == '#' }
+                    ?: return@ScreenKeys false
+                if (event.action == KeyEvent.ACTION_DOWN && event.repeatCount == 0) {
+                    InCallRepository.playDigit(tone)
+                    showKeypad = true
+                }
+                true
+            }
             // reachable only with bluetooth; otherwise the row toggles directly.
             var audioChoice by remember { mutableStateOf(false) }
             var replyChoice by remember { mutableStateOf(false) }
@@ -266,6 +282,8 @@ class InCallActivity : HomeTilesActivity() {
                                 BigKeypad(
                                     onDigit = { InCallRepository.playDigit(it) },
                                     onBackspace = { showKeypad = false },
+                                    extraKey = '*',
+                                    lastKey = '#',
                                 )
                             }
                         } else {
@@ -292,6 +310,17 @@ class InCallActivity : HomeTilesActivity() {
                 }
             }
         }
+    }
+
+    // the ringing notice lies over this screen as a banner otherwise. see CallNotifications.
+    override fun onStart() {
+        super.onStart()
+        CallNotifications.screenShown(this, true)
+    }
+
+    override fun onStop() {
+        CallNotifications.screenShown(this, false)
+        super.onStop()
     }
 
     private fun perform(

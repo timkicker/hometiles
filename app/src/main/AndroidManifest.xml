@@ -258,6 +258,11 @@
             android:name=".sms.MessageReminderReceiver"
             android:exported="false" />
 
+        <!-- answer and reject on the ringing notice. only our own notice sends here. -->
+        <receiver
+            android:name=".phone.CallActionReceiver"
+            android:exported="false" />
+
         <service
             android:name=".notify.BigNotificationListener"
             android:exported="false"
