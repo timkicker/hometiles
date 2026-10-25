@@ -1,0 +1,1 @@
+Nach einem Update, einem Neustart oder wenn Android die App während des Starts beendet hat, kam statt des Startbildschirms manchmal die Ansicht „HomeTiles konnte nicht starten“. Das passiert jetzt nicht mehr. Diese Ansicht erscheint nur noch, wenn HomeTiles zweimal hintereinander wirklich abgestürzt ist.

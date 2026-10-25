@@ -1,0 +1,1 @@
+Après une mise à jour ou un redémarrage, l'écran de secours « HomeTiles n’a pas pu démarrer » pouvait s'afficher à tort, de même quand Android fermait l'application pendant son lancement. Il ne vient désormais qu'après deux vrais plantages de suite.

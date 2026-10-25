@@ -1,0 +1,1 @@
+Quando un aggiornamento, un riavvio o Android stesso chiudeva l'app durante l'avvio, poteva comparire per errore la schermata di emergenza «HomeTiles non è riuscito a partire». Adesso arriva solo dopo due arresti anomali veri, uno dietro l'altro.

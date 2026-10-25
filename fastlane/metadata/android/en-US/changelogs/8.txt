@@ -1,0 +1,1 @@
+The rescue view saying "HomeTiles could not start" sometimes turned up by mistake when an update, a restart or Android itself had ended the app while it was starting. It now only appears once HomeTiles has really crashed twice in a row.

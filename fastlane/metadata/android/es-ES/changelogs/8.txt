@@ -1,0 +1,1 @@
+La pantalla de rescate «HomeTiles no ha podido arrancar» a veces salía sin motivo cuando una actualización, un reinicio o el propio Android cerraba la app durante el inicio. Ahora solo aparece si HomeTiles se ha cerrado de verdad por un error dos veces seguidas.
