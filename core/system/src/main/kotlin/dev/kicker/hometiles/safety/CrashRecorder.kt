@@ -1,6 +1,9 @@
 package dev.kicker.hometiles.safety
 
+import android.app.ActivityManager
+import android.app.ApplicationExitInfo
 import android.content.Context
+import android.os.Build
 import android.content.SharedPreferences
 import java.io.File
 import java.io.PrintWriter
@@ -27,9 +30,28 @@ class CrashRecorder(context: Context) {
         private set(value) = prefs.edit().putInt(KEY_FAILED, value).commit().let { }
 
     fun noteStart(): Int {
-        val next = CrashGuard.onStart(failedStarts)
+        val previous = failedStarts
+        val crashed = previous > 0 && crashedSince(prefs.getLong(KEY_STARTED_AT, 0L))
+        val next = CrashGuard.onStart(previous, crashed)
+        prefs.edit().putLong(KEY_STARTED_AT, System.currentTimeMillis()).commit()
         failedStarts = next
         return next
+    }
+
+    /**
+     * did the process die of a crash after [since]? our handler writes the trace for every
+     * crash in kotlin; a hang or a crash in native code only shows in the exit reasons,
+     * which exist from android 11 on.
+     */
+    private fun crashedSince(since: Long): Boolean {
+        if (traceFile.exists() && traceFile.lastModified() >= since) return true
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) return false
+        val am = appContext.getSystemService(ActivityManager::class.java) ?: return false
+        return runCatching {
+            am.getHistoricalProcessExitReasons(appContext.packageName, 0, 5)
+                .filter { it.timestamp >= since }
+                .any { it.reason in CRASH_REASONS }
+        }.getOrDefault(false)
     }
 
     fun noteRendered() {
@@ -75,6 +97,14 @@ class CrashRecorder(context: Context) {
 
     companion object {
         private const val KEY_FAILED = "failedStarts"
+        private const val KEY_STARTED_AT = "startedAt"
+
+        private val CRASH_REASONS = setOf(
+            ApplicationExitInfo.REASON_CRASH,
+            ApplicationExitInfo.REASON_CRASH_NATIVE,
+            ApplicationExitInfo.REASON_ANR,
+            ApplicationExitInfo.REASON_INITIALIZATION_FAILURE,
+        )
 
         @Volatile
         private var instance: CrashRecorder? = null
