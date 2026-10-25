@@ -329,6 +329,7 @@ class MainActivity : HomeTilesActivity() {
             var popupLabel by popupLabelState
             val screen = config.screenById(screenId) ?: config.homeScreen
             val counts by NotificationRepository.counts.collectAsStateWithLifecycle()
+            val voicemail by NotificationRepository.voicemail.collectAsStateWithLifecycle()
             // unseen missed calls, counted again on every return: having just read the list
             // should not leave the number on the tile.
             var missed by remember { mutableStateOf(0) }
@@ -442,6 +443,7 @@ class MainActivity : HomeTilesActivity() {
                             notificationCounts =
                                 if (config.behaviour.blinkOnNotification) counts else emptyMap(),
                             missedCalls = if (config.behaviour.blinkOnNotification) missed else 0,
+                            voicemail = if (config.behaviour.blinkOnNotification) voicemail else 0,
                             unreadMessages =
                                 if (config.behaviour.blinkOnNotification) unread else null,
                             systemPackages = systemPackages,

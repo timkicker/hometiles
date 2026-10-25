@@ -11,6 +11,8 @@ data class NotificationRow(
     val category: String? = null,
     /** the media template means a playback, not a message. */
     val mediaStyle: Boolean = false,
+    /** the channel the app posted it on; the only mark a voicemail notice carries. */
+    val channel: String? = null,
 )
 
 /**
@@ -51,6 +53,14 @@ object NotificationCounts {
         row.groupSummary -> false   // only reports what the single entries already report
         else -> true
     }
+
+    /**
+     * waiting voicemail. the phone service says so in one notice on its channel `voiceMail`
+     * (emulator, voicemail indicator from the network, 25.10.2026); it has no category and its
+     * package posts other things too, so the channel is what tells it apart. issue #2.
+     */
+    fun voicemail(rows: List<NotificationRow>): Int =
+        rows.count { it.channel?.contains("voicemail", ignoreCase = true) == true }
 
     /** past nine it stacks instead of counting. */
     fun badgeText(count: Int): String? = when {

@@ -21,10 +21,8 @@ class BigNotificationListener : NotificationListenerService() {
     override fun onNotificationRemoved(sbn: StatusBarNotification?) = refresh()
 
     private fun refresh() {
-        val counts = runCatching {
-            NotificationCounts.summarise(activeNotifications.orEmpty().map { it.toRow() })
-        }.getOrDefault(emptyMap())
-        NotificationRepository.publish(counts)
+        val rows = runCatching { activeNotifications.orEmpty().map { it.toRow() } }.getOrDefault(emptyList())
+        NotificationRepository.publish(NotificationCounts.summarise(rows), NotificationCounts.voicemail(rows))
     }
 
     private fun StatusBarNotification.toRow() = NotificationRow(
@@ -39,5 +37,6 @@ class BigNotificationListener : NotificationListenerService() {
         mediaStyle = notification.extras
             ?.getString("android.template")
             ?.endsWith("MediaStyle") == true,
+        channel = notification.channelId,
     )
 }

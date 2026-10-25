@@ -13,8 +13,13 @@ object NotificationRepository {
     private val _counts = MutableStateFlow<Map<String, Int>>(emptyMap())
     val counts: StateFlow<Map<String, Int>> = _counts.asStateFlow()
 
-    fun publish(value: Map<String, Int>) {
+    /** waiting voicemail notices, see NotificationCounts.voicemail. */
+    private val _voicemail = MutableStateFlow(0)
+    val voicemail: StateFlow<Int> = _voicemail.asStateFlow()
+
+    fun publish(value: Map<String, Int>, voicemail: Int = 0) {
         _counts.value = value
+        _voicemail.value = voicemail
     }
 
     fun isEnabled(context: Context): Boolean {

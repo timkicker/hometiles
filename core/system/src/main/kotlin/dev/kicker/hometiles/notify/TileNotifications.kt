@@ -40,6 +40,8 @@ object TileNotifications {
         system: SystemPackages,
         missed: Int = 0,
         unread: Int? = null,
+        /** waiting voicemail, see NotificationCounts.voicemail. */
+        voicemail: Int = 0,
     ): Int {
         if (!button.blink) return 0
         val action = button.action
@@ -51,7 +53,9 @@ object TileNotifications {
             // the log shows the same calls, and on a flip phone it is often the only way in
             // (issue #2).
             if (action.builtin == Builtin.CALL_LOG) return missed
-            if (action.builtin == Builtin.DIALER) return missed
+            // the phone tile is where something waits on the phone: missed calls and, since
+            // issue #2, voicemail.
+            if (action.builtin == Builtin.DIALER) return missed + voicemail
             // null means we may not read: then the notices are the best answer there is.
             if (action.builtin == Builtin.MESSAGES && unread != null) return unread
         }

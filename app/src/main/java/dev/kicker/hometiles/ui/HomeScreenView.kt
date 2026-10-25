@@ -90,6 +90,8 @@ fun HomeScreenView(
     notificationCounts: Map<String, Int> = emptyMap(),
     /** unseen missed calls; that tile counts the call log, not notices. */
     missedCalls: Int = 0,
+    /** waiting voicemail; it goes on the phone tile beside the missed calls. */
+    voicemail: Int = 0,
     /** unread messages, or null when HomeTiles may not read them. */
     unreadMessages: Int? = null,
     battery: BatteryReading? = null,
@@ -309,6 +311,7 @@ fun HomeScreenView(
                     cellWidth = w,
                     notificationCounts = notificationCounts,
                     missedCalls = missedCalls,
+                    voicemail = voicemail,
                     unreadMessages = unreadMessages,
                     systemPackages = systemPackages,
                     battery = battery,
@@ -352,6 +355,7 @@ private fun TileFor(
     cellWidth: androidx.compose.ui.unit.Dp,
     notificationCounts: Map<String, Int>,
     missedCalls: Int,
+    voicemail: Int,
     unreadMessages: Int?,
     systemPackages: SystemPackages,
     battery: BatteryReading?,
@@ -374,6 +378,7 @@ private fun TileFor(
         systemPackages,
         missedCalls,
         unreadMessages,
+        voicemail,
     )
 
     when (val action = button.action) {
