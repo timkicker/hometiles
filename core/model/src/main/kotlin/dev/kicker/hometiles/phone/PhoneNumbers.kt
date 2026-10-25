@@ -30,7 +30,10 @@ object PhoneNumbers {
 
     fun isDialable(number: String): Boolean = clean(number).any { it.isDigit() }
 
-    /** the region a number without a country code belongs to (iso, e.g. "at"); null means unknown. */
+    /**
+     * the region a number without a country code belongs to (iso, upper case, e.g. "AT");
+     * null means unknown.
+     */
     @Volatile
     var region: String? = null
 
@@ -46,6 +49,24 @@ object PhoneNumbers {
      */
     @Volatile
     var systemFormat: (String, String?) -> String? = { _, _ -> null }
+
+    /**
+     * how the system writes a number that is still being typed, or null.
+     *
+     * [systemFormat] only knows complete numbers. while typing it returned nothing and the
+     * dialler showed blocks of three: a us number read "202 555 012 3" (issue #2). the same
+     * injection as above, `SystemNumbers.install` hooks up the system's as-you-type spelling.
+     */
+    @Volatile
+    var systemFormatTyping: (String, String?) -> String? = { _, _ -> null }
+
+    /** the number as it stands in the dialler while it is typed. */
+    fun forTyping(number: String): String {
+        val cleaned = clean(number)
+        if (cleaned.isEmpty()) return number.trim()
+        systemFormatTyping(cleaned, region)?.takeIf { it.isNotBlank() }?.let { return it }
+        return forDisplay(cleaned)
+    }
 
     /**
      * the number as it appears on screen.

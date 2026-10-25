@@ -533,7 +533,7 @@ private fun Keypad(
                 // measure the text that is actually drawn: the computation used `typed`
                 // while the grouped version was drawn, longer by every gap, against a fixed
                 // 330 dp instead of the real width. both cut the number without a mark.
-                val shown = PhoneNumbers.forDisplay(typed)
+                val shown = PhoneNumbers.forTyping(typed)
                 val numberStyle = tabularFigures().copy(fontWeight = FontWeight.Bold)
                 BoxWithConstraints(Modifier.fillMaxWidth()) {
                     Text(
