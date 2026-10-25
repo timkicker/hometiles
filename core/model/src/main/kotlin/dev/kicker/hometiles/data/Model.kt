@@ -260,6 +260,23 @@ data class Accessibility(
 enum class PressMode { SHORT, LONG }
 
 /**
+ * lists for a phone worked with keys on a small screen (issue #2, a cat s22 flip): the focus
+ * starts on the first entry, so one sees at once that keys work and saves a press; photos
+ * and the page title go, the tile already said where one is. [AUTO] by default, which is on
+ * where the phone reports a number keypad or a d-pad and leaves touch phones as they were.
+ */
+@Serializable
+enum class KeyFirst {
+    AUTO, ON, OFF;
+
+    fun isOn(phoneHasKeys: Boolean): Boolean = when (this) {
+        AUTO -> phoneHasKeys
+        ON -> true
+        OFF -> false
+    }
+}
+
+/**
  * [LIGHT] is a nudge, [STRONG] a noticeable thump. thick fingers, gloves or little feeling in
  * the hands miss the nudge and take a hit for a miss.
  */
@@ -281,6 +298,8 @@ data class Behaviour(
     val swipeBetweenScreens: Boolean = false,
     val homeKeyReturnsToStart: Boolean = true,
     val accessibility: Accessibility = Accessibility(),
+    /** lists made for the keys of a small flip phone. see [KeyFirst]. */
+    val keyFirst: KeyFirst = KeyFirst.AUTO,
 ) {
     val haptics: HapticStrength
         get() = hapticStrength

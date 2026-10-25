@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Message
 import androidx.compose.material.icons.filled.Call
@@ -63,6 +64,8 @@ import dev.kicker.hometiles.ui.SettingsLink
 import dev.kicker.hometiles.ui.BigSearchField
 import dev.kicker.hometiles.ui.ScrollButtons
 import dev.kicker.hometiles.ui.ContactAvatar
+import dev.kicker.hometiles.ui.firstEntryFocus
+import dev.kicker.hometiles.ui.keyFirstOn
 import dev.kicker.hometiles.ui.dpSp
 import dev.kicker.hometiles.ui.theme.HomeTilesTheme
 import dev.kicker.hometiles.ui.theme.LocalBigPalette
@@ -237,6 +240,7 @@ var granted by remember(resumes.intValue) { mutableStateOf(repository.hasPermiss
                             },
                             onShowAll = { favouritesOnly = false },
                             onCreate = { Intents.open(this@ContactsActivity, repository.createIntent()) },
+                            keyFirst = keyFirstOn(config.behaviour.keyFirst),
                         )
                     }
                 }
@@ -267,10 +271,13 @@ private fun ContactList(
      * no contact matches, even when nobody searched and the phone simply has none.
      */
     hasContacts: Boolean,
+    /** see KeyFirst: no title row and no photos, the focus on the first contact. */
+    keyFirst: Boolean = false,
 ) {
     val palette = LocalBigPalette.current
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        if (query.isEmpty()) {
+        // sorting stays reachable in the settings, contacts page.
+        if (query.isEmpty() && !keyFirst) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -360,20 +367,23 @@ private fun ContactList(
             }
         }
         val listState = rememberLazyListState()
+        // only while nothing is typed: during a search the keys belong to the field.
+        val firstFocus = firstEntryFocus(keyFirst && query.isEmpty(), contacts.isNotEmpty())
         LazyColumn(
             state = listState,
             verticalArrangement = Arrangement.spacedBy(4.dp),
             modifier = Modifier.weight(1f, fill = false),
         ) {
-            items(contacts, key = { it.id }) { contact ->
+            itemsIndexed(contacts, key = { _, it -> it.id }) { index, contact ->
                 BigRow(
                     label = contact.name,
+                    modifier = if (index == 0) firstFocus else Modifier,
                     // in blocks, as in the call log and the messages: the same number used
                     // to look different in three places.
                     secondary = contact.numbers.firstOrNull()?.number
                         ?.let(PhoneNumbers::forDisplay),
                     secondaryMaxLines = 1,
-                    leading = { ContactAvatar(contact.name, contact.photoUri) },
+                    leading = if (keyFirst) null else ({ ContactAvatar(contact.name, contact.photoUri) }),
                     onClick = { onPick(contact) },
                 )
             }

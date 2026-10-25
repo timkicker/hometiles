@@ -21,7 +21,7 @@ class CallConfirmTest {
 
     @Test
     fun `the row in the log asks first`() {
-        val row = Quelltext.cut(source, "items(groups, key =", "onLongClick")
+        val row = Quelltext.cut(source, "itemsIndexed(groups, key =", "onLongClick")
         assertTrue("the row calls onAskCall: $row", "onAskCall(" in row)
         assertTrue("the row must not dial directly: $row", "onCall(" !in row)
     }

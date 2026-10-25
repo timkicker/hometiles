@@ -590,6 +590,11 @@
     <string name="swipe_on">Deslizar cambia de pantalla</string>
     <string name="swipe_off">Dejar que deslizar cambie de pantalla</string>
     <string name="swipe_hint">No desde el borde mismo, eso es del gesto de volver</string>
+    <string name="key_first">Teléfono con teclas</string>
+    <string name="key_first_hint">Las listas empiezan en la primera entrada, sin fotos ni título de página</string>
+    <string name="key_first_auto">Si el teléfono tiene teclas</string>
+    <string name="key_first_on">Siempre</string>
+    <string name="key_first_off">Nunca</string>
     <string name="press_short">Un toque arranca un mosaico</string>
     <string name="press_long">Mantenga un mosaico para arrancarlo</string>
     <string name="press_hint">Mantener evita arrancar algo al rozarlo</string>

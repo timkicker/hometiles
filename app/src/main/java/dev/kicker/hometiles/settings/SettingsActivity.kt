@@ -135,6 +135,7 @@ import dev.kicker.hometiles.data.IconVisibility
 import dev.kicker.hometiles.data.Language
 import dev.kicker.hometiles.ui.Haptics
 import dev.kicker.hometiles.data.PressMode
+import dev.kicker.hometiles.data.KeyFirst
 import dev.kicker.hometiles.data.AudioRoute
 import dev.kicker.hometiles.data.CallGrouping
 import dev.kicker.hometiles.data.CallerPhoto
@@ -1740,6 +1741,29 @@ private fun AccessibilityList(
                 secondary = stringResource(R.string.swipe_hint),
                 checked = behaviour.swipeBetweenScreens,
                 onClick = { onChange(behaviour.copy(swipeBetweenScreens = !behaviour.swipeBetweenScreens)) },
+            )
+        }
+        // issue #2: lists for a small flip phone. see KeyFirst.
+        item { BigHeading(stringResource(R.string.key_first)) }
+        item {
+            Text(
+                text = stringResource(R.string.key_first_hint),
+                color = palette.onBackground,
+                fontSize = bigSp(15f),
+                modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp),
+            )
+        }
+        items(KeyFirst.entries.toList()) { mode ->
+            BigRow(
+                label = stringResource(
+                    when (mode) {
+                        KeyFirst.AUTO -> R.string.key_first_auto
+                        KeyFirst.ON -> R.string.key_first_on
+                        KeyFirst.OFF -> R.string.key_first_off
+                    },
+                ),
+                selected = mode == behaviour.keyFirst,
+                onClick = { onChange(behaviour.copy(keyFirst = mode)) },
             )
         }
         if (LongPress.needsEditModeEntry(behaviour.accessibility, behaviour.pressMode)) {

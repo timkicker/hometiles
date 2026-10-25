@@ -77,6 +77,8 @@ import dev.kicker.hometiles.data.ConfigStore
 import dev.kicker.hometiles.phone.PhoneNumbers
 import dev.kicker.hometiles.actions.SosMessage
 import dev.kicker.hometiles.ui.BigHeading
+import dev.kicker.hometiles.ui.firstEntryFocus
+import dev.kicker.hometiles.ui.keyFirstOn
 import dev.kicker.hometiles.actions.Intents
 import dev.kicker.hometiles.ui.Notice
 import dev.kicker.hometiles.ui.PermissionGate
@@ -344,6 +346,7 @@ var granted by remember(resumes.intValue) { mutableStateOf(repository.hasReadPer
                             },
                             scrollButtons = config.behaviour.accessibility.scrollButtons,
                             onOpen = { openThread = it },
+                            keyFirst = keyFirstOn(config.behaviour.keyFirst),
                             onCompose = { number ->
                                 val match = threads.firstOrNull {
                                     PhoneNumbers.clean(it.address) == PhoneNumbers.clean(number)
@@ -485,8 +488,11 @@ private fun ThreadList(
     onCompose: (String) -> Unit,
     scrollButtons: Boolean,
     onOpen: (Long) -> Unit,
+    /** see KeyFirst: no page title, the focus on the first entry. */
+    keyFirst: Boolean = false,
 ) {
     val palette = LocalBigPalette.current
+    val firstFocus = firstEntryFocus(keyFirst, prefilled != null || threads.isNotEmpty())
     val locale = currentLocale()
     val format = remember(locale) {
         // parts instead of a fixed pattern; see bestDatePattern. "j" is the hour *in the
@@ -502,11 +508,12 @@ private fun ThreadList(
             verticalArrangement = Arrangement.spacedBy(4.dp),
             modifier = Modifier.weight(1f, fill = false),
         ) {
-            item { BigHeading(stringResource(R.string.messages)) }
+            if (!keyFirst) item { BigHeading(stringResource(R.string.messages)) }
             if (prefilled != null) {
                 item {
                     BigRow(
                         label = stringResource(R.string.sms_new_to, PhoneNumbers.forDisplay(prefilled)),
+                        modifier = firstFocus,
                         surface = palette.surfaceAccent,
                         onClick = { onCompose(prefilled) },
                     )
@@ -522,10 +529,11 @@ private fun ThreadList(
                     )
                 }
             }
-            items(threads, key = { it.threadId }) { thread ->
+            itemsIndexed(threads, key = { _, it -> it.threadId }) { index, thread ->
                 BigRow(
                     label = thread.titleOr(stringResource(R.string.call_unknown)) +
                         if (thread.hasUnread) " (${thread.unreadCount})" else "",
+                    modifier = if (index == 0 && prefilled == null) firstFocus else Modifier,
                     // without the bracketed count: it stands as a sentence in the state.
                     labelSpeech = thread.titleOr(stringResource(R.string.call_unknown)),
                     secondary = SmsThreads.preview(thread.lastMessage) + " · " +

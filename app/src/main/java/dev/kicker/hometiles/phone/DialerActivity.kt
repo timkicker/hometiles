@@ -25,6 +25,7 @@ import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.Block
@@ -67,6 +68,8 @@ import dev.kicker.hometiles.data.ConfigStore
 import dev.kicker.hometiles.data.SpeedDialTarget
 import dev.kicker.hometiles.ui.ContactAvatar
 import dev.kicker.hometiles.ui.BigHeading
+import dev.kicker.hometiles.ui.firstEntryFocus
+import dev.kicker.hometiles.ui.keyFirstOn
 import dev.kicker.hometiles.ui.BigKeypad
 import dev.kicker.hometiles.ui.ScreenKeys
 import androidx.compose.ui.focus.FocusRequester
@@ -373,6 +376,7 @@ var logGranted by remember(resumes.intValue) { mutableStateOf(callLog.hasPermiss
 
                         Tab.LOG -> CallList(
                             loading = loading,
+                            keyFirst = keyFirstOn(config.behaviour.keyFirst),
                             scrollButtons = config.behaviour.accessibility.scrollButtons,
                             // unfiltered in: the list must tell being empty from being
                             // filtered empty.
@@ -626,6 +630,8 @@ private fun CallList(
     onNotCallable: () -> Unit,
     scrollButtons: Boolean,
     loading: Boolean,
+    /** see KeyFirst: no page title, the focus on the first call and on yes when asked. */
+    keyFirst: Boolean = false,
 ) {
     // stands in the row for a withheld number; a fixed "?" used to.
     val unknown = stringResource(R.string.call_unknown)
@@ -672,7 +678,7 @@ private fun CallList(
     // confirming should hit a row in passing.
     if (pendingDelete != null) {
         LazyColumn(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            item { BigHeading(stringResource(R.string.calllog)) }
+            if (!keyFirst) item { BigHeading(stringResource(R.string.calllog)) }
             item {
                 Text(
                     text = if (pendingDelete.second.isEmpty()) {
@@ -699,8 +705,10 @@ private fun CallList(
 
     // the same shape as for deleting: the question covers the list.
     if (pendingCall != null) {
+        // the answer is one press away, and the question already names whom.
+        val yesFocus = firstEntryFocus(keyFirst, true)
         LazyColumn(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            item { BigHeading(stringResource(R.string.calllog)) }
+            if (!keyFirst) item { BigHeading(stringResource(R.string.calllog)) }
             item {
                 Text(
                     text = stringResource(R.string.calllog_call_confirm, pendingCall.first),
@@ -712,6 +720,7 @@ private fun CallList(
             item {
                 BigRow(
                     label = stringResource(R.string.calllog_call_yes),
+                    modifier = yesFocus,
                     icon = Icons.Filled.Call,
                     surface = palette.surfaceAccent,
                     onClick = onConfirmCall,
@@ -723,13 +732,16 @@ private fun CallList(
     }
 
     val listState = rememberLazyListState()
+    val firstFocus = firstEntryFocus(keyFirst, groups.isNotEmpty())
     Column {
         LazyColumn(
             state = listState,
             verticalArrangement = Arrangement.spacedBy(4.dp),
             modifier = Modifier.weight(1f, fill = false),
         ) {
-            item { BigHeading(stringResource(if (missedOnly) R.string.missed_calls else R.string.calllog)) }
+            if (!keyFirst) {
+                item { BigHeading(stringResource(if (missedOnly) R.string.missed_calls else R.string.calllog)) }
+            }
             item {
                 BigRow(
                     label = stringResource(
@@ -795,12 +807,13 @@ private fun CallList(
                     }
                 }
             }
-            items(groups, key = { it.latest.id }) { group ->
+            itemsIndexed(groups, key = { _, it -> it.latest.id }) { index, group ->
                 BigRow(
                     label = buildString {
                         append(group.name ?: PhoneNumbers.forDisplay(group.number).ifBlank { unknown })
                         if (group.count > 1) append(" (${group.count})")
                     },
+                    modifier = if (index == 0) firstFocus else Modifier,
                     // a *number* in place of a name is read digit by digit: otherwise a
                     // screen reader turns 222222 into one number, and someone checking whom
                     // they are about to call back learns nothing. a name stays a name.

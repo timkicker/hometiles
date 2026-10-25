@@ -585,6 +585,11 @@
     <string name="swipe_on">Swiping changes the screen</string>
     <string name="swipe_off">Let swiping change the screen</string>
     <string name="swipe_hint">Not from the very edge, that belongs to the back gesture</string>
+    <string name="key_first">Phone with keys</string>
+    <string name="key_first_hint">Lists start on the first entry, without photos and without the page title</string>
+    <string name="key_first_auto">When the phone has keys</string>
+    <string name="key_first_on">Always</string>
+    <string name="key_first_off">Never</string>
     <string name="press_short">A tap starts a tile</string>
     <string name="press_long">Hold a tile to start it</string>
     <string name="press_hint">Holding prevents starting something by brushing past</string>

@@ -589,6 +589,11 @@
     <string name="swipe_on">Lo scorrimento cambia schermata</string>
     <string name="swipe_off">Lasciare che lo scorrimento cambi schermata</string>
     <string name="swipe_hint">Non dal bordo stesso, quello è del gesto indietro</string>
+    <string name="key_first">Telefono con tasti</string>
+    <string name="key_first_hint">Gli elenchi partono dalla prima voce, senza foto e senza titolo della pagina</string>
+    <string name="key_first_auto">Se il telefono ha i tasti</string>
+    <string name="key_first_on">Sempre</string>
+    <string name="key_first_off">Mai</string>
     <string name="press_short">Un tocco avvia un riquadro</string>
     <string name="press_long">Tenga premuto un riquadro per avviarlo</string>
     <string name="press_hint">Tenere premuto evita di avviare qualcosa sfiorando</string>

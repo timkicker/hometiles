@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.VisibilityOff
@@ -41,6 +42,8 @@ import dev.kicker.hometiles.data.ConfigStore
 import dev.kicker.hometiles.security.Pin
 import dev.kicker.hometiles.ui.PinGate
 import dev.kicker.hometiles.ui.BigHeading
+import dev.kicker.hometiles.ui.firstEntryFocus
+import dev.kicker.hometiles.ui.keyFirstOn
 import androidx.compose.material.icons.filled.Apps
 import dev.kicker.hometiles.ui.BigRow
 import dev.kicker.hometiles.search.TextSearch
@@ -192,7 +195,9 @@ class AppDrawerActivity : HomeTilesActivity() {
                         return@Box
                     }
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        if (query.isEmpty()) {
+                        // see KeyFirst: no page title, the focus on the first app.
+                        val keyFirst = keyFirstOn(config.behaviour.keyFirst)
+                        if (query.isEmpty() && !keyFirst) {
                             BigHeading(
                                 stringResource(if (recentOnly) R.string.apps_recent else R.string.apps),
                             )
@@ -240,6 +245,12 @@ class AppDrawerActivity : HomeTilesActivity() {
                                 onClick = { recentOnly = false },
                             )
                         }
+                        val listed = if (recentOnly && query.isEmpty()) emptyList() else shown
+                        // only while nothing is typed: during a search the keys belong to the field.
+                        val firstFocus = firstEntryFocus(
+                            keyFirst && query.isEmpty(),
+                            recents.isNotEmpty() || listed.isNotEmpty(),
+                        )
                         LazyColumn(
                             state = listState,
                             verticalArrangement = Arrangement.spacedBy(4.dp),
@@ -251,18 +262,22 @@ class AppDrawerActivity : HomeTilesActivity() {
                                 if (!recentOnly || query.isNotEmpty()) {
                                     item { BigHeading(stringResource(R.string.apps_recent)) }
                                 }
-                                items(recents, key = { "recent-" + AppDrawer.keyOf(it) }) { app ->
-                                    AppRow(app, repository, onClick = { open(app) }, onHide = null)
+                                itemsIndexed(recents, key = { _, it -> "recent-" + AppDrawer.keyOf(it) }) { index, app ->
+                                    AppRow(
+                                        app,
+                                        repository,
+                                        onClick = { open(app) },
+                                        onHide = null,
+                                        modifier = if (index == 0) firstFocus else Modifier,
+                                    )
                                 }
                                 if (!recentOnly || query.isNotEmpty()) {
                                     item { BigHeading(stringResource(R.string.apps_all)) }
                                 }
                             }
-                            items(
-                                if (recentOnly && query.isEmpty()) emptyList() else shown,
-                                key = { AppDrawer.keyOf(it) },
-                            ) { app ->
+                            itemsIndexed(listed, key = { _, it -> AppDrawer.keyOf(it) }) { index, app ->
                                 AppRow(
+                                    modifier = if (index == 0 && recents.isEmpty()) firstFocus else Modifier,
                                     app = app,
                                     repository = repository,
                                     onClick = { open(app) },
@@ -354,12 +369,14 @@ private fun AppRow(
     repository: AppRepository,
     onClick: () -> Unit,
     onHide: (() -> Unit)?,
+    modifier: Modifier = Modifier,
 ) {
     val icon = remember(app) {
         repository.iconFor(app.packageName, app.activityName)?.toBitmap(72, 72)?.asImageBitmap()
     }
     BigRow(
         label = app.label,
+        modifier = modifier,
         iconBitmap = icon,
         icon = if (icon == null) Icons.Filled.VisibilityOff else null,
         onClick = onClick,

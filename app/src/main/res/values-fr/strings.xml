@@ -589,6 +589,11 @@
     <string name="swipe_on">Le balayage change d’écran</string>
     <string name="swipe_off">Laisser le balayage changer d’écran</string>
     <string name="swipe_hint">Pas depuis le bord même, il sert au geste retour</string>
+    <string name="key_first">Téléphone à touches</string>
+    <string name="key_first_hint">Les listes commencent au premier élément, sans photos ni titre de page</string>
+    <string name="key_first_auto">Si le téléphone a des touches</string>
+    <string name="key_first_on">Toujours</string>
+    <string name="key_first_off">Jamais</string>
     <string name="press_short">Un toucher lance une tuile</string>
     <string name="press_long">Maintenez une tuile pour la lancer</string>
     <string name="press_hint">Maintenir évite de lancer quelque chose en frôlant</string>

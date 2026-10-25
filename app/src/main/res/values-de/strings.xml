@@ -584,6 +584,11 @@
     <string name="swipe_on">Wischen wechselt den Screen</string>
     <string name="swipe_off">Wischen soll den Screen wechseln</string>
     <string name="swipe_hint">Nicht vom äußersten Rand, der gehört der Zurück-Geste</string>
+    <string name="key_first">Telefon mit Tasten</string>
+    <string name="key_first_hint">Listen beginnen beim ersten Eintrag, ohne Fotos und ohne Seitentitel</string>
+    <string name="key_first_auto">Wenn das Telefon Tasten hat</string>
+    <string name="key_first_on">Immer</string>
+    <string name="key_first_off">Nie</string>
     <string name="press_short">Ein Tipp startet eine Kachel</string>
     <string name="press_long">Kachel halten, um sie zu starten</string>
     <string name="press_hint">Halten verhindert, dass ein Streifen etwas startet</string>
