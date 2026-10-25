@@ -320,6 +320,7 @@
     <string name="dialer_speeddial_hint_call">Mantenga una tecla de llamada rápida para llamar enseguida</string>
     <string name="speeddial_assign">Llamada rápida en %1$s</string>
     <string name="speeddial_clear">Vaciar (ahora %1$s)</string>
+    <string name="speeddial_heading">Llamada rápida</string>
     <string name="missed_calls">Llamadas perdidas</string>
     <string name="calllog_show_all">Todas las llamadas. Mostrar las perdidas</string>
     <string name="calllog_show_missed">Solo las perdidas. Mostrar todas</string>

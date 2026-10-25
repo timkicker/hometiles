@@ -315,6 +315,7 @@
     <string name="dialer_speeddial_hint_call">Hold a speed dial key to call straight away</string>
     <string name="speeddial_assign">Speed dial on %1$s</string>
     <string name="speeddial_clear">Clear (currently %1$s)</string>
+    <string name="speeddial_heading">Speed dial</string>
     <string name="missed_calls">Missed calls</string>
     <string name="calllog_show_all">All calls. Show missed</string>
     <string name="calllog_show_missed">Missed only. Show all</string>

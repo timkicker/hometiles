@@ -314,6 +314,7 @@
     <string name="dialer_speeddial_hint_call">Eine Kurzwahltaste halten ruft sofort an</string>
     <string name="speeddial_assign">Kurzwahl auf Taste %1$s</string>
     <string name="speeddial_clear">Freigeben (jetzt %1$s)</string>
+    <string name="speeddial_heading">Kurzwahl</string>
     <string name="missed_calls">Verpasste Anrufe</string>
     <string name="calllog_show_all">Alle Anrufe. Verpasste zeigen</string>
     <string name="calllog_show_missed">Nur verpasste. Alle zeigen</string>

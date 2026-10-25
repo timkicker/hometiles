@@ -123,6 +123,7 @@ import dev.kicker.hometiles.data.ContactsConfig
 import androidx.compose.material.icons.filled.Person
 import dev.kicker.hometiles.phone.CallBlocking
 import dev.kicker.hometiles.phone.DialerRole
+import dev.kicker.hometiles.phone.SpeedDial
 import dev.kicker.hometiles.sms.MessagesSettingsList
 import dev.kicker.hometiles.sms.SmsRepository
 import dev.kicker.hometiles.phone.CallDirection
@@ -2553,6 +2554,31 @@ private fun CallTypesList(
                 secondary = stringResource(R.string.call_speaker_out_hint),
                 surface = if (phone.speakerOnOutgoing) palette.surfaceAccent else palette.surfaceDefault,
                 onClick = { onChange(phone.copy(speakerOnOutgoing = !phone.speakerOnOutgoing)) },
+            )
+        }
+        // speed dials are cleared here. on the keypad a long press on a set key dials at once,
+        // on purpose, so the clear row there was only reachable through an empty key: a set
+        // speed dial could never be removed (issue #2).
+        item { BigHeading(stringResource(R.string.speeddial_heading)) }
+        val assigned = SpeedDial.ASSIGNABLE.mapNotNull { key ->
+            SpeedDial.targetFor(phone, key)?.let { key to it }
+        }
+        if (assigned.isEmpty()) {
+            item {
+                Text(
+                    text = stringResource(R.string.dialer_speeddial_hint_assign),
+                    color = palette.onBackground,
+                    fontSize = bigSp(15f),
+                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp),
+                )
+            }
+        }
+        items(assigned, key = { it.first }) { (key, target) ->
+            BigRow(
+                label = stringResource(R.string.speeddial_assign, key.toString()),
+                secondary = stringResource(R.string.speeddial_clear, target.name),
+                surface = palette.surfaceDanger,
+                onClick = { onChange(SpeedDial.clear(phone, key)) },
             )
         }
         // PLAN.md 4.6: Kontaktfoto beim Anruf.

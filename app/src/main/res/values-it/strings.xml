@@ -319,6 +319,7 @@
     <string name="dialer_speeddial_hint_call">Tenga premuto un tasto rapido per chiamare subito</string>
     <string name="speeddial_assign">Chiamata rapida su %1$s</string>
     <string name="speeddial_clear">Svuotare (adesso %1$s)</string>
+    <string name="speeddial_heading">Chiamata rapida</string>
     <string name="missed_calls">Chiamate perse</string>
     <string name="calllog_show_all">Tutte le chiamate. Mostrare le perse</string>
     <string name="calllog_show_missed">Solo le perse. Mostrare tutte</string>

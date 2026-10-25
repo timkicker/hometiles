@@ -319,6 +319,7 @@
     <string name="dialer_speeddial_hint_call">Maintenez une touche d’appel rapide pour appeler aussitôt</string>
     <string name="speeddial_assign">Appel rapide sur %1$s</string>
     <string name="speeddial_clear">Vider (actuellement %1$s)</string>
+    <string name="speeddial_heading">Appel rapide</string>
     <string name="missed_calls">Appels manqués</string>
     <string name="calllog_show_all">Tous les appels. Montrer les manqués</string>
     <string name="calllog_show_missed">Manqués seulement. Montrer tout</string>
