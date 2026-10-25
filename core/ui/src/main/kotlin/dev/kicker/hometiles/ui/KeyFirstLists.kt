@@ -8,6 +8,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.ExperimentalComposeUiApi
+import androidx.compose.foundation.focusGroup
+import androidx.compose.ui.focus.focusProperties
 import dev.kicker.hometiles.data.KeyFirst
 import androidx.compose.runtime.withFrameNanos
 
@@ -25,15 +28,33 @@ fun phoneHasKeys(configuration: Configuration): Boolean =
 @Composable
 fun keyFirstOn(mode: KeyFirst): Boolean = mode.isOn(phoneHasKeys(LocalConfiguration.current))
 
+/** where a KeyFirst list wants the focus: [entry] on its first entry, [screen] around it all. */
+class FirstEntry(val entry: Modifier, val screen: Modifier)
+
 /**
- * the modifier for a list's first entry, which takes the focus once the list has one.
+ * the focus on a list's first entry, once the list has one.
+ *
+ * opened by key, android hands the window's first focus to the first input field it finds,
+ * and that came after this list was drawn: the search field took it and opened its keyboard
+ * over half the list (emulator, 25.10.2026). [screen] makes everything one focus group whose
+ * way in leads to the entry, so the window's focus lands there and the field stays closed.
  *
  * after a tap android is in touch mode and drops a focus request without a word, so on a
  * touch phone this does nothing even when switched on. one frame first: the entry has to be
  * laid out before it can take anything.
  */
+@OptIn(ExperimentalComposeUiApi::class)
 @Composable
-fun firstEntryFocus(active: Boolean, ready: Boolean): Modifier {
+fun firstEntryFocus(
+    active: Boolean,
+    ready: Boolean,
+    /**
+     * the list is still being read. the window's focus arrives about then, and with nowhere
+     * to go it fell through to the search field; it waits instead. a list that stays empty
+     * lets the focus in as usual, or the keys could never reach the field.
+     */
+    loading: Boolean = false,
+): FirstEntry {
     val first = remember { FocusRequester() }
     LaunchedEffect(active, ready) {
         if (active && ready) {
@@ -41,5 +62,19 @@ fun firstEntryFocus(active: Boolean, ready: Boolean): Modifier {
             runCatching { first.requestFocus() }
         }
     }
-    return if (active) Modifier.focusRequester(first) else Modifier
+    if (!active) return FirstEntry(Modifier, Modifier)
+    return FirstEntry(
+        entry = Modifier.focusRequester(first),
+        screen = Modifier
+            .focusProperties {
+                enter = {
+                    when {
+                        ready -> first
+                        loading -> FocusRequester.Cancel
+                        else -> FocusRequester.Default
+                    }
+                }
+            }
+            .focusGroup(),
+    )
 }

@@ -194,9 +194,18 @@ class AppDrawerActivity : HomeTilesActivity() {
                         )
                         return@Box
                     }
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        // see KeyFirst: no page title, the focus on the first app.
-                        val keyFirst = keyFirstOn(config.behaviour.keyFirst)
+                    // see KeyFirst: no page title, the focus on the first app. it goes there only
+                    // while nothing is typed; the group stays, or the search field would lose
+                    // the focus at the first letter.
+                    val keyFirst = keyFirstOn(config.behaviour.keyFirst)
+                    val listed = if (recentOnly && query.isEmpty()) emptyList() else shown
+                    val firstFocus = firstEntryFocus(
+                        keyFirst,
+                        query.isEmpty() && (recents.isNotEmpty() || listed.isNotEmpty()),
+                        // every phone has apps: none yet means not read yet.
+                        loading = all.isEmpty(),
+                    )
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = firstFocus.screen) {
                         if (query.isEmpty() && !keyFirst) {
                             BigHeading(
                                 stringResource(if (recentOnly) R.string.apps_recent else R.string.apps),
@@ -245,12 +254,6 @@ class AppDrawerActivity : HomeTilesActivity() {
                                 onClick = { recentOnly = false },
                             )
                         }
-                        val listed = if (recentOnly && query.isEmpty()) emptyList() else shown
-                        // only while nothing is typed: during a search the keys belong to the field.
-                        val firstFocus = firstEntryFocus(
-                            keyFirst && query.isEmpty(),
-                            recents.isNotEmpty() || listed.isNotEmpty(),
-                        )
                         LazyColumn(
                             state = listState,
                             verticalArrangement = Arrangement.spacedBy(4.dp),
@@ -268,7 +271,7 @@ class AppDrawerActivity : HomeTilesActivity() {
                                         repository,
                                         onClick = { open(app) },
                                         onHide = null,
-                                        modifier = if (index == 0) firstFocus else Modifier,
+                                        modifier = if (index == 0) firstFocus.entry else Modifier,
                                     )
                                 }
                                 if (!recentOnly || query.isNotEmpty()) {
@@ -277,7 +280,7 @@ class AppDrawerActivity : HomeTilesActivity() {
                             }
                             itemsIndexed(listed, key = { _, it -> AppDrawer.keyOf(it) }) { index, app ->
                                 AppRow(
-                                    modifier = if (index == 0 && recents.isEmpty()) firstFocus else Modifier,
+                                    modifier = if (index == 0 && recents.isEmpty()) firstFocus.entry else Modifier,
                                     app = app,
                                     repository = repository,
                                     onClick = { open(app) },

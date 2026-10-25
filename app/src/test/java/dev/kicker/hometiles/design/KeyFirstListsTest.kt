@@ -25,6 +25,10 @@ class KeyFirstListsTest {
             assertTrue("$path does not ask KeyFirst", "keyFirstOn(config.behaviour.keyFirst)" in text)
             assertTrue("$path puts the focus nowhere", "firstEntryFocus(" in text)
             assertTrue("$path keeps its page title", "!keyFirst" in text)
+            // without the group around the screen the window's first focus fell to the
+            // search field, and its keyboard covered half the list (emulator, 25.10.2026).
+            assertTrue("$path has no focus group around the list", "Focus.screen" in text)
+            assertTrue("$path does not say when its list is still loading", "loading = " in text)
         }
     }
 

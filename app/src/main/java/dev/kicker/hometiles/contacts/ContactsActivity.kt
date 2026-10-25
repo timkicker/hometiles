@@ -275,7 +275,10 @@ private fun ContactList(
     keyFirst: Boolean = false,
 ) {
     val palette = LocalBigPalette.current
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    // the focus goes to the first contact only while nothing is typed: during a search the
+    // keys belong to the field. the group stays, or the field would lose the focus.
+    val firstFocus = firstEntryFocus(keyFirst, contacts.isNotEmpty() && query.isEmpty(), loading = loading)
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = firstFocus.screen) {
         // sorting stays reachable in the settings, contacts page.
         if (query.isEmpty() && !keyFirst) {
             Row(
@@ -367,8 +370,6 @@ private fun ContactList(
             }
         }
         val listState = rememberLazyListState()
-        // only while nothing is typed: during a search the keys belong to the field.
-        val firstFocus = firstEntryFocus(keyFirst && query.isEmpty(), contacts.isNotEmpty())
         LazyColumn(
             state = listState,
             verticalArrangement = Arrangement.spacedBy(4.dp),
@@ -377,7 +378,7 @@ private fun ContactList(
             itemsIndexed(contacts, key = { _, it -> it.id }) { index, contact ->
                 BigRow(
                     label = contact.name,
-                    modifier = if (index == 0) firstFocus else Modifier,
+                    modifier = if (index == 0) firstFocus.entry else Modifier,
                     // in blocks, as in the call log and the messages: the same number used
                     // to look different in three places.
                     secondary = contact.numbers.firstOrNull()?.number

@@ -492,7 +492,7 @@ private fun ThreadList(
     keyFirst: Boolean = false,
 ) {
     val palette = LocalBigPalette.current
-    val firstFocus = firstEntryFocus(keyFirst, prefilled != null || threads.isNotEmpty())
+    val firstFocus = firstEntryFocus(keyFirst, prefilled != null || threads.isNotEmpty(), loading = loading)
     val locale = currentLocale()
     val format = remember(locale) {
         // parts instead of a fixed pattern; see bestDatePattern. "j" is the hour *in the
@@ -502,7 +502,7 @@ private fun ThreadList(
     }
     val listState = rememberLazyListState()
 
-    Column {
+    Column(modifier = firstFocus.screen) {
         LazyColumn(
             state = listState,
             verticalArrangement = Arrangement.spacedBy(4.dp),
@@ -513,7 +513,7 @@ private fun ThreadList(
                 item {
                     BigRow(
                         label = stringResource(R.string.sms_new_to, PhoneNumbers.forDisplay(prefilled)),
-                        modifier = firstFocus,
+                        modifier = firstFocus.entry,
                         surface = palette.surfaceAccent,
                         onClick = { onCompose(prefilled) },
                     )
@@ -533,7 +533,7 @@ private fun ThreadList(
                 BigRow(
                     label = thread.titleOr(stringResource(R.string.call_unknown)) +
                         if (thread.hasUnread) " (${thread.unreadCount})" else "",
-                    modifier = if (index == 0 && prefilled == null) firstFocus else Modifier,
+                    modifier = if (index == 0 && prefilled == null) firstFocus.entry else Modifier,
                     // without the bracketed count: it stands as a sentence in the state.
                     labelSpeech = thread.titleOr(stringResource(R.string.call_unknown)),
                     secondary = SmsThreads.preview(thread.lastMessage) + " · " +

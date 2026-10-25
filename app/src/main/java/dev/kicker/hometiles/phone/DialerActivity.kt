@@ -707,7 +707,7 @@ private fun CallList(
     if (pendingCall != null) {
         // the answer is one press away, and the question already names whom.
         val yesFocus = firstEntryFocus(keyFirst, true)
-        LazyColumn(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        LazyColumn(verticalArrangement = Arrangement.spacedBy(4.dp), modifier = yesFocus.screen) {
             if (!keyFirst) item { BigHeading(stringResource(R.string.calllog)) }
             item {
                 Text(
@@ -720,7 +720,7 @@ private fun CallList(
             item {
                 BigRow(
                     label = stringResource(R.string.calllog_call_yes),
-                    modifier = yesFocus,
+                    modifier = yesFocus.entry,
                     icon = Icons.Filled.Call,
                     surface = palette.surfaceAccent,
                     onClick = onConfirmCall,
@@ -732,8 +732,8 @@ private fun CallList(
     }
 
     val listState = rememberLazyListState()
-    val firstFocus = firstEntryFocus(keyFirst, groups.isNotEmpty())
-    Column {
+    val firstFocus = firstEntryFocus(keyFirst, groups.isNotEmpty(), loading = loading)
+    Column(modifier = firstFocus.screen) {
         LazyColumn(
             state = listState,
             verticalArrangement = Arrangement.spacedBy(4.dp),
@@ -813,7 +813,7 @@ private fun CallList(
                         append(group.name ?: PhoneNumbers.forDisplay(group.number).ifBlank { unknown })
                         if (group.count > 1) append(" (${group.count})")
                     },
-                    modifier = if (index == 0) firstFocus else Modifier,
+                    modifier = if (index == 0) firstFocus.entry else Modifier,
                     // a *number* in place of a name is read digit by digit: otherwise a
                     // screen reader turns 222222 into one number, and someone checking whom
                     // they are about to call back learns nothing. a name stays a name.
