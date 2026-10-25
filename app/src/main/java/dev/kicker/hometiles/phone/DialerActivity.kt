@@ -121,6 +121,10 @@ class DialerActivity : HomeTilesActivity() {
 var logGranted by remember(resumes.intValue) { mutableStateOf(callLog.hasPermission()) }
             var assigningKey by remember { mutableStateOf<Char?>(null) }
             var missedOnly by rememberSaveable { mutableStateOf(intent?.getBooleanExtra(EXTRA_MISSED, false) == true) }
+            val openedOnLog = remember {
+                intent?.getBooleanExtra(EXTRA_MISSED, false) == true ||
+                    intent?.getBooleanExtra(EXTRA_LOG, false) == true
+            }
             var pendingDelete by remember { mutableStateOf<Pair<String, List<Long>>?>(null) }
             // the confirmation before a call from the log. `PLAN.md` 3.1, principle 5.
             var pendingCall by remember { mutableStateOf<Pair<String, String>?>(null) }
@@ -276,8 +280,14 @@ var logGranted by remember(resumes.intValue) { mutableStateOf(callLog.hasPermiss
                 cornerRadiusDp = config.appearance.cornerRadiusDp,
             ) {
                 // back in steps, as on the home screen: first the question, then the list.
-                // back used to jump from the question straight to the keypad.
-                BackHandler(enabled = tab != Tab.KEYPAD || pendingCall != null || pendingDelete != null) {
+                // back used to jump from the question straight to the keypad. see DialerBack.
+                val backStep = DialerBack.step(
+                    questionOpen = pendingCall != null || pendingDelete != null,
+                    onKeypad = tab == Tab.KEYPAD,
+                    onLog = tab == Tab.LOG,
+                    openedOnLog = openedOnLog,
+                )
+                BackHandler(enabled = backStep != DialerBackStep.LEAVE) {
                     when {
                         pendingCall != null -> pendingCall = null
                         pendingDelete != null -> pendingDelete = null
