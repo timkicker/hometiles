@@ -394,7 +394,7 @@ private fun TileFor(
             cellWidth = cellWidth,
             badgeCount = badge,
             badgeSpeech = when (action.builtin) {
-                Builtin.MISSED_CALLS -> R.plurals.a11y_new_calls
+                Builtin.MISSED_CALLS, Builtin.CALL_LOG -> R.plurals.a11y_new_calls
                 Builtin.MESSAGES -> R.plurals.a11y_unread
                 else -> R.plurals.a11y_badge
             },

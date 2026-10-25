@@ -92,6 +92,14 @@ class TileNotificationsTest {
         assertEquals(11, TileNotifications.badgeFor(tile, emptyMap(), system, missed = 11))
     }
 
+    /** issue #2: on a flip phone the call log tile is the way to missed calls. */
+    @Test
+    fun `the call log tile counts missed calls too`() {
+        val tile = Button(action = ButtonAction.Action(Builtin.CALL_LOG), blink = true)
+        assertEquals(4, TileNotifications.badgeFor(tile, emptyMap(), system, missed = 4))
+        assertTrue(TileNotifications.canBlink(tile.action))
+    }
+
     @Test
     fun `foreign notices do not count there`() {
         // or the number would stand twice as soon as the phone app reports as well.

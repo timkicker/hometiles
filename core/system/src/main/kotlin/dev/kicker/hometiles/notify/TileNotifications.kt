@@ -29,6 +29,7 @@ object TileNotifications {
             Builtin.DIALER,
             Builtin.MESSAGES,
             Builtin.MISSED_CALLS,
+            Builtin.CALL_LOG,
         )
         else -> false
     }
@@ -47,6 +48,9 @@ object TileNotifications {
             // not from the dialer app, and the default dialer is HomeTiles itself once it
             // holds the role, which notifies about messages.
             if (action.builtin == Builtin.MISSED_CALLS) return missed
+            // the log shows the same calls, and on a flip phone it is often the only way in
+            // (issue #2).
+            if (action.builtin == Builtin.CALL_LOG) return missed
             if (action.builtin == Builtin.DIALER) return missed
             // null means we may not read: then the notices are the best answer there is.
             if (action.builtin == Builtin.MESSAGES && unread != null) return unread
