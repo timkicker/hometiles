@@ -96,19 +96,55 @@ def line(image, box, inset):
     return [image.getpixel(p)[:3] for p in points if 0 <= p[0] < width and 0 <= p[1] < height]
 
 
+def luminance(rgb):
+    def ch(v):
+        v = v / 255
+        return v / 12.92 if v <= 0.03928 else ((v + 0.055) / 1.055) ** 2.4
+    r, g, b = (ch(v) for v in rgb)
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b
+
+
+def contrast(a, b):
+    la, lb = sorted((luminance(a), luminance(b)), reverse=True)
+    return (la + 0.05) / (lb + 0.05)
+
+
+def uniform(points):
+    """the colour most of the points share, or None."""
+    if len(points) < 16:
+        return None
+    mode = max(set(points), key=points.count)
+    near = [p for p in points if sum(abs(a - b) for a, b in zip(p, mode)) < 60]
+    return mode if len(near) / len(points) >= UNIFORM else None
+
+
 def ring(image, box, dp):
-    outer = line(image, box, int(3 * dp))
-    inner = line(image, box, int(9 * dp))
-    if len(outer) < 16 or len(inner) < 16:
-        return False
-    mode = max(set(outer), key=outer.count)
-    near = [p for p in outer if sum(abs(a - b) for a, b in zip(p, mode)) < 60]
-    if len(near) / len(outer) < UNIFORM:
-        return False
-    inside = [p for p in inner if sum(abs(a - b) for a, b in zip(p, mode)) < 60]
-    return len(inside) / len(inner) < 0.5 and any(
-        sum(abs(a - b) for a, b in zip(p, mode)) >= APART for p in inner
-    )
+    """the border as (shows, why not).
+
+    three things count. the band at the outer edge is one colour. the band that lies on the
+    fill, 6 dp in, differs from the fill 10 dp in - with one ring it is the same band, with two
+    half rings it is the inner one. and the outer band stands out from the page 2 dp outside,
+    3:1 as for any part of an interface that has to be seen.
+
+    the last check came with issue #2: around a red row in the light theme the border had the
+    page's own colour, 1.00:1, and this tool still said ok, since it only compared border and
+    row. where the outside is no single colour, another element close by, it cannot judge
+    and does not.
+    """
+    edge = uniform(line(image, box, int(2 * dp)))
+    touching = uniform(line(image, box, int(6 * dp)))
+    fill = line(image, box, int(10 * dp))
+    if edge is None or touching is None or len(fill) < 16:
+        return False, "no border"
+    inside = [p for p in fill if sum(abs(a - b) for a, b in zip(p, touching)) < 60]
+    if not (len(inside) / len(fill) < 0.5 and any(
+        sum(abs(a - b) for a, b in zip(p, touching)) >= APART for p in fill
+    )):
+        return False, "no border"
+    page = uniform(line(image, box, -int(2 * dp)))
+    if page is not None and contrast(edge, page) < 3.0:
+        return False, "border melts into the page (%.2f:1)" % contrast(edge, page)
+    return True, ""
 
 
 def frame_around(image, box, dp):
@@ -149,8 +185,20 @@ def frame_around(image, box, dp):
 
 
 def shows(image, boxes, field, dp):
-    """the focus border around the node, an ancestor or (for a text field) its row."""
-    return any(ring(image, box, dp) for box in boxes[:4]) or (field and frame_around(image, boxes[0], dp))
+    """the focus border around the node, an ancestor or (for a text field) its row.
+
+    returns (shows, why not); the reason of the closest box that drew anything at all.
+    """
+    reasons = []
+    for box in boxes[:4]:
+        ok, why = ring(image, box, dp)
+        if ok:
+            return True, ""
+        reasons.append(why)
+    if field and frame_around(image, boxes[0], dp):
+        return True, ""
+    melted = [r for r in reasons if r != "no border"]
+    return False, melted[0] if melted else "draws no border"
 
 
 def main():
@@ -177,10 +225,10 @@ def main():
                 continue
             label, boxes, field = hit
             image = Image.open(io.BytesIO(adb(device, "exec-out", "screencap", "-p", binary=True))).convert("RGB")
-            visible = shows(image, boxes, field, dp)
+            visible, why = shows(image, boxes, field, dp)
             print(f"{key:10} {'ok  ' if visible else 'GONE'} {label} {boxes[0]}")
             if not visible:
-                findings.append(f"{key}: focus on '{label}' {boxes[0]} draws no border")
+                findings.append(f"{key}: focus on '{label}' {boxes[0]}: {why}")
             # at the end of the list the focus stands still; three presses settle it.
             still = still + 1 if seen and seen[-1] == (label, boxes[0]) else 0
             seen.append((label, boxes[0]))

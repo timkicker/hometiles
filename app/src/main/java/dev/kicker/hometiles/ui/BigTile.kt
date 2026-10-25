@@ -220,10 +220,19 @@ fun BigTile(
             .clip(RoundedCornerShape(cornerRadius))
             .background(pressedColour)
             .then(
-                if (border != null) {
-                    Modifier.border(borderWidth, border, RoundedCornerShape(cornerRadius))
-                } else {
-                    Modifier
+                when {
+                    // the tile's white ink melted into the light theme's page, the same fault
+                    // as on the rows (issue #2). see tileFocusRingsFor.
+                    focused -> Modifier.focusRings(
+                        tileFocusRingsFor(
+                            focusArgb(palette.onTile),
+                            focusArgb(palette.onBackground),
+                            focusArgb(palette.background),
+                        ),
+                        RoundedCornerShape(cornerRadius),
+                    )
+                    border != null -> Modifier.border(borderWidth, border, RoundedCornerShape(cornerRadius))
+                    else -> Modifier
                 }
             )
             .onFocusChanged { focused = it.isFocused }

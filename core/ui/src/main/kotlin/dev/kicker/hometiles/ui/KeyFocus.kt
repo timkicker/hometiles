@@ -32,26 +32,53 @@ const val FOCUS_BORDER_DP = 8f
  *
  * [fill] is the surface the border lies on, for rows that paint their own. the preview of the
  * light theme is light grey, and the ink of the dark theme on it was measured by
- * `tools/focus-visible.py` as no border at all (19.10.2026). see [focusInkFor].
+ * `tools/focus-visible.py` as no border at all (19.10.2026). see [focusRingsFor].
  */
 fun Modifier.focusBorder(shape: Shape, fill: Color? = null): Modifier = composed {
     var focused by remember { mutableStateOf(false) }
     val palette = LocalBigPalette.current
-    val ink = Color(focusInkFor(argb(palette.onBackground), argb(palette.background), fill?.let(::argb)))
+    val rings = focusRingsFor(
+        focusArgb(palette.onBackground),
+        focusArgb(palette.background),
+        fill?.let(::focusArgb),
+    )
     this
-        .then(if (focused) Modifier.border(FOCUS_BORDER_DP.dp, ink, shape) else Modifier)
+        .then(if (focused) Modifier.focusRings(rings, shape) else Modifier)
         .onFocusChanged { focused = it.isFocused }
 }
 
+/** [outer] lies against the page, [inner] against the fill; null means one ring of [outer]. */
+data class FocusRings(val outer: Long, val inner: Long? = null)
+
 /**
- * the colour of the focus border: the theme's ink, or its background where the ink would
- * vanish on the surface. of the two the one further from the fill, which reaches 3:1 for any
- * fill in all three themes (`FocusInkTest`).
+ * the focus border has to stand out from the row and from the page around it.
+ *
+ * one ring of the theme's ink where that reaches 3:1 on the fill: against the page it always
+ * does. where it does not, two half rings, the ink outside against the page and the theme's
+ * background inside against the fill. the first rule only looked at the fill and took the
+ * background there, which is the page's own colour: around a red row in the light theme the
+ * border measured 1.00:1 against the page and the row merely looked smaller (issue #2).
+ * `FocusInkTest` runs every fill of every theme.
  */
-fun focusInkFor(onBackground: Long, background: Long, fill: Long?): Long = when {
-    fill == null -> onBackground
-    contrastRatio(onBackground, fill) >= contrastRatio(background, fill) -> onBackground
-    else -> background
+fun focusRingsFor(onBackground: Long, background: Long, fill: Long?): FocusRings = when {
+    fill == null || contrastRatio(onBackground, fill) >= 3.0 -> FocusRings(onBackground)
+    else -> FocusRings(onBackground, background)
 }
 
-private fun argb(colour: Color): Long = colour.toArgb().toLong() and 0xFFFFFFFFL
+/**
+ * the same for a tile: its own ink, which is drawn for the tile's colours, against the fill.
+ * where that ink would melt into the page, the theme's ink goes around it.
+ */
+fun tileFocusRingsFor(onTile: Long, onBackground: Long, background: Long): FocusRings = when {
+    contrastRatio(onTile, background) >= 3.0 -> FocusRings(onTile)
+    else -> FocusRings(onBackground, onTile)
+}
+
+/** one border, or two of half the width: the inner one is drawn first, the outer over it. */
+fun Modifier.focusRings(rings: FocusRings, shape: Shape): Modifier {
+    val inner = rings.inner ?: return border(FOCUS_BORDER_DP.dp, Color(rings.outer), shape)
+    return border((FOCUS_BORDER_DP / 2).dp, Color(rings.outer), shape)
+        .border(FOCUS_BORDER_DP.dp, Color(inner), shape)
+}
+
+fun focusArgb(colour: Color): Long = colour.toArgb().toLong() and 0xFFFFFFFFL

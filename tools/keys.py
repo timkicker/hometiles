@@ -104,8 +104,9 @@ def walk(phone, steps):
             label, boxes, field = hit
             image = Image.open(io.BytesIO(fv.adb(phone.serial, "exec-out", "screencap", "-p",
                                                  binary=True))).convert("RGB")
-            if not fv.shows(image, boxes, field, phone.dp):
-                findings.append(f"no border on '{label}'")
+            visible, why = fv.shows(image, boxes, field, phone.dp)
+            if not visible:
+                findings.append(f"'{label}': {why}")
             seen += 1
             still = still + 1 if (label, boxes[0]) == last else 0
             last = (label, boxes[0])
