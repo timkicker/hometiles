@@ -78,7 +78,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -93,11 +92,11 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.graphics.drawable.toBitmap
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.kicker.hometiles.R
 import dev.kicker.hometiles.core.ui.R as UiR
 import dev.kicker.hometiles.actions.Intents
+import dev.kicker.hometiles.apps.AppIcons
 import dev.kicker.hometiles.apps.AppRepository
 import dev.kicker.hometiles.search.TextSearch
 import dev.kicker.hometiles.shortcuts.ShortcutAnswer
@@ -1092,9 +1091,9 @@ private fun AppList(
     headingRes: Int = R.string.editor_pick_app,
     onPick: (LaunchableApp) -> Unit,
 ) {
-    var apps by remember { mutableStateOf<List<LaunchableApp>>(emptyList()) }
+    var apps by remember { mutableStateOf(repository.cachedApps().orEmpty()) }
     var query by rememberSaveable { mutableStateOf("") }
-    LaunchedEffect(Unit) { apps = repository.loadApps() }
+    LaunchedEffect(Unit) { apps = repository.freshApps() }
 
     val shown = remember(apps, query) { TextSearch.filter(apps, query) { it.label } }
     val palette = LocalBigPalette.current
@@ -1122,8 +1121,7 @@ private fun AppList(
             items(shown, key = { it.packageName + it.activityName }) { app ->
                 BigRow(
                     label = app.label,
-                    iconBitmap = repository.iconFor(app.packageName, app.activityName)
-                        ?.toBitmap(72, 72)?.asImageBitmap(),
+                    iconBitmap = AppIcons.remember(repository, app).bitmap,
                     onClick = { onPick(app) },
                 )
             }

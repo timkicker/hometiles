@@ -10,6 +10,8 @@ import android.os.Looper
 import android.os.Process
 import android.os.UserHandle
 import java.util.concurrent.atomic.AtomicInteger
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
@@ -60,6 +62,22 @@ class AppRepository(context: Context) {
         awaitClose { launcherApps.unregisterCallback(callback) }
     }
 
+    @Volatile
+    private var lastApps: List<LaunchableApp>? = null
+
+    /**
+     * the list of the last [loadApps], at once; `null` before the first one.
+     *
+     * the app list showed nothing and stood still each time it opened and each time it was
+     * turned, because it asked the system anew on the main thread (issue #3). it now shows
+     * this and asks again in the background; an app removed in between is caught at the tap.
+     */
+    fun cachedApps(): List<LaunchableApp>? = lastApps
+
+    /** [loadApps] off the main thread, for the lists that show [cachedApps] meanwhile. */
+    suspend fun freshApps(): List<LaunchableApp> = withContext(Dispatchers.IO) { loadApps() }
+
+    /** asks the system; it takes a while with many apps, so not on the main thread. */
     fun loadApps(): List<LaunchableApp> =
         launcherApps.getActivityList(null, user)
             .map {
@@ -70,6 +88,7 @@ class AppRepository(context: Context) {
                 )
             }
             .sortedBy { it.label.lowercase() }
+            .also { lastApps = it }
 
     fun iconFor(packageName: String, activityName: String): Drawable? = runCatching {
         val component = ComponentName(packageName, activityName)

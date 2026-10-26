@@ -2348,9 +2348,9 @@ private fun AllowedAppsList(
     onToggle: (String) -> Unit,
 ) {
     val palette = LocalBigPalette.current
-    var apps by remember { mutableStateOf<List<LaunchableApp>>(emptyList()) }
+    var apps by remember { mutableStateOf(repository.cachedApps().orEmpty()) }
     var query by rememberSaveable { mutableStateOf("") }
-    LaunchedEffect(Unit) { apps = repository.loadApps() }
+    LaunchedEffect(Unit) { apps = repository.freshApps() }
     val shown = remember(apps, query) { TextSearch.filter(apps, query) { it.label } }
 
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
