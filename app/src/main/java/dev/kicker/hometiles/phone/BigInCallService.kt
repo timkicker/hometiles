@@ -27,6 +27,8 @@ class BigInCallService : InCallService() {
     /** calls that rang here and have not been taken yet. */
     private val ringing = mutableSetOf<Call>()
 
+    private val proximity by lazy { ProximityLock(this) }
+
     private val callback = object : Call.Callback() {
         override fun onStateChanged(call: Call, state: Int) {
             setAudio(call, state)
@@ -122,10 +124,17 @@ class BigInCallService : InCallService() {
         call.unregisterCallback(callback)
         CallNotifications.clear(this)
         if (calls.isEmpty()) {
+            proximity.hold(false)
             InCallRepository.detach()
         } else {
             publish(calls.first())
         }
+    }
+
+    /** telecom can unbind with a call still listed; the screen must not stay off without us. */
+    override fun onDestroy() {
+        proximity.hold(false)
+        super.onDestroy()
     }
 
     override fun onCallAudioStateChanged(state: CallAudioState?) {
@@ -153,6 +162,12 @@ class BigInCallService : InCallService() {
         val second = CallForeground
             .other(calls.map { it.isConferenceMember() }, calls.indexOf(call))
             ?.let { calls.getOrNull(it) }
+        // before telecom names a route the call runs on the earpiece, which is where a phone
+        // starts; a wired headset counts as away from the ear.
+        val route = audioState?.route ?: CallAudioState.ROUTE_EARPIECE
+        proximity.hold(
+            CallProximity.screenOff(statusOf(call.state), earpiece = route == CallAudioState.ROUTE_EARPIECE),
+        )
         val details = call.details
         InCallRepository.publish(
             call = call,

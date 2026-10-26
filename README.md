@@ -185,6 +185,7 @@ SIM or without a granted role the launcher keeps working.
 | `POST_NOTIFICATIONS` | showing a new message and an incoming call |
 | `USE_FULL_SCREEN_INTENT` | an incoming call on a sleeping screen |
 | `VIBRATE` | feedback on a press |
+| `WAKE_LOCK` | the screen off at the ear during a call |
 
 No `INTERNET`, and no `QUERY_ALL_PACKAGES`: a launcher gets by with `<queries>` and
 `LauncherApps`.

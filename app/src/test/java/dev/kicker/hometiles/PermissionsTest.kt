@@ -90,11 +90,11 @@ class PermissionsTest {
 
     /** and the number itself is a reminder: it should not grow unnoticed. */
     @Test
-    fun `there are fourteen permissions`() {
+    fun `there are fifteen permissions`() {
         assertEquals(
             "the number of permissions has changed. each one is a promise outwards - that " +
                 "belongs seen, not only translated.",
-            14,
+            15,
             permissions().size,
         )
     }
