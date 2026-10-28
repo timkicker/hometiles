@@ -114,7 +114,7 @@ away, and asks for no account.
 **Safety net**
 - If the launcher crashes twice in a row while starting, a plain screen appears instead of a
   black phone: the system phone and contacts apps at the top, then try again, settings, choose
-  another home screen, and reset the tiles. A start that an update or the system cut short
+  another home screen and reset the tiles. A start that an update or the system cut short
   does not count.
 
 **Backup**
@@ -206,7 +206,7 @@ none of it can reach the network.
 
 ## Looks
 
-Dark is the main theme, with a light one, a contrast theme (black on yellow), a paper theme
+Dark is the main theme, with a light one, a contrast theme (yellow on black), a paper theme
 for e-ink screens (black on white) and the setting "follow the phone". Every tile is one flat
 colour, the icon at the top left, the label at the bottom left inside a zone of fixed height,
 so the baselines line up even when a label wraps.
