@@ -1,0 +1,1 @@
+Die App-Liste hängt beim Öffnen nicht mehr kurz, weil sie die letzte Liste gleich zeigt und im Hintergrund nachzieht. Am Ohr wird der Bildschirm im Gespräch dunkel, damit die Wange keine Knöpfe mehr drückt. Mit Lautsprecher oder Headset bleibt er an. Neu ist das Design Papier (E-Ink) mit weißen Kacheln, schwarzer Schrift und schwarzem Rand für E-Ink-Bildschirme.

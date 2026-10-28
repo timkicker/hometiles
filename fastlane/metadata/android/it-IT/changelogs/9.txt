@@ -1,0 +1,1 @@
+L'elenco delle app non si blocca più all'apertura: mostra subito l'ultimo elenco e si aggiorna in background. In chiamata lo schermo si spegne vicino all'orecchio, così la guancia non preme più i tasti. Resta acceso con il vivavoce o le cuffie. Nuovo il tema Carta (e-ink) con riquadri bianchi, scritte nere e bordo nero, pensato per gli schermi a inchiostro elettronico.

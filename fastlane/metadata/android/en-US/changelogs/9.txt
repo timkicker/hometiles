@@ -1,0 +1,1 @@
+The app list opens without the short freeze: it shows the last list straight away and catches up in the background. During a call the screen goes dark at the ear, so the cheek no longer presses buttons. On speaker or with a headset it stays on. New is the theme Paper (e-ink) with white tiles, black writing and black borders for e-ink screens.
