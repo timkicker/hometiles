@@ -2,7 +2,11 @@ package dev.kicker.hometiles.apps
 
 import android.util.LruCache
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.produceState
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.core.graphics.drawable.toBitmap
@@ -28,23 +32,31 @@ object AppIcons {
     private val none = mutableSetOf<String>()
 
     @Composable
-    fun remember(repository: AppRepository, app: LaunchableApp): AppIcon {
+    fun of(repository: AppRepository, app: LaunchableApp): AppIcon {
         val key = app.packageName + "/" + app.activityName
-        val known = cache.get(key)
-        val initial = when {
-            known != null -> AppIcon(known, loaded = true)
-            synchronized(none) { key in none } -> AppIcon(null, loaded = true)
-            else -> AppIcon(null, loaded = false)
+        var icon by remember(key) {
+            val known = cache.get(key)
+            mutableStateOf(
+                when {
+                    known != null -> AppIcon(known, loaded = true)
+                    synchronized(none) { key in none } -> AppIcon(null, loaded = true)
+                    else -> AppIcon(null, loaded = false)
+                },
+            )
         }
-        return produceState(initial, key) {
-            if (value.loaded) return@produceState
-            val bitmap = withContext(Dispatchers.IO) {
-                repository.iconFor(app.packageName, app.activityName)
-                    ?.toBitmap(SIZE_PX, SIZE_PX)
-                    ?.asImageBitmap()
-            }
-            if (bitmap != null) cache.put(key, bitmap) else synchronized(none) { none.add(key) }
-            value = AppIcon(bitmap, loaded = true)
-        }.value
+        LaunchedEffect(key) {
+            if (!icon.loaded) icon = load(repository, app, key)
+        }
+        return icon
+    }
+
+    private suspend fun load(repository: AppRepository, app: LaunchableApp, key: String): AppIcon {
+        val bitmap = withContext(Dispatchers.IO) {
+            repository.iconFor(app.packageName, app.activityName)
+                ?.toBitmap(SIZE_PX, SIZE_PX)
+                ?.asImageBitmap()
+        }
+        if (bitmap != null) cache.put(key, bitmap) else synchronized(none) { none.add(key) }
+        return AppIcon(bitmap, loaded = true)
     }
 }

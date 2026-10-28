@@ -1121,7 +1121,7 @@ private fun AppList(
             items(shown, key = { it.packageName + it.activityName }) { app ->
                 BigRow(
                     label = app.label,
-                    iconBitmap = AppIcons.remember(repository, app).bitmap,
+                    iconBitmap = AppIcons.of(repository, app).bitmap,
                     onClick = { onPick(app) },
                 )
             }

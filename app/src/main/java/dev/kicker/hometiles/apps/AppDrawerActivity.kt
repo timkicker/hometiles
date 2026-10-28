@@ -372,7 +372,7 @@ private fun AppRow(
     onHide: (() -> Unit)?,
     modifier: Modifier = Modifier,
 ) {
-    val icon = AppIcons.remember(repository, app)
+    val icon = AppIcons.of(repository, app)
     BigRow(
         label = app.label,
         modifier = modifier,
