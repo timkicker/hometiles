@@ -166,6 +166,7 @@ class WizardActivity : HomeTilesActivity() {
                                     stringResource(R.string.theme_dark) to ThemeName.DARK,
                                     stringResource(R.string.theme_contrast) to ThemeName.HIGH_CONTRAST,
                                     stringResource(R.string.theme_light) to ThemeName.LIGHT,
+                                    stringResource(R.string.theme_paper) to ThemeName.PAPER,
                                     stringResource(R.string.theme_system) to ThemeName.SYSTEM,
                                 ),
                                 selected = config.appearance.theme,

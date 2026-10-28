@@ -29,10 +29,12 @@ object ScreenBackground {
     )
 
     /**
-     * no choice in the high contrast theme: there background and tiles carry the same
-     * colour and the tiles stand by their border, which is why anyone picks that theme.
+     * no choice in the high contrast and the paper theme: there background and tiles carry
+     * the same colour and the tiles stand by their border, which is why anyone picks them.
+     * on e-ink a tint only comes out as grey.
      */
-    fun offersChoices(theme: ThemeName): Boolean = theme != ThemeName.HIGH_CONTRAST
+    fun offersChoices(theme: ThemeName): Boolean =
+        theme != ThemeName.HIGH_CONTRAST && theme != ThemeName.PAPER
 
     fun choicesFor(theme: ThemeName, systemIsDark: Boolean): List<Long> {
         if (!offersChoices(theme)) return emptyList()

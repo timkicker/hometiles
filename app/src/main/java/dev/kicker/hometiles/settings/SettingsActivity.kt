@@ -2085,6 +2085,7 @@ private fun themeLabel(theme: ThemeName) = when (theme) {
     ThemeName.DARK -> R.string.theme_dark
     ThemeName.HIGH_CONTRAST -> R.string.theme_contrast
     ThemeName.LIGHT -> R.string.theme_light
+    ThemeName.PAPER -> R.string.theme_paper
 }
 
 private fun labelPositionLabel(position: LabelPosition) = when (position) {

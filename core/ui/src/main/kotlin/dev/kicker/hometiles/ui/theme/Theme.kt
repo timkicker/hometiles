@@ -101,6 +101,24 @@ private val HighContrast = BigPalette(
 )
 
 /**
+ * the contrast theme turned around, for e-ink screens: every other theme came out there as
+ * dark grey tiles (issue #5). no colour at all, so nothing turns grey.
+ */
+private val Paper = BigPalette(
+    background = c(Tokens.PAPER_BACKGROUND),
+    onBackground = c(Tokens.PAPER_INK),
+    tiles = List(6) { c(Tokens.PAPER_BACKGROUND) },
+    onTile = c(Tokens.PAPER_INK),
+    emptyTile = c(Tokens.PAPER_BACKGROUND),
+    emptyTileBorder = c(Tokens.PAPER_INK),
+    accent = c(Tokens.PAPER_INK),
+    onAccent = c(Tokens.PAPER_ON_ACCENT),
+    danger = c(Tokens.PAPER_DANGER),
+    onDanger = c(Tokens.PAPER_ON_DANGER),
+    dangerText = c(Tokens.PAPER_DANGER),
+)
+
+/**
  * the palette of a theme.
  *
  * [systemIsDark] is needed only for [ThemeName.SYSTEM] and still has no default: a silent
@@ -111,11 +129,18 @@ fun paletteFor(theme: ThemeName, systemIsDark: Boolean): BigPalette = when (them
     ThemeName.HIGH_CONTRAST -> HighContrast
     ThemeName.LIGHT -> Light
     ThemeName.SYSTEM -> if (systemIsDark) Dark else Light
+    ThemeName.PAPER -> Paper
 }
 
-/** tile border: visible only in the high contrast theme, but load-bearing there. */
-fun BigPalette.tileBorder(): Color? =
-    if (this === HighContrast) Color(0xFFFFEB3B) else null
+/**
+ * tile border: visible only where tiles carry the background colour, high contrast and
+ * paper, but load-bearing there.
+ */
+fun BigPalette.tileBorder(): Color? = when {
+    this === HighContrast -> Color(0xFFFFEB3B)
+    this === Paper -> c(Tokens.PAPER_INK)
+    else -> null
+}
 
 val LocalBigPalette = staticCompositionLocalOf { Dark }
 val LocalTextScale = staticCompositionLocalOf { 1.0f }

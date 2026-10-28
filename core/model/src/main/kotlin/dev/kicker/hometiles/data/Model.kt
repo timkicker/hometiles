@@ -157,7 +157,7 @@ data class Screen(
 
 /** SYSTEM is a question to the phone, not a look; `paletteFor` resolves it. */
 @Serializable
-enum class ThemeName { DARK, HIGH_CONTRAST, LIGHT, SYSTEM }
+enum class ThemeName { DARK, HIGH_CONTRAST, LIGHT, SYSTEM, PAPER }
 
 @Serializable
 enum class LabelPosition { BOTTOM_LEFT, BOTTOM_CENTER, TOP_LEFT, HIDDEN }

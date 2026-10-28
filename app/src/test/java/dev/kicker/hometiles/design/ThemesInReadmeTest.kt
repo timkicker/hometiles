@@ -22,19 +22,19 @@ class ThemesInReadmeTest {
     private val readme = File("../README.md").readText()
 
     @Test
-    fun `there are still four themes`() {
+    fun `there are still five themes`() {
         assertEquals(
             "the number of themes has changed. a sentence in the README lists them " +
                 "(section Looks) - it wants pulling along.",
-            4,
+            5,
             ThemeName.entries.size,
         )
     }
 
     @Test
-    fun `the sentence names all four`() {
+    fun `the sentence names all five`() {
         val place = Quelltext.cut(readme, "## Looks", "##")
-        listOf("Dark", "light", "contrast", "follow the phone").forEach { word ->
+        listOf("Dark", "light", "contrast", "paper", "follow the phone").forEach { word ->
             assertTrue("the section Looks is missing: $word", word in place)
         }
     }

@@ -212,6 +212,7 @@
     <string name="theme_dark">Dark</string>
     <string name="theme_contrast">High contrast</string>
     <string name="theme_light">Light</string>
+    <string name="theme_paper">Paper (e-ink)</string>
     <string name="theme_system">Light or dark, like the phone</string>
     <string name="label_bottom_left">Bottom left</string>
     <string name="label_bottom_center">Bottom centre</string>

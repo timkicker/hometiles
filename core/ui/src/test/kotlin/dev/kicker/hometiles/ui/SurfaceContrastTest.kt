@@ -1,7 +1,7 @@
 package dev.kicker.hometiles.ui
 
 import androidx.compose.ui.graphics.Color
-import dev.kicker.hometiles.data.ThemeName
+import dev.kicker.hometiles.ui.theme.tileBorder
 import dev.kicker.hometiles.ui.theme.BigSurface
 import dev.kicker.hometiles.ui.theme.Tokens
 import dev.kicker.hometiles.ui.theme.contrastRatio
@@ -43,10 +43,27 @@ class SurfaceContrastTest {
         // holds for fills that carry the statement themselves: tiles, accent, danger. the
         // quiet surface under a list row is exempt - there the text identifies the row, not
         // the fill.
-        themesAndSystem().filter { it.first != ThemeName.HIGH_CONTRAST }.forEach { (theme, systemIsDark) ->
+        //
+        // where the tiles carry the background colour (high contrast, paper) they stand by
+        // their border instead, and then the border has to reach the threshold against the
+        // background and against the fill.
+        themesAndSystem().forEach { (theme, systemIsDark) ->
             val palette = paletteFor(theme, systemIsDark)
             val background = palette.background.argb()
-            val meaningful = palette.tiles.indices.map(palette::surfaceTile) +
+            val border = palette.tileBorder()
+            val tiles = palette.tiles.indices.map(palette::surfaceTile)
+            if (border != null) {
+                tiles.forEach { tile ->
+                    listOf(background, tile.fill.argb()).forEach { ground ->
+                        val ratio = contrastRatio(border.argb(), ground)
+                        assertTrue(
+                            "%s: the tile border %s reaches only %.2f:1".format(theme, border.hex(), ratio),
+                            ratio >= Tokens.MIN_TILE_ON_BACKGROUND,
+                        )
+                    }
+                }
+            }
+            val meaningful = (if (border == null) tiles else emptyList()) +
                 palette.surfaceAccent + palette.surfaceDanger
             meaningful.forEach { surface ->
                 val ratio = contrastRatio(surface.fill.argb(), background)

@@ -216,6 +216,7 @@
     <string name="theme_dark">Sombre</string>
     <string name="theme_contrast">Contraste élevé</string>
     <string name="theme_light">Clair</string>
+    <string name="theme_paper">Papier (e-ink)</string>
     <string name="theme_system">Clair ou sombre, comme le téléphone</string>
     <string name="label_bottom_left">En bas à gauche</string>
     <string name="label_bottom_center">En bas au centre</string>

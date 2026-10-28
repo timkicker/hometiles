@@ -211,6 +211,7 @@
     <string name="theme_dark">Dunkel</string>
     <string name="theme_contrast">Hoher Kontrast</string>
     <string name="theme_light">Hell</string>
+    <string name="theme_paper">Papier (E-Ink)</string>
     <string name="theme_system">Hell oder dunkel, wie das Telefon</string>
     <string name="label_bottom_left">Unten links</string>
     <string name="label_bottom_center">Unten mittig</string>

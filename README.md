@@ -197,9 +197,10 @@ none of it can reach the network.
 
 ## Looks
 
-Dark is the main theme, with a light one, a contrast theme (black on yellow) and the setting
-"follow the phone". Every tile is one flat colour, the icon at the top left, the label at the
-bottom left inside a zone of fixed height, so the baselines line up even when a label wraps.
+Dark is the main theme, with a light one, a contrast theme (black on yellow), a paper theme
+for e-ink screens (black on white) and the setting "follow the phone". Every tile is one flat
+colour, the icon at the top left, the label at the bottom left inside a zone of fixed height,
+so the baselines line up even when a label wraps.
 All colour pairs meet at least 4.5:1, and a rule checks that for every combination the app is
 able to draw.
 

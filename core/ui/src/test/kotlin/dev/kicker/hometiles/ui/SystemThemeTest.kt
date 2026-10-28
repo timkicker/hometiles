@@ -62,8 +62,9 @@ class SystemThemeTest {
     }
 
     @Test
-    fun `there are exactly four themes to choose from`() {
-        // PLAN.md 4.2: "Dunkel / Kontrast / Hell / Systemabhängig".
-        assertEquals(4, ThemeName.entries.size)
+    fun `there are exactly five themes to choose from`() {
+        // PLAN.md 4.2: "Dunkel / Kontrast / Hell / Systemabhängig", and paper for e-ink
+        // since issue #5.
+        assertEquals(5, ThemeName.entries.size)
     }
 }

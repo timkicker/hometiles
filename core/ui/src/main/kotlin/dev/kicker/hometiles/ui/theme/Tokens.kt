@@ -78,6 +78,15 @@ object Tokens {
     const val CONTRAST_ON_ACCENT = 0xFF000000L
     const val CONTRAST_ON_DANGER = 0xFF000000L
 
+    // --- paper, for e-ink (issue #5) ---
+    const val PAPER_BACKGROUND = 0xFFFFFFFFL
+    const val PAPER_INK = 0xFF000000L
+
+    /** a dark red: red on a colour screen, near black on e-ink, readable on both. */
+    const val PAPER_DANGER = 0xFF8B0000L
+    const val PAPER_ON_DANGER = 0xFFFFFFFFL
+    const val PAPER_ON_ACCENT = 0xFFFFFFFFL
+
     // --- thresholds from `PLAN.md` 3.3 ---
     /** tile against background. */
     const val MIN_TILE_ON_BACKGROUND = 3.0

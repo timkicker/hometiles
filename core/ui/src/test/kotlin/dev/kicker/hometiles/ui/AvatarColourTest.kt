@@ -1,6 +1,6 @@
 package dev.kicker.hometiles.ui
 
-import dev.kicker.hometiles.data.ThemeName
+import dev.kicker.hometiles.ui.theme.tileBorder
 import dev.kicker.hometiles.ui.theme.Tokens
 import dev.kicker.hometiles.ui.theme.contrastRatio
 import dev.kicker.hometiles.ui.theme.paletteFor
@@ -27,7 +27,9 @@ class AvatarColourTest {
     fun `the contact picture stands out from the row`() {
         val weak = mutableListOf<String>()
         themesAndSystem()
-            .filter { it.first != ThemeName.HIGH_CONTRAST }
+            // where tiles stand by a border (high contrast, paper) the ink carries the avatar,
+            // the same as on the tile.
+            .filter { (theme, systemIsDark) -> paletteFor(theme, systemIsDark).tileBorder() == null }
             .forEach { (theme, systemIsDark) ->
                 val palette = paletteFor(theme, systemIsDark)
                 val row = palette.surfaceDefault.fill.value.toLong() shr 32
