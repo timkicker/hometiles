@@ -1,3 +1,1 @@
-Unter „Wie herum“ gibt es jetzt auch „Nach Einstellung“. Der Startbildschirm bleibt dann bei
-gesperrter Drehung stehen und dreht sich nur mit, wenn das automatische Drehen in den
-Einstellungen des Telefons an ist. Sonst ändert sich nichts.
+Unter „Wie herum“ gibt es jetzt auch „Nach Einstellung“. Der Startbildschirm bleibt dann bei gesperrter Drehung stehen und dreht sich nur mit, wenn das automatische Drehen in den Einstellungen des Telefons an ist. Sonst ändert sich nichts.

@@ -1,3 +1,1 @@
-Scrivendo in fretta con una tastiera nei contatti o nell'elenco delle app, tutte le lettere
-arrivano ora nella ricerca. Prima la prima poteva andare persa. Un'impostazione sconosciuta di
-una versione più recente torna al valore predefinito e il resto della configurazione resta.
+Scrivendo in fretta con una tastiera nei contatti o nell'elenco delle app, tutte le lettere arrivano ora nella ricerca. Prima la prima poteva andare persa. Un'impostazione sconosciuta di una versione più recente torna al valore predefinito e il resto della configurazione resta.

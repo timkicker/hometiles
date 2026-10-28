@@ -1,3 +1,1 @@
-En «En qué sentido» hay una opción nueva, «Según el ajuste». Con ella la pantalla de inicio
-solo gira si la rotación automática está activada en los ajustes del teléfono. Si está
-bloqueada, no se mueve. Las otras tres opciones siguen igual.
+En «En qué sentido» hay una opción nueva, «Según el ajuste». Con ella la pantalla de inicio solo gira si la rotación automática está activada en los ajustes del teléfono. Si está bloqueada, no se mueve. Las otras tres opciones siguen igual.

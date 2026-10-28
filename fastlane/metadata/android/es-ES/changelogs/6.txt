@@ -1,3 +1,1 @@
-Al escribir rápido con un teclado en los contactos o en la lista de aplicaciones, todas las
-letras llegan ahora a la búsqueda. Antes se podía perder la primera. Si esta versión no conoce
-un ajuste de una más nueva, usa el valor por defecto y conserva el resto de la configuración.
+Al escribir rápido con un teclado en los contactos o en la lista de aplicaciones, todas las letras llegan ahora a la búsqueda. Antes se podía perder la primera. Si esta versión no conoce un ajuste de una más nueva, usa el valor por defecto y conserva el resto de la configuración.

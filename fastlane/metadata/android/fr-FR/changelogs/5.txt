@@ -1,3 +1,1 @@
-Nouveau choix dans « Dans quel sens » : « Selon le réglage ». L'écran d'accueil ne tourne
-alors que si la rotation automatique est activée dans les réglages du téléphone et reste
-immobile quand elle est verrouillée. Les trois autres choix ne changent pas.
+Nouveau choix dans « Dans quel sens » : « Selon le réglage ». L'écran d'accueil ne tourne alors que si la rotation automatique est activée dans les réglages du téléphone et reste immobile quand elle est verrouillée. Les trois autres choix ne changent pas.

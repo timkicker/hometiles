@@ -1,3 +1,1 @@
-In «In che verso» c'è una nuova scelta, «Come impostato». La schermata iniziale ruota solo
-quando la rotazione automatica è attiva nelle impostazioni del telefono e resta ferma quando
-è bloccata. Le altre tre scelte funzionano come prima.
+In «In che verso» c'è una nuova scelta, «Come impostato». La schermata iniziale ruota solo quando la rotazione automatica è attiva nelle impostazioni del telefono e resta ferma quando è bloccata. Le altre tre scelte funzionano come prima.

@@ -1,3 +1,1 @@
-"Which way round" has a fourth choice, "Phone setting". With it the home screen turns only
-while auto-rotate is on in the phone's own settings and stays put while rotation is locked.
-The other three choices work as before.
+"Which way round" has a fourth choice, "Phone setting". With it the home screen turns only while auto-rotate is on in the phone's own settings and stays put while rotation is locked. The other three choices work as before.

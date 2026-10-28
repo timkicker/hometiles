@@ -113,6 +113,49 @@ class StoreTextsTest {
         }
     }
 
+    /**
+     * f-droid turns every line break into `<br>` and knows no markdown (their docs, read
+     * 28.10.2026). the texts were wrapped at about 95 columns, so on the page each paragraph
+     * broke in the middle of a sentence, and the `* ` list showed its asterisks.
+     *
+     * so a paragraph is one line, and a line may only follow another without a blank line
+     * between them when it is a list item.
+     */
+    private fun layoutFaults(name: String, text: String): List<String> {
+        val lines = text.trimEnd('\n').split("\n")
+        val markdown = lines.filter { Regex("""^\s*[*+-] """).containsMatchIn(it) }
+            .map { "$name: markdown list \"${it.take(30)}\"" }
+        val broken = lines.zipWithNext()
+            .filter { (one, next) -> one.isNotBlank() && next.isNotBlank() && !next.startsWith("• ") }
+            .map { (one, _) -> "$name: line break inside a paragraph after \"${one.takeLast(30)}\"" }
+        return markdown + broken
+    }
+
+    private fun storeTexts(): List<File> = languages.flatMap { language ->
+        listOf(file(language, "full_description.txt")) +
+            File(root, "$language/changelogs").listFiles().orEmpty().toList()
+    }
+
+    @Test
+    fun `the store texts break only where f-droid should`() {
+        val texts = storeTexts()
+        assertTrue("no store text was read", texts.size > languages.size)
+        assertEquals(
+            "f-droid shows every line break. write a paragraph on one line and a list as " +
+                "lines starting with \"• \".",
+            emptyList<String>(),
+            texts.flatMap { layoutFaults(it.path, it.readText()) },
+        )
+    }
+
+    @Test
+    fun `the layout rule finds a wrapped paragraph and a markdown list`() {
+        // counter-check with the shape the texts had before 28.10.2026.
+        val old = "A dialler with a keypad and its own in-call\nscreen.\n\n* Messages\n"
+        assertEquals(2, layoutFaults("old", old).size)
+        assertEquals(emptyList<String>(), layoutFaults("new", "One line.\n\nList:\n\n• a\n• b\n"))
+    }
+
     @Test
     fun `the screenshots are numbered without gaps`() {
         withImages.forEach { language ->

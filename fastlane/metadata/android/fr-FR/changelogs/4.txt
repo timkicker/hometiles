@@ -1,5 +1,1 @@
-Les téléphones à touches fonctionnent maintenant sur tous les écrans. Les tuiles ne sont plus
-les seules à montrer le focus : chaque ligne, bouton et touche porte un cadre épais. Dans le
-composeur et la saisie du code PIN, les touches numériques écrivent, étoile et dièse comprises.
-La touche verte mène au bouton d'appel sans composer. Avec un clavier physique, il suffit de
-taper dans la liste des applications ou les contacts pour lancer la recherche.
+Les téléphones à touches fonctionnent maintenant sur tous les écrans. Les tuiles ne sont plus les seules à montrer le focus : chaque ligne, bouton et touche porte un cadre épais. Dans le composeur et la saisie du code PIN, les touches numériques écrivent, étoile et dièse comprises. La touche verte mène au bouton d'appel sans composer. Avec un clavier physique, il suffit de taper dans la liste des applications ou les contacts pour lancer la recherche.

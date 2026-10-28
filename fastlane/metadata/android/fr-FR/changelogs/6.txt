@@ -1,3 +1,1 @@
-En tapant vite sur un clavier dans les contacts ou la liste des applications, toutes les
-lettres arrivent maintenant dans la recherche. Avant, la première pouvait manquer. Un réglage
-inconnu venu d'une version plus récente reprend sa valeur par défaut sans effacer le reste.
+En tapant vite sur un clavier dans les contacts ou la liste des applications, toutes les lettres arrivent maintenant dans la recherche. Avant, la première pouvait manquer. Un réglage inconnu venu d'une version plus récente reprend sa valeur par défaut sans effacer le reste.

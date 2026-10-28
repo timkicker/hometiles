@@ -1,4 +1,1 @@
-Phones with keys work on every screen now. Every row, button and key shows a thick focus
-border, not only the tiles. The number keys type in the dialler and in the PIN entry (star and
-pound too). The green key moves to the call button without dialling. On a phone with a
-keyboard, letters typed in the app list or contacts go straight into the search.
+Phones with keys work on every screen now. Every row, button and key shows a thick focus border, not only the tiles. The number keys type in the dialler and in the PIN entry (star and pound too). The green key moves to the call button without dialling. On a phone with a keyboard, letters typed in the app list or contacts go straight into the search.

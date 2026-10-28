@@ -1,5 +1,1 @@
-I telefoni con tasti ora funzionano in ogni schermata. Non solo i riquadri: ogni riga, pulsante
-e tasto mostra un bordo spesso dove si trova il focus. Nel tastierino e nel PIN i tasti numerici
-scrivono, anche asterisco e cancelletto. Il tasto verde porta al pulsante di chiamata senza
-chiamare. Con una tastiera fisica basta scrivere nell'elenco delle app o nei contatti per
-cercare.
+I telefoni con tasti ora funzionano in ogni schermata. Non solo i riquadri: ogni riga, pulsante e tasto mostra un bordo spesso dove si trova il focus. Nel tastierino e nel PIN i tasti numerici scrivono, anche asterisco e cancelletto. Il tasto verde porta al pulsante di chiamata senza chiamare. Con una tastiera fisica basta scrivere nell'elenco delle app o nei contatti per cercare.

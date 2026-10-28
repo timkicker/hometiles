@@ -1,5 +1,1 @@
-Telefone mit Tasten lassen sich jetzt auf jedem Bildschirm bedienen. Jede Zeile, jeder Knopf
-und jede Taste zeigt wie die Kacheln einen dicken Rahmen, wo der Fokus steht. In der
-Wähltastatur und bei der PIN schreiben die Zifferntasten mit, auch Stern und Raute. Die grüne
-Taste springt auf den Anrufknopf und wählt nicht selbst. Wer eine Tastatur hat, tippt in der
-App-Liste und bei den Kontakten einfach los und landet in der Suche.
+Telefone mit Tasten lassen sich jetzt auf jedem Bildschirm bedienen. Jede Zeile, jeder Knopf und jede Taste zeigt wie die Kacheln einen dicken Rahmen, wo der Fokus steht. In der Wähltastatur und bei der PIN schreiben die Zifferntasten mit, auch Stern und Raute. Die grüne Taste springt auf den Anrufknopf und wählt nicht selbst. Wer eine Tastatur hat, tippt in der App-Liste und bei den Kontakten einfach los und landet in der Suche.

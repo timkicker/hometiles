@@ -1,3 +1,1 @@
-Wer in den Kontakten oder der App-Liste schnell auf einer Tastatur tippt, findet jetzt alle
-Buchstaben in der Suche. Bisher konnte der erste fehlen. Kennt diese Version eine Einstellung
-aus einer späteren nicht, nimmt sie dafür den Standard und behält den Rest der Einrichtung.
+Wer in den Kontakten oder der App-Liste schnell auf einer Tastatur tippt, findet jetzt alle Buchstaben in der Suche. Bisher konnte der erste fehlen. Kennt diese Version eine Einstellung aus einer späteren nicht, nimmt sie dafür den Standard und behält den Rest der Einrichtung.

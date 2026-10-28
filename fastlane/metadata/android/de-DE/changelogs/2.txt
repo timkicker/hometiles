@@ -1,2 +1,1 @@
-In der App selbst hat sich nichts geändert. Der Lizenzhinweis und die Berechtigungsliste im
-Readme sind berichtigt.
+In der App selbst hat sich nichts geändert. Der Lizenzhinweis und die Berechtigungsliste im Readme sind berichtigt.

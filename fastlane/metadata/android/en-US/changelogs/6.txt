@@ -1,3 +1,1 @@
-Letters typed quickly on a keyboard in the contacts or the app list all reach the search now.
-Before, the first one could get lost. A setting a later version adds no longer makes this one
-throw away the whole setup when you go back. It falls back to its default instead.
+Letters typed quickly on a keyboard in the contacts or the app list all reach the search now. Before, the first one could get lost. A setting a later version adds no longer makes this one throw away the whole setup when you go back. It falls back to its default instead.

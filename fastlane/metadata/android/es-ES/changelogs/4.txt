@@ -1,5 +1,1 @@
-Los teléfonos con teclas ya funcionan en todas las pantallas. Además de los mosaicos, cada fila,
-botón y tecla muestra un borde grueso donde está el foco. En el marcador y en el PIN escriben
-las teclas numéricas, también asterisco y almohadilla. La tecla verde lleva al botón de llamar
-sin marcar. Con un teclado físico, basta con escribir en la lista de aplicaciones o en los
-contactos para buscar.
+Los teléfonos con teclas ya funcionan en todas las pantallas. Además de los mosaicos, cada fila, botón y tecla muestra un borde grueso donde está el foco. En el marcador y en el PIN escriben las teclas numéricas, también asterisco y almohadilla. La tecla verde lleva al botón de llamar sin marcar. Con un teclado físico, basta con escribir en la lista de aplicaciones o en los contactos para buscar.
