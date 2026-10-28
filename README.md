@@ -86,6 +86,8 @@ away, and asks for no account.
 - Keypad with big keys, speed dial on 2 to 9, call log with grouping.
 - Its own call screen: answer, reject, mute, speaker, hold, keypad, bluetooth.
 - Turn a call down with a short written answer.
+- At the ear the proximity sensor turns the screen off during a call. On speaker or with a
+  headset it stays on.
 - HomeTiles can take the phone role, but it works without it.
 - Emergency numbers always go to the system dialler.
 
@@ -100,6 +102,7 @@ away, and asks for no account.
 
 **App list**
 - One long list with search and "recently used", and apps can be hidden.
+- It opens with the list from last time and checks for new or removed apps in the background.
 - The last row is always **HomeTiles settings**, so there is a way in even when no tile leads
   there. The search finds that row too.
 
@@ -109,12 +112,18 @@ away, and asks for no account.
   itself.**
 
 **Safety net**
-- If the launcher fails to start twice in a row, a plain screen appears instead of a black
-  phone: the system phone and contacts apps at the top, then try again, settings, choose
-  another home screen, and reset the tiles.
+- If the launcher crashes twice in a row while starting, a plain screen appears instead of a
+  black phone: the system phone and contacts apps at the top, then try again, settings, choose
+  another home screen, and reset the tiles. A start that an update or the system cut short
+  does not count.
 
 **Backup**
 - The whole configuration exports to a file and reads back on the next phone.
+
+**Phones with keys**
+- A setting for flip phones and other phones with a keypad: lists start with the focus on the
+  first entry and leave out titles and photos. By default it follows whether the phone has
+  keys.
 
 **Languages**: English, German, Spanish, French, Italian.
 
@@ -203,6 +212,10 @@ colour, the icon at the top left, the label at the bottom left inside a zone of 
 so the baselines line up even when a label wraps.
 All colour pairs meet at least 4.5:1, and a rule checks that for every combination the app is
 able to draw.
+
+<p align="center">
+  <img src="docs/paper-theme.png" alt="The paper theme: home screen, app list, keypad, incoming call and the theme setting" width="100%"/>
+</p>
 
 More in [PLAN.md](PLAN.md), section 3. That file is in German: the plan is written in the
 language it was thought in. The running log it refers to stays on the machine it was written
