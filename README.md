@@ -139,6 +139,18 @@ runs on Android 8 (API 26) and above; it is developed against Android 11 on the 
 F-Droid builds and signs the app itself, so there is no APK on the GitHub releases. The store
 texts and screenshots it shows come from `fastlane/metadata/`. To build it yourself, see below.
 
+### If messages stop arriving
+
+Some phones ship an app blocker of their own on top of Android. Once HomeTiles is the default
+messaging app, Android hands every incoming SMS to HomeTiles alone. If the blocker stops that
+handover, Android still counts the message as delivered and deletes it, so it shows up nowhere,
+not even in the list.
+
+Seen on a Unihertz Jelly 2 in October 2026, where SMS went missing for weeks: Settings > Smart
+Assist > App blocker > HomeTiles, then set the start blocker to "No restrictions". Other makers
+put the same switch under autostart, background activity or battery optimisation;
+[dontkillmyapp.com](https://dontkillmyapp.com/) lists them by brand.
+
 ## Build
 
 ```sh
