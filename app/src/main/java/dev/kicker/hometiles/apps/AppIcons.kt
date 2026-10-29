@@ -33,7 +33,7 @@ object AppIcons {
 
     @Composable
     fun of(repository: AppRepository, app: LaunchableApp): AppIcon {
-        val key = app.packageName + "/" + app.activityName
+        val key = AppDrawer.keyOf(app)
         var icon by remember(key) {
             val known = cache.get(key)
             mutableStateOf(
@@ -52,7 +52,7 @@ object AppIcons {
 
     private suspend fun load(repository: AppRepository, app: LaunchableApp, key: String): AppIcon {
         val bitmap = withContext(Dispatchers.IO) {
-            repository.iconFor(app.packageName, app.activityName)
+            repository.iconFor(app.packageName, app.activityName, app.profile)
                 ?.toBitmap(SIZE_PX, SIZE_PX)
                 ?.asImageBitmap()
         }

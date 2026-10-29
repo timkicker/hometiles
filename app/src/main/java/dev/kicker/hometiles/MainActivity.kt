@@ -77,6 +77,8 @@ import dev.kicker.hometiles.actions.Intents
 import dev.kicker.hometiles.ui.PermissionState
 import dev.kicker.hometiles.apps.AppDrawerActivity
 import dev.kicker.hometiles.apps.AppRepository
+import dev.kicker.hometiles.apps.LaunchResult
+import dev.kicker.hometiles.profiles.WorkProfile
 import dev.kicker.hometiles.data.Builtin
 import dev.kicker.hometiles.data.ButtonAction
 import dev.kicker.hometiles.data.PressMode
@@ -430,10 +432,10 @@ class MainActivity : HomeTilesActivity() {
                             gridAnchor = back,
                             appearance = config.appearance,
                             modifier = gestalt,
-                            appIcon = { pkg, act ->
-                                apps.iconFor(pkg, act)?.toBitmap(96, 96)?.asImageBitmap()
+                            appIcon = { a ->
+                                apps.iconFor(a.packageName, a.activityName, a.profile)?.toBitmap(96, 96)?.asImageBitmap()
                             },
-                            appLabel = { pkg, act -> apps.labelFor(pkg, act) },
+                            appLabel = { a -> appTitle(a) },
                             shortcutIcon = { pkg, id ->
                                 ShortcutRepository.get(context)
                                     .iconFor(pkg, id, resources.displayMetrics.densityDpi)
@@ -777,10 +779,15 @@ class MainActivity : HomeTilesActivity() {
             button,
             words(),
             screenName = { id -> config.screenById(id)?.name },
-            appLabel = { a -> apps.labelFor(a.packageName, a.activityName) },
+            appLabel = { a -> appTitle(a) },
             builtinLabel = { builtin -> getString(builtin.labelRes()) },
         )
     }
+
+    /** the installed name of a tile's app, with the work profile said; null when it is gone. */
+    private fun appTitle(action: ButtonAction.App): String? =
+        AppRepository.get(this).labelFor(action.packageName, action.activityName, action.profile)
+            ?.let { WorkProfile.title(this, it, action.profile) }
 
     private fun words() = TileLabel.Words(
         emptyTile = getString(R.string.empty_tile),
@@ -801,7 +808,7 @@ class MainActivity : HomeTilesActivity() {
      */
     private fun isLocked(action: ButtonAction): Boolean {
         val (paket, schluessel) = when (action) {
-            is ButtonAction.App -> action.packageName to "${action.packageName}/${action.activityName}"
+            is ButtonAction.App -> action.packageName to action.key
             is ButtonAction.Shortcut -> action.packageName to action.packageName
             else -> return false
         }
@@ -827,8 +834,13 @@ class MainActivity : HomeTilesActivity() {
         y: Int,
         apps: AppRepository,
     ) {
+        if (action is ButtonAction.App) {
+            val result = apps.launch(action.packageName, action.activityName, action.profile)
+            if (result == LaunchResult.PAUSED) return WorkProfile.askToUnpause(this, apps, action.profile)
+            if (result == LaunchResult.STARTED) return
+        }
         val worked = when (action) {
-            is ButtonAction.App -> apps.launch(action.packageName, action.activityName)
+            is ButtonAction.App -> false
             is ButtonAction.Shortcut ->
                 ShortcutRepository.get(this).launch(action.packageName, action.shortcutId)
             else -> true

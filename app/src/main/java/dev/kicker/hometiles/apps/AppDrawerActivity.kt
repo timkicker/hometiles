@@ -28,6 +28,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import dev.kicker.hometiles.profiles.WorkProfile
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -89,7 +91,9 @@ class AppDrawerActivity : HomeTilesActivity() {
                 )
             }
 
-            LaunchedEffect(Unit) { all = repository.freshApps() }
+            // anew whenever an app comes or goes, and when a work profile is paused or back:
+            // its apps otherwise kept saying paused after a tap had switched it on (issue #6).
+            LaunchedEffect(Unit) { repository.changes().collect { all = repository.freshApps() } }
 
             val hidden = config.apps.hidden
             val shown = remember(all, hidden, query) { AppDrawer.search(all, hidden, query) }
@@ -107,14 +111,19 @@ class AppDrawerActivity : HomeTilesActivity() {
                         apps = it.apps.copy(recent = AppDrawer.remember(it.apps.recent, AppDrawer.keyOf(app))),
                     )
                 }
-                if (!repository.launch(app.packageName, app.activityName)) {
-                    // an app can vanish between building the list and the tap.
-                    //
-                    // a text of its own and not `app_gone`, which advises reassigning a tile
-                    // where there is none. the list reloads instead, so the dead entry goes
-                    // rather than doing nothing again on the next tap.
-                    Notice.show(this@AppDrawerActivity, R.string.app_gone_list)
-                    all = repository.loadApps()
+                val result = repository.launch(app.packageName, app.activityName, app.profile)
+                when (result) {
+                    LaunchResult.STARTED -> Unit
+                    LaunchResult.PAUSED -> WorkProfile.askToUnpause(this@AppDrawerActivity, repository, app.profile)
+                    LaunchResult.GONE -> {
+                        // an app can vanish between building the list and the tap.
+                        //
+                        // a text of its own and not `app_gone`, which advises reassigning a
+                        // tile where there is none. the list reloads instead, so the dead
+                        // entry goes rather than doing nothing again on the next tap.
+                        Notice.show(this@AppDrawerActivity, R.string.app_gone_list)
+                        all = repository.loadApps()
+                    }
                 }
             }
 
@@ -374,7 +383,7 @@ private fun AppRow(
 ) {
     val icon = AppIcons.of(repository, app)
     BigRow(
-        label = app.label,
+        label = WorkProfile.title(LocalContext.current, app),
         modifier = modifier,
         iconBitmap = icon.bitmap,
         // while it loads the place stays empty, rather than briefly showing "hidden".

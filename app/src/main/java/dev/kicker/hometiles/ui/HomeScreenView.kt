@@ -82,8 +82,8 @@ fun HomeScreenView(
     screen: Screen,
     appearance: Appearance,
     modifier: Modifier = Modifier,
-    appIcon: (String, String) -> ImageBitmap? = { _, _ -> null },
-    appLabel: (String, String) -> String? = { _, _ -> null },
+    appIcon: (ButtonAction.App) -> ImageBitmap? = { null },
+    appLabel: (ButtonAction.App) -> String? = { null },
     shortcutIcon: (String, String) -> ImageBitmap? = { _, _ -> null },
     /** the folder behind an id, for the preview on the folder tile. */
     folderOf: (String) -> Screen? = { null },
@@ -360,8 +360,8 @@ private fun TileFor(
     systemPackages: SystemPackages,
     battery: BatteryReading?,
     signal: SignalReading?,
-    appIcon: (String, String) -> ImageBitmap?,
-    appLabel: (String, String) -> String?,
+    appIcon: (ButtonAction.App) -> ImageBitmap?,
+    appLabel: (ButtonAction.App) -> String?,
     shortcutIcon: (String, String) -> ImageBitmap?,
     folderOf: (String) -> Screen?,
     modifier: Modifier,
@@ -441,7 +441,7 @@ private fun TileFor(
             // null when the package is gone, uninstalled or installed again under another
             // name. asked before the own label, or a tile called whatsapp keeps that name
             // while pointing at nothing. the tile stays: tapping it leads to the editor.
-            val installed = appLabel(action.packageName, action.activityName)
+            val installed = appLabel(action)
             val name = button.label ?: installed ?: action.packageName
             val missing = installed == null
             BigTile(
@@ -459,7 +459,7 @@ private fun TileFor(
                 iconBitmap = if (
                     !missing && appearance.icons != IconVisibility.NEVER && button.iconName == null
                 ) {
-                    appIcon(action.packageName, action.activityName)
+                    appIcon(action)
                 } else {
                     null
                 },
@@ -700,7 +700,7 @@ private fun FolderTile(
     /** a hand-picked icon, see [dev.kicker.hometiles.ui.IconCatalogue]. */
     iconName: String?,
     preview: List<Cell>,
-    appIcon: (String, String) -> ImageBitmap?,
+    appIcon: (ButtonAction.App) -> ImageBitmap?,
     background: Color,
     cellWidth: androidx.compose.ui.unit.Dp,
     cellHeight: androidx.compose.ui.unit.Dp,
@@ -758,7 +758,7 @@ private fun FolderPreview(
     cells: List<Cell>,
     cellWidth: androidx.compose.ui.unit.Dp,
     availableHeight: androidx.compose.ui.unit.Dp,
-    appIcon: (String, String) -> ImageBitmap?,
+    appIcon: (ButtonAction.App) -> ImageBitmap?,
 ) {
     val palette = LocalBigPalette.current
     val edgeDp = FolderPreviewLayout.edgeDp(cellWidth.value, availableHeight.value)
@@ -771,7 +771,7 @@ private fun FolderPreview(
                     Box(Modifier.size(edge), contentAlignment = Alignment.Center) {
                         when (val action = cell.button.action) {
                             is ButtonAction.App -> {
-                                val image = appIcon(action.packageName, action.activityName)
+                                val image = appIcon(action)
                                 if (image != null) {
                                     Image(bitmap = image, contentDescription = null, modifier = Modifier.size(edge))
                                 } else {

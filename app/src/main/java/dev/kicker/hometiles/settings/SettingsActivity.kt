@@ -98,7 +98,9 @@ import dev.kicker.hometiles.core.ui.R as UiR
 import dev.kicker.hometiles.actions.Intents
 import dev.kicker.hometiles.ui.PermissionState
 import dev.kicker.hometiles.apps.AppDrawer
+import dev.kicker.hometiles.apps.AppKey
 import dev.kicker.hometiles.apps.AppRepository
+import dev.kicker.hometiles.profiles.WorkProfile
 import dev.kicker.hometiles.a11y.LongPress
 import dev.kicker.hometiles.data.Accessibility
 import dev.kicker.hometiles.data.PhoneConfig
@@ -576,9 +578,12 @@ class SettingsActivity : HomeTilesActivity() {
                                 store.update { it.copy(apps = it.apps.copy(recentCount = count)) }
                             },
                             labelFor = { key ->
-                                val parts = key.split("/")
+                                val profile = AppKey.profileOf(key)
+                                val parts = AppKey.withoutProfile(key).split("/")
                                 if (parts.size == 2) {
-                                    AppRepository.get(this@SettingsActivity).labelFor(parts[0], parts[1]) ?: parts[0]
+                                    val label = AppRepository.get(this@SettingsActivity)
+                                        .labelFor(parts[0], parts[1], profile) ?: parts[0]
+                                    WorkProfile.title(this@SettingsActivity, label, profile)
                                 } else {
                                     key
                                 }
@@ -2370,9 +2375,9 @@ private fun AllowedAppsList(
         LazyColumn(verticalArrangement = Arrangement.spacedBy(4.dp)) {
             items(shown, key = { AppDrawer.keyOf(it) }) { app ->
                 val key = AppDrawer.keyOf(app)
-                val isAllowed = key in allowed || app.packageName in allowed
+                val isAllowed = key in allowed || (app.profile == null && app.packageName in allowed)
                 BigRow(
-                    label = app.label,
+                    label = WorkProfile.title(LocalContext.current, app),
                     icon = if (isAllowed) Icons.Filled.Check else Icons.Filled.Lock,
                     checked = isAllowed,
                     onClick = { onToggle(key) },

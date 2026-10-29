@@ -1,5 +1,6 @@
 package dev.kicker.hometiles.notify
 
+import dev.kicker.hometiles.apps.AppKey
 import dev.kicker.hometiles.data.Builtin
 import dev.kicker.hometiles.data.Button
 import dev.kicker.hometiles.data.ButtonAction
@@ -13,7 +14,7 @@ import dev.kicker.hometiles.data.ButtonAction
 object TileNotifications {
 
     fun watchedPackage(action: ButtonAction, system: SystemPackages): String? = when (action) {
-        is ButtonAction.App -> action.packageName
+        is ButtonAction.App -> AppKey.notices(action.packageName, action.profile)
         is ButtonAction.Action -> when (action.builtin) {
             Builtin.MESSAGES -> system.sms
             // MISSED_CALLS and DIALER count the call log, not foreign notices. see badgeFor.

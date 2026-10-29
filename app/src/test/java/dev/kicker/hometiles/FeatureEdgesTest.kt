@@ -29,7 +29,7 @@ class FeatureEdgesTest {
         "sms" to "sms", "notify" to "sms",
         "settings" to "settings", "wizard" to "settings",
         "toggles" to "sos", "actions" to "sos", "safety" to "sos",
-        // a11y, search, security, web and info cut across and belong to no module.
+        // a11y, search, security, web, info and profiles cut across and belong to no module.
     )
 
     @Test

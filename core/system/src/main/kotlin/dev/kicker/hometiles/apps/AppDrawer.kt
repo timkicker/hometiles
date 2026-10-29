@@ -5,10 +5,14 @@ import dev.kicker.hometiles.search.TextSearch
 /** what the app list shows and in which order. */
 object AppDrawer {
 
-    fun keyOf(app: LaunchableApp): String = "${app.packageName}/${app.activityName}"
+    fun keyOf(app: LaunchableApp): String = AppKey.of(app.packageName, app.activityName, app.profile)
 
+    /**
+     * a bare package in [hidden] hides that package in the main profile only. it was written
+     * before work profiles were known, by someone who meant the app they saw.
+     */
     fun visible(apps: List<LaunchableApp>, hidden: Set<String>): List<LaunchableApp> =
-        apps.filterNot { keyOf(it) in hidden || it.packageName in hidden }
+        apps.filterNot { keyOf(it) in hidden || (it.profile == null && it.packageName in hidden) }
 
     /** keys without an app fall away: an uninstalled app must leave no gap. */
     fun recents(

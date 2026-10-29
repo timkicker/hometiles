@@ -2,6 +2,9 @@ package dev.kicker.hometiles.notify
 
 import android.content.ComponentName
 import android.content.Context
+import android.os.Process
+import android.os.UserManager
+import dev.kicker.hometiles.apps.AppKey
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
 
@@ -25,8 +28,19 @@ class BigNotificationListener : NotificationListenerService() {
         NotificationRepository.publish(NotificationCounts.summarise(rows), NotificationCounts.voicemail(rows))
     }
 
+    /**
+     * a notice from the work profile counts on the work app's tile only (issue #6). without the
+     * profile both tiles of an app showed the sum of both.
+     */
+    private fun StatusBarNotification.profile(): Long? =
+        if (user == Process.myUserHandle()) {
+            null
+        } else {
+            runCatching { getSystemService(UserManager::class.java).getSerialNumberForUser(user) }.getOrNull()
+        }
+
     private fun StatusBarNotification.toRow() = NotificationRow(
-        packageName = packageName,
+        packageName = AppKey.notices(packageName, profile()),
         clearable = isClearable,
         ongoing = isOngoing,
         groupSummary = notification.flags and android.app.Notification.FLAG_GROUP_SUMMARY != 0,

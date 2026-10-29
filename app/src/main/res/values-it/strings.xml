@@ -264,6 +264,10 @@
     <string name="shortcut_gone">Quella scorciatoia non c’è più. Assegni di nuovo il riquadro.</string>
     <string name="app_gone">Quell’app non è più su questo telefono. Assegni di nuovo il riquadro.</string>
     <string name="app_gone_list">Quell’app non è più su questo telefono. L’elenco è stato aggiornato.</string>
+    <string name="app_in_work_profile">%1$s (Lavoro)</string>
+    <string name="app_in_paused_work_profile">%1$s (Lavoro, in pausa)</string>
+    <string name="work_apps_turning_on">Le app di lavoro si stanno attivando. Poi tocchi di nuovo l’app.</string>
+    <string name="work_apps_paused">Le app di lavoro sono in pausa. Le attivi nelle impostazioni.</string>
     <string name="tile_app_missing">Manca %1$s</string>
     <string name="editor_pick_shortcut">Scegliere una scorciatoia</string>
     <string name="shortcut_needs_home_role">Android dà le scorciatoie solo all’app che fa la schermata iniziale. Faccia di HomeTiles la sua schermata iniziale.</string>

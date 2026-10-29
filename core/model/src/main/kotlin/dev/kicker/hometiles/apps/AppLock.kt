@@ -19,7 +19,10 @@ object AppLock {
 
     fun needsPin(config: LauncherConfig, key: String, packageName: String): Boolean {
         if (!Pin.protects(config.security.pin, config.apps.lockOthers)) return false
-        return key !in config.apps.allowed && packageName !in config.apps.allowed
+        if (key in config.apps.allowed) return false
+        // a bare package comes from a shortcut tile, which only reaches the main profile.
+        // allowing it must not open the same app in the work profile too.
+        return AppKey.profileOf(key) != null || packageName !in config.apps.allowed
     }
 
     enum class Step {
@@ -69,7 +72,7 @@ object AppLock {
             // a shortcut leads into an app and lies on a tile just as deliberately. with
             // only `App` here, a shortcut tile would be locked the moment the lock goes on.
             when (val action = cell.button.action) {
-                is ButtonAction.App -> "${action.packageName}/${action.activityName}"
+                is ButtonAction.App -> action.key
                 is ButtonAction.Shortcut -> action.packageName
                 else -> null
             }

@@ -96,6 +96,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.kicker.hometiles.R
 import dev.kicker.hometiles.core.ui.R as UiR
 import dev.kicker.hometiles.actions.Intents
+import dev.kicker.hometiles.apps.AppDrawer
 import dev.kicker.hometiles.apps.AppIcons
 import dev.kicker.hometiles.apps.AppRepository
 import dev.kicker.hometiles.search.TextSearch
@@ -108,6 +109,7 @@ import dev.kicker.hometiles.widgets.WidgetFit
 import dev.kicker.hometiles.widgets.WidgetHostController
 import dev.kicker.hometiles.widgets.WidgetProviderRow
 import dev.kicker.hometiles.apps.LaunchableApp
+import dev.kicker.hometiles.profiles.WorkProfile
 import dev.kicker.hometiles.data.Builtin
 import dev.kicker.hometiles.data.IconVisibility
 import dev.kicker.hometiles.data.Button
@@ -146,6 +148,11 @@ private enum class Mode { MENU, MOVE, EDIT_LINK, PICK_LONG_PRESS, PICK_BUILTIN, 
  * same flow and redraws as soon as something happens here.
  */
 class TileEditorActivity : HomeTilesActivity() {
+
+    /** the installed name of a tile's app, with the work profile said; null when it is gone. */
+    private fun appTitle(action: ButtonAction.App): String? =
+        AppRepository.get(this).labelFor(action.packageName, action.activityName, action.profile)
+            ?.let { WorkProfile.title(this, it, action.profile) }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -469,7 +476,7 @@ var contactsGranted by remember(resumes.intValue) { mutableStateOf(contacts.hasP
                             button = button,
                             spot = stringResource(R.string.editor_where, screen.name, y + 1, x + 1),
                             screenName = { id -> config.screenById(id)?.name },
-                            appLabel = { a -> apps.labelFor(a.packageName, a.activityName) },
+                            appLabel = { a -> appTitle(a) },
                             onPickBuiltin = { mode = Mode.PICK_BUILTIN },
                             onPickApp = { mode = Mode.PICK_APP },
                             onPickContact = {
@@ -523,7 +530,7 @@ var contactsGranted by remember(resumes.intValue) { mutableStateOf(contacts.hasP
                         }
 
                         Mode.PICK_APP -> AppList(apps) { app ->
-                            assignAction(ButtonAction.App(app.packageName, app.activityName))
+                            assignAction(ButtonAction.App(app.packageName, app.activityName, app.profile))
                         }
 
                         Mode.PICK_CONTACT -> ContactList(
@@ -585,7 +592,7 @@ var contactsGranted by remember(resumes.intValue) { mutableStateOf(contacts.hasP
                                 automatic = describe(
                                     button.copy(label = null),
                                     screenName = { id -> config.screenById(id)?.name },
-                                    appLabel = { a -> apps.labelFor(a.packageName, a.activityName) },
+                                    appLabel = { a -> appTitle(a) },
                                 ),
                                 titleRes = if (folder != null) R.string.folder_rename else R.string.editor_label,
                                 hintRes = if (folder != null) {
@@ -608,7 +615,7 @@ var contactsGranted by remember(resumes.intValue) { mutableStateOf(contacts.hasP
                             if (!shortcuts.available()) {
                                 NeedsHomeRole { Intents.chooseHomeApp(this@TileEditorActivity) }
                             } else {
-                                AppList(apps, headingRes = R.string.editor_pick_shortcut) { app ->
+                                AppList(apps, headingRes = R.string.editor_pick_shortcut, mainProfileOnly = true) { app ->
                                     shortcutApp = app
                                     mode = Mode.PICK_SHORTCUT
                                 }
@@ -686,7 +693,7 @@ var contactsGranted by remember(resumes.intValue) { mutableStateOf(contacts.hasP
                             which = stringResource(
                                 R.string.move_which,
                                 describe(button, { id -> config.screenById(id)?.name }, { a ->
-                                    apps.labelFor(a.packageName, a.activityName)
+                                    appTitle(a)
                                 }),
                                 y + 1,
                                 x + 1,
@@ -695,7 +702,7 @@ var contactsGranted by remember(resumes.intValue) { mutableStateOf(contacts.hasP
                             targets = cell?.let { TileMove.targetsFor(config, screenId, it) }.orEmpty(),
                             shrinks = cell?.let { it.w > 1 || it.h > 1 } ?: false,
                             screenName = { id -> config.screenById(id)?.name },
-                            appLabel = { a -> apps.labelFor(a.packageName, a.activityName) },
+                            appLabel = { a -> appTitle(a) },
                             onSpot = { spot ->
                                 val movedWithin =
                                     TileMove.moveWithin(store.current, screenId, x, y, spot.x, spot.y)
@@ -1089,11 +1096,14 @@ private fun BuiltinList(onPick: (Builtin) -> Unit) {
 private fun AppList(
     repository: AppRepository,
     headingRes: Int = R.string.editor_pick_app,
+    /** shortcuts are read from the main profile only, so a work app would offer none. */
+    mainProfileOnly: Boolean = false,
     onPick: (LaunchableApp) -> Unit,
 ) {
-    var apps by remember { mutableStateOf(repository.cachedApps().orEmpty()) }
+    val only = { list: List<LaunchableApp> -> if (mainProfileOnly) list.filter { it.profile == null } else list }
+    var apps by remember { mutableStateOf(only(repository.cachedApps().orEmpty())) }
     var query by rememberSaveable { mutableStateOf("") }
-    LaunchedEffect(Unit) { apps = repository.freshApps() }
+    LaunchedEffect(Unit) { apps = only(repository.freshApps()) }
 
     val shown = remember(apps, query) { TextSearch.filter(apps, query) { it.label } }
     val palette = LocalBigPalette.current
@@ -1118,9 +1128,9 @@ private fun AppList(
             )
         }
         LazyColumn(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            items(shown, key = { it.packageName + it.activityName }) { app ->
+            items(shown, key = { AppDrawer.keyOf(it) }) { app ->
                 BigRow(
-                    label = app.label,
+                    label = WorkProfile.title(LocalContext.current, app),
                     iconBitmap = AppIcons.of(repository, app).bitmap,
                     onClick = { onPick(app) },
                 )

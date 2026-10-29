@@ -70,7 +70,7 @@ A fifth setting follows the phone and switches between Dark and Light. Every col
 - **Phone:** keypad, speed dial on 2 to 9, grouped call log and its own call screen. Turn a call down with a short message. The screen goes off at the ear. Emergency numbers always go to the system dialler.
 - **Messages:** threads, writing and delivery receipts. Picture messages already on the phone are shown. HomeTiles can be the default SMS app.
 - **Contacts:** search that ignores accents and case, sorting by first or last name, favourites.
-- **App list:** search, recently used, hidden apps.
+- **App list:** search, recently used and hidden apps. Apps from a work profile are listed too, marked (Work).
 - **SOS:** a countdown, then a message to up to five people with the location. HomeTiles never dials by itself.
 - **Reading help:** hold a tile to hear it or see it large, page buttons instead of swiping, Atkinson Hyperlegible as the default typeface.
 - **Phones with keys:** every screen works with a keypad.

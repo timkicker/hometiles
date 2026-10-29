@@ -259,6 +259,10 @@
     <string name="shortcut_gone">Diese Verknüpfung gibt es nicht mehr. Kachel neu belegen.</string>
     <string name="app_gone">Diese App ist nicht mehr auf dem Telefon. Kachel neu belegen.</string>
     <string name="app_gone_list">Diese App ist nicht mehr auf dem Telefon. Die Liste ist neu geladen.</string>
+    <string name="app_in_work_profile">%1$s (Arbeit)</string>
+    <string name="app_in_paused_work_profile">%1$s (Arbeit, pausiert)</string>
+    <string name="work_apps_turning_on">Arbeits-Apps werden eingeschaltet. Danach die App noch einmal antippen.</string>
+    <string name="work_apps_paused">Arbeits-Apps sind pausiert. In den Einstellungen einschalten.</string>
     <string name="tile_app_missing">%1$s fehlt</string>
     <string name="editor_pick_shortcut">Verknüpfung wählen</string>
     <string name="shortcut_needs_home_role">Android gibt Verknüpfungen nur an die App, die den Startbildschirm stellt. Machen Sie HomeTiles dazu, um sie zu nutzen.</string>

@@ -1,5 +1,6 @@
 package dev.kicker.hometiles.data
 
+import dev.kicker.hometiles.apps.AppKey
 import dev.kicker.hometiles.toggles.SosCountdown
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -28,7 +29,14 @@ sealed interface ButtonAction {
 
     @Serializable
     @SerialName("app")
-    data class App(val packageName: String, val activityName: String) : ButtonAction
+    data class App(
+        val packageName: String,
+        val activityName: String,
+        /** serial of the profile the app lives in, null for the main one. see AppKey. */
+        val profile: Long? = null,
+    ) : ButtonAction {
+        val key: String get() = AppKey.of(packageName, activityName, profile)
+    }
 
     @Serializable
     @SerialName("contact")

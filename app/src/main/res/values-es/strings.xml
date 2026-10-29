@@ -265,6 +265,10 @@
     <string name="shortcut_gone">Ese acceso directo ya no existe. Asigne el mosaico otra vez.</string>
     <string name="app_gone">Esa aplicación ya no está en este teléfono. Asigne el mosaico otra vez.</string>
     <string name="app_gone_list">Esa aplicación ya no está en este teléfono. La lista se ha actualizado.</string>
+    <string name="app_in_work_profile">%1$s (Trabajo)</string>
+    <string name="app_in_paused_work_profile">%1$s (Trabajo, en pausa)</string>
+    <string name="work_apps_turning_on">Se están activando las aplicaciones de trabajo. Después, toque la aplicación otra vez.</string>
+    <string name="work_apps_paused">Las aplicaciones de trabajo están en pausa. Actívelas en los ajustes.</string>
     <string name="tile_app_missing">Falta %1$s</string>
     <string name="editor_pick_shortcut">Elegir acceso directo</string>
     <string name="shortcut_needs_home_role">Android solo da los accesos directos a la aplicación que hace la pantalla de inicio. Haga de HomeTiles su pantalla de inicio.</string>
