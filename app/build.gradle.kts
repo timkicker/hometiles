@@ -131,6 +131,7 @@ tasks.withType<Test>().configureEach {
     inputs.dir("src/main/baselineProfiles").withPathSensitivity(PathSensitivity.RELATIVE)
     inputs.dir("../tools").withPathSensitivity(PathSensitivity.RELATIVE)
     inputs.dir("../fastlane").withPathSensitivity(PathSensitivity.RELATIVE)
+    inputs.dir("../docs").withPathSensitivity(PathSensitivity.RELATIVE)
     listOf(
         "src/main/res",
         "../core/model/src/main/kotlin",
