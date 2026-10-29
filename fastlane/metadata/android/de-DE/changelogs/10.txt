@@ -1,0 +1,1 @@
+In der App selbst hat sich nichts Sichtbares geändert. Die Symbole in der App-Liste werden sauberer geladen. Auf F-Droid bricht die Beschreibung nicht mehr mitten im Satz um, bei den Hinweisen zu jeder Version genauso wenig.

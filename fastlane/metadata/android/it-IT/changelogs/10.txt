@@ -1,0 +1,1 @@
+Nell'app non è cambiato nulla di visibile. Le icone nell'elenco delle app vengono caricate in modo più ordinato. Su F-Droid la descrizione e le note di ogni versione non vanno più a capo a metà frase.

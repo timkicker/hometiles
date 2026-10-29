@@ -1,0 +1,1 @@
+Nothing you can see has changed in the app. Icons in the app list are loaded in a tidier way. On F-Droid the description and the notes for each version no longer break off in the middle of a sentence.

@@ -1,0 +1,1 @@
+Rien de visible n'a changé dans l'application. La liste des applications charge ses icônes plus proprement. Sur F-Droid, la description et les notes de version ne se coupent plus au milieu d'une phrase.

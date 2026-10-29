@@ -30,8 +30,8 @@ android {
         applicationId = "dev.kicker.hometiles"
         minSdk = 26
         targetSdk = 35
-        versionCode = 9
-        versionName = "0.1.8"
+        versionCode = 10
+        versionName = "0.1.9"
         resourceConfigurations += listOf("en", "de", "fr", "es", "it")
     }
 
