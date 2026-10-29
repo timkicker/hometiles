@@ -99,10 +99,10 @@ Most tests are rules that read the source: every permission must be used, colour
 **Reproducible:** two builds with `./gradlew --no-build-cache clean assembleRelease` give the same unsigned APK. Checked on 29 October 2026 with AGP 8.7.3, Gradle 8.11.1 and JDK 21:
 
 ```
-e0574dfc37ae6ba2fc1cf1825af55993499405ca616225a5b00a2937533c6d52   1 972 447 bytes
+e0cf5050fdf9222be67225537d45e76c8feca35241eac2f0c8b6288be5caad1d   1 973 987 bytes
 ```
 
-for **Commit `71c5ba6`**. `tools/rebuild.sh` builds twice and compares.
+for **Commit `25487d0`**. `tools/rebuild.sh` builds twice and compares.
 
 ## Permissions
 
