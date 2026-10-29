@@ -1,0 +1,1 @@
+The app list now also shows the apps of a work profile, with the work badge and (Work) after the name. They can go on a tile or be hidden without touching the same app in the private profile. If work apps are paused, a tap switches them back on (on Android 8 it opens the settings instead).

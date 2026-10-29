@@ -1,0 +1,1 @@
+La liste des applis affiche désormais aussi celles d'un profil professionnel, avec le badge travail et la mention (Travail) après le nom. On peut les placer sur une tuile ou les masquer sans toucher à la même appli du profil personnel. Si les applis professionnelles sont en pause, un appui les réactive (sous Android 8, ce sont les paramètres qui s'ouvrent).

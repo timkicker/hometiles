@@ -1,0 +1,1 @@
+La lista de aplicaciones muestra ahora también las de un perfil de trabajo, con la insignia de trabajo y (Trabajo) detrás del nombre. Se pueden poner en un mosaico u ocultar sin que cambie la misma aplicación del perfil personal. Si las aplicaciones de trabajo están en pausa, un toque las vuelve a activar (en Android 8 se abren los ajustes).

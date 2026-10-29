@@ -1,0 +1,1 @@
+L'elenco delle app ora mostra anche quelle di un profilo di lavoro, con il badge di lavoro e (Lavoro) dopo il nome. Si possono mettere su un riquadro o nascondere senza toccare la stessa app nel profilo personale. Se le app di lavoro sono in pausa, un tocco le riattiva (su Android 8 si aprono invece le impostazioni).
