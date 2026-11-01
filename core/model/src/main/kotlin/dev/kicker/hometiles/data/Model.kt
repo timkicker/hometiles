@@ -343,6 +343,10 @@ data class SosConfig(
     val alarmFlash: Boolean = false,
 )
 
+/** how the app list lays the apps out (issue #7). [LIST] stays the default, so nobody's list changes by itself. */
+@Serializable
+enum class AppListView { LIST, GRID }
+
 @Serializable
 data class AppsConfig(
     val hidden: Set<String> = emptySet(),
@@ -353,6 +357,7 @@ data class AppsConfig(
     /** apps that start without the pin. only applies with [lockOthers] on and a pin set. */
     val allowed: Set<String> = emptySet(),
     val lockOthers: Boolean = false,
+    val view: AppListView = AppListView.LIST,
 )
 
 @Serializable

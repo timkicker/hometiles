@@ -28,7 +28,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.ui.platform.LocalContext
+import dev.kicker.hometiles.data.AppListView
+import dev.kicker.hometiles.ui.BigGridCell
 import dev.kicker.hometiles.profiles.WorkProfile
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -245,8 +251,12 @@ class AppDrawerActivity : HomeTilesActivity() {
                             )
                         }
                         val listState = rememberLazyListState()
+                        // the grid of issue #7, by the width that is left beside the padding.
+                        val grid = config.apps.view == AppListView.GRID
+                        val columns = AppGrid.columns(LocalConfiguration.current.screenWidthDp - 16, config.appearance.textScale)
                         if (recentOnly && query.isEmpty()) {
-                            if (recents.isEmpty()) {
+                            // not while the apps are still being read: then none is a guess.
+                            if (recents.isEmpty() && all.isNotEmpty()) {
                                 Text(
                                     text = stringResource(R.string.apps_recent_none),
                                     color = palette.onBackground,
@@ -272,36 +282,56 @@ class AppDrawerActivity : HomeTilesActivity() {
                                 if (!recentOnly || query.isNotEmpty()) {
                                     item { BigHeading(stringResource(R.string.apps_recent)) }
                                 }
-                                itemsIndexed(recents, key = { _, it -> "recent-" + AppDrawer.keyOf(it) }) { index, app ->
-                                    AppRow(
-                                        app,
-                                        repository,
-                                        onClick = { open(app) },
-                                        onHide = null,
-                                        modifier = if (index == 0) firstFocus.entry else Modifier,
-                                    )
+                                if (grid) {
+                                    itemsIndexed(AppGrid.rows(recents, columns), key = { i, _ -> "recent-row-$i" }) { row, apps ->
+                                        AppGridRow(apps, columns, repository, onOpen = ::open, onHide = null, first = if (row == 0) firstFocus.entry else null)
+                                    }
+                                } else {
+                                    itemsIndexed(recents, key = { _, it -> "recent-" + AppDrawer.keyOf(it) }) { index, app ->
+                                        AppRow(
+                                            app,
+                                            repository,
+                                            onClick = { open(app) },
+                                            onHide = null,
+                                            modifier = if (index == 0) firstFocus.entry else Modifier,
+                                        )
+                                    }
                                 }
                                 if (!recentOnly || query.isNotEmpty()) {
                                     item { BigHeading(stringResource(R.string.apps_all)) }
                                 }
                             }
-                            itemsIndexed(listed, key = { _, it -> AppDrawer.keyOf(it) }) { index, app ->
-                                AppRow(
-                                    modifier = if (index == 0 && recents.isEmpty()) firstFocus.entry else Modifier,
-                                    app = app,
-                                    repository = repository,
-                                    onClick = { open(app) },
-                                    onHide = {
-                                        store.update {
-                                            it.copy(apps = it.apps.copy(hidden = AppDrawer.toggleHidden(it.apps.hidden, app)))
-                                        }
-                                        // without this the app would simply have vanished.
-                                        Notice.show(
-                                            this@AppDrawerActivity,
-                                            getString(R.string.apps_hidden_hint, app.label),
-                                        )
-                                    },
+                            fun hide(app: LaunchableApp) {
+                                store.update {
+                                    it.copy(apps = it.apps.copy(hidden = AppDrawer.toggleHidden(it.apps.hidden, app)))
+                                }
+                                // without this the app would simply have vanished.
+                                Notice.show(
+                                    this@AppDrawerActivity,
+                                    getString(R.string.apps_hidden_hint, app.label),
                                 )
+                            }
+                            if (grid) {
+                                itemsIndexed(AppGrid.rows(listed, columns), key = { i, _ -> "row-$i" }) { row, apps ->
+                                    AppGridRow(
+                                        apps,
+                                        columns,
+                                        repository,
+                                        onOpen = ::open,
+                                        onHide = ::hide,
+                                        first = if (row == 0 && recents.isEmpty()) firstFocus.entry else null,
+                                    )
+                                }
+                            } else {
+                                itemsIndexed(listed, key = { _, it -> AppDrawer.keyOf(it) }) { index, app ->
+                                    AppRow(
+                                        modifier = if (index == 0 && recents.isEmpty()) firstFocus.entry else Modifier,
+                                        app = app,
+                                        repository = repository,
+                                        onClick = { open(app) },
+                                        onHide = { hide(app) },
+                                    )
+                                }
                             }
                             // the way into the settings, and always.
                             //
@@ -370,6 +400,35 @@ class AppDrawerActivity : HomeTilesActivity() {
                 }
             }
         }
+    }
+}
+
+/**
+ * one row of the grid. cells keep their width when the last row is short, so a lone app
+ * there does not stretch across the screen.
+ */
+@Composable
+private fun AppGridRow(
+    apps: List<LaunchableApp>,
+    columns: Int,
+    repository: AppRepository,
+    onOpen: (LaunchableApp) -> Unit,
+    onHide: ((LaunchableApp) -> Unit)?,
+    first: Modifier?,
+) {
+    Row(horizontalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.fillMaxWidth()) {
+        apps.forEachIndexed { index, app ->
+            val icon = AppIcons.of(repository, app)
+            BigGridCell(
+                label = WorkProfile.title(LocalContext.current, app),
+                iconBitmap = icon.bitmap,
+                icon = if (icon.loaded && icon.bitmap == null) Icons.Filled.VisibilityOff else null,
+                onClick = { onOpen(app) },
+                onLongClick = onHide?.let { hide -> { hide(app) } },
+                modifier = Modifier.weight(1f).then(if (index == 0 && first != null) first else Modifier),
+            )
+        }
+        repeat(columns - apps.size) { Spacer(Modifier.weight(1f)) }
     }
 }
 

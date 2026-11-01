@@ -29,6 +29,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Call
+import androidx.compose.material.icons.filled.GridView
+import androidx.compose.material.icons.automirrored.filled.ViewList
 import androidx.compose.material.icons.filled.Sms
 import androidx.compose.material.icons.automirrored.filled.Message
 import androidx.compose.material.icons.filled.History
@@ -99,6 +101,7 @@ import dev.kicker.hometiles.actions.Intents
 import dev.kicker.hometiles.ui.PermissionState
 import dev.kicker.hometiles.apps.AppDrawer
 import dev.kicker.hometiles.apps.AppKey
+import dev.kicker.hometiles.data.AppListView
 import dev.kicker.hometiles.apps.AppRepository
 import dev.kicker.hometiles.profiles.WorkProfile
 import dev.kicker.hometiles.a11y.LongPress
@@ -573,6 +576,8 @@ class SettingsActivity : HomeTilesActivity() {
 
                         Page.HIDDEN_APPS -> HiddenAppsList(
                             hidden = config.apps.hidden,
+                            view = config.apps.view,
+                            onView = { choice -> store.update { it.copy(apps = it.apps.copy(view = choice)) } },
                             recentCount = config.apps.recentCount,
                             onRecentCount = { count ->
                                 store.update { it.copy(apps = it.apps.copy(recentCount = count)) }
@@ -1836,6 +1841,8 @@ private fun TransferList(onExport: () -> Unit, onImport: () -> Unit) {
 @Composable
 private fun HiddenAppsList(
     hidden: Set<String>,
+    view: AppListView,
+    onView: (AppListView) -> Unit,
     recentCount: Int,
     onRecentCount: (Int) -> Unit,
     labelFor: (String) -> String,
@@ -1844,6 +1851,16 @@ private fun HiddenAppsList(
     val palette = LocalBigPalette.current
     LazyColumn(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         item { BigHeading(stringResource(R.string.settings_app_list)) }
+        // issue #7: the same apps as a grid of large icons, for those who find by picture.
+        item { BigHeading(stringResource(R.string.apps_view)) }
+        items(AppListView.entries) { choice ->
+            BigRow(
+                label = stringResource(if (choice == AppListView.LIST) R.string.apps_view_list else R.string.apps_view_grid),
+                icon = if (choice == AppListView.LIST) Icons.AutoMirrored.Filled.ViewList else Icons.Filled.GridView,
+                selected = choice == view,
+                onClick = { onView(choice) },
+            )
+        }
         // the number was fixed at four while the app stores twelve starts, so anyone using
         // many different apps never saw the fifth again.
         item { BigHeading(stringResource(R.string.apps_recent_count)) }

@@ -265,6 +265,9 @@
     <string name="app_gone">Quell’app non è più su questo telefono. Assegni di nuovo il riquadro.</string>
     <string name="app_gone_list">Quell’app non è più su questo telefono. L’elenco è stato aggiornato.</string>
     <string name="app_in_work_profile">%1$s (Lavoro)</string>
+    <string name="apps_view">Visualizzazione</string>
+    <string name="apps_view_list">Elenco</string>
+    <string name="apps_view_grid">Griglia</string>
     <string name="app_in_paused_work_profile">%1$s (Lavoro, in pausa)</string>
     <string name="work_apps_turning_on">Le app di lavoro si stanno attivando. Poi tocchi di nuovo l’app.</string>
     <string name="work_apps_paused">Le app di lavoro sono in pausa. Le attivi nelle impostazioni.</string>
