@@ -1,0 +1,1 @@
+The app list can now show the apps as a grid of large icons with the name underneath. Switch it under Settings, App list, View. The list stays the default. The clock and icons in the status bar are readable again in the dark themes when the phone itself is set to light.

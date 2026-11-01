@@ -1,0 +1,1 @@
+La liste des applis peut maintenant les afficher en grille de grandes icônes, avec le nom en dessous. Le réglage se trouve dans Réglages, Liste des applications, Affichage, et la liste reste le choix par défaut. L'heure et les icônes de la barre d'état sont de nouveau lisibles avec les thèmes sombres quand le téléphone lui-même est en mode clair.

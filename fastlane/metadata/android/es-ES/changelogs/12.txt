@@ -1,0 +1,1 @@
+La lista de aplicaciones puede mostrarlas ahora como una cuadrícula de iconos grandes con el nombre debajo. Se cambia en Ajustes, Lista de aplicaciones, Vista, y la lista sigue siendo la opción por defecto. La hora y los iconos de la barra de estado vuelven a leerse bien con los temas oscuros cuando el teléfono está en modo claro.

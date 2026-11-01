@@ -1,0 +1,1 @@
+Die App-Liste kann die Apps jetzt auch als Raster aus großen Symbolen zeigen, mit dem Namen jeweils darunter. Umstellen lässt sich das unter Einstellungen, App-Liste, Ansicht. Die Liste bleibt der Standard. Uhr und Symbole in der Statusleiste sind in den dunklen Themes wieder lesbar, auch wenn das Telefon selbst auf hell steht.

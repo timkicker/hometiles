@@ -1,0 +1,1 @@
+L'elenco delle app ora può mostrarle anche come griglia di icone grandi con il nome sotto. Si cambia in Impostazioni, Elenco delle app, Visualizzazione, e l'elenco resta la scelta predefinita. L'ora e le icone nella barra di stato tornano leggibili con i temi scuri quando il telefono è impostato su chiaro.
