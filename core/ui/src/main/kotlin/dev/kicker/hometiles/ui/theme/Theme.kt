@@ -1,5 +1,8 @@
 package dev.kicker.hometiles.ui.theme
 
+import android.app.Activity
+import android.content.Context
+import android.content.ContextWrapper
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
@@ -7,6 +10,9 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.SideEffect
+import androidx.compose.ui.platform.LocalView
+import androidx.core.view.WindowCompat
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import dev.kicker.hometiles.data.ThemeName
@@ -178,6 +184,24 @@ fun HomeTilesTheme(
     content: @Composable () -> Unit,
 ) {
     val palette = paletteFor(theme, isSystemInDarkTheme())
+    // the clock and icons in the status bar follow the theme, not the phone's dark mode:
+    // with the phone light and the app dark they stood black on black (seen 29.10.2026).
+    val view = LocalView.current
+    if (!view.isInEditMode) {
+        SideEffect {
+            val window = view.context.activity()?.window ?: return@SideEffect
+            val apply = {
+                val bars = WindowCompat.getInsetsController(window, view)
+                val light = palette.wantsDarkSystemIcons()
+                bars.isAppearanceLightStatusBars = light
+                bars.isAppearanceLightNavigationBars = light
+            }
+            apply()
+            // and again once the window is attached: android 15 lays the theme's own value
+            // over one set during onCreate (white clock on the light theme, 01.11.2026).
+            view.post { apply() }
+        }
+    }
     val scheme = if (isSystemInDarkTheme() || palette.background.luminanceIsDark()) {
         darkColorScheme(
             primary = palette.accent,
@@ -213,6 +237,15 @@ fun HomeTilesTheme(
             content = content,
         )
     }
+}
+
+/** dark icons in the system bars belong on a light background, light icons on a dark one. */
+fun BigPalette.wantsDarkSystemIcons(): Boolean = !background.luminanceIsDark()
+
+private tailrec fun Context.activity(): Activity? = when (this) {
+    is Activity -> this
+    is ContextWrapper -> baseContext.activity()
+    else -> null
 }
 
 private fun Color.luminanceIsDark(): Boolean =
