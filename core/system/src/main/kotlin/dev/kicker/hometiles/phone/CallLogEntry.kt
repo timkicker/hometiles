@@ -11,7 +11,45 @@ data class CallEntry(
     val direction: CallDirection,
     val timestamp: Long,
     val durationSeconds: Long,
+    val shown: CallerShown = CallerShown.NUMBER,
 )
+
+/** what the network let through about the caller. only [NUMBER] carries one to call back. */
+enum class CallerShown { NUMBER, WITHHELD, UNKNOWN, PAYPHONE }
+
+/**
+ * reads the caller of a call log row.
+ *
+ * the log keeps the presentation apart from the number, and a withheld call can still come
+ * with a number column that is not empty: older radios wrote their markers into it. read as
+ * a number "-2" is the digit 2, shown as a caller and offered for a call back.
+ */
+object CallerIds {
+
+    // CallLog.Calls.NUMBER_PRESENTATION: 1 allowed, 2 restricted, 3 unknown, 4 payphone,
+    // 5 unavailable (api 31). null when the column is missing.
+    fun shownOf(presentation: Int?, number: String): CallerShown {
+        when (presentation) {
+            2 -> return CallerShown.WITHHELD
+            3, 5 -> return CallerShown.UNKNOWN
+            4 -> return CallerShown.PAYPHONE
+        }
+        // the markers of CallerInfo, UNKNOWN_NUMBER, PRIVATE_NUMBER and PAYPHONE_NUMBER.
+        return when (number.trim()) {
+            "-1" -> CallerShown.UNKNOWN
+            "-2" -> CallerShown.WITHHELD
+            "-3" -> CallerShown.PAYPHONE
+            else -> CallerShown.NUMBER
+        }
+    }
+
+    /** empty unless there is a number to call back, so the row cannot dial a marker. */
+    fun numberOf(shown: CallerShown, number: String): String =
+        if (shown == CallerShown.NUMBER) number else ""
+
+    /** a blank cached name is no name: it stood in the log as an empty row. */
+    fun nameOf(name: String?): String? = name?.takeIf { it.isNotBlank() }
+}
 
 /** consecutive calls of one number, folded into a single row. */
 data class CallGroup(

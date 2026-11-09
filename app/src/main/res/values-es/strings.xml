@@ -398,6 +398,7 @@
     <string name="incall_keypad_hide">Cerrar</string>
     <string name="incall_ringing">está llamando</string>
     <string name="call_unknown">Desconocido</string>
+    <string name="calllog_withheld">Número oculto</string>
     <string name="respond_not_sent">Mensaje todavía sin enviar</string>
     <string name="respond_not_sent_hint">Toque para escribirlo y enviarlo.</string>
     <string name="calllog_not_callable">Ese número estaba oculto. No puede devolver la llamada.</string>

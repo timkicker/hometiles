@@ -397,6 +397,7 @@
     <string name="incall_keypad_hide">Chiudere</string>
     <string name="incall_ringing">sta chiamando</string>
     <string name="call_unknown">Sconosciuto</string>
+    <string name="calllog_withheld">Numero privato</string>
     <string name="respond_not_sent">Messaggio non ancora inviato</string>
     <string name="respond_not_sent_hint">Tocchi per scriverlo e inviarlo.</string>
     <string name="calllog_not_callable">Quel numero era nascosto. Non può richiamare.</string>

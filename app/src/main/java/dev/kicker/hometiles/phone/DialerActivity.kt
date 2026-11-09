@@ -635,6 +635,13 @@ private fun CallList(
 ) {
     // stands in the row for a withheld number; a fixed "?" used to.
     val unknown = stringResource(R.string.call_unknown)
+    val withheld = stringResource(R.string.calllog_withheld)
+    // exhaustive on purpose: a new kind of caller has to get a word before it can show up.
+    fun callerOf(group: CallGroup): String = group.name ?: when (group.latest.shown) {
+        CallerShown.NUMBER -> PhoneNumbers.forDisplay(group.number).ifBlank { unknown }
+        CallerShown.WITHHELD -> withheld
+        CallerShown.UNKNOWN, CallerShown.PAYPHONE -> unknown
+    }
     // the lasting choice of kinds first, then the quick missed-only filter: that one is a
     // view, not a setting, and must not overwrite the other.
     val groups = CallLogGrouping.visible(
@@ -810,14 +817,14 @@ private fun CallList(
             itemsIndexed(groups, key = { _, it -> it.latest.id }) { index, group ->
                 BigRow(
                     label = buildString {
-                        append(group.name ?: PhoneNumbers.forDisplay(group.number).ifBlank { unknown })
+                        append(callerOf(group))
                         if (group.count > 1) append(" (${group.count})")
                     },
                     modifier = if (index == 0) firstFocus.entry else Modifier,
                     // a *number* in place of a name is read digit by digit: otherwise a
                     // screen reader turns 222222 into one number, and someone checking whom
                     // they are about to call back learns nothing. a name stays a name.
-                    labelSpeech = if (group.name == null) {
+                    labelSpeech = if (group.name == null && group.latest.shown == CallerShown.NUMBER) {
                         PhoneNumbers.forSpeech(group.number).ifBlank { unknown }
                     } else {
                         null
@@ -857,7 +864,7 @@ private fun CallList(
                     },
                     onLongClick = {
                         onAskDelete(
-                            group.name ?: PhoneNumbers.forDisplay(group.number),
+                            callerOf(group),
                             CallLogGrouping.idsOf(group),
                         )
                     },

@@ -33,6 +33,7 @@ class CallLogRepository(context: Context) {
             CallLog.Calls.TYPE,
             CallLog.Calls.DATE,
             CallLog.Calls.DURATION,
+            CallLog.Calls.NUMBER_PRESENTATION,
         )
         val entries = mutableListOf<CallEntry>()
         appContext.contentResolver.query(
@@ -45,13 +46,19 @@ class CallLogRepository(context: Context) {
             "${CallLog.Calls.DATE} DESC",
         )?.use { cursor ->
             while (cursor.moveToNext() && entries.size < limit) {
+                val number = cursor.getString(1).orEmpty()
+                val shown = CallerIds.shownOf(
+                    if (cursor.isNull(6)) null else cursor.getInt(6),
+                    number,
+                )
                 entries += CallEntry(
                     id = cursor.getLong(0),
-                    number = cursor.getString(1).orEmpty(),
-                    name = cursor.getString(2),
+                    number = CallerIds.numberOf(shown, number),
+                    name = CallerIds.nameOf(cursor.getString(2)),
                     direction = directionOf(cursor.getInt(3)),
                     timestamp = cursor.getLong(4),
                     durationSeconds = cursor.getLong(5),
+                    shown = shown,
                 )
             }
         }

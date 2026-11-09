@@ -393,6 +393,7 @@
     <string name="incall_keypad_hide">Close</string>
     <string name="incall_ringing">is calling</string>
     <string name="call_unknown">Unknown</string>
+    <string name="calllog_withheld">Private number</string>
     <string name="respond_not_sent">Message not sent yet</string>
     <string name="respond_not_sent_hint">Tap to write and send it.</string>
     <string name="calllog_not_callable">That number was withheld. You cannot call back.</string>

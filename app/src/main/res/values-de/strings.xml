@@ -392,6 +392,7 @@
     <string name="incall_keypad_hide">Schließen</string>
     <string name="incall_ringing">ruft an</string>
     <string name="call_unknown">Unbekannt</string>
+    <string name="calllog_withheld">Unterdrückte Nummer</string>
     <string name="respond_not_sent">Nachricht noch nicht gesendet</string>
     <string name="respond_not_sent_hint">Antippen, um sie zu schreiben und zu senden.</string>
     <string name="calllog_not_callable">Diese Nummer wurde unterdrückt. Zurückrufen geht nicht.</string>

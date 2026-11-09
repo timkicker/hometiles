@@ -397,6 +397,7 @@
     <string name="incall_keypad_hide">Fermer</string>
     <string name="incall_ringing">appelle</string>
     <string name="call_unknown">Inconnu</string>
+    <string name="calllog_withheld">Numéro masqué</string>
     <string name="respond_not_sent">Message pas encore envoyé</string>
     <string name="respond_not_sent_hint">Touchez pour l’écrire et l’envoyer.</string>
     <string name="calllog_not_callable">Ce numéro était masqué. Vous ne pouvez pas rappeler.</string>
