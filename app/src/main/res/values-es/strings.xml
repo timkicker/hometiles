@@ -609,6 +609,8 @@
     <string name="key_first_off">Nunca</string>
     <string name="key_bounce">Ignorar pulsaciones dobles</string>
     <string name="key_bounce_hint">Para teclas que a veces pulsan dos veces solas</string>
+    <string name="home_on_screen_off">Volver al inicio al apagarse la pantalla</string>
+    <string name="home_on_screen_off_hint">Cerrar la tapa termina lo que estaba abierto. No durante una llamada</string>
     <string name="press_short">Un toque arranca un mosaico</string>
     <string name="press_long">Mantenga un mosaico para arrancarlo</string>
     <string name="press_hint">Mantener evita arrancar algo al rozarlo</string>

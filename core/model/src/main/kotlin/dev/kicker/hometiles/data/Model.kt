@@ -310,6 +310,8 @@ data class Behaviour(
     val keyFirst: KeyFirst = KeyFirst.AUTO,
     /** drops a key's second press when it comes at once. see KeyBounce. */
     val keyBounce: Boolean = false,
+    /** back to the start when the screen goes off. see ScreenOffHome. */
+    val homeOnScreenOff: Boolean = false,
 ) {
     val haptics: HapticStrength
         get() = hapticStrength

@@ -1784,6 +1784,14 @@ private fun AccessibilityList(
                 onClick = { onChange(behaviour.copy(keyBounce = !behaviour.keyBounce)) },
             )
         }
+        item {
+            BigRow(
+                label = stringResource(R.string.home_on_screen_off),
+                secondary = stringResource(R.string.home_on_screen_off_hint),
+                checked = behaviour.homeOnScreenOff,
+                onClick = { onChange(behaviour.copy(homeOnScreenOff = !behaviour.homeOnScreenOff)) },
+            )
+        }
         if (LongPress.needsEditModeEntry(behaviour.accessibility, behaviour.pressMode)) {
             item {
                 Text(

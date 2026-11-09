@@ -15,6 +15,7 @@ class HomeTilesApp : Application() {
         // first and on this thread: catching crashes gives safe mode something to show.
         // costs two milliseconds.
         CrashRecorder.get(this).installHandler()
+        HomeOnScreenOff.register(this)
 
         // reading the config costs 186 ms on the jelly 2, not for the twelve kilobytes but
         // for the first use of the serialiser. safe beside the activity start, because

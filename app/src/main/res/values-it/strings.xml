@@ -608,6 +608,8 @@
     <string name="key_first_off">Mai</string>
     <string name="key_bounce">Ignorare le doppie pressioni</string>
     <string name="key_bounce_hint">Per i tasti che a volte premono due volte da soli</string>
+    <string name="home_on_screen_off">Tornare all’inizio quando lo schermo si spegne</string>
+    <string name="home_on_screen_off_hint">Chiudere lo sportello termina ciò che era aperto. Non durante una chiamata</string>
     <string name="press_short">Un tocco avvia un riquadro</string>
     <string name="press_long">Tenga premuto un riquadro per avviarlo</string>
     <string name="press_hint">Tenere premuto evita di avviare qualcosa sfiorando</string>

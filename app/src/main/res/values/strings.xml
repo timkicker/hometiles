@@ -604,6 +604,8 @@
     <string name="key_first_off">Never</string>
     <string name="key_bounce">Ignore double presses</string>
     <string name="key_bounce_hint">For keys that sometimes press twice by themselves</string>
+    <string name="home_on_screen_off">Back to the start when the screen goes off</string>
+    <string name="home_on_screen_off_hint">Closing a flip phone ends what was open. Not during a call</string>
     <string name="press_short">A tap starts a tile</string>
     <string name="press_long">Hold a tile to start it</string>
     <string name="press_hint">Holding prevents starting something by brushing past</string>
