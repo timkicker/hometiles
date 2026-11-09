@@ -81,6 +81,9 @@
     <string name="screen_duplicate_hint">Pour essayer une autre disposition sans perdre celle-ci</string>
     <string name="screen_copy_name">%1$s (copie)</string>
     <string name="screen_copy_no_room">Aucune case libre ici pour une tuile menant à la copie. Videz-en une d’abord.</string>
+    <string name="pin_shortcut_question">Mettre %1$s sur l’écran d’accueil ?</string>
+    <string name="pin_shortcut_add">Ajouter</string>
+    <string name="pin_shortcut_full">L’écran d’accueil est plein. Videz d’abord une tuile.</string>
     <string name="screen_background">Fond de cet écran</string>
     <string name="screen_background_hint">Une couleur propre montre d’un coup d’œil sur quel écran vous êtes</string>
     <string name="screen_background_contrast">Le contraste élevé garde un seul fond partout. C’est le but.</string>

@@ -78,6 +78,21 @@
             android:windowSoftInputMode="adjustResize"
             android:theme="@style/Theme.HomeTiles" />
 
+        <!-- "add to home screen" from other apps and web apps. android only sends it to the
+             default launcher, so it has to be exported. a task of its own: in the home
+             screen's task the next home intent cleared it before it was seen (09.11.2026,
+             emulator). -->
+        <activity
+            android:name=".tiles.PinShortcutActivity"
+            android:exported="true"
+            android:excludeFromRecents="true"
+            android:taskAffinity=""
+            android:theme="@style/Theme.HomeTiles">
+            <intent-filter>
+                <action android:name="android.content.pm.action.CONFIRM_PIN_SHORTCUT" />
+            </intent-filter>
+        </activity>
+
         <!-- the call screen. showWhenLocked so a call can be worked on a locked screen -
              otherwise nobody reaches the answer button. -->
         <activity

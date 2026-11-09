@@ -76,6 +76,9 @@
     <string name="screen_duplicate_hint">Um eine neue Anordnung zu probieren, ohne diese zu verlieren</string>
     <string name="screen_copy_name">%1$s (Kopie)</string>
     <string name="screen_copy_no_room">Hier ist keine Zelle frei für eine Kachel zur Kopie. Mach erst eine leer.</string>
+    <string name="pin_shortcut_question">%1$s auf den Startbildschirm legen?</string>
+    <string name="pin_shortcut_add">Hinzufügen</string>
+    <string name="pin_shortcut_full">Der Startbildschirm ist voll. Mach erst eine Kachel leer.</string>
     <string name="screen_background">Hintergrund dieses Bildschirms</string>
     <string name="screen_background_hint">Eine eigene Farbe sagt auf einen Blick, welcher Bildschirm gerade offen ist</string>
     <string name="screen_background_contrast">Hoher Kontrast hält überall denselben Hintergrund. Das ist der Sinn davon.</string>

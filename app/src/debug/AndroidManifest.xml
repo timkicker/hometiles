@@ -27,6 +27,13 @@
         </service>
 
         <activity
+            android:name=".tiles.probe.ProbePinActivity"
+            android:exported="true"
+            android:excludeFromRecents="true"
+            android:noHistory="true"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
+
+        <activity
             android:name=".sms.probe.ProbeMessageActivity"
             android:exported="true"
             android:excludeFromRecents="true"

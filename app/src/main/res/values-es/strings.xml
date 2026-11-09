@@ -82,6 +82,9 @@
     <string name="screen_duplicate_hint">Para probar otra disposición sin perder esta</string>
     <string name="screen_copy_name">%1$s (copia)</string>
     <string name="screen_copy_no_room">No hay casilla libre aquí para un mosaico que lleve a la copia. Vacíe una primero.</string>
+    <string name="pin_shortcut_question">¿Poner %1$s en la pantalla de inicio?</string>
+    <string name="pin_shortcut_add">Añadir</string>
+    <string name="pin_shortcut_full">La pantalla de inicio está llena. Vacíe primero un mosaico.</string>
     <string name="screen_background">Fondo de esta pantalla</string>
     <string name="screen_background_hint">Un color propio muestra de un vistazo en qué pantalla está</string>
     <string name="screen_background_contrast">El contraste alto mantiene un solo fondo en todas partes. Ese es el objetivo.</string>

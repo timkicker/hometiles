@@ -81,6 +81,9 @@
     <string name="screen_duplicate_hint">Per provare un’altra disposizione senza perdere questa</string>
     <string name="screen_copy_name">%1$s (copia)</string>
     <string name="screen_copy_no_room">Qui non c’è una casella libera per un riquadro che porti alla copia. Ne svuoti prima una.</string>
+    <string name="pin_shortcut_question">Mettere %1$s nella schermata iniziale?</string>
+    <string name="pin_shortcut_add">Aggiungi</string>
+    <string name="pin_shortcut_full">La schermata iniziale è piena. Svuoti prima un riquadro.</string>
     <string name="screen_background">Sfondo di questa schermata</string>
     <string name="screen_background_hint">Un colore proprio mostra a colpo d’occhio in quale schermata si trova</string>
     <string name="screen_background_contrast">Il contrasto alto tiene un solo sfondo dappertutto. È lo scopo.</string>
