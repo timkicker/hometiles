@@ -34,6 +34,17 @@ class ScreenKeysTest {
     }
 
     @Test
+    fun `every screen drops key bounces when asked`() {
+        // issue #2: a bounced select on the contact list opened the contact and acted again.
+        // in the base class, or one screen forgotten is the one where it happens.
+        val onCreate = Quelltext.cut(base, "override fun onCreate", "override fun onResume")
+        assertTrue(
+            "the base activity no longer puts KeyBounce in front of its window.",
+            "window.dropKeyBounces" in onCreate && "behaviour.keyBounce" in onCreate,
+        )
+    }
+
+    @Test
     fun `dispatchKeyEvent stays untouched`() {
         // androidx restricts that override to its own library group; lint failed the ci on
         // it on 19.10.2026, while every local test was green.

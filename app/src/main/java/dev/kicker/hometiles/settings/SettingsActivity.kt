@@ -1776,6 +1776,14 @@ private fun AccessibilityList(
                 onClick = { onChange(behaviour.copy(keyFirst = mode)) },
             )
         }
+        item {
+            BigRow(
+                label = stringResource(R.string.key_bounce),
+                secondary = stringResource(R.string.key_bounce_hint),
+                checked = behaviour.keyBounce,
+                onClick = { onChange(behaviour.copy(keyBounce = !behaviour.keyBounce)) },
+            )
+        }
         if (LongPress.needsEditModeEntry(behaviour.accessibility, behaviour.pressMode)) {
             item {
                 Text(

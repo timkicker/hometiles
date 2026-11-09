@@ -308,6 +308,8 @@ data class Behaviour(
     val accessibility: Accessibility = Accessibility(),
     /** lists made for the keys of a small flip phone. see [KeyFirst]. */
     val keyFirst: KeyFirst = KeyFirst.AUTO,
+    /** drops a key's second press when it comes at once. see KeyBounce. */
+    val keyBounce: Boolean = false,
 ) {
     val haptics: HapticStrength
         get() = hapticStrength

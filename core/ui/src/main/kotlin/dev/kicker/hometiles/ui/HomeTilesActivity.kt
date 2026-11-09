@@ -62,6 +62,7 @@ abstract class HomeTilesActivity : ComponentActivity() {
         // one place instead of twelve times `portrait` in the manifest.
         requestedOrientation =
             Orientation.requested(ConfigStore.get(this).current.appearance.orientation)
+        window.dropKeyBounces { ConfigStore.get(this).current.behaviour.keyBounce }
     }
 
     override fun onResume() {

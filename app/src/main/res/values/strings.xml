@@ -602,6 +602,8 @@
     <string name="key_first_auto">When the phone has keys</string>
     <string name="key_first_on">Always</string>
     <string name="key_first_off">Never</string>
+    <string name="key_bounce">Ignore double presses</string>
+    <string name="key_bounce_hint">For keys that sometimes press twice by themselves</string>
     <string name="press_short">A tap starts a tile</string>
     <string name="press_long">Hold a tile to start it</string>
     <string name="press_hint">Holding prevents starting something by brushing past</string>

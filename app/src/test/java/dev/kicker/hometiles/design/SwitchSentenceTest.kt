@@ -31,6 +31,7 @@ class SwitchSentenceTest {
         "behaviour.accessibility.scrollButtons" to "Knoepfe fuer lange Listen",
         "behaviour.swipeBetweenScreens" to "Lassen Sie das Wischen den Bildschirm wechseln",
         "protectsEditor" to "Die Kacheln auch schuetzen",
+        "behaviour.keyBounce" to "Doppelte Tastendruecke ignorieren",
         // the two multiple-choice lists: there each row is on or off for itself, and a
         // switched-off one says nothing else.
         "isAllowed" to "one of several allowed apps",

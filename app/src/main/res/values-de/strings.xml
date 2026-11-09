@@ -601,6 +601,8 @@
     <string name="key_first_auto">Wenn das Telefon Tasten hat</string>
     <string name="key_first_on">Immer</string>
     <string name="key_first_off">Nie</string>
+    <string name="key_bounce">Doppelte Tastendrücke ignorieren</string>
+    <string name="key_bounce_hint">Für Tasten, die manchmal von selbst zweimal drücken</string>
     <string name="press_short">Ein Tipp startet eine Kachel</string>
     <string name="press_long">Kachel halten, um sie zu starten</string>
     <string name="press_hint">Halten verhindert, dass ein Streifen etwas startet</string>

@@ -26,12 +26,16 @@ class ProbePinActivity : Activity() {
                 .setIcon(Icon.createWithResource(this, android.R.drawable.ic_menu_compass))
                 .setIntent(Intent(Intent.ACTION_VIEW).setClass(this, ProbePinActivity::class.java))
                 .build()
-            val asked = manager.isRequestPinShortcutSupported && manager.requestPinShortcut(info, null)
-            Log.i(TAG, "pin request for $label: supported=${manager.isRequestPinShortcutSupported} asked=$asked")
+            // a worker thread: the method says so, and lint holds it to that.
+            Thread {
+                val asked = manager.isRequestPinShortcutSupported && manager.requestPinShortcut(info, null)
+                Log.i(TAG, "pin request for $label: asked=$asked")
+                runOnUiThread { finish() }
+            }.start()
         } else {
             Log.i(TAG, "opened from the pinned shortcut")
+            finish()
         }
-        finish()
     }
 
     private companion object {

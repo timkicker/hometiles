@@ -607,6 +607,8 @@
     <string name="key_first_auto">Si el teléfono tiene teclas</string>
     <string name="key_first_on">Siempre</string>
     <string name="key_first_off">Nunca</string>
+    <string name="key_bounce">Ignorar pulsaciones dobles</string>
+    <string name="key_bounce_hint">Para teclas que a veces pulsan dos veces solas</string>
     <string name="press_short">Un toque arranca un mosaico</string>
     <string name="press_long">Mantenga un mosaico para arrancarlo</string>
     <string name="press_hint">Mantener evita arrancar algo al rozarlo</string>
