@@ -376,6 +376,15 @@
     <string name="sos_alarm_try">Try it now</string>
     <string name="sos_alarm_stop">Stop it</string>
     <string name="sos_alarm_try_hint">Nothing is sent. This only shows you what it will sound like.</string>
+    <string name="battery_warning">Low battery</string>
+    <string name="battery_notice">Show a reminder</string>
+    <string name="battery_notice_hint">A large notice on the screen. It goes away by itself once the phone is charging.</string>
+    <string name="battery_text">Text the SOS numbers</string>
+    <string name="battery_text_hint">Goes out once each time the battery runs low and costs what a normal text costs.</string>
+    <string name="battery_text_no_numbers">There are no SOS numbers saved yet, so no text would go out.</string>
+    <string name="battery_level">At %d%%</string>
+    <string name="battery_notice_text">The battery is down to %d%%. Please plug in the charger.</string>
+    <string name="battery_sms_text">Automatic message: the battery on this phone is down to %d%% and it needs charging soon.</string>
     <string name="sos_location_on">Location is added</string>
     <string name="sos_location_off">Location is not added</string>
     <string name="incall_answer">Answer</string>

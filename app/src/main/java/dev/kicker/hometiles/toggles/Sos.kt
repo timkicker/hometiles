@@ -87,11 +87,20 @@ object Sos {
         }
 
         val (text, location) = compose(context, config)
+        val (sent, failed) = sendText(context, config.numbers, text)
+        return SosResult(sent, failed, location)
+    }
 
+    /**
+     * the same way out for the battery warning, which writes to the same numbers. the caller
+     * checks the permission; without it every number counts as failed.
+     */
+    fun sendText(context: Context, numbers: List<String>, text: String): Pair<Int, Int> {
+        if (!hasPermission(context, Manifest.permission.SEND_SMS)) return 0 to numbers.size
         val sms = smsManager(context)
         var sent = 0
         var failed = 0
-        config.numbers.forEach { number ->
+        numbers.forEach { number ->
             val ok = runCatching {
                 val parts = sms.divideMessage(text)
                 if (parts.size > 1) {
@@ -102,7 +111,7 @@ object Sos {
             }.isSuccess
             if (ok) sent++ else failed++
         }
-        return SosResult(sent, failed, location)
+        return sent to failed
     }
 
     // on the jelly 2 (android 11) exactly this branch runs; no replacement exists there.

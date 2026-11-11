@@ -381,6 +381,15 @@
     <string name="sos_alarm_try">Probar ahora</string>
     <string name="sos_alarm_stop">Parar</string>
     <string name="sos_alarm_try_hint">No se envía nada. Esto solo le muestra cómo va a sonar.</string>
+    <string name="battery_warning">Batería baja</string>
+    <string name="battery_notice">Mostrar un aviso</string>
+    <string name="battery_notice_hint">Un aviso grande en la pantalla que desaparece solo en cuanto el teléfono empieza a cargar.</string>
+    <string name="battery_text">SMS a los números SOS</string>
+    <string name="battery_text_hint">Sale una sola vez por cada carga y cuesta lo mismo que un SMS normal.</string>
+    <string name="battery_text_no_numbers">Todavía no hay ningún número SOS guardado y así no saldría ningún SMS.</string>
+    <string name="battery_level">Al %d %%</string>
+    <string name="battery_notice_text">Solo queda un %d %% de batería. Conecte el cargador, por favor.</string>
+    <string name="battery_sms_text">Mensaje automático. A este teléfono le queda un %d %% de batería y habría que cargarlo pronto.</string>
     <string name="sos_location_on">La posición se añade</string>
     <string name="sos_location_off">La posición no se añade</string>
     <string name="incall_answer">Responder</string>

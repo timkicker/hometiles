@@ -375,6 +375,15 @@
     <string name="sos_alarm_try">Jetzt ausprobieren</string>
     <string name="sos_alarm_stop">Aufhören</string>
     <string name="sos_alarm_try_hint">Es geht nichts hinaus. Sie hören und sehen nur, wie es sein wird.</string>
+    <string name="battery_warning">Akku fast leer</string>
+    <string name="battery_notice">Hinweis zeigen</string>
+    <string name="battery_notice_hint">Ein großer Hinweis auf dem Bildschirm. Sobald das Telefon lädt, verschwindet er von selbst.</string>
+    <string name="battery_text">SMS an die SOS-Nummern</string>
+    <string name="battery_text_hint">Geht pro Ladung nur einmal hinaus und kostet so viel wie eine normale SMS.</string>
+    <string name="battery_text_no_numbers">Noch sind keine SOS-Nummern gespeichert. So geht keine SMS hinaus.</string>
+    <string name="battery_level">Bei %d %%</string>
+    <string name="battery_notice_text">Nur noch %d %% Akku. Bitte stecken Sie das Ladekabel an.</string>
+    <string name="battery_sms_text">Automatische Nachricht: Der Akku dieses Telefons hat nur noch %d %% und sollte bald ans Ladekabel.</string>
     <string name="sos_location_on">Standort wird angehängt</string>
     <string name="sos_location_off">Standort wird nicht angehängt</string>
     <string name="incall_answer">Annehmen</string>

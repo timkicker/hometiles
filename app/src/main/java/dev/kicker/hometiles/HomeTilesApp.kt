@@ -22,6 +22,9 @@ class HomeTilesApp : Application() {
         // `ConfigStore.get` is guarded against two callers anyway.
         Thread {
             ConfigStore.get(this)
+            // after the config: the battery state is a sticky broadcast and arrives at once,
+            // and reading the config for it on the main thread would cost the 186 ms above.
+            BatteryWatch.register(this)
             AppRepository.get(this)
             // spelling and country for numbers without an area code; without it numbers
             // come out in bare groups of three. see PhoneNumbers.forDisplay.

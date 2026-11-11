@@ -32,6 +32,7 @@ import dev.kicker.hometiles.core.ui.R as UiR
 import dev.kicker.hometiles.actions.SosMessage
 import dev.kicker.hometiles.data.SosConfig
 import androidx.compose.foundation.lazy.items
+import dev.kicker.hometiles.info.BatteryWarning
 import dev.kicker.hometiles.ui.BigHeading
 import dev.kicker.hometiles.ui.BigRow
 import dev.kicker.hometiles.ui.AppLocale
@@ -254,6 +255,45 @@ internal fun SosSettings(
                         if (trying) SosAlarm.stop(context) else SosAlarm.start(context, config)
                         trying = !trying
                     },
+                )
+            }
+        }
+
+        // issue #8: here and not elsewhere, because the text goes to the numbers above.
+        item { BigHeading(stringResource(R.string.battery_warning)) }
+        item {
+            BigRow(
+                label = stringResource(R.string.battery_notice),
+                secondary = stringResource(R.string.battery_notice_hint),
+                checked = config.batteryNotice,
+                onClick = { onChange(config.copy(batteryNotice = !config.batteryNotice)) },
+            )
+        }
+        item {
+            BigRow(
+                label = stringResource(R.string.battery_text),
+                secondary = stringResource(R.string.battery_text_hint),
+                checked = config.batteryText,
+                onClick = { onChange(config.copy(batteryText = !config.batteryText)) },
+            )
+        }
+        // a text switched on without a number would stay silent exactly when it counts.
+        if (config.batteryText && config.numbers.isEmpty()) {
+            item {
+                Text(
+                    text = stringResource(R.string.battery_text_no_numbers),
+                    color = palette.dangerText,
+                    fontSize = bigSp(15f),
+                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp),
+                )
+            }
+        }
+        if (config.batteryNotice || config.batteryText) {
+            items(BatteryWarning.LEVELS) { level ->
+                BigRow(
+                    label = stringResource(R.string.battery_level, level),
+                    selected = level == BatteryWarning.clamp(config.batteryLevel),
+                    onClick = { onChange(config.copy(batteryLevel = level)) },
                 )
             }
         }

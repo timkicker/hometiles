@@ -1,6 +1,7 @@
 package dev.kicker.hometiles.data
 
 import dev.kicker.hometiles.apps.AppKey
+import dev.kicker.hometiles.info.BatteryWarning
 import dev.kicker.hometiles.toggles.SosCountdown
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -345,6 +346,11 @@ data class SosConfig(
     /** **off by default**: an unexpected siren is why people switch the sos button off. */
     val alarmSound: Boolean = false,
     val alarmFlash: Boolean = false,
+    /** issue #8, both off by default. see BatteryWarning. */
+    val batteryNotice: Boolean = false,
+    /** goes to [numbers]: the people who should hear of an emergency are the ones to charge the phone. */
+    val batteryText: Boolean = false,
+    val batteryLevel: Int = BatteryWarning.DEFAULT_LEVEL,
 )
 
 /** how the app list lays the apps out (issue #7). [LIST] stays the default, so nobody's list changes by itself. */

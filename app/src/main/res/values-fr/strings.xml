@@ -380,6 +380,15 @@
     <string name="sos_alarm_try">Essayer maintenant</string>
     <string name="sos_alarm_stop">Arrêter</string>
     <string name="sos_alarm_try_hint">Rien n’est envoyé. Cela montre seulement le son que cela fera.</string>
+    <string name="battery_warning">Batterie faible</string>
+    <string name="battery_notice">Afficher un rappel</string>
+    <string name="battery_notice_hint">Un grand message à l’écran qui s’efface tout seul dès que le téléphone se recharge.</string>
+    <string name="battery_text">SMS aux numéros SOS</string>
+    <string name="battery_text_hint">Part une seule fois par charge. Coûte le prix d’un SMS ordinaire.</string>
+    <string name="battery_text_no_numbers">Aucun numéro SOS n’est encore enregistré, donc aucun SMS ne partirait.</string>
+    <string name="battery_level">À %d %%</string>
+    <string name="battery_notice_text">Il ne reste que %d %% de batterie. Branchez le chargeur, s’il vous plaît.</string>
+    <string name="battery_sms_text">Message automatique. La batterie de ce téléphone est descendue à %d %% et il faudrait le recharger bientôt.</string>
     <string name="sos_location_on">La position est ajoutée</string>
     <string name="sos_location_off">La position n’est pas ajoutée</string>
     <string name="incall_answer">Répondre</string>

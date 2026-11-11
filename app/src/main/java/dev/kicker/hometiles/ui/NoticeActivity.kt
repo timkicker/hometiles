@@ -1,6 +1,15 @@
 package dev.kicker.hometiles.ui
 
+import android.os.Build
 import android.os.Bundle
+import android.view.WindowManager
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
+import dev.kicker.hometiles.info.BatteryInfo
+import dev.kicker.hometiles.info.BatteryRepository
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -37,6 +46,18 @@ class NoticeActivity : HomeTilesActivity() {
         enableEdgeToEdge()
         val text = intent?.getStringExtra(EXTRA_TEXT).orEmpty()
         val store = ConfigStore.get(this)
+        if (intent?.getBooleanExtra(EXTRA_UNTIL_CHARGING, false) == true) {
+            showOverLockScreen()
+            // the battery notice goes by itself once the cable is in: whoever plugged it in
+            // has done what it asked, and a notice still standing afterwards says otherwise.
+            lifecycleScope.launch {
+                repeatOnLifecycle(Lifecycle.State.STARTED) {
+                    BatteryRepository.readings(this@NoticeActivity)
+                        .first { BatteryInfo.isCharging(it) }
+                    finish()
+                }
+            }
+        }
 
         setContent {
             val config by store.config.collectAsStateWithLifecycle()
@@ -78,7 +99,25 @@ class NoticeActivity : HomeTilesActivity() {
         }
     }
 
+    /** the same two calls as on the message screen, see SmsActivity. */
+    private fun showOverLockScreen() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
+            setShowWhenLocked(true)
+            setTurnScreenOn(true)
+        } else {
+            // deprecated since 8.1, and still the only way on 8.0, the oldest android we promise.
+            @Suppress("DEPRECATION")
+            window.addFlags(
+                WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED or
+                    WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON,
+            )
+        }
+    }
+
     companion object {
         const val EXTRA_TEXT = Notice.EXTRA_TEXT
+
+        /** over the lock screen and gone once the phone charges. see BatteryWatch. */
+        const val EXTRA_UNTIL_CHARGING = "untilCharging"
     }
 }

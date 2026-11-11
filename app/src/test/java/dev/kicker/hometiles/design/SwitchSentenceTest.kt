@@ -33,6 +33,8 @@ class SwitchSentenceTest {
         "protectsEditor" to "Die Kacheln auch schuetzen",
         "behaviour.keyBounce" to "Doppelte Tastendruecke ignorieren",
         "behaviour.homeOnScreenOff" to "Zum Start, wenn der Bildschirm ausgeht",
+        "config.batteryNotice" to "Hinweis zeigen",
+        "config.batteryText" to "SMS an die SOS-Nummern",
         // the two multiple-choice lists: there each row is on or off for itself, and a
         // switched-off one says nothing else.
         "isAllowed" to "one of several allowed apps",
