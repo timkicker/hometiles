@@ -382,6 +382,7 @@
     <string name="battery_text">Text the SOS numbers</string>
     <string name="battery_text_hint">Goes out once each time the battery runs low and costs what a normal text costs.</string>
     <string name="battery_text_no_numbers">There are no SOS numbers saved yet, so no text would go out.</string>
+    <string name="battery_text_no_permission">HomeTiles may not send texts yet, so the warning would not go out.</string>
     <string name="battery_level">At %d%%</string>
     <string name="battery_notice_text">The battery is down to %d%%. Please plug in the charger.</string>
     <string name="battery_sms_text">Automatic message: the battery on this phone is down to %d%% and it needs charging soon.</string>

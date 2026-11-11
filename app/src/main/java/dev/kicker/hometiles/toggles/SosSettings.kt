@@ -54,6 +54,9 @@ internal fun SosSettings(
     locationBlocked: Boolean,
     onAskLocation: () -> Unit,
     onLocationSettings: () -> Unit,
+    smsGranted: Boolean,
+    smsBlocked: Boolean,
+    onAskSms: () -> Unit,
 ) {
     val palette = LocalBigPalette.current
     val context = LocalContext.current
@@ -274,8 +277,33 @@ internal fun SosSettings(
                 label = stringResource(R.string.battery_text),
                 secondary = stringResource(R.string.battery_text_hint),
                 checked = config.batteryText,
-                onClick = { onChange(config.copy(batteryText = !config.batteryText)) },
+                onClick = {
+                    val on = !config.batteryText
+                    onChange(config.copy(batteryText = on))
+                    if (on && !smsGranted) onAskSms()
+                },
             )
+        }
+        // switched on and not allowed to send: it would fail without anyone seeing it.
+        if (config.batteryText && !smsGranted) {
+            item {
+                Text(
+                    text = stringResource(R.string.battery_text_no_permission),
+                    color = palette.dangerText,
+                    fontSize = bigSp(15f),
+                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp),
+                )
+            }
+            item {
+                BigRow(
+                    label = stringResource(
+                        if (smsBlocked) UiR.string.permission_open_settings else UiR.string.permission_allow,
+                    ),
+                    surface = palette.surfaceAccent,
+                    // onLocationSettings opens the app page, where every permission is.
+                    onClick = if (smsBlocked) onLocationSettings else onAskSms,
+                )
+            }
         }
         // a text switched on without a number would stay silent exactly when it counts.
         if (config.batteryText && config.numbers.isEmpty()) {

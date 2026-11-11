@@ -387,6 +387,7 @@
     <string name="battery_text">SMS a los números SOS</string>
     <string name="battery_text_hint">Sale una sola vez por cada carga y cuesta lo mismo que un SMS normal.</string>
     <string name="battery_text_no_numbers">Todavía no hay ningún número SOS guardado y así no saldría ningún SMS.</string>
+    <string name="battery_text_no_permission">HomeTiles todavía no tiene permiso para enviar SMS y el aviso no saldría.</string>
     <string name="battery_level">Al %d %%</string>
     <string name="battery_notice_text">Solo queda un %d %% de batería. Conecte el cargador, por favor.</string>
     <string name="battery_sms_text">Mensaje automático. A este teléfono le queda un %d %% de batería y habría que cargarlo pronto.</string>

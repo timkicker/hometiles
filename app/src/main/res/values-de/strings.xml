@@ -381,6 +381,7 @@
     <string name="battery_text">SMS an die SOS-Nummern</string>
     <string name="battery_text_hint">Geht pro Ladung nur einmal hinaus und kostet so viel wie eine normale SMS.</string>
     <string name="battery_text_no_numbers">Noch sind keine SOS-Nummern gespeichert. So geht keine SMS hinaus.</string>
+    <string name="battery_text_no_permission">HomeTiles darf noch keine SMS senden. Die Warnung käme so nicht an.</string>
     <string name="battery_level">Bei %d %%</string>
     <string name="battery_notice_text">Nur noch %d %% Akku. Bitte stecken Sie das Ladekabel an.</string>
     <string name="battery_sms_text">Automatische Nachricht: Der Akku dieses Telefons hat nur noch %d %% und sollte bald ans Ladekabel.</string>

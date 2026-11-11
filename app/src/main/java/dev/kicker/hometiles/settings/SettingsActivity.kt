@@ -295,6 +295,28 @@ class SettingsActivity : HomeTilesActivity() {
                 ActivityResultContracts.StartActivityForResult(),
             ) { }
 
+            // the battery text goes out without anyone at the phone, so the right to send has
+            // to be there beforehand. asked when the switch goes on, like the location above.
+            var smsGranted by remember {
+                mutableStateOf(
+                    ContextCompat.checkSelfPermission(
+                        this@SettingsActivity,
+                        Manifest.permission.SEND_SMS,
+                    ) == PackageManager.PERMISSION_GRANTED,
+                )
+            }
+            var smsDeniedOnce by remember { mutableStateOf(false) }
+            var smsCanAskAgain by remember { mutableStateOf(true) }
+            val askSms = rememberLauncherForActivityResult(
+                ActivityResultContracts.RequestPermission(),
+            ) { granted ->
+                smsGranted = granted
+                if (!granted) {
+                    smsDeniedOnce = true
+                    smsCanAskAgain = shouldShowRequestPermissionRationale(Manifest.permission.SEND_SMS)
+                }
+            }
+
             val askLocation = rememberLauncherForActivityResult(
                 ActivityResultContracts.RequestMultiplePermissions(),
             ) { result ->
@@ -732,6 +754,9 @@ class SettingsActivity : HomeTilesActivity() {
                                 )
                             },
                             onLocationSettings = { Intents.appSettings(this@SettingsActivity) },
+                            smsGranted = smsGranted,
+                            smsBlocked = PermissionState.blocked(smsDeniedOnce, smsCanAskAgain),
+                            onAskSms = { askSms.launch(Manifest.permission.SEND_SMS) },
                         )
 
                         Page.TRANSFER -> TransferList(
