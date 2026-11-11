@@ -1,0 +1,1 @@
+En la página SOS hay ahora un aviso de batería baja que viene desactivado. El umbral se elige entre el 10 y el 30 %. Cuando se alcanza, HomeTiles muestra un aviso grande que aparece también con la pantalla bloqueada y se quita solo al conectar el cargador. Si se quiere, envía además un SMS a los números SOS, una vez por carga.

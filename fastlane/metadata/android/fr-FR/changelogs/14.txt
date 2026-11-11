@@ -1,0 +1,1 @@
+La page SOS propose maintenant une alerte de batterie faible, désactivée par défaut. Le seuil se règle entre 10 et 30 %. Une fois atteint, HomeTiles affiche un grand message, même sur l’écran verrouillé, qui disparaît dès que le chargeur est branché. En option un SMS part vers les numéros SOS, une seule fois par charge.

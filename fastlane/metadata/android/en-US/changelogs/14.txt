@@ -1,0 +1,1 @@
+The SOS page has a low battery warning now, off until you switch it on. You pick the level anywhere from 10 to 30 percent and once the battery gets there HomeTiles shows a large notice that wakes even a locked screen and goes away by itself when the charger is plugged in. If you like, it also texts the SOS numbers, but only once per charge. Asked for in issue 8.

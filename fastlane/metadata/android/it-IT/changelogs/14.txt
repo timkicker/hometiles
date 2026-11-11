@@ -1,0 +1,1 @@
+Nella pagina SOS c’è ora un avviso di batteria scarica, spento finché non lo si attiva. La soglia va dal 10 al 30 %. Quando viene raggiunta HomeTiles mostra un avviso grande anche a schermo bloccato, che si chiude da solo appena si collega il caricatore. A scelta parte anche un SMS ai numeri SOS, una volta sola per ogni carica.
