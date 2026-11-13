@@ -1,0 +1,1 @@
+I widget che chiedono una configurazione prima di essere aggiunti, come quello di un citofono o della posta, restavano fermi nell’elenco senza arrivare sulla tessera. Ora ci arrivano. Toccando la riga sopra la tastiera si aprono le impostazioni proprio alla chiamata rapida, dove un tasto si libera e si assegna di nuovo. Tenere premuto un tasto assegnato chiama ancora subito.

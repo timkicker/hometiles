@@ -1,0 +1,1 @@
+Los widgets que piden una configuración propia antes de colocarse, por ejemplo el de un portero automático, se quedaban en la lista sin llegar nunca al recuadro. Ya funcionan. La línea encima del teclado lleva ahora a la llamada rápida en los ajustes con un toque y allí se borra una tecla para asignarla de nuevo. Mantener pulsada una tecla asignada sigue llamando enseguida.
