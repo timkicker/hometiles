@@ -149,6 +149,26 @@ private enum class Mode { MENU, MOVE, EDIT_LINK, PICK_LONG_PRESS, PICK_BUILTIN, 
  */
 class TileEditorActivity : HomeTilesActivity() {
 
+    /**
+     * where the answer of a widget's setup screen goes (issue #9). the host starts that screen
+     * through the system, whose answer arrives only in [onActivityResult] under
+     * [WidgetHostController.REQUEST_CONFIGURE]; a compose launcher never sees it. until
+     * 0.1.13 the answer was dropped there and every widget with a setup step stayed in the
+     * picker.
+     */
+    private var onWidgetConfigured: ((Boolean) -> Unit)? = null
+
+    // deprecated in favour of result launchers, which cannot take this answer: the request
+    // goes out through an IntentSender the system builds, not through our registry.
+    @Suppress("OVERRIDE_DEPRECATION")
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        if (requestCode == WidgetHostController.REQUEST_CONFIGURE) {
+            onWidgetConfigured?.invoke(resultCode == RESULT_OK)
+            return
+        }
+        super.onActivityResult(requestCode, resultCode, data)
+    }
+
     /** the installed name of a tile's app, with the work profile said; null when it is gone. */
     private fun appTitle(action: ButtonAction.App): String? =
         AppRepository.get(this).labelFor(action.packageName, action.activityName, action.profile)
@@ -303,19 +323,29 @@ class TileEditorActivity : HomeTilesActivity() {
                 mode = Mode.MENU
             }
 
-            val configureWidget = rememberLauncherForActivityResult(
-                ActivityResultContracts.StartActivityForResult(),
-            ) { result ->
+            onWidgetConfigured = { ok ->
                 val pending = pendingWidget
-                if (pending == null) return@rememberLauncherForActivityResult
-                if (result.resultCode == RESULT_OK) {
-                    finishWidget(pending.first, pending.second)
-                } else {
-                    // cancelled: give the id back, or it stays taken.
-                    widgets.release(pending.first)
-                    pendingWidget = null
-                    mode = Mode.MENU
+                if (pending != null) {
+                    if (ok) {
+                        finishWidget(pending.first, pending.second)
+                    } else {
+                        // cancelled: give the id back, or it stays taken.
+                        widgets.release(pending.first)
+                        pendingWidget = null
+                        mode = Mode.MENU
+                    }
                 }
+            }
+
+            /** the setup screen if the widget has one, or straight onto the tile. */
+            fun configureOrFinish(id: Int, provider: WidgetProviderRow) {
+                val started = provider.needsConfiguration &&
+                    widgets.startConfiguration(
+                        this@TileEditorActivity,
+                        id,
+                        WidgetHostController.REQUEST_CONFIGURE,
+                    )
+                if (!started) finishWidget(id, provider)
             }
 
             val bindWidget = rememberLauncherForActivityResult(
@@ -324,15 +354,7 @@ class TileEditorActivity : HomeTilesActivity() {
                 val pending = pendingWidget
                 if (pending == null) return@rememberLauncherForActivityResult
                 if (result.resultCode == RESULT_OK) {
-                    if (pending.second.needsConfiguration) {
-                        widgets.startConfiguration(
-                            this@TileEditorActivity,
-                            pending.first,
-                            WidgetHostController.REQUEST_CONFIGURE,
-                        )
-                    } else {
-                        finishWidget(pending.first, pending.second)
-                    }
+                    configureOrFinish(pending.first, pending.second)
                 } else {
                     widgets.release(pending.first)
                     pendingWidget = null
@@ -344,16 +366,7 @@ class TileEditorActivity : HomeTilesActivity() {
                 val id = widgets.allocateId()
                 pendingWidget = id to provider
                 if (widgets.bindDirectly(id, provider.component)) {
-                    if (provider.needsConfiguration) {
-                        val started = widgets.startConfiguration(
-                            this@TileEditorActivity,
-                            id,
-                            WidgetHostController.REQUEST_CONFIGURE,
-                        )
-                        if (!started) finishWidget(id, provider)
-                    } else {
-                        finishWidget(id, provider)
-                    }
+                    configureOrFinish(id, provider)
                 } else {
                     val intent = widgets.bindRequestIntent(id, provider.component)
                     if (intent != null) {
