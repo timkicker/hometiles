@@ -31,7 +31,9 @@ class SpeedDialHintStateTest {
             "the hint above the keypad is fixed again - then the harmless state carries " +
                 "the same sentence as the dangerous one.",
             "R.string.dialer_speeddial_hint_assign" in dialer &&
-                "R.string.dialer_speeddial_hint_call" in dialer,
+                // on the keypad the assigned state says it dials and where to change it
+                // (issue #10); the assign page keeps hint_call.
+                "R.string.dialer_speeddial_hint_change" in dialer,
         )
         assertTrue(
             "the hint does not ask whether any key is assigned at all.",

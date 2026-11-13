@@ -12,6 +12,9 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import dev.kicker.hometiles.ui.focusBorder
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -330,6 +333,15 @@ var logGranted by remember(resumes.intValue) { mutableStateOf(callLog.hasPermiss
                                 if (typed.isEmpty()) SpeedDial.targetFor(config.phone, key)?.name else null
                             },
                             anySpeedDial = SpeedDial.anyAssigned(config.phone),
+                            onSpeedDialSettings = {
+                                startActivity(
+                                    SettingsLink.toSection(
+                                        this@DialerActivity,
+                                        SettingsLink.PAGE_CALL_TYPES,
+                                        SettingsLink.SECTION_SPEED_DIAL,
+                                    ),
+                                )
+                            },
                             onDigit = { typed += it },
                             onLongDigit = { key ->
                                 val target = SpeedDial.targetFor(config.phone, key)
@@ -489,6 +501,11 @@ private fun Keypad(
     typed: String,
     hintFor: (Char) -> String?,
     anySpeedDial: Boolean,
+    /**
+     * the way to change or clear a set key (issue #10). on the keypad a long press on it
+     * dials, so the hint line itself leads to the settings page holding the speed dial.
+     */
+    onSpeedDialSettings: () -> Unit,
     onDigit: (Char) -> Unit,
     onLongDigit: (Char) -> Unit,
     onBackspace: () -> Unit,
@@ -498,8 +515,18 @@ private fun Keypad(
     val palette = LocalBigPalette.current
     val dialable = PhoneNumbers.isDialable(typed)
     Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxSize()) {
+        val changeLabel = stringResource(R.string.dialer_speeddial_change)
         Box(
-            modifier = Modifier.fillMaxWidth().height(64.dp).padding(horizontal = 4.dp),
+            modifier = Modifier.fillMaxWidth().height(64.dp)
+                .then(
+                    if (typed.isEmpty() && anySpeedDial) {
+                        Modifier.focusBorder(RectangleShape)
+                            .clickable(onClickLabel = changeLabel, onClick = onSpeedDialSettings)
+                    } else {
+                        Modifier
+                    },
+                )
+                .padding(horizontal = 4.dp),
             contentAlignment = Alignment.CenterStart,
         ) {
             // the row is measured for a phone number: a whole sentence in the same size ran
@@ -522,7 +549,7 @@ private fun Keypad(
                         // once. one sentence covered both, the harmless and the dangerous.
                         text = stringResource(
                             if (anySpeedDial) {
-                                R.string.dialer_speeddial_hint_call
+                                R.string.dialer_speeddial_hint_change
                             } else {
                                 R.string.dialer_speeddial_hint_assign
                             },

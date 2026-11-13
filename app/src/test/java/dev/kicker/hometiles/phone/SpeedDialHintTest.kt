@@ -33,16 +33,15 @@ class SpeedDialHintTest {
         )
     }
 
-    /** two versions of the same sentence drift apart. */
+    /**
+     * the sentence stands once, on the assign page. the keypad had it too until issue #10:
+     * there it now has to say where a set key is changed as well, in one line, so it takes
+     * `dialer_speeddial_hint_change`, which still starts with what holding does.
+     */
     @Test
-    fun `both places take the same sentence`() {
+    fun `the assign page alone takes the long sentence`() {
         val places = Regex("R\\.string\\.dialer_speeddial_hint_call")
             .findAll(dialer).count()
-        assertEquals(
-            "the sentence does not stand in both places - keypad and assignment - or it " +
-                "stands there in two versions.",
-            2,
-            places,
-        )
+        assertEquals("the long sentence stands in more than one place or nowhere.", 1, places)
     }
 }

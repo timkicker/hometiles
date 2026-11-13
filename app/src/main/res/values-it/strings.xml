@@ -105,7 +105,7 @@
     <string name="reset_pin_too">Anche il suo PIN sparisce.</string>
     <string name="reset_backup_first">Fare prima una copia</string>
     <string name="reset_do">Cancellare tutto adesso</string>
-    <string name="settings_call_types">Elenco chiamate</string>
+    <string name="settings_call_types">Chiamate e chiamata rapida</string>
     <string name="call_types_hint">Quali tipi di chiamata compaiono nell’elenco</string>
     <string name="call_grouping">Come si raggruppa l’elenco chiamate</string>
     <string name="caller_photo">Foto quando qualcuno chiama</string>
@@ -328,6 +328,8 @@
     <string name="calllog">Registro chiamate</string>
     <string name="dialer_speeddial_hint_assign">Tenga premuto da 2 a 9 per la chiamata rapida</string>
     <string name="dialer_speeddial_hint_call">Tenga premuto un tasto rapido per chiamare subito</string>
+    <string name="dialer_speeddial_hint_change">Tenga premuto per chiamare. Qui per cambiare</string>
+    <string name="dialer_speeddial_change">Cambiare la chiamata rapida</string>
     <string name="speeddial_assign">Chiamata rapida su %1$s</string>
     <string name="speeddial_clear">Svuotare (adesso %1$s)</string>
     <string name="speeddial_heading">Chiamata rapida</string>

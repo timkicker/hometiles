@@ -26,6 +26,12 @@ object SettingsLink {
 
     const val PAGE_HIDDEN_APPS = "HIDDEN_APPS"
 
+    /** a part further down a page that the page scrolls to on arrival. */
+    const val EXTRA_SECTION = "hometiles.settings.section"
+
+    /** the speed dial at the end of the call page (issue #10). */
+    const val SECTION_SPEED_DIAL = "SPEED_DIAL"
+
     /** the settings from the front; the only way back for someone who gave up their tile. */
     fun toRoot(context: Context): Intent =
         Intent(ACTION).setPackage(context.packageName)
@@ -33,4 +39,7 @@ object SettingsLink {
     /** `setPackage` keeps it in our own app, where another could claim the same name. */
     fun toPage(context: Context, page: String): Intent =
         Intent(ACTION).setPackage(context.packageName).putExtra(EXTRA_PAGE, page)
+
+    fun toSection(context: Context, page: String, section: String): Intent =
+        toPage(context, page).putExtra(EXTRA_SECTION, section)
 }

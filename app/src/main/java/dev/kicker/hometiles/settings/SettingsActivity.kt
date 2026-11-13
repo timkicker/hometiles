@@ -26,6 +26,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Call
@@ -188,6 +189,12 @@ class SettingsActivity : HomeTilesActivity() {
     /** Die zuletzt angeforderte Unterseite. Siehe [onNewIntent]. */
     private val pageRequest = mutableStateOf<Page?>(null)
 
+    /** the call page scrolls to its speed dial once, when the keypad sent us (issue #10). */
+    private val speedDialRequest = mutableStateOf(false)
+
+    private fun readSection(intent: Intent?): Boolean =
+        intent?.getStringExtra(SettingsLink.EXTRA_SECTION) == SettingsLink.SECTION_SPEED_DIAL
+
     private fun readTarget(intent: Intent?): Page? =
         SettingsDeepLink.target(intent?.getStringExtra(EXTRA_PAGE))
 
@@ -199,12 +206,14 @@ class SettingsActivity : HomeTilesActivity() {
         super.onNewIntent(intent)
         setIntent(intent)
         readTarget(intent)?.let { pageRequest.value = it }
+        speedDialRequest.value = readSection(intent)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         pageRequest.value = readTarget(intent)
+        speedDialRequest.value = readSection(intent)
         val store = ConfigStore.get(this)
 
         setContent {
@@ -836,6 +845,8 @@ class SettingsActivity : HomeTilesActivity() {
                         // answer.
                         Page.CALL_TYPES -> CallTypesList(
                             phone = config.phone,
+                            toSpeedDial = speedDialRequest.value,
+                            onAtSpeedDial = { speedDialRequest.value = false },
                             onChange = { updated -> store.update { it.copy(phone = updated) } },
                             hasPhoneRole = remember(resumes.intValue) {
                                 DialerRole.held(this@SettingsActivity)
@@ -2516,6 +2527,9 @@ private fun ContactsSettingsList(
 @Composable
 private fun CallTypesList(
     phone: PhoneConfig,
+    /** scroll down to the speed dial on arrival, then [onAtSpeedDial]. */
+    toSpeedDial: Boolean,
+    onAtSpeedDial: () -> Unit,
     onChange: (PhoneConfig) -> Unit,
     /** changing the default phone app works only through an activity. */
     onDialerApp: () -> Unit,
@@ -2528,7 +2542,25 @@ private fun CallTypesList(
     val palette = LocalBigPalette.current
     var blockedText by remember(phone.blockedNumbers) { mutableStateOf(CallBlocking.format(phone.blockedNumbers)) }
     val rejected = remember(blockedText) { CallBlocking.rejected(blockedText) }
-    LazyColumn(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+    val listState = rememberLazyListState()
+    LaunchedEffect(toSpeedDial) {
+        if (!toSpeedDial) return@LaunchedEffect
+        // a lazy list knows the index of an item only once it was laid out, so step down a
+        // screen at a time until the heading shows, then put it at the top.
+        while (true) {
+            val info = listState.layoutInfo
+            val heading = info.visibleItemsInfo.firstOrNull { it.key == SPEED_DIAL_KEY }
+            if (heading != null) {
+                listState.scrollToItem(heading.index)
+                break
+            }
+            val last = info.visibleItemsInfo.lastOrNull() ?: break
+            if (last.index >= info.totalItemsCount - 1) break
+            listState.scrollToItem(last.index)
+        }
+        onAtSpeedDial()
+    }
+    LazyColumn(state = listState, verticalArrangement = Arrangement.spacedBy(4.dp)) {
         // the call log stands at the top because the way here comes from it, and seeing a
         // field for blocked numbers first reads as the wrong page. within it, grouping before
         // the kinds: grouping concerns the whole list, hiding kinds only its content.
@@ -2647,7 +2679,7 @@ private fun CallTypesList(
         // speed dials are cleared here. on the keypad a long press on a set key dials at once,
         // on purpose, so the clear row there was only reachable through an empty key: a set
         // speed dial could never be removed (issue #2).
-        item { BigHeading(stringResource(R.string.speeddial_heading)) }
+        item(key = SPEED_DIAL_KEY) { BigHeading(stringResource(R.string.speeddial_heading)) }
         val assigned = SpeedDial.ASSIGNABLE.mapNotNull { key ->
             SpeedDial.targetFor(phone, key)?.let { key to it }
         }
@@ -2714,5 +2746,5 @@ private fun groupingHint(kind: CallGrouping): Int = when (kind) {
     CallGrouping.DIRECTION -> R.string.call_grouping_direction_hint
 }
 
-
-
+/** the lazy key of the speed dial heading on the call page. */
+private const val SPEED_DIAL_KEY = "speeddial"

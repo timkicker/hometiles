@@ -100,7 +100,7 @@
     <string name="reset_pin_too">Ihre PIN ist dann auch weg.</string>
     <string name="reset_backup_first">Vorher sichern</string>
     <string name="reset_do">Jetzt alles löschen</string>
-    <string name="settings_call_types">Anrufliste</string>
+    <string name="settings_call_types">Anrufe und Kurzwahl</string>
     <string name="call_types_hint">Welche Arten von Anrufen überhaupt in der Liste stehen</string>
     <string name="call_grouping">Wie die Anrufliste zusammenfasst</string>
     <string name="caller_photo">Foto beim Anruf</string>
@@ -323,6 +323,8 @@
     <string name="calllog">Anrufliste</string>
     <string name="dialer_speeddial_hint_assign">2 bis 9 halten, um eine Kurzwahl einzurichten</string>
     <string name="dialer_speeddial_hint_call">Eine Kurzwahltaste halten ruft sofort an</string>
+    <string name="dialer_speeddial_hint_change">Halten ruft sofort an. Hier tippen zum Ändern</string>
+    <string name="dialer_speeddial_change">Kurzwahl ändern</string>
     <string name="speeddial_assign">Kurzwahl auf Taste %1$s</string>
     <string name="speeddial_clear">Freigeben (jetzt %1$s)</string>
     <string name="speeddial_heading">Kurzwahl</string>

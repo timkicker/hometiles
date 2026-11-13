@@ -101,7 +101,7 @@
     <string name="reset_pin_too">Your PIN goes as well.</string>
     <string name="reset_backup_first">Save a backup first</string>
     <string name="reset_do">Delete everything now</string>
-    <string name="settings_call_types">Call list</string>
+    <string name="settings_call_types">Calls and speed dial</string>
     <string name="call_types_hint">Which kinds of call appear in the list at all</string>
     <string name="call_grouping">How the call list is grouped</string>
     <string name="caller_photo">Photo when someone calls</string>
@@ -324,6 +324,8 @@
     <string name="calllog">Call log</string>
     <string name="dialer_speeddial_hint_assign">Hold 2 to 9 to set up speed dial</string>
     <string name="dialer_speeddial_hint_call">Hold a speed dial key to call straight away</string>
+    <string name="dialer_speeddial_hint_change">Hold to call at once. Tap here to change</string>
+    <string name="dialer_speeddial_change">Change speed dial</string>
     <string name="speeddial_assign">Speed dial on %1$s</string>
     <string name="speeddial_clear">Clear (currently %1$s)</string>
     <string name="speeddial_heading">Speed dial</string>
