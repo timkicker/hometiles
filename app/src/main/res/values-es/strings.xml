@@ -421,6 +421,8 @@
     <string name="incall_connecting">Conectando</string>
     <string name="incall_holding">En espera</string>
     <string name="incall_ended">Llamada terminada</string>
+    <string name="call_ongoing">Llamada en curso. Toque para volver a ella</string>
+    <string name="call_ongoing_channel">Llamada en curso</string>
     <string name="set_as_dialer">Usar como aplicación de teléfono</string>
     <string name="set_as_dialer_hint">HomeTiles muestra entonces la pantalla de llamada</string>
     <string name="is_sms">HomeTiles es su aplicación de mensajes</string>

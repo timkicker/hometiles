@@ -416,6 +416,8 @@
     <string name="incall_connecting">Connecting</string>
     <string name="incall_holding">On hold</string>
     <string name="incall_ended">Call ended</string>
+    <string name="call_ongoing">Call in progress. Tap to go back to it</string>
+    <string name="call_ongoing_channel">Running call</string>
     <string name="set_as_dialer">Use as phone app</string>
     <string name="set_as_dialer_hint">HomeTiles then shows the call screen itself</string>
     <string name="is_sms">HomeTiles is your messaging app</string>

@@ -420,6 +420,8 @@
     <string name="incall_connecting">Connexion</string>
     <string name="incall_holding">En attente</string>
     <string name="incall_ended">Appel terminé</string>
+    <string name="call_ongoing">Appel en cours. Touchez pour y revenir</string>
+    <string name="call_ongoing_channel">Appel en cours</string>
     <string name="set_as_dialer">Utiliser comme application téléphone</string>
     <string name="set_as_dialer_hint">HomeTiles affiche alors lui-même l’écran d’appel</string>
     <string name="is_sms">HomeTiles est votre application de messages</string>

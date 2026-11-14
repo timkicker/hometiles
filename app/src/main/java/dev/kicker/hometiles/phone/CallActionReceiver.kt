@@ -7,7 +7,7 @@ import dev.kicker.hometiles.R
 import dev.kicker.hometiles.ui.Notice
 
 /**
- * answer and reject from the ringing notice.
+ * answer and reject from the ringing notice, hang up from the running one.
  *
  * with the screen on android shows a full screen intent only as a small notice, and that one
  * had no buttons: on a flip phone in use a call could only be taken by finding the notice in
@@ -19,6 +19,7 @@ class CallActionReceiver : BroadcastReceiver() {
         val outcome = when (intent.action) {
             ANSWER -> InCallRepository.answer()
             REJECT -> InCallRepository.reject()
+            HANG_UP -> InCallRepository.hangUp()
             else -> return
         }
         // a button that does nothing while the phone rings is the worst kind. see SilentFailureTest.
@@ -28,5 +29,6 @@ class CallActionReceiver : BroadcastReceiver() {
     companion object {
         const val ANSWER = "dev.kicker.hometiles.phone.ANSWER"
         const val REJECT = "dev.kicker.hometiles.phone.REJECT"
+        const val HANG_UP = "dev.kicker.hometiles.phone.HANG_UP"
     }
 }
