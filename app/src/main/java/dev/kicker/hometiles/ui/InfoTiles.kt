@@ -18,11 +18,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.ui.Alignment
@@ -38,14 +34,12 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import kotlinx.coroutines.delay
 import dev.kicker.hometiles.info.BatteryInfo
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.Row
 import dev.kicker.hometiles.info.SignalReading
 import dev.kicker.hometiles.info.SignalInfo
 import dev.kicker.hometiles.info.BatteryReading
-import dev.kicker.hometiles.info.ClockTick
 import dev.kicker.hometiles.ui.theme.LocalBigPalette
 import dev.kicker.hometiles.ui.theme.LocalTextScale
 import java.text.SimpleDateFormat
@@ -67,14 +61,7 @@ fun ClockContent(
 ) {
     val palette = LocalBigPalette.current
     val scale = LocalTextScale.current
-    var now by remember { mutableStateOf(System.currentTimeMillis()) }
-
-    LaunchedEffect(Unit) {
-        while (true) {
-            delay(ClockTick.millisUntilNextMinute(System.currentTimeMillis()))
-            now = System.currentTimeMillis()
-        }
-    }
+    val now = rememberNow()
 
     val locale = currentLocale()
     val timeFormat = remember(twentyFourHour, locale) {
