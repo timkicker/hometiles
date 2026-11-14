@@ -8,6 +8,8 @@ import android.content.Intent
 import android.provider.Telephony
 import android.telephony.SmsManager
 import dev.kicker.hometiles.R
+import dev.kicker.hometiles.ui.AppLocale
+import dev.kicker.hometiles.ui.Notice
 
 /**
  * the network's receipt for a sent message.
@@ -19,7 +21,14 @@ import dev.kicker.hometiles.R
 class SmsSentReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent) {
-        if (resultCode == Activity.RESULT_OK) return
+        // the app's language, not the phone's: a receiver gets the bare context.
+        val texts = AppLocale.forApp(context)
+        if (resultCode == Activity.RESULT_OK) {
+            if (intent.getBooleanExtra(EXTRA_LAST, false)) {
+                Notice.show(context, texts.getString(R.string.sms_sent))
+            }
+            return
+        }
 
         // the row in question rides in the intent's data, as it came out of the write.
         intent.data?.let { row ->
@@ -35,13 +44,16 @@ class SmsSentReceiver : BroadcastReceiver() {
             }
         }
         SmsRepository.notifyChanged()
-        SmsNotifications.showSendFailed(context, context.getString(reasonText(resultCode)))
+        SmsNotifications.showSendFailed(context, texts.getString(reasonText(resultCode)))
     }
 
-    private companion object {
+    companion object {
+
+        /** set on the receipt of the last part, the one that may say sent. */
+        const val EXTRA_LAST = "hometiles.sms.last_part"
 
         /** a general error is no answer; no service and flight mode are ones you can act on. */
-        fun reasonText(code: Int): Int = when (code) {
+        private fun reasonText(code: Int): Int = when (code) {
             SmsManager.RESULT_ERROR_NO_SERVICE -> R.string.sms_send_no_service
             SmsManager.RESULT_ERROR_RADIO_OFF -> R.string.sms_send_radio_off
             else -> R.string.sms_send_generic

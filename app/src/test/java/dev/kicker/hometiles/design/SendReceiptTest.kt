@@ -79,4 +79,28 @@ class SendReceiptTest {
             "message.failed" in sending && "R.string.sms_not_sent" in sending,
         )
     }
+
+    @Test
+    fun `the receipt does not hang on the row`() {
+        // without the role there is no row of ours, and a failed message is one this app
+        // cannot read. without a receipt it vanished with sent on screen (user mail
+        // 14.11.2026, emulator in flight mode).
+        val receipt = Quelltext.cut(sending, "fun receipt(last: Boolean)", "val sent = runCatching")
+        assertTrue(
+            "the receipt exists only with the role. without it a refused message vanishes.",
+            "row?.let { setData(it) }" in receipt && "val receipt = row?.let" !in sending,
+        )
+    }
+
+    @Test
+    fun `sent is said by the network`() {
+        val afterSending = Quelltext.cut(sending, "if (sent) {", "} else {")
+        assertTrue(
+            "sent is claimed when the call returns, before the network has answered.",
+            "R.string.sms_sent" !in afterSending,
+        )
+        val receiver = Quelltext.withoutComments("dev/kicker/hometiles/sms/SmsSentReceiver.kt")
+        val ok = Quelltext.cut(receiver, "if (resultCode == Activity.RESULT_OK) {", "return")
+        assertTrue("the receipt never says sent.", "R.string.sms_sent" in ok && "EXTRA_LAST" in ok)
+    }
 }

@@ -434,6 +434,7 @@
     <string name="sms_send_confirm">Vraiment envoyer ?</string>
     <string name="sms_send_confirm_hint">Touchez encore. Il n’y a pas de retour.</string>
     <string name="sms_sent">Envoyé.</string>
+    <string name="sms_sending">Envoi en cours.</string>
     <string name="sms_send_failed">Cela n’a pas pu être envoyé.</string>
     <string name="sms_not_sent">Non envoyé</string>
     <string name="a11y_message_in">Reçu</string>

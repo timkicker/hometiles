@@ -413,15 +413,20 @@ var granted by remember(resumes.intValue) { mutableStateOf(repository.hasReadPer
             null
         }
 
-        // the receipt: without it, sent only meant the call had not thrown.
-        val receipt = row?.let {
-            PendingIntent.getBroadcast(
-                this,
-                it.hashCode(),
-                Intent(this, SmsSentReceiver::class.java).setData(it),
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
-            )
-        }
+        // the receipt: without it, sent only meant the call had not thrown. also without the
+        // role: then android files the message itself and marks a failure where this app
+        // cannot read it, since without the role the provider shows only inbox and sent. such
+        // a message vanished while the screen said sent (user mail 14.11.2026, emulator in
+        // flight mode). only the last part says sent, or a long message says it three times.
+        val stamp = row?.hashCode() ?: System.nanoTime().toInt()
+        fun receipt(last: Boolean): PendingIntent = PendingIntent.getBroadcast(
+            this,
+            stamp * 2 + if (last) 1 else 0,
+            Intent(this, SmsSentReceiver::class.java)
+                .apply { row?.let { setData(it) } }
+                .putExtra(SmsSentReceiver.EXTRA_LAST, last),
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
 
         val sent = runCatching {
             val parts = manager.divideMessage(body)
@@ -431,11 +436,11 @@ var granted by remember(resumes.intValue) { mutableStateOf(repository.hasReadPer
                     address,
                     null,
                     parts,
-                    ArrayList(List(parts.size) { receipt }),
+                    ArrayList(List(parts.size) { receipt(it == parts.lastIndex) }),
                     null,
                 )
             } else {
-                manager.sendTextMessage(address, null, body, receipt, null)
+                manager.sendTextMessage(address, null, body, receipt(last = true), null)
             }
             true
         }.getOrDefault(false)
@@ -443,7 +448,8 @@ var granted by remember(resumes.intValue) { mutableStateOf(repository.hasReadPer
         if (sent) {
             SmsRepository.notifyChanged()
             onSent()
-            Notice.show(this, R.string.sms_sent)
+            // not sent yet: that is for the receipt to say.
+            Notice.show(this, R.string.sms_sending)
         } else {
             // the call itself failed, so the row stands there for nothing.
             row?.let { runCatching { contentResolver.delete(it, null, null) } }

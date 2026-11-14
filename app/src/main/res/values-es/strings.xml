@@ -435,6 +435,7 @@
     <string name="sms_send_confirm">¿Enviar de verdad?</string>
     <string name="sms_send_confirm_hint">Toque otra vez. No hay vuelta atrás.</string>
     <string name="sms_sent">Enviado.</string>
+    <string name="sms_sending">Enviando.</string>
     <string name="sms_send_failed">No se ha podido enviar.</string>
     <string name="sms_not_sent">Sin enviar</string>
     <string name="a11y_message_in">Recibido</string>

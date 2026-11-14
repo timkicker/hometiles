@@ -430,6 +430,7 @@
     <string name="sms_send_confirm">Really send?</string>
     <string name="sms_send_confirm_hint">Tap again. There is no taking it back.</string>
     <string name="sms_sent">Sent.</string>
+    <string name="sms_sending">Sending.</string>
     <string name="sms_send_failed">That could not be sent.</string>
     <string name="sms_not_sent">Not sent</string>
     <string name="a11y_message_in">Received</string>
