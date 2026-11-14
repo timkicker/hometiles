@@ -63,6 +63,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.Lifecycle
 import dev.kicker.hometiles.ui.ClockFormat
 import dev.kicker.hometiles.ui.bestDatePattern
 import dev.kicker.hometiles.ui.bigSp
@@ -217,9 +219,16 @@ var granted by remember(resumes.intValue) { mutableStateOf(repository.hasReadPer
             }
 
             // read is read, or the count beside the name would stand forever. the notice
-            // goes with it: an open conversation has been seen.
-            LaunchedEffect(openThread) {
+            // goes with it: an open conversation has been seen. keyed on the unread count
+            // too: a message that came in while the conversation stood open stayed unread,
+            // and the tile kept counting it (user mail 14.11.2026, probe message on the
+            // emulator). only while the screen is in front, or a message arriving behind the
+            // home screen would count as read without anybody having seen it.
+            val openUnread = threads.firstOrNull { it.threadId == openThread }?.unreadCount ?: 0
+            val inFront = lifecycle.currentStateFlow.collectAsState().value.isAtLeast(Lifecycle.State.RESUMED)
+            LaunchedEffect(openThread, openUnread, inFront) {
                 val openId = openThread ?: return@LaunchedEffect
+                if (!inFront) return@LaunchedEffect
                 if (repository.markRead(openId)) SmsRepository.notifyChanged()
                 threads.firstOrNull { it.threadId == openId }?.let {
                     SmsNotifications.clear(this@SmsActivity, it.address)
