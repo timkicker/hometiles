@@ -25,7 +25,7 @@ object AppLocale {
         Language.FRENCH -> Locale.FRENCH
         Language.SPANISH -> Locale.forLanguageTag("es")
         Language.ITALIAN -> Locale.ITALIAN
-        Language.RUSSIAN -> Locale.RUSSIAN
+        Language.RUSSIAN -> Locale.forLanguageTag("ru")
     }
 
     fun wrap(base: Context, language: Language): Context {
