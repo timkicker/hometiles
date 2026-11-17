@@ -417,6 +417,8 @@
     <string name="incall_connecting">Connecting</string>
     <string name="incall_holding">On hold</string>
     <string name="incall_ended">Call ended</string>
+    <string name="call_ongoing">Call in progress. Tap to go back to it</string>
+    <string name="call_ongoing_channel">Running call</string>
     <string name="set_as_dialer">Use as phone app</string>
     <string name="set_as_dialer_hint">HomeTiles then shows the call screen itself</string>
     <string name="is_sms">HomeTiles is your messaging app</string>
@@ -429,6 +431,7 @@
     <string name="sms_send_confirm">Really send?</string>
     <string name="sms_send_confirm_hint">Tap again. There is no taking it back.</string>
     <string name="sms_sent">Sent.</string>
+    <string name="sms_sending">Sending.</string>
     <string name="sms_send_failed">That could not be sent.</string>
     <string name="sms_not_sent">Not sent</string>
     <string name="a11y_message_in">Received</string>

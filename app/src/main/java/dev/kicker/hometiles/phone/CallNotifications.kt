@@ -41,6 +41,16 @@ object CallNotifications {
     /** one id for the ringing call: a second call replaces the notice instead of stacking. */
     const val NOTIFICATION_ID = 1
 
+    /**
+     * the call that is running, quiet in the shade. the ringing notice goes when the call is
+     * taken, and after that leaving the call screen left nothing to come back by: no way to
+     * hang up, mute or reach the keypad (user mail 14.11.2026, emulator probe call the same
+     * day). the prefix must not be `sms-`, see [CHANNEL].
+     */
+    const val CHANNEL_ONGOING = "call-ongoing"
+
+    const val ONGOING_ID = 2
+
     /** who is ringing, so the notice can move between the channels. null when nothing rings. */
     private var ringing: Pair<String?, String>? = null
 
@@ -113,6 +123,46 @@ object CallNotifications {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
         return Notification.Action.Builder(null, label, intent).build()
+    }
+
+    /**
+     * the notice for a running call. posted again on every change without a sound, the shade
+     * only redraws it; `setOnlyAlertOnce` keeps an update from buzzing.
+     */
+    fun showOngoing(context: Context, name: String?, number: String, status: String, startedAtMillis: Long?) {
+        val manager = context.getSystemService(NotificationManager::class.java) ?: return
+        val texts = AppLocale.forApp(context)
+        manager.createNotificationChannel(
+            NotificationChannel(
+                CHANNEL_ONGOING,
+                texts.getString(R.string.call_ongoing_channel),
+                NotificationManager.IMPORTANCE_LOW,
+            ),
+        )
+        val screen = PendingIntent.getActivity(
+            context,
+            ONGOING_ID,
+            Intent(context, InCallActivity::class.java)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP),
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+        val builder = Notification.Builder(context, CHANNEL_ONGOING)
+            .setSmallIcon(R.drawable.ic_stat_call)
+            .setContentTitle(name ?: PhoneNumbers.forDisplay(number).ifBlank {
+                texts.getString(R.string.call_unknown)
+            })
+            .setContentText(status)
+            .setCategory(Notification.CATEGORY_CALL)
+            .setOngoing(true)
+            .setOnlyAlertOnce(true)
+            .setContentIntent(screen)
+            .addAction(action(context, CallActionReceiver.HANG_UP, texts.getString(R.string.incall_hangup)))
+        if (startedAtMillis != null) builder.setWhen(startedAtMillis).setUsesChronometer(true).setShowWhen(true)
+        manager.notify(ONGOING_ID, builder.build())
+    }
+
+    fun clearOngoing(context: Context) {
+        context.getSystemService(NotificationManager::class.java)?.cancel(ONGOING_ID)
     }
 
     fun clear(context: Context) {

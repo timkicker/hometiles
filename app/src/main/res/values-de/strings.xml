@@ -416,6 +416,8 @@
     <string name="incall_connecting">Verbindung wird aufgebaut</string>
     <string name="incall_holding">Gehalten</string>
     <string name="incall_ended">Anruf beendet</string>
+    <string name="call_ongoing">Gespräch läuft. Tippen führt zurück</string>
+    <string name="call_ongoing_channel">Laufendes Gespräch</string>
     <string name="set_as_dialer">Als Telefon-App verwenden</string>
     <string name="set_as_dialer_hint">HomeTiles zeigt dann die Gesprächsansicht selbst</string>
     <string name="is_sms">HomeTiles ist Ihre Nachrichten-App</string>
@@ -428,6 +430,7 @@
     <string name="sms_send_confirm">Wirklich senden?</string>
     <string name="sms_send_confirm_hint">Nochmal tippen. Zurückholen geht nicht.</string>
     <string name="sms_sent">Gesendet.</string>
+    <string name="sms_sending">Wird gesendet.</string>
     <string name="sms_send_failed">Das ließ sich nicht senden.</string>
     <string name="sms_not_sent">Nicht gesendet</string>
     <string name="a11y_message_in">Empfangen</string>

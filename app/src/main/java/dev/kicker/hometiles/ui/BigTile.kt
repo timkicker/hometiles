@@ -1,5 +1,6 @@
 package dev.kicker.hometiles.ui
 
+import dev.kicker.hometiles.contacts.ContactPhotoUri
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
@@ -249,8 +250,14 @@ fun BigTile(
             .semantics { this.contentDescription = spoken },
     ) {
         if (photoUri != null) {
+            // the large copy first: the thumbnail is 96 px and a tile is several times that
+            // (issue #14). a contact without a large photo answers with an error, then the
+            // thumbnail it has.
+            val large = remember(photoUri) { ContactPhotoUri.large(photoUri) }
+            var largeMissing by remember(photoUri) { mutableStateOf(false) }
             AsyncImage(
-                model = photoUri,
+                model = if (large != null && !largeMissing) large else photoUri,
+                onError = { if (large != null) largeMissing = true },
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize(),

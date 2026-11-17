@@ -63,6 +63,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.Lifecycle
 import dev.kicker.hometiles.ui.ClockFormat
 import dev.kicker.hometiles.ui.bestDatePattern
 import dev.kicker.hometiles.ui.bigSp
@@ -217,9 +219,16 @@ var granted by remember(resumes.intValue) { mutableStateOf(repository.hasReadPer
             }
 
             // read is read, or the count beside the name would stand forever. the notice
-            // goes with it: an open conversation has been seen.
-            LaunchedEffect(openThread) {
+            // goes with it: an open conversation has been seen. keyed on the unread count
+            // too: a message that came in while the conversation stood open stayed unread,
+            // and the tile kept counting it (user mail 14.11.2026, probe message on the
+            // emulator). only while the screen is in front, or a message arriving behind the
+            // home screen would count as read without anybody having seen it.
+            val openUnread = threads.firstOrNull { it.threadId == openThread }?.unreadCount ?: 0
+            val inFront = lifecycle.currentStateFlow.collectAsState().value.isAtLeast(Lifecycle.State.RESUMED)
+            LaunchedEffect(openThread, openUnread, inFront) {
                 val openId = openThread ?: return@LaunchedEffect
+                if (!inFront) return@LaunchedEffect
                 if (repository.markRead(openId)) SmsRepository.notifyChanged()
                 threads.firstOrNull { it.threadId == openId }?.let {
                     SmsNotifications.clear(this@SmsActivity, it.address)
@@ -404,15 +413,20 @@ var granted by remember(resumes.intValue) { mutableStateOf(repository.hasReadPer
             null
         }
 
-        // the receipt: without it, sent only meant the call had not thrown.
-        val receipt = row?.let {
-            PendingIntent.getBroadcast(
-                this,
-                it.hashCode(),
-                Intent(this, SmsSentReceiver::class.java).setData(it),
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
-            )
-        }
+        // the receipt: without it, sent only meant the call had not thrown. also without the
+        // role: then android files the message itself and marks a failure where this app
+        // cannot read it, since without the role the provider shows only inbox and sent. such
+        // a message vanished while the screen said sent (user mail 14.11.2026, emulator in
+        // flight mode). only the last part says sent, or a long message says it three times.
+        val stamp = row?.hashCode() ?: System.nanoTime().toInt()
+        fun receipt(last: Boolean): PendingIntent = PendingIntent.getBroadcast(
+            this,
+            stamp * 2 + if (last) 1 else 0,
+            Intent(this, SmsSentReceiver::class.java)
+                .apply { row?.let { setData(it) } }
+                .putExtra(SmsSentReceiver.EXTRA_LAST, last),
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
 
         val sent = runCatching {
             val parts = manager.divideMessage(body)
@@ -422,11 +436,11 @@ var granted by remember(resumes.intValue) { mutableStateOf(repository.hasReadPer
                     address,
                     null,
                     parts,
-                    ArrayList(List(parts.size) { receipt }),
+                    ArrayList(List(parts.size) { receipt(it == parts.lastIndex) }),
                     null,
                 )
             } else {
-                manager.sendTextMessage(address, null, body, receipt, null)
+                manager.sendTextMessage(address, null, body, receipt(last = true), null)
             }
             true
         }.getOrDefault(false)
@@ -434,7 +448,8 @@ var granted by remember(resumes.intValue) { mutableStateOf(repository.hasReadPer
         if (sent) {
             SmsRepository.notifyChanged()
             onSent()
-            Notice.show(this, R.string.sms_sent)
+            // not sent yet: that is for the receipt to say.
+            Notice.show(this, R.string.sms_sending)
         } else {
             // the call itself failed, so the row stands there for nothing.
             row?.let { runCatching { contentResolver.delete(it, null, null) } }

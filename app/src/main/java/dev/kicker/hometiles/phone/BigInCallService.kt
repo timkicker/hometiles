@@ -3,6 +3,8 @@ package dev.kicker.hometiles.phone
 import android.content.Intent
 import android.os.Build
 import android.telecom.Call
+import dev.kicker.hometiles.R
+import dev.kicker.hometiles.ui.AppLocale
 import dev.kicker.hometiles.data.AudioRoute
 import dev.kicker.hometiles.data.ConfigStore
 import android.telecom.CallAudioState
@@ -124,6 +126,7 @@ class BigInCallService : InCallService() {
         call.unregisterCallback(callback)
         CallNotifications.clear(this)
         if (calls.isEmpty()) {
+            CallNotifications.clearOngoing(this)
             proximity.hold(false)
             InCallRepository.detach()
         } else {
@@ -133,6 +136,7 @@ class BigInCallService : InCallService() {
 
     /** telecom can unbind with a call still listed; the screen must not stay off without us. */
     override fun onDestroy() {
+        CallNotifications.clearOngoing(this)
         proximity.hold(false)
         super.onDestroy()
     }
@@ -169,6 +173,7 @@ class BigInCallService : InCallService() {
             CallProximity.screenOff(statusOf(call.state), earpiece = route == CallAudioState.ROUTE_EARPIECE),
         )
         val details = call.details
+        ongoingNotice(call)
         InCallRepository.publish(
             call = call,
             view = CallView(
@@ -197,6 +202,29 @@ class BigInCallService : InCallService() {
                 otherHeld = second?.state == Call.STATE_HOLDING,
             ),
             other = second,
+        )
+    }
+
+    /** the way back to a running call; ringing has its own notice, see [CallNotifications]. */
+    private fun ongoingNotice(call: Call) {
+        val text = when (statusOf(call.state)) {
+            CallStatus.ACTIVE -> R.string.call_ongoing
+            CallStatus.HOLDING -> R.string.incall_holding
+            CallStatus.DIALING -> R.string.incall_dialing
+            CallStatus.CONNECTING -> R.string.incall_connecting
+            else -> null
+        }
+        if (text == null) {
+            if (call.state != Call.STATE_RINGING) CallNotifications.clearOngoing(this)
+            return
+        }
+        val number = call.details?.handle?.schemeSpecificPart.orEmpty()
+        CallNotifications.showOngoing(
+            this,
+            name = CallerName.lookup(this, number),
+            number = number,
+            status = AppLocale.forApp(this).getString(text),
+            startedAtMillis = call.details?.connectTimeMillis?.takeIf { it > 0 },
         )
     }
 
