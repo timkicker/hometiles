@@ -193,7 +193,7 @@
     <string name="orientation_auto">Подстраивается под то, как вы держите устройство</string>
     <string name="orientation_system">Как в системе</string>
     <string name="appearance_clock_size">Размер часов</string>
-    <string name="appearance_clock">Часы</string>
+    <string name="appearance_clock">Вид часов</string>
     <string name="clock_off">Без часов</string>
     <string name="clock_off_hint">Уровень заряда батареи отображается в верхней панели</string>
     <string name="clock_time">Время</string>
@@ -217,7 +217,7 @@
     <string name="theme_contrast">Высокая контрастность</string>
     <string name="theme_light">Светлый</string>
     <string name="theme_paper">Бумага (e-ink)</string>
-    <string name="theme_system">Как в системе</string>
+    <string name="theme_system">Светлая или тёмная, как в телефоне</string>
     <string name="label_bottom_left">Внизу слева</string>
     <string name="label_bottom_center">Внизу по центру</string>
     <string name="label_top_left">Вверху слева</string>
@@ -250,7 +250,7 @@
     <string name="dialog_cancel">Отменить</string>
     <string name="security_pin_rules">PIN-код состоит из 4-8 цифр.</string>
     <string name="settings_behaviour">Мигающие плитки</string>
-    <string name="blink_explainer">HomeTiles самостоятельно подсчитывает пропущенные звонки и непрочитанные сообщения. Другим приложениям требуется доступ к уведомлениям. Оно подсчитывает, но никогда не читает.</string>
+    <string name="blink_explainer">HomeTiles сам считает пропущенные звонки и непрочитанные сообщения. Другим приложениям нужен доступ к уведомлениям. Он считает, но никогда не читает.</string>
     <string name="blink_on">Мигание включено</string>
     <string name="blink_off">Мигание выключено</string>
     <string name="blink_access_granted">Доступ к уведомлениям предоставлен</string>
@@ -282,7 +282,7 @@
     <string name="widget_needs">%1$s, требуется %2$d × %3$d полей</string>
     <string name="widget_fixed">%1$s, фиксированный размер %2$d × %3$d полей</string>
     <string name="battery">Батарея</string>
-    <string name="widget_no_room">Для этого виджета требуется %1$d × %2$d полей. Он находится на плитке, но слишком мал: удалите соседний виджет, а затем воспользуйтесь функцией «Изменить размер».</string>
+    <string name="widget_no_room">Виджету нужно %1$d × %2$d полей. Он на плитке, но слишком мал: освободите соседнее поле, затем «Изменить размер».</string>
     <string name="appearance_header">Верхняя панель</string>
     <string name="status_hidden_all">В полноэкранном режиме без верхней панели вы не увидите ни время, ни заряд батареи.</string>
     <string name="status_hidden_battery">В полноэкранном режиме без верхней панели уровень заряда батареи не отображается.</string>
@@ -297,7 +297,7 @@
     <string name="contacts_edit">Редактировать в телефонной книге</string>
     <string name="contacts_new">Новый контакт</string>
     <string name="settings_transfer">Резервное копирование</string>
-    <string name="transfer_explainer">Сохраните настройки в файл и загрузите их обратно на этот или новый телефон. Виджеты и недавно использованные приложения не сохраняются, так как они привязаны к конкретному телефону.</string>
+    <string name="transfer_explainer">Сохраните настройки в файл и загрузите их обратно на этом или новом телефоне. Виджеты и недавние приложения не сохраняются: они привязаны к телефону.</string>
     <string name="transfer_export">Сохранить в файл</string>
     <string name="transfer_export_hint">Экраны, плитки, цвета, настройки</string>
     <string name="transfer_import">Загрузить из файла</string>
@@ -441,7 +441,7 @@
     <string name="sms_send_generic">Сеть не приняла сообщение. Попробуйте ещё раз.</string>
     <string name="sms_send_no_permission">HomeTiles не имеет права отправлять сообщения. Вы можете предоставить это право в настройках приложения в разделе «Разрешения».</string>
     <string name="sms_new_to">Новое сообщение для %1$s</string>
-    <string name="sms_not_default">HomeTiles не является вашим приложением для обмена сообщениями: отправленные сообщения здесь не сохраняются, и просмотр сообщения не помечает его как прочитанное.</string>
+    <string name="sms_not_default">HomeTiles не ваше приложение для сообщений: отправленные здесь не сохраняются, а прочтение не отмечает сообщение прочитанным.</string>
     <string name="wizard_position">Шаг %1$d из %2$d</string>
     <string name="wizard_welcome_title">Добро пожаловать в HomeTiles</string>
     <string name="wizard_welcome_body">Ответьте на несколько вопросов - и ваш главный экран будет готов. Позже вы сможете изменить все настройки в меню настроек.</string>
@@ -465,11 +465,11 @@
     <string name="settings_accessibility">Справка по чтению</string>
     <string name="settings_edit_tiles">Изменить плитки</string>
     <string name="settings_edit_tiles_hint">Нажмите на плитку, чтобы изменить её назначение</string>
-    <string name="a11y_speak_on">Прочитать плитку вслух</string>
+    <string name="a11y_speak_on">Плитка читается вслух</string>
     <string name="a11y_speak_off">Прочитать плитку вслух</string>
     <string name="a11y_speak_hint">Удерживайте плитку, чтобы услышать её</string>
-    <string name="a11y_popup_on">Отображать название плитки крупным шрифтом</string>
-    <string name="a11y_popup_off">Отображать название плитки крупным шрифтом</string>
+    <string name="a11y_popup_on">Название плитки показывается крупно</string>
+    <string name="a11y_popup_off">Показывать название плитки крупно</string>
     <string name="a11y_popup_hint">Удерживайте плитку, чтобы увидеть её в увеличенном виде</string>
     <string name="a11y_editor_moved">При таких настройках удерживание плитки больше не открывает редактор. Вместо этого используйте функцию «Изменить плитки», описанную выше.</string>
     <string name="tap_to_close">Нажмите, чтобы закрыть</string>
@@ -487,7 +487,7 @@
     </string-array>
     <string name="sos_message_default">Мне нужна помощь.</string>
     <string name="sos_numbers_placeholder">Например, 0664 1234567, 0680 7654321</string>
-    <string name="screens_where_new">Новые экраны создаются в редакторе плиток: удерживайте плитку, затем выберите «Перейти к экрану», а затем «Создать новый экран». Таким образом, к каждому новому экрану ведет плитка.</string>
+    <string name="screens_where_new">Новые экраны создаются в редакторе плиток: удерживайте плитку, затем «Перейти к экрану» и «Создать новый экран». Так к каждому экрану ведёт плитка.</string>
     <string name="screen_grid_heading">Поля на этом экране</string>
     <string name="screen_grid_current">Это текущий экран</string>
     <string name="screen_grid_confirm">Нажмите ещё раз, чтобы изменить и удалить их</string>
@@ -509,7 +509,7 @@
     <string name="emergency_last_error">Последняя ошибка:</string>
     <string name="battery_charging">Зарядка</string>
     <string name="calllog_confirm_delete">Удалить</string>
-    <string name="calllog_confirm_keep">Сохранить список</string>
+    <string name="calllog_confirm_keep">Оставить список</string>
     <string name="calllog_call_confirm">Позвонить «%1$s» сейчас?</string>
     <string name="calllog_call_yes">Да, позвонить</string>
     <string name="calllog_call_no">Не звонить</string>
@@ -539,8 +539,8 @@
     <string name="diag_last_crash">Последний сбой</string>
     <string name="diag_yes">да</string>
     <string name="diag_no">нет</string>
-    <string name="diag_none">нет</string>
-    <string name="diag_crash_none">нет</string>
+    <string name="diag_none">отсутствует</string>
+    <string name="diag_crash_none">отсутствует</string>
     <string name="diag_unknown">неизвестно</string>
     <string name="folder">Папка</string>
     <string name="folder_close">Закрыть папку</string>
@@ -573,8 +573,8 @@
     <string name="signal_weak">Слабый</string>
     <string name="signal_no_permission">Нажмите, чтобы разрешить</string>
     <string name="signal_permission_title">О следующем вопросе</string>
-    <string name="signal_permission_body">Для отображения полосок сигнала требуется доступ к состоянию телефона. Android называет эту группу «совершение и управление телефонными звонками». HomeTiles не может совершать звонки: у него нет этого разрешения.</string>
-    <string name="signal_permission_body_may_call">Для отображения полосок сигнала требуется информация о состоянии телефона. Android называет эту группу «совершение и управление телефонными звонками». Ничего не набирается: HomeTiles вызывает то, что вы нажмете.</string>
+    <string name="signal_permission_body">Полоскам сигнала нужно состояние телефона. Android называет эту группу «совершение звонков и управление ими». Звонить HomeTiles не может: разрешения нет.</string>
+    <string name="signal_permission_body_may_call">Полоскам сигнала нужно состояние телефона. Android называет эту группу «совершение звонков и управление ими». HomeTiles звонит только по нажатию.</string>
     <string name="signal_permission_ask">Спросить сейчас</string>
     <string name="signal_permission_no">Не сейчас</string>
     <string name="toggle_mobile_data">Мобильные данные</string>
@@ -640,34 +640,44 @@
     <string name="editor_long_press_kind_shortcut">Ярлык внутри приложения</string>
     <string name="editor_long_press_kind_screen">Перейти к экрану</string>
     <string name="editor_long_press_kind_link">Открыть веб-страницу</string>
-    <string name="editor_pick_message">Сообщение на фиксированный номер</string>
+    <string name="editor_pick_message">Сообщение на заданный номер</string>
     <string name="message_number_example">0664 1234567</string>
     <string name="message_number_hint">Эта плитка открывает новое сообщение на этот номер. Сообщение не отправляется, пока вы не нажмёте «Отправить».</string>
     <string name="message_number_invalid">В нём нет цифр. Для отправки сообщения нужен номер получателя.</string>
-    <string name="editor_long_press_kind_message">Сообщение на стационарный номер</string>
+    <string name="editor_long_press_kind_message">Сообщение на заданный номер</string>
     <string name="editor_long_press_banner">Это происходит при удерживании плитки. Нажатие будет выполнять то же действие, что и сейчас.</string>
     <string name="key_menu_second">Выполнить второе действие</string>
     <string name="editor_long_press_clear">Удалить второе действие</string>
-    <string name="editor_long_press_takes_editor">При длительном удержании этой плитки теперь выполняется это действие, а не открывается редактор. Доступ к настройкам по-прежнему можно получить в разделе «Изменить плитки».</string>
+    <string name="editor_long_press_takes_editor">Удержание этой плитки теперь выполняет это действие, а не открывает редактор. В настройках он по-прежнему в разделе «Изменить плитки».</string>
     <string name="editor_long_press_hint">Однократное нажатие будет выполнять то же действие, что и сейчас</string>
     <plurals name="reset_screens">
         <item quantity="one">%d экран</item>
+        <item quantity="few">%d экрана</item>
+        <item quantity="many">%d экранов</item>
         <item quantity="other">%d экранов</item>
     </plurals>
     <plurals name="reset_tiles">
         <item quantity="one">%d плитка</item>
+        <item quantity="few">%d плитки</item>
+        <item quantity="many">%d плиток</item>
         <item quantity="other">%d плитки</item>
     </plurals>
     <plurals name="reset_folders">
         <item quantity="one">%d папка</item>
+        <item quantity="few">%d папки</item>
+        <item quantity="many">%d папок</item>
         <item quantity="other">%d папок</item>
     </plurals>
     <plurals name="screen_columns_n">
         <item quantity="one">%d столбец</item>
+        <item quantity="few">%d столбца</item>
+        <item quantity="many">%d столбцов</item>
         <item quantity="other">%d столбцов</item>
     </plurals>
     <plurals name="screen_rows_n">
         <item quantity="one">%d строка</item>
+        <item quantity="few">%d строки</item>
+        <item quantity="many">%d строк</item>
         <item quantity="other">%d строк</item>
     </plurals>
     <string name="diag_number_format">Формат номера телефона</string>
@@ -678,10 +688,10 @@
     <string name="diag_battery_saving">Экономия заряда батареи</string>
     <string name="diag_battery_saving_on">Включено для HomeTiles. Короткие интервалы напоминаний могут задерживаться.</string>
     <string name="diag_battery_saving_off">Выключено для HomeTiles</string>
-    <string name="sms_no_mms">Для отправки сообщений с изображениями и групповых сообщений (MMS) требуется доступ к сети, которого у HomeTiles нет. Собственное приложение телефона для обмена сообщениями по-прежнему может их открывать.</string>
-    <string name="sms_no_mms_default">Сообщения с изображениями и групповые сообщения (MMS) требуют доступа к сети, которого у HomeTiles нет. Пока HomeTiles является вашим приложением для обмена сообщениями, ни одно другое приложение не сможет их загрузить.</string>
+    <string name="sms_no_mms">Сообщениям с картинками и групповым (MMS) нужен доступ к сети, которого у HomeTiles нет. Встроенное приложение сообщений телефона может их открыть.</string>
+    <string name="sms_no_mms_default">Сообщениям с картинками и групповым (MMS) нужен доступ к сети, которого у HomeTiles нет. Пока HomeTiles ваше приложение для сообщений, другие их не загрузят.</string>
     <string name="mms_arrived_title">ММС</string>
-    <string name="mms_arrived_body">HomeTiles не может загрузить изображения или групповые сообщения. Хотя это ваше приложение для обмена сообщениями, другие приложения также не могут этого сделать. Чтобы это исправить, верните права в настройках.</string>
+    <string name="mms_arrived_body">HomeTiles не может загружать сообщения с картинками и групповые. Пока он ваше приложение для сообщений, другие тоже не могут. Для них верните роль в настройках.</string>
     <string name="screens_add_jump">Разместить плитку «%1$s» на стартовом экране</string>
     <string name="screens_add_jump_full">Стартовый экран заполнен. Сначала удалите оттуда одну плитку, после чего это предложение снова появится.</string>
     <string name="sos_call_now">Позвонить %1$s</string>

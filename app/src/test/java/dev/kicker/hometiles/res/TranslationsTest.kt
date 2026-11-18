@@ -176,6 +176,9 @@ class TranslationsTest {
             val differing = en.keys.intersect(other.keys)
                 .filter { en[it] != other[it] }
                 .filterNot { other[it] == en[it].orEmpty() + countOnly }
+                // a language whose "one" also covers 21 and 31 (russian) has to write the
+                // count out there: the placeholders of the english "other" form are right.
+                .filterNot { (name, amount) -> amount == "one" && other[name to amount] == en[name to "other"] }
                 .map { (name, amount) -> "$language: $name/$amount ${en[name to amount]} instead of ${other[name to amount]}" }
             assertEquals("placeholders in a plural form", emptyList<String>(), differing)
         }
