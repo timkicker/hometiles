@@ -1398,6 +1398,7 @@ private fun languageLabel(language: Language): Int = when (language) {
     Language.FRENCH -> R.string.language_french
     Language.SPANISH -> R.string.language_spanish
     Language.ITALIAN -> R.string.language_italian
+    Language.RUSSIAN -> R.string.language_russian
 }
 
 @Composable

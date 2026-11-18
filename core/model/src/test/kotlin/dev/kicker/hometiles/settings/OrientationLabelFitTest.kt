@@ -1,5 +1,6 @@
 package dev.kicker.hometiles.settings
 
+import dev.kicker.hometiles.data.Language
 import java.awt.Font
 import java.awt.font.FontRenderContext
 import java.io.File
@@ -46,8 +47,9 @@ class OrientationLabelFitTest {
 
     // a rule over zero files is green and has looked at nothing.
     @Test
-    fun `all five languages are measured`() {
-        assertEquals(5, labels.size)
+    fun `every language is measured`() {
+        // english plus every translation; SYSTEM is no language of its own.
+        assertEquals(Language.entries.size - 1, labels.size)
     }
 
     @Test

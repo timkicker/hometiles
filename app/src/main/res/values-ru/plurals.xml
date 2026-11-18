@@ -1,0 +1,179 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <plurals name="sos_numbers_saved_n">
+        <item quantity="one">Сохранен %1$d номер.</item>
+        <item quantity="few">Сохранены %1$d номера.</item>
+        <item quantity="many">Сохранены %1$d номеров.</item>
+        <item quantity="other">Сохранены %1$d номеров.</item>
+    </plurals>
+    <plurals name="sos_counting_plural">
+        <item quantity="one">Отправляется %1$d контакту в</item>
+        <item quantity="few">Отправляется %1$d контактам в</item>
+        <item quantity="many">Отправляется %1$d контактам в</item>
+        <item quantity="other">Отправляется %1$d контактам в</item>
+    </plurals>
+    <plurals name="sos_sent_location_plural">
+        <item quantity="one">Отправлено %1$d контакту с указанием вашего местоположения.</item>
+        <item quantity="few">Отправлено %1$d контактам с указанием вашего местоположения.</item>
+        <item quantity="many">Отправлено %1$d контактам с указанием вашего местоположения.</item>
+        <item quantity="other">Отправлено %1$d контактам с указанием вашего местоположения.</item>
+    </plurals>
+    <plurals name="sos_sent_plain_plural">
+        <item quantity="one">Отправлено %1$d контакту. Местоположение не было доступно.</item>
+        <item quantity="few">Отправлено %1$d контактам. Местоположение не было доступно.</item>
+        <item quantity="many">Отправлено %1$d контактам. Местоположение не было доступно.</item>
+        <item quantity="other">Отправлено %1$d контактам. Местоположение не было доступно.</item>
+    </plurals>
+    <plurals name="screen_grid_loses">
+        <item quantity="one">Будет потеряна %1$d плитка</item>
+        <item quantity="few">Будут потеряны %1$d плитки</item>
+        <item quantity="many">Будут потеряны %1$d плиток</item>
+        <item quantity="other">Будут потеряны %1$d плиток</item>
+    </plurals>
+    <plurals name="screens_unreachable">
+        <item quantity="one">Ни одна плитка не ведёт к «%1$s». Поместите где-нибудь плитку «Перейти к экрану», иначе вы не сможете найти его снова.</item>
+        <item quantity="few">Ни одна плитка не ведёт к следующим экранам: %1$s. Поместите где-нибудь плитку «Перейти к экрану», иначе вы их больше не найдёте.</item>
+        <item quantity="many">Ни одна плитка не ведёт к следующим экранам: %1$s. Поместите где-нибудь плитку «Перейти к экрану», иначе вы их больше не найдёте.</item>
+        <item quantity="other">Ни одна плитка не ведёт к следующим экранам: %1$s. Поместите где-нибудь плитку «Перейти к экрану», иначе вы их больше не найдёте.</item>
+    </plurals>
+    <plurals name="search_matches">
+        <item quantity="one">%1$d совпадение, иконка «Лупа» открывает его</item>
+        <item quantity="few">%1$d совпадения</item>
+        <item quantity="many">%1$d совпадений</item>
+        <item quantity="other">%1$d совпадений</item>
+    </plurals>
+    <plurals name="folder_delete_body">
+        <item quantity="one">%1$d плитка внутри будет удалена вместе с ней. Это нельзя отменить.</item>
+        <item quantity="few">%1$d плитки внутри будут удалены вместе с ней. Это нельзя отменить.</item>
+        <item quantity="many">%1$d плиток внутри будут удалены вместе с ней. Это нельзя отменить.</item>
+        <item quantity="other">%1$d плиток внутри будут удалены вместе с ней. Это нельзя отменить.</item>
+    </plurals>
+    <plurals name="move_target_folder">
+        <item quantity="one">Папка, %1$d свободное место</item>
+        <item quantity="few">Папка, %1$d свободных места</item>
+        <item quantity="many">Папка, %1$d свободных мест</item>
+        <item quantity="other">Папка, %1$d свободных мест</item>
+    </plurals>
+    <plurals name="move_target_screen">
+        <item quantity="one">Экран, %1$d свободная ячейка</item>
+        <item quantity="few">Экран, %1$d свободные ячейки</item>
+        <item quantity="many">Экран, %1$d свободных ячеек</item>
+        <item quantity="other">Экран, %1$d свободных ячеек</item>
+    </plurals>
+    <plurals name="apps_recent_count_value">
+        <item quantity="one">%1$d приложение</item>
+        <item quantity="few">%1$d приложения</item>
+        <item quantity="many">%1$d приложений</item>
+        <item quantity="other">%1$d приложений</item>
+    </plurals>
+    <!-- «Удалено 1 запись» - именно это стояло там раньше, в случае, который встречается чаще всего:
+         одна запись, удерживание кнопки, удалено. -->
+    <plurals name="calllog_deleted">
+        <item quantity="one">%1$d запись удалена.</item>
+        <item quantity="few">%1$d записи удалена.</item>
+        <item quantity="many">%1$d записей удалено.</item>
+        <item quantity="other">%1$d записей удалено.</item>
+    </plurals>
+    <plurals name="security_applock_would_allow">
+        <item quantity="one">%1$d приложение останется открытым без ввода PIN-кода</item>
+        <item quantity="few">%1$d приложения останутся открытыми без ввода PIN-кода</item>
+        <item quantity="many">%1$d приложений останутся открытыми без ввода PIN-кода</item>
+        <item quantity="other">%1$d приложений останутся открытыми без ввода PIN-кода</item>
+    </plurals>
+    <plurals name="security_applock_allowed">
+        <item quantity="one">%1$d приложение открывается без ввода PIN-кода</item>
+        <item quantity="few">%1$d приложения открываются без ввода PIN-кода</item>
+        <item quantity="many">%1$d приложений открываются без ввода PIN-кода</item>
+        <item quantity="other">%1$d приложений открываются без ввода PIN-кода</item>
+    </plurals>
+    <plurals name="screen_delete_tiles">
+        <item quantity="one">%1$d плитка удаляется вместе с ним.</item>
+        <item quantity="few">%1$d плитки удаляются вместе с ним.</item>
+        <item quantity="many">%1$d плиток удаляются вместе с ним.</item>
+        <item quantity="other">%1$d плиток удаляются вместе с ним.</item>
+    </plurals>
+    <plurals name="screen_delete_folders">
+        <item quantity="one">То же самое происходит с %1$d папкой со всем ее содержимым.</item>
+        <item quantity="few">То же самое происходит с %1$d папками со всем их содержимым.</item>
+        <item quantity="many">То же самое происходит с %1$d папками со всем их содержимым.</item>
+        <item quantity="other">То же самое происходит с %1$d папками со всем их содержимым.</item>
+    </plurals>
+    <plurals name="sms_parts">
+        <item quantity="one">Стоит %1$d текстовое сообщение</item>
+        <item quantity="few">Стоит %1$d текстовый сообщений</item>
+        <item quantity="many">Стоит %1$d текстовых сообщений</item>
+        <item quantity="other">Стоит %1$d текстовых сообщений</item>
+    </plurals>
+    <plurals name="sos_message_parts">
+        <item quantity="one">С указанием местоположения это стоит не более %1$d текстового сообщения</item>
+        <item quantity="few">С указанием местоположения это стоит не более %1$d текстовых сообщений</item>
+        <item quantity="many">С указанием местоположения это стоит не более %1$d текстовых сообщений</item>
+        <item quantity="other">С указанием местоположения это стоит не более %1$d текстовых сообщений</item>
+    </plurals>
+    <plurals name="sos_countdown_seconds">
+        <item quantity="one">%1$d секунда</item>
+        <item quantity="few">%1$d секунды</item>
+        <item quantity="many">%1$d секунд</item>
+        <item quantity="other">%1$d секунд</item>
+    </plurals>
+    <plurals name="screen_copy_done">
+        <item quantity="one">Экран «%1$s» готов: %2$d плитка. Плитка, ведущая туда, есть на этом экране.</item>
+        <item quantity="few">Экран «%1$s» готов, плиток: %2$d. Плитка, ведущая туда, есть на этом экране.</item>
+        <item quantity="many">Экран «%1$s» готов, плиток: %2$d. Плитка, ведущая туда, есть на этом экране.</item>
+        <item quantity="other">Экран «%1$s» готов, плиток: %2$d. Плитка, ведущая туда, есть на этом экране.</item>
+    </plurals>
+    <plurals name="screen_copy_done_partial">
+        <item quantity="one">Экран «%1$s» готов: %2$d плитка. Пустыми остались %3$d: виджеты и папки могут быть только в одном месте.</item>
+        <item quantity="few">Экран «%1$s» готов, плиток: %2$d. Пустыми остались %3$d: виджеты и папки могут быть только в одном месте.</item>
+        <item quantity="many">Экран «%1$s» готов, плиток: %2$d. Пустыми остались %3$d: виджеты и папки могут быть только в одном месте.</item>
+        <item quantity="other">Экран «%1$s» готов, плиток: %2$d. Пустыми остались %3$d: виджеты и папки могут быть только в одном месте.</item>
+    </plurals>
+    <plurals name="a11y_new_calls">
+        <item quantity="one">%1$d новый</item>
+        <item quantity="few">%1$d новых</item>
+        <item quantity="many">%1$d новых</item>
+        <item quantity="other">%1$d новых</item>
+    </plurals>
+    <plurals name="a11y_unread">
+        <item quantity="one">%1$d непрочитанное</item>
+        <item quantity="few">%1$d непрочитанных</item>
+        <item quantity="many">%1$d непрочитанных</item>
+        <item quantity="other">%1$d непрочитанных</item>
+    </plurals>
+    <plurals name="sos_location_age_minutes">
+        <item quantity="one">Местоположение %1$d минуту назад</item>
+        <item quantity="few">Местоположение %1$d минуты назад</item>
+        <item quantity="many">Местоположение %1$d минут назад</item>
+        <item quantity="other">Местоположение %1$d минут назад</item>
+    </plurals>
+    <plurals name="sos_location_age_hours">
+        <item quantity="one">Местоположение %1$d час назад</item>
+        <item quantity="few">Местоположение %1$d часа назад</item>
+        <item quantity="many">Местоположение %1$d часов назад</item>
+        <item quantity="other">Местоположение %1$d часов назад</item>
+    </plurals>
+    <plurals name="a11y_badge">
+        <item quantity="one">%1$d новое уведомление</item>
+        <item quantity="few">%1$d новых уведомления</item>
+        <item quantity="many">%1$d новых уведомлений</item>
+        <item quantity="other">%1$d новых уведомлений</item>
+    </plurals>
+    <plurals name="sms_repeat_minutes">
+        <item quantity="one">Каждую %1$d минуту, пока не будет прочитано</item>
+        <item quantity="few">Каждые %1$d минуты, пока не будет прочитано</item>
+        <item quantity="many">Каждые %1$d минут, пока не будет прочитано</item>
+        <item quantity="other">Каждые %1$d минут, пока не будет прочитано</item>
+    </plurals>
+    <plurals name="apps_hidden_count">
+        <item quantity="one">%1$d скрытое приложение</item>
+        <item quantity="few">%1$d скрытых приложения</item>
+        <item quantity="many">%1$d скрытых приложений</item>
+        <item quantity="other">%1$d скрытых приложений</item>
+    </plurals>
+    <plurals name="apps_hidden_match">
+        <item quantity="one">%1$d скрытое приложение соответствует критериям</item>
+        <item quantity="few">%1$d скрытых приложения соответствуют критериям</item>
+        <item quantity="many">%1$d скрытых приложений соответствуют критериям</item>
+        <item quantity="other">%1$d скрытых приложений соответствуют критериям</item>
+    </plurals>
+</resources>
