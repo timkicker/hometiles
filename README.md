@@ -76,7 +76,7 @@ A fifth setting follows the phone and switches between Dark and Light. Every col
 - **Phones with keys:** every screen works with a keypad.
 - **Safety net:** if the launcher crashes twice while starting, a plain screen offers the system phone and contacts apps.
 - **Backup:** the whole setup exports to a file and reads back on the next phone.
-- **Languages:** English, German, Spanish, French, Italian.
+- **Languages:** English, German, Spanish, French, Italian, Russian.
 
 ## Install
 

@@ -1,5 +1,6 @@
 package dev.kicker.hometiles.res
 
+import dev.kicker.hometiles.data.Language
 import dev.kicker.hometiles.Quelltext
 import java.io.File
 import org.junit.Assert.assertEquals
@@ -202,6 +203,32 @@ class TranslationsTest {
             }
             assertEquals("word for word the english in $language - translated?", emptyList<String>(), same)
         }
+    }
+
+    /**
+     * the language picker offers only what ships.
+     *
+     * russian stood in the picker and in the tree but not in `resourceConfigurations`, so the
+     * build dropped its texts and choosing it showed english (18.11.2026, emulator).
+     */
+    @Test
+    fun `every language in the picker ships`() {
+        val codes = mapOf(
+            Language.ENGLISH to "values",
+            Language.GERMAN to "values-de",
+            Language.FRENCH to "values-fr",
+            Language.SPANISH to "values-es",
+            Language.ITALIAN to "values-it",
+            Language.RUSSIAN to "values-ru",
+        )
+        val offered = Language.entries.filter { it != Language.SYSTEM }
+        assertEquals("a new language needs its folder here", offered.toSet(), codes.keys)
+        val notShipped = offered.map { codes.getValue(it) }.filterNot { it in Quelltext.shipped() }
+        assertEquals(
+            "offered in the picker but left out of resourceConfigurations: choosing it shows english.",
+            emptyList<String>(),
+            notShipped,
+        )
     }
 }
 

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="call_type_incoming">Принятые звонки</string>
+    <string name="call_type_outgoing">Ваши звонки</string>
+    <string name="call_type_missed">Пропущенные звонки</string>
+    <string name="call_type_rejected">Отклонённые вами звонки</string>
+    <string name="call_type_blocked">Заблокированные звонки</string>
+    <string name="call_type_other">Всё остальное</string>
+    <string name="call_dir_incoming">принят</string>
+    <string name="call_dir_outgoing">вы звонили</string>
+    <string name="call_dir_missed">пропущен</string>
+    <string name="call_dir_rejected">отклонён</string>
+    <string name="call_dir_blocked">заблокирован</string>
+    <string name="call_dir_other">направление неизвестно</string>
+    <string name="mms_picture">Картинка</string>
+</resources>
