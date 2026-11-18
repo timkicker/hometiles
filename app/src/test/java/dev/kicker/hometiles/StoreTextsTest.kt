@@ -32,8 +32,8 @@ class StoreTextsTest {
         .orEmpty()
 
     /**
-     * from `de` to `de-DE`: f-droid wants the country, the build does not. only the five that
-     * exist, so a sixth falls over loudly instead of meaning a directory nobody created.
+     * from `de` to `de-DE`: f-droid wants the country, the build does not. only the six that
+     * exist, so a seventh falls over loudly instead of meaning a directory nobody created.
      */
     private fun storeName(code: String): String = when (code) {
         "en" -> "en-US"
@@ -41,6 +41,7 @@ class StoreTextsTest {
         "fr" -> "fr-FR"
         "es" -> "es-ES"
         "it" -> "it-IT"
+        "ru" -> "ru-RU"
         else -> throw AssertionError(
             "the language \"$code\" stands in the build, but nothing here says what its " +
                 "directory under fastlane is called. f-droid wants language and country.",
@@ -69,7 +70,7 @@ class StoreTextsTest {
         )
         assertEquals(
             "the store's languages are not the build's.",
-            listOf("en-US", "de-DE", "fr-FR", "es-ES", "it-IT").sorted(),
+            listOf("en-US", "de-DE", "fr-FR", "es-ES", "it-IT", "ru-RU").sorted(),
             languages.sorted(),
         )
     }

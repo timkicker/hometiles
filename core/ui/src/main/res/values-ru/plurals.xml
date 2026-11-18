@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <plurals name="a11y_pin_digits">
+        <item quantity="one">Введена %1$d цифра</item>
+        <item quantity="few">Введены %1$d цифры</item>
+        <item quantity="many">Введено %1$d цифр</item>
+        <item quantity="other">Введено %1$d цифры</item>
+    </plurals>
+</resources>
