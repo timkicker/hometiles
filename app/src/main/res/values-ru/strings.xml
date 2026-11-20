@@ -141,7 +141,7 @@
     <string name="blocked_numbers_rejected">Слишком короткий, не принят: %1$s</string>
     <string name="blocked_outgoing">Этот номер заблокирован. Вы можете разблокировать его в настройках.</string>
     <string name="call_audio_earpiece">Разговорный динамик</string>
-    <string name="call_audio_speaker">Громкая связь</string>
+    <string name="call_audio_speaker">Динамик</string>
     <string name="call_audio_bluetooth">Bluetooth</string>
     <string name="call_speaker_out_on">Включить громкую связь при наборе номера</string>
     <string name="call_speaker_out_off">Не включать громкую связь при наборе номера</string>
@@ -394,12 +394,12 @@
     <string name="incall_answer">Ответить</string>
     <string name="incall_reject">Отклонить</string>
     <string name="incall_hangup">Повесить трубку</string>
-    <string name="incall_mute">Выключить микрофон</string>
-    <string name="incall_unmute">Включить микрофон</string>
-    <string name="incall_speaker">Громкая связь</string>
-    <string name="incall_speaker_off">Выключить громкую связь</string>
+    <string name="incall_mute">Выкл. микрофон</string>
+    <string name="incall_unmute">Вкл. микрофон</string>
+    <string name="incall_speaker">Динамик</string>
+    <string name="incall_speaker_off">Выкл. динамик</string>
     <string name="incall_audio_earpiece">Звук: разговорный динамик</string>
-    <string name="incall_audio_speaker">Звук: громкая связь</string>
+    <string name="incall_audio_speaker">Звук: динамик</string>
     <string name="incall_audio_bluetooth">Звук: Bluetooth</string>
     <string name="incall_hold">Удержание</string>
     <string name="incall_unhold">Возобновить</string>

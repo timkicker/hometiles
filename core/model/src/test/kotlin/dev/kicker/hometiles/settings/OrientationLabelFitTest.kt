@@ -52,9 +52,23 @@ class OrientationLabelFitTest {
         assertEquals(Language.entries.size - 1, labels.size)
     }
 
+    /**
+     * atkinson has no cyrillic. java draws the missing letters as empty boxes, so a russian
+     * label measured with it gives a number that means nothing. android falls back to the
+     * system font there, which is not in this repository. so russian is named here instead of
+     * passing quietly, and checked on the screen: jelly2 avd, 20.11.2026.
+     */
+    private val notMeasurable = setOf("values-ru")
+
+    @Test
+    fun `only the named languages escape the measurement`() {
+        val cannotDraw = labels.filterValues { bold.canDisplayUpTo(it) != -1 }.keys
+        assertEquals(notMeasurable, cannotDraw)
+    }
+
     @Test
     fun `the phone setting row stays one line everywhere`() {
-        val tooLong = labels.mapNotNull { (language, label) ->
+        val tooLong = labels.filterKeys { it !in notMeasurable }.mapNotNull { (language, label) ->
             val width = widthDp(label, 22f * fontScale)
             if (width > columnDp) "$language: \"$label\" is ${width.toInt()} dp" else null
         }
