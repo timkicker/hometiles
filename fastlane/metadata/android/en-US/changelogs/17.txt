@@ -1,0 +1,1 @@
+HomeTiles speaks Russian now. The translation came in through pull request 13 and about a hundred of its texts were corrected against the English afterwards.

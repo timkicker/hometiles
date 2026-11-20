@@ -1,0 +1,1 @@
+Neu ist Russisch als Sprache. Die Übersetzung kam als Pull Request 13 dazu und rund hundert ihrer Texte wurden danach mit dem englischen Original abgeglichen und korrigiert.

@@ -1,0 +1,1 @@
+Arriva il russo tra le lingue. La traduzione è stata proposta nella pull request 13 e poi confrontata con l'inglese, correggendo un centinaio di testi.

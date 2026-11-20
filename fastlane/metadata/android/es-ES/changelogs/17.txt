@@ -1,0 +1,1 @@
+Ya se puede usar HomeTiles en ruso. La traducción llegó con la pull request 13 y luego se revisó frente al inglés, con cerca de cien textos corregidos.

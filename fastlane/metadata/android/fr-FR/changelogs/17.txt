@@ -1,0 +1,1 @@
+Le russe fait son entrée parmi les langues. La traduction proposée dans la pull request 13 a ensuite été relue phrase par phrase et une centaine de textes ont été corrigés.
