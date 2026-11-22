@@ -173,7 +173,7 @@ enum class LabelPosition { BOTTOM_LEFT, BOTTOM_CENTER, TOP_LEFT, HIDDEN }
 
 /** the app's language, independent of the phone's. `PLAN.md` 4.9. */
 @Serializable
-enum class Language { SYSTEM, GERMAN, ENGLISH, FRENCH, SPANISH, ITALIAN, RUSSIAN }
+enum class Language { SYSTEM, GERMAN, ENGLISH, FRENCH, SPANISH, ITALIAN, RUSSIAN, TURKISH }
 
 /**
  * landscape is narrow on three inches, but a phone in a holder may need it. [SYSTEM] obeys

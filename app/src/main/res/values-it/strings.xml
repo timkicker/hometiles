@@ -182,6 +182,7 @@
     <string name="language_spanish">Español</string>
     <string name="language_italian">Italiano</string>
     <string name="language_russian">Русский</string>
+    <string name="language_turkish">Türkçe</string>
     <string name="appearance_font">Carattere</string>
     <string name="font_hyperlegible">Hyperlegible</string>
     <string name="font_hyperlegible_hint">Separa le lettere che si somigliano</string>

@@ -178,6 +178,7 @@
     <string name="language_spanish">Español</string>
     <string name="language_italian">Italiano</string>
     <string name="language_russian">Русский</string>
+    <string name="language_turkish">Türkçe</string>
     <string name="appearance_font">Typeface</string>
     <string name="font_hyperlegible">Hyperlegible</string>
     <string name="font_hyperlegible_hint">Pulls apart letters that look alike</string>
