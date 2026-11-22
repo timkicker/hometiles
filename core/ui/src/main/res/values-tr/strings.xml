@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The texts of the design system. They live here and not in :app, because the
+  source code that uses them lives here: a resource that sits elsewhere than
+  its caller silently drops out at the next move.
+-->
+<resources>
+    <string name="intent_no_app">Bu telefondaki hiçbir uygulama bunu yapamaz</string>
+    <string name="intent_no_permission">HomeTiles’ın buna izni yok</string>
+    <string name="keypad_backspace">Son rakamı sil</string>
+    <string name="search_clear">Aramayı temizle</string>
+    <string name="permission_allow">Erişime izin ver</string>
+    <string name="permission_blocked">Android artık sormuyor. Yine de sistem ayarlarından izin verebilirsiniz.</string>
+    <string name="permission_open_settings">Sistem ayarlarını aç</string>
+    <string name="scroll_down">Sayfa aşağı</string>
+    <string name="scroll_up">Sayfa yukarı</string>
+    <!--
+      Turkish translation. The first draft was written with AI (Claude) and then
+      read and corrected by a native Turkish speaker. About half of the strings
+      were changed during that review. Language checked, tested on a device.
+    -->
+    <string name="icon_accessalarm">Alarm</string>
+    <string name="icon_acunit">Kar</string>
+    <string name="icon_air">Rüzgâr</string>
+    <string name="icon_apartment">Bina</string>
+    <string name="icon_apps">Uygulamalar</string>
+    <string name="icon_batteryfull">Pil</string>
+    <string name="icon_book">Kitap</string>
+    <string name="icon_calendarmonth">Takvim</string>
+    <string name="icon_call">Telefon</string>
+    <string name="icon_chat">Sohbet</string>
+    <string name="icon_childcare">Çocuk</string>
+    <string name="icon_church">Kilise</string>
+    <string name="icon_cloud">Bulut</string>
+    <string name="icon_directionsbus">Otobüs</string>
+    <string name="icon_directionscar">Araba</string>
+    <string name="icon_elderly">Baston</string>
+    <string name="icon_email">E-posta</string>
+    <string name="icon_emergency">Acil durum</string>
+    <string name="icon_favorite">Kalp</string>
+    <string name="icon_group">Grup</string>
+    <string name="icon_headphones">Kulaklık</string>
+    <string name="icon_history">Geçmiş</string>
+    <string name="icon_home">Ev</string>
+    <string name="icon_key">Anahtar</string>
+    <string name="icon_localhospital">Hastane</string>
+    <string name="icon_localpharmacy">Eczane</string>
+    <string name="icon_localtaxi">Taksi</string>
+    <string name="icon_locationon">Yer</string>
+    <string name="icon_lock">Kilit</string>
+    <string name="icon_map">Harita</string>
+    <string name="icon_medicalservices">Doktor</string>
+    <string name="icon_medication">İlaç</string>
+    <string name="icon_message">Mesaj</string>
+    <string name="icon_monitorheart">Kalp atışı</string>
+    <string name="icon_movie">Film</string>
+    <string name="icon_musicnote">Müzik</string>
+    <string name="icon_newspaper">Gazete</string>
+    <string name="icon_person">Kişi</string>
+    <string name="icon_photo">Resim</string>
+    <string name="icon_photocamera">Kamera</string>
+    <string name="icon_powersettingsnew">Güç</string>
+    <string name="icon_radio">Radyo</string>
+    <string name="icon_restaurant">Yemek</string>
+    <string name="icon_schedule">Saat</string>
+    <string name="icon_settings">Ayarlar</string>
+    <string name="icons_group_communication">Konuşma</string>
+    <string name="icons_group_everyday">Günlük</string>
+    <string name="icons_group_health">Sağlık</string>
+    <string name="icons_group_media">Müzik ve resimler</string>
+    <string name="icons_group_people">Kişiler</string>
+    <string name="icons_group_places">Yerler</string>
+    <string name="icons_group_system">Telefon</string>
+    <string name="icons_group_time">Zaman</string>
+    <string name="icons_group_weather">Hava durumu</string>
+    <string name="icon_shoppingcart">Alışveriş</string>
+    <string name="icon_star">Yıldız</string>
+    <string name="icon_store">Mağaza</string>
+    <string name="icon_thunderstorm">Fırtına</string>
+    <string name="icon_timer">Zamanlayıcı</string>
+    <string name="icon_today">Bugün</string>
+    <string name="icon_umbrella">Şemsiye</string>
+    <string name="icon_videocam">Görüntülü arama</string>
+    <string name="icon_voicemail">Sesli mesaj</string>
+    <string name="icon_wbsunny">Güneş</string>
+    <string name="icon_wifi">Wi-Fi</string>
+    <string name="a11y_chosen">%1$s, seçili</string>
+    <string name="a11y_on">%1$s, açık</string>
+    <string name="a11y_off">%1$s, kapalı</string>
+    <string name="a11y_state">%1$s, %2$s</string>
+    <string name="a11y_pin_empty">Henüz rakam girilmedi</string>
+</resources>

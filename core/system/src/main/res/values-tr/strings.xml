@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="call_type_incoming">Cevaplanan aramalar</string>
+    <string name="call_type_outgoing">Yaptığınız aramalar</string>
+    <string name="call_type_missed">Cevapsız aramalar</string>
+    <string name="call_type_rejected">Reddettiğiniz aramalar</string>
+    <string name="call_type_blocked">Engellenen aramalar</string>
+    <string name="call_type_other">Diğer her şey</string>
+    <string name="call_dir_incoming">cevaplandı</string>
+    <string name="call_dir_outgoing">aradınız</string>
+    <string name="call_dir_missed">cevapsız</string>
+    <string name="call_dir_rejected">reddedildi</string>
+    <string name="call_dir_blocked">engellendi</string>
+    <string name="call_dir_other">yön bilinmiyor</string>
+    <string name="mms_picture">Resim</string>
+</resources>
