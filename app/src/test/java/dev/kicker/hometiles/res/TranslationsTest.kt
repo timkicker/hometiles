@@ -220,6 +220,7 @@ class TranslationsTest {
             Language.SPANISH to "values-es",
             Language.ITALIAN to "values-it",
             Language.RUSSIAN to "values-ru",
+            Language.TURKISH to "values-tr",
         )
         val offered = Language.entries.filter { it != Language.SYSTEM }
         assertEquals("a new language needs its folder here", offered.toSet(), codes.keys)

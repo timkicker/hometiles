@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <plurals name="a11y_pin_digits">
+        <item quantity="one">Bir rakam girildi</item>
+        <item quantity="other">%1$d rakam girildi</item>
+    </plurals>
+</resources>

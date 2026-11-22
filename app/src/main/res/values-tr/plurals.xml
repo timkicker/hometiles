@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <plurals name="sos_numbers_saved_n">
+        <item quantity="one">%1$d numara kaydedildi.</item>
+        <item quantity="other">%1$d numara kaydedildi.</item>
+    </plurals>
+    <plurals name="sos_counting_plural">
+        <item quantity="one">Bir kişiye gönderilecek, kalan süre:</item>
+        <item quantity="other">%1$d kişiye gönderilecek, kalan süre:</item>
+    </plurals>
+    <plurals name="sos_sent_location_plural">
+        <item quantity="one">Bir kişiye konumunuzla birlikte gönderildi.</item>
+        <item quantity="other">%1$d kişiye konumunuzla birlikte gönderildi.</item>
+    </plurals>
+    <plurals name="sos_sent_plain_plural">
+        <item quantity="one">Bir kişiye gönderildi. Konum alınamadı.</item>
+        <item quantity="other">%1$d kişiye gönderildi. Konum alınamadı.</item>
+    </plurals>
+    <plurals name="screen_grid_loses">
+        <item quantity="one">%1$d karo kaybolacak</item>
+        <item quantity="other">%1$d karo kaybolacak</item>
+    </plurals>
+    <plurals name="screens_unreachable">
+        <item quantity="one">Hiçbir karo “%1$s” ekranına gitmiyor. Bir yere “Ekrana git” karosu koyun, yoksa bu ekranı bir daha bulamazsınız.</item>
+        <item quantity="other">Hiçbir karo şu ekranlara gitmiyor: %1$s. Bir yere “Ekrana git” karosu koyun, yoksa bu ekranları bir daha bulamazsınız.</item>
+    </plurals>
+    <plurals name="search_matches">
+        <item quantity="one">%1$d sonuç, büyüteç tuşu açar</item>
+        <item quantity="other">%1$d sonuç</item>
+    </plurals>
+    <plurals name="folder_delete_body">
+        <item quantity="one">İçindeki %1$d karo da silinir. Bu geri alınamaz.</item>
+        <item quantity="other">İçindeki %1$d karo da silinir. Bu geri alınamaz.</item>
+    </plurals>
+    <plurals name="move_target_folder">
+        <item quantity="one">Klasör, %1$d boş yer</item>
+        <item quantity="other">Klasör, %1$d boş yer</item>
+    </plurals>
+    <plurals name="move_target_screen">
+        <item quantity="one">Ekran, %1$d boş yer</item>
+        <item quantity="other">Ekran, %1$d boş yer</item>
+    </plurals>
+    <plurals name="apps_recent_count_value">
+        <item quantity="one">%1$d uygulama</item>
+        <item quantity="other">%1$d uygulama</item>
+    </plurals>
+    <plurals name="calllog_deleted">
+        <item quantity="one">Bir kayıt silindi.</item>
+        <item quantity="other">%1$d kayıt silindi.</item>
+    </plurals>
+    <plurals name="security_applock_would_allow">
+        <item quantity="one">Bir uygulama PIN olmadan açık kalır</item>
+        <item quantity="other">%1$d uygulama PIN olmadan açık kalır</item>
+    </plurals>
+    <plurals name="security_applock_allowed">
+        <item quantity="one">Bir uygulama PIN olmadan açılır</item>
+        <item quantity="other">%1$d uygulama PIN olmadan açılır</item>
+    </plurals>
+    <plurals name="screen_delete_tiles">
+        <item quantity="one">Bir karo da silinir.</item>
+        <item quantity="other">%1$d karo da silinir.</item>
+    </plurals>
+    <plurals name="screen_delete_folders">
+        <item quantity="one">İçindekilerle birlikte bir klasör de silinir.</item>
+        <item quantity="other">İçindekilerle birlikte %1$d klasör de silinir.</item>
+    </plurals>
+    <plurals name="sms_parts">
+        <item quantity="one">Bir kısa mesaj ücreti tutar</item>
+        <item quantity="other">%1$d kısa mesaj ücreti tutar</item>
+    </plurals>
+    <plurals name="sos_message_parts">
+        <item quantity="one">Konumla birlikte en fazla bir kısa mesaj ücreti tutar</item>
+        <item quantity="other">Konumla birlikte en fazla %1$d kısa mesaj ücreti tutar</item>
+    </plurals>
+    <plurals name="sos_countdown_seconds">
+        <item quantity="one">bir saniye</item>
+        <item quantity="other">%1$d saniye</item>
+    </plurals>
+    <plurals name="screen_copy_done">
+        <item quantity="one">“%1$s” bir karoyla hazır. Oraya giden bir karo bu ekranda.</item>
+        <item quantity="other">“%1$s” %2$d karoyla hazır. Oraya giden bir karo bu ekranda.</item>
+    </plurals>
+    <plurals name="screen_copy_done_partial">
+        <item quantity="one">“%1$s” bir karoyla hazır. %3$d karo boş bırakıldı: widget’lar ve klasörler yalnızca tek bir yere ait olabilir.</item>
+        <item quantity="other">“%1$s” %2$d karoyla hazır. %3$d karo boş bırakıldı: widget’lar ve klasörler yalnızca tek bir yere ait olabilir.</item>
+    </plurals>
+    <plurals name="a11y_new_calls">
+        <item quantity="one">Biri yeni</item>
+        <item quantity="other">%1$d tanesi yeni</item>
+    </plurals>
+    <plurals name="a11y_unread">
+        <item quantity="one">Biri okunmadı</item>
+        <item quantity="other">%1$d tanesi okunmadı</item>
+    </plurals>
+    <plurals name="sos_location_age_minutes">
+        <item quantity="one">Konum bir dakika önceki</item>
+        <item quantity="other">Konum %1$d dakika önceki</item>
+    </plurals>
+    <plurals name="sos_location_age_hours">
+        <item quantity="one">Konum bir saat önceki</item>
+        <item quantity="other">Konum %1$d saat önceki</item>
+    </plurals>
+    <plurals name="a11y_badge">
+        <item quantity="one">Bir yeni bildirim</item>
+        <item quantity="other">%1$d yeni bildirim</item>
+    </plurals>
+    <plurals name="sms_repeat_minutes">
+        <item quantity="one">Okunana kadar her dakika</item>
+        <item quantity="other">Okunana kadar her %1$d dakikada bir</item>
+    </plurals>
+    <plurals name="apps_hidden_count">
+        <item quantity="one">Bir gizli uygulama</item>
+        <item quantity="other">%1$d gizli uygulama</item>
+    </plurals>
+    <plurals name="apps_hidden_match">
+        <item quantity="one">Bir gizli uygulama eşleşiyor</item>
+        <item quantity="other">%1$d gizli uygulama eşleşiyor</item>
+    </plurals>
+</resources>

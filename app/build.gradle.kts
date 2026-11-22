@@ -32,7 +32,7 @@ android {
         targetSdk = 35
         versionCode = 17
         versionName = "0.1.16"
-        resourceConfigurations += listOf("en", "de", "fr", "es", "it", "ru")
+        resourceConfigurations += listOf("en", "de", "fr", "es", "it", "ru", "tr")
     }
 
     buildTypes {
