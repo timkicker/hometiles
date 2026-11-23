@@ -167,6 +167,9 @@
     <string name="contacts_favourites_first_on">Favoriten stehen oben</string>
     <string name="contacts_favourites_first_off">Favoriten stehen mit unter den anderen</string>
     <string name="contacts_favourites_first_hint">Die meistgewählten Kontakte bleiben oben</string>
+    <string name="contacts_texts_every_number">Nachrichten an jede Nummer</string>
+    <string name="contacts_texts_mobile_only">Nachrichten nur an Handynummern</string>
+    <string name="contacts_texts_hint">Privat, geschäftlich und Fax gelten als Festnetz</string>
     <string name="settings_diagnostics">Diagnose</string>
     <string name="screen_is_home">Startbildschirm, %1$d × %2$d Felder</string>
     <string name="screen_make_home">„%1$s“ zum Startbildschirm machen</string>

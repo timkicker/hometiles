@@ -168,6 +168,9 @@
     <string name="contacts_favourites_first_on">Favourites come first</string>
     <string name="contacts_favourites_first_off">Favourites are sorted in like the rest</string>
     <string name="contacts_favourites_first_hint">The people you call most stay at the top</string>
+    <string name="contacts_texts_every_number">Messages to every number</string>
+    <string name="contacts_texts_mobile_only">Messages only to mobile numbers</string>
+    <string name="contacts_texts_hint">Home, work and fax numbers count as landlines</string>
     <string name="settings_diagnostics">Diagnostics</string>
     <string name="screen_is_home">Start screen, %1$d × %2$d fields</string>
     <string name="screen_make_home">Make “%1$s” the start screen</string>

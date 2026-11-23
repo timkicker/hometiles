@@ -168,6 +168,9 @@
     <string name="contacts_favourites_first_on">Избранные отображаются первыми</string>
     <string name="contacts_favourites_first_off">Избранные сортируются так же, как и остальные</string>
     <string name="contacts_favourites_first_hint">Люди, которым вы звоните чаще всего, остаются вверху списка</string>
+    <string name="contacts_texts_every_number">Сообщения на любой номер</string>
+    <string name="contacts_texts_mobile_only">Сообщения только на мобильные</string>
+    <string name="contacts_texts_hint">Домашний, рабочий и факс считаются городскими</string>
     <string name="settings_diagnostics">Диагностика</string>
     <string name="screen_is_home">Начальный экран, %1$d × %2$d полей</string>
     <string name="screen_make_home">Сделать «%1$s» начальным экраном</string>

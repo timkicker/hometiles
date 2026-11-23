@@ -172,6 +172,9 @@
     <string name="contacts_favourites_first_on">Les favoris d’abord</string>
     <string name="contacts_favourites_first_off">Les favoris sont triés comme les autres</string>
     <string name="contacts_favourites_first_hint">Les personnes que vous appelez le plus restent en haut</string>
+    <string name="contacts_texts_every_number">Messages vers tous les numéros</string>
+    <string name="contacts_texts_mobile_only">Messages seulement vers les mobiles</string>
+    <string name="contacts_texts_hint">Domicile, travail et fax comptent comme fixes</string>
     <string name="settings_diagnostics">Diagnostic</string>
     <string name="screen_is_home">Écran de départ, %1$d × %2$d cases</string>
     <string name="screen_make_home">Faire de « %1$s » l’écran de départ</string>

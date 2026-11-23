@@ -190,6 +190,7 @@ var granted by remember(resumes.intValue) { mutableStateOf(repository.hasPermiss
                             contact = current,
                             onCall = { Intents.call(this@ContactsActivity, it) },
                             onSms = { Intents.sms(this@ContactsActivity, it) },
+                            textsMobileOnly = config.contacts.messagesToMobileOnly,
                             onToggleStar = {
                                 if (repository.canWrite()) {
                                     scope.launch {
@@ -404,6 +405,7 @@ private fun ContactDetail(
     contact: PhoneContact,
     onCall: (String) -> Unit,
     onSms: (String) -> Unit,
+    textsMobileOnly: Boolean,
     onToggleStar: () -> Unit,
     onEdit: () -> Unit,
 ) {
@@ -451,7 +453,8 @@ private fun ContactDetail(
                     onClick = { onCall(number.number) },
                 )
             }
-            item {
+            // issue #22: a landline gets no message row, when that is switched on.
+            if (!textsMobileOnly || number.takesTexts) item {
                 BigRow(
                     label = stringResource(R.string.contacts_action_sms),
                     secondary = PhoneNumbers.forDisplay(number.number),

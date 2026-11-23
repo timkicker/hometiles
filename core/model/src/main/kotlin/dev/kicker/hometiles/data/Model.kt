@@ -453,6 +453,11 @@ data class ContactsConfig(
     val sortBySurname: Boolean = false,
     val searchNumbers: Boolean = true,
     val favouritesFirst: Boolean = true,
+    /**
+     * no "write a message" for home, work and fax numbers (issue #22). off by default: it
+     * trusts the kind saved in the phone book, and that is often left at its default.
+     */
+    val messagesToMobileOnly: Boolean = false,
 )
 
 @Serializable

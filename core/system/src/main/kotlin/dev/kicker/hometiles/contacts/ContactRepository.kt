@@ -89,6 +89,7 @@ class ContactRepository(context: Context) {
                     label = typeLabel(resources, type, customLabel),
                     photoUri = cursor.getString(photoIndex),
                     starred = cursor.getInt(starredIndex) == 1,
+                    type = type,
                 )
             }
         }

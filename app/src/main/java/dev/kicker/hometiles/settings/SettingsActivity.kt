@@ -838,6 +838,15 @@ class SettingsActivity : HomeTilesActivity() {
                                     )
                                 }
                             },
+                            onToggleTextsMobileOnly = {
+                                store.update {
+                                    it.copy(
+                                        contacts = it.contacts.copy(
+                                            messagesToMobileOnly = !it.contacts.messagesToMobileOnly,
+                                        ),
+                                    )
+                                }
+                            },
                         )
 
                         // fifth page in the same pattern. changing the default phone app
@@ -2470,6 +2479,7 @@ private fun ContactsSettingsList(
     onToggleSort: () -> Unit,
     onToggleSearchNumbers: () -> Unit,
     onToggleFavouritesFirst: () -> Unit,
+    onToggleTextsMobileOnly: () -> Unit,
 ) {
     val palette = LocalBigPalette.current
     LazyColumn(verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -2513,6 +2523,21 @@ private fun ContactsSettingsList(
                 secondary = stringResource(R.string.contacts_favourites_first_hint),
                 surface = if (contacts.favouritesFirst) palette.surfaceAccent else palette.surfaceDefault,
                 onClick = onToggleFavouritesFirst,
+            )
+        }
+        // issue #22: no message row for a landline, by the kind saved in the phone book.
+        item {
+            BigRow(
+                label = stringResource(
+                    if (contacts.messagesToMobileOnly) {
+                        R.string.contacts_texts_mobile_only
+                    } else {
+                        R.string.contacts_texts_every_number
+                    },
+                ),
+                secondary = stringResource(R.string.contacts_texts_hint),
+                surface = if (contacts.messagesToMobileOnly) palette.surfaceAccent else palette.surfaceDefault,
+                onClick = onToggleTextsMobileOnly,
             )
         }
     }
