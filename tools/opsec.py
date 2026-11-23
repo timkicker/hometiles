@@ -80,6 +80,7 @@ ALLOWED = {
     "447700900124": "the same range, the second probe number.",
     "447700900125": "the same range.",
     "447700900": "a truncated finding from the same range.",
+    "07700900123": "the first probe number dialled the national way, as the keypad test types it.",
     "15550100": "the north american 555-01xx range, likewise for invented things.",
     "15550101": "the same range.",
     "43664111001": "this project's invented probe number, since the first sms test. The run "
