@@ -149,6 +149,9 @@
     <string name="call_speaker_out_on">Включить громкую связь при наборе номера</string>
     <string name="call_speaker_out_off">Не включать громкую связь при наборе номера</string>
     <string name="call_speaker_out_hint">Только для звонков, которые вы инициируете сами</string>
+    <string name="keypad_contacts_on">Контакты рядом с клавиатурой</string>
+    <string name="keypad_contacts_off">Только клавиатура</string>
+    <string name="keypad_contacts_hint">Только на планшете. Нажатие вводит номер</string>
     <string name="caller_photo_hint">Лицо распознать легче, чем имя</string>
     <string name="caller_photo_off">Без фотографии</string>
     <string name="caller_photo_small">Маленькое</string>

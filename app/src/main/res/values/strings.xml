@@ -149,6 +149,9 @@
     <string name="call_speaker_out_on">Loudspeaker when you dial</string>
     <string name="call_speaker_out_off">No loudspeaker when you dial</string>
     <string name="call_speaker_out_hint">Only for calls you start yourself</string>
+    <string name="keypad_contacts_on">Contacts beside the keypad</string>
+    <string name="keypad_contacts_off">The keypad on its own</string>
+    <string name="keypad_contacts_hint">Tablets only. A tap types the number in</string>
     <string name="caller_photo_hint">A face is easier to recognise than a name</string>
     <string name="caller_photo_off">No photo</string>
     <string name="caller_photo_small">Small</string>

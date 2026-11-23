@@ -153,6 +153,9 @@
     <string name="call_speaker_out_on">Altoparlante quando chiama lei</string>
     <string name="call_speaker_out_off">Niente altoparlante quando chiama lei</string>
     <string name="call_speaker_out_hint">Solo per le chiamate che avvia lei</string>
+    <string name="keypad_contacts_on">Contatti accanto alla tastiera</string>
+    <string name="keypad_contacts_off">Solo la tastiera</string>
+    <string name="keypad_contacts_hint">Solo su tablet. Un tocco inserisce il numero</string>
     <string name="caller_photo_hint">Un volto si riconosce prima di un nome</string>
     <string name="caller_photo_off">Niente foto</string>
     <string name="caller_photo_small">Piccola</string>

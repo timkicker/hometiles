@@ -419,6 +419,8 @@ data class PhoneConfig(
     val callerPhoto: CallerPhoto = CallerPhoto.SMALL,
     val audioRoute: AudioRoute = AudioRoute.EARPIECE,
     val speakerOnOutgoing: Boolean = false,
+    /** the contact list beside the keypad on a tablet (issue #23). off, as it always was. */
+    val contactsBesideKeypad: Boolean = false,
     val blockedNumbers: List<String> = emptyList(),
     /**
      * when the call log was last open, so the badge needs no write permission.

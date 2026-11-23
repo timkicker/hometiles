@@ -154,6 +154,9 @@
     <string name="call_speaker_out_on">Altavoz cuando usted llama</string>
     <string name="call_speaker_out_off">Sin altavoz cuando usted llama</string>
     <string name="call_speaker_out_hint">Solo para las llamadas que usted inicia</string>
+    <string name="keypad_contacts_on">Contactos junto al teclado</string>
+    <string name="keypad_contacts_off">Solo el teclado</string>
+    <string name="keypad_contacts_hint">Solo en tableta. Al tocar se escribe el número</string>
     <string name="caller_photo_hint">Una cara se reconoce antes que un nombre</string>
     <string name="caller_photo_off">Sin foto</string>
     <string name="caller_photo_small">Pequeña</string>

@@ -2467,7 +2467,7 @@ private fun AllowedAppsList(
 }
 
 /**
- * the contact list's three switches. they sat in the model and were read, and two of them
+ * the contact list's switches. they sat in the model and were read, and two of them
  * could be changed nowhere.
  *
  * the sorting also sits as an icon in the contact list itself, where it is needed. it is
@@ -2700,6 +2700,18 @@ private fun CallTypesList(
                 secondary = stringResource(R.string.call_speaker_out_hint),
                 surface = if (phone.speakerOnOutgoing) palette.surfaceAccent else palette.surfaceDefault,
                 onClick = { onChange(phone.copy(speakerOnOutgoing = !phone.speakerOnOutgoing)) },
+            )
+        }
+        // issue #23. the hint says where it shows, or switching it on a phone looks broken.
+        item { BigHeading(stringResource(R.string.incall_keypad)) }
+        item {
+            BigRow(
+                label = stringResource(
+                    if (phone.contactsBesideKeypad) R.string.keypad_contacts_on else R.string.keypad_contacts_off,
+                ),
+                secondary = stringResource(R.string.keypad_contacts_hint),
+                surface = if (phone.contactsBesideKeypad) palette.surfaceAccent else palette.surfaceDefault,
+                onClick = { onChange(phone.copy(contactsBesideKeypad = !phone.contactsBesideKeypad)) },
             )
         }
         // speed dials are cleared here. on the keypad a long press on a set key dials at once,

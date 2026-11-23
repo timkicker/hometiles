@@ -153,6 +153,9 @@
     <string name="call_speaker_out_on">Haut-parleur quand vous appelez</string>
     <string name="call_speaker_out_off">Pas de haut-parleur quand vous appelez</string>
     <string name="call_speaker_out_hint">Seulement pour les appels que vous lancez</string>
+    <string name="keypad_contacts_on">Contacts à côté du clavier</string>
+    <string name="keypad_contacts_off">Le clavier seul</string>
+    <string name="keypad_contacts_hint">Sur tablette. Un toucher saisit le numéro</string>
     <string name="caller_photo_hint">Un visage se reconnaît plus vite qu’un nom</string>
     <string name="caller_photo_off">Pas de photo</string>
     <string name="caller_photo_small">Petite</string>

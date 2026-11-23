@@ -78,6 +78,10 @@ fun BigKeypad(
      * unreachable by key: a named anchor, never a blind search.
      */
     below: FocusRequester? = null,
+    /** the same at the top edge. */
+    above: FocusRequester? = null,
+    /** the same at the left edge, where the dialer can put its contacts (issue #23). */
+    before: FocusRequester? = null,
     /**
      * what hardware keys may type beyond the drawn ones. the dialer takes star and pound,
      * which a keypad phone has printed on it; the pin entry takes digits only.
@@ -159,7 +163,12 @@ fun BigKeypad(
                     val (r, c) = at
                     when (event.key) {
                         Key.DirectionUp -> {
-                            goTo(neighbour(r, c, -1, 0))
+                            val target = neighbour(r, c, -1, 0)
+                            if (target != null) {
+                                goTo(target)
+                            } else {
+                                above?.let { runCatching { it.requestFocus() } }
+                            }
                             true
                         }
                         Key.DirectionDown -> {
@@ -172,7 +181,12 @@ fun BigKeypad(
                             true
                         }
                         Key.DirectionLeft -> {
-                            goTo(neighbour(r, c, 0, -1))
+                            val target = neighbour(r, c, 0, -1)
+                            if (target != null) {
+                                goTo(target)
+                            } else {
+                                before?.let { runCatching { it.requestFocus() } }
+                            }
                             true
                         }
                         Key.DirectionRight -> {

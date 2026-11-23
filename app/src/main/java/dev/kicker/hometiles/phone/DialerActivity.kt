@@ -13,6 +13,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.focusGroup
 import dev.kicker.hometiles.ui.focusBorder
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.foundation.layout.Arrangement
@@ -53,6 +54,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -66,6 +68,8 @@ import dev.kicker.hometiles.ui.currentLocale
 import dev.kicker.hometiles.R
 import kotlinx.coroutines.launch
 import dev.kicker.hometiles.contacts.ContactRepository
+import dev.kicker.hometiles.contacts.ContactOrder
+import dev.kicker.hometiles.contacts.ContactSort
 import dev.kicker.hometiles.contacts.PhoneContact
 import dev.kicker.hometiles.data.ConfigStore
 import dev.kicker.hometiles.data.SpeedDialTarget
@@ -325,40 +329,92 @@ var logGranted by remember(resumes.intValue) { mutableStateOf(callLog.hasPermiss
                         return@Box
                     }
                     when (tab) {
-                        Tab.KEYPAD -> Keypad(
-                            typed = typed,
-                            hintFor = { key ->
-                                // only while nothing is typed, or the speed-dial name lies
-                                // over the number being entered.
-                                if (typed.isEmpty()) SpeedDial.targetFor(config.phone, key)?.name else null
-                            },
-                            anySpeedDial = SpeedDial.anyAssigned(config.phone),
-                            onSpeedDialSettings = {
-                                startActivity(
-                                    SettingsLink.toSection(
-                                        this@DialerActivity,
-                                        SettingsLink.PAGE_CALL_TYPES,
-                                        SettingsLink.SECTION_SPEED_DIAL,
-                                    ),
-                                )
-                            },
-                            onDigit = { typed += it },
-                            onLongDigit = { key ->
-                                val target = SpeedDial.targetFor(config.phone, key)
-                                when {
-                                    target != null && typed.isEmpty() ->
-                                        dial(target.number) { askCall.launch(Manifest.permission.CALL_PHONE) }
-                                    SpeedDial.isAssignable(key) && typed.isEmpty() -> {
-                                        assigningKey = key
-                                        tab = Tab.ASSIGN
+                        Tab.KEYPAD -> {
+                            // issue #23: on a tablet the people stand beside the keys. a tap
+                            // puts the number in, the call row still dials it: the same one
+                            // step as typing, never a call from a single touch.
+                            val side = KeypadContacts.side(
+                                config.phone.contactsBesideKeypad,
+                                LocalConfiguration.current.screenWidthDp,
+                                LocalConfiguration.current.screenHeightDp,
+                            )
+                            val listEntry = remember { FocusRequester() }
+                            val keypad = @Composable {
+                            Keypad(
+                                typed = typed,
+                                hintFor = { key ->
+                                    // only while nothing is typed, or the speed-dial name lies
+                                    // over the number being entered.
+                                    if (typed.isEmpty()) SpeedDial.targetFor(config.phone, key)?.name else null
+                                },
+                                anySpeedDial = SpeedDial.anyAssigned(config.phone),
+                                onSpeedDialSettings = {
+                                    startActivity(
+                                        SettingsLink.toSection(
+                                            this@DialerActivity,
+                                            SettingsLink.PAGE_CALL_TYPES,
+                                            SettingsLink.SECTION_SPEED_DIAL,
+                                        ),
+                                    )
+                                },
+                                onDigit = { typed += it },
+                                onLongDigit = { key ->
+                                    val target = SpeedDial.targetFor(config.phone, key)
+                                    when {
+                                        target != null && typed.isEmpty() ->
+                                            dial(target.number) { askCall.launch(Manifest.permission.CALL_PHONE) }
+                                        SpeedDial.isAssignable(key) && typed.isEmpty() -> {
+                                            assigningKey = key
+                                            tab = Tab.ASSIGN
+                                        }
+                                        else -> Unit
                                     }
-                                    else -> Unit
+                                },
+                                onBackspace = { typed = typed.dropLast(1) },
+                                onCall = { dial(typed) { askCall.launch(Manifest.permission.CALL_PHONE) } },
+                                onLog = { tab = Tab.LOG },
+                                above = if (side == KeypadSide.ABOVE) listEntry else null,
+                                before = if (side == KeypadSide.BESIDE) listEntry else null,
+                            )
+                            }
+                            LaunchedEffect(side) {
+                                if (side != KeypadSide.NONE && contacts.isEmpty()) {
+                                    contacts = contactRepo.load(resources)
                                 }
-                            },
-                            onBackspace = { typed = typed.dropLast(1) },
-                            onCall = { dial(typed) { askCall.launch(Manifest.permission.CALL_PHONE) } },
-                            onLog = { tab = Tab.LOG },
-                        )
+                            }
+                            val list = @Composable { place: Modifier ->
+                                KeypadContactList(
+                                    entries = remember(contacts, typed) {
+                                        KeypadContacts.entries(
+                                            ContactSort.sorted(
+                                                contacts,
+                                                if (config.contacts.sortBySurname) ContactOrder.SURNAME else ContactOrder.FIRST_NAME,
+                                                config.contacts.favouritesFirst,
+                                            ),
+                                            typed,
+                                        )
+                                    },
+                                    anyContacts = contacts.isNotEmpty(),
+                                    scrollButtons = config.behaviour.accessibility.scrollButtons,
+                                    onPick = { typed = PhoneNumbers.clean(it) },
+                                    // a group: asked for the focus, it hands it to the first
+                                    // row on screen.
+                                    modifier = place.focusRequester(listEntry).focusGroup(),
+                                )
+                            }
+                            when (side) {
+                                KeypadSide.NONE -> keypad()
+                                KeypadSide.BESIDE -> Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    list(Modifier.weight(1f))
+                                    Box(Modifier.weight(1f)) { keypad() }
+                                }
+                                // the keys keep the larger part: they are what a finger aims at.
+                                KeypadSide.ABOVE -> Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    list(Modifier.weight(0.4f))
+                                    Box(Modifier.weight(0.6f)) { keypad() }
+                                }
+                            }
+                        }
 
                         Tab.ASSIGN -> AssignList(
                             key = assigningKey,
@@ -511,16 +567,27 @@ private fun Keypad(
     onBackspace: () -> Unit,
     onCall: () -> Unit,
     onLog: () -> Unit,
+    /** the contacts above the keys, if they stand there (issue #23). */
+    above: FocusRequester? = null,
+    /** the contacts left of the keys, if they stand there. */
+    before: FocusRequester? = null,
 ) {
     val palette = LocalBigPalette.current
     val dialable = PhoneNumbers.isDialable(typed)
+    // the keypad leads the focus itself and lets it out only towards a named anchor. without
+    // one the call row, the change line and the contacts were unreachable by key (emulator,
+    // 23.11.2026; in 0.1.16 already for the call row).
+    val callRow = remember { FocusRequester() }
+    val changeRow = remember { FocusRequester() }
+    val logButton = remember { FocusRequester() }
+    val changeable = typed.isEmpty() && anySpeedDial
     Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxSize()) {
         val changeLabel = stringResource(R.string.dialer_speeddial_change)
         Box(
             modifier = Modifier.fillMaxWidth().height(64.dp)
                 .then(
-                    if (typed.isEmpty() && anySpeedDial) {
-                        Modifier.focusBorder(RectangleShape)
+                    if (changeable) {
+                        Modifier.focusRequester(changeRow).focusBorder(RectangleShape)
                             .clickable(onClickLabel = changeLabel, onClick = onSpeedDialSettings)
                     } else {
                         Modifier
@@ -594,11 +661,14 @@ private fun Keypad(
                 hintFor = hintFor,
                 extraKey = '+',
                 alsoTyped = setOf('*', '#'),
+                // without a number the call row is not a button and takes no focus.
+                below = if (dialable) callRow else logButton,
+                above = if (changeable) changeRow else above,
+                before = before,
             )
         }
         // the green key leads to the call row and does not dial: dialling takes the select
         // key on it, the same second press a finger needs. `PLAN.md` 10.3.3.
-        val callRow = remember { FocusRequester() }
         ScreenKeys { event ->
             if (event.keyCode != android.view.KeyEvent.KEYCODE_CALL) return@ScreenKeys false
             if (event.action == android.view.KeyEvent.ACTION_DOWN && dialable) {
@@ -625,6 +695,7 @@ private fun Keypad(
             BigIconButton(
                 icon = Icons.Filled.History,
                 description = stringResource(R.string.calllog),
+                modifier = Modifier.focusRequester(logButton),
                 onClick = onLog,
             )
         }
@@ -957,6 +1028,50 @@ private fun AssignList(
                 leading = { ContactAvatar(contact.name, contact.photoUri) },
                 onClick = { onPick(contact) },
             )
+        }
+    }
+}
+
+/** the people beside the keypad (issue #23). a tap hands the number to the keypad. */
+@Composable
+private fun KeypadContactList(
+    entries: List<KeypadContacts.Entry>,
+    anyContacts: Boolean,
+    scrollButtons: Boolean,
+    onPick: (String) -> Unit,
+    modifier: Modifier,
+) {
+    val palette = LocalBigPalette.current
+    val listState = rememberLazyListState()
+    Column(modifier) {
+        LazyColumn(
+            state = listState,
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+            modifier = Modifier.weight(1f),
+        ) {
+            if (entries.isEmpty()) {
+                item {
+                    Text(
+                        text = stringResource(if (anyContacts) R.string.contacts_no_match else R.string.contacts_none),
+                        color = palette.onBackground,
+                        fontSize = bigSp(18f),
+                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 8.dp),
+                    )
+                }
+            }
+            items(entries, key = { "${it.contactId}/${it.number}" }) { entry ->
+                BigRow(
+                    label = entry.name,
+                    secondary = listOfNotNull(PhoneNumbers.forDisplay(entry.number), entry.label)
+                        .joinToString(" · "),
+                    secondaryMaxLines = 1,
+                    leading = { ContactAvatar(entry.name, entry.photoUri) },
+                    onClick = { onPick(entry.number) },
+                )
+            }
+        }
+        if (scrollButtons) {
+            ScrollButtons(listState, modifier = Modifier.padding(top = 4.dp))
         }
     }
 }

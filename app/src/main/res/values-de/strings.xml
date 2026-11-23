@@ -148,6 +148,9 @@
     <string name="call_speaker_out_on">Lautsprecher, wenn Sie wählen</string>
     <string name="call_speaker_out_off">Kein Lautsprecher, wenn Sie wählen</string>
     <string name="call_speaker_out_hint">Nur bei Anrufen, die Sie selbst starten</string>
+    <string name="keypad_contacts_on">Kontakte neben dem Tastenfeld</string>
+    <string name="keypad_contacts_off">Nur das Tastenfeld</string>
+    <string name="keypad_contacts_hint">Nur am Tablet. Ein Tipp setzt die Nummer ein</string>
     <string name="caller_photo_hint">Ein Gesicht erkennt man leichter als einen Namen</string>
     <string name="caller_photo_off">Kein Foto</string>
     <string name="caller_photo_small">Klein</string>
