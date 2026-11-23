@@ -131,6 +131,9 @@
     <string name="sms_send_above">Bouton au-dessus du texte</string>
     <string name="sms_send_normal">Taille normale</string>
     <string name="sms_send_large">Bouton plus grand</string>
+    <string name="sms_cost_on">Afficher ce que coûte un message</string>
+    <string name="sms_cost_off">Ne pas afficher ce qu’il coûte</string>
+    <string name="sms_cost_hint">La ligne sous Envoyer, par exemple « Coûte un SMS »</string>
     <string name="sms_filter_numbers_heading">Masquer des messages</string>
     <string name="sms_filter_hint">Les messages correspondants sont masqués, pas refusés : HomeTiles n’est pas l’application de messages de ce téléphone.</string>
     <string name="sms_filter_hint_default">Les messages correspondants sont masqués de votre liste. Ils arrivent quand même et restent dans la mémoire du téléphone.</string>

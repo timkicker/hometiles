@@ -127,6 +127,9 @@
     <string name="sms_send_above">Кнопка над текстом</string>
     <string name="sms_send_normal">Обычный размер</string>
     <string name="sms_send_large">Большая кнопка</string>
+    <string name="sms_cost_on">Показывать стоимость сообщения</string>
+    <string name="sms_cost_off">Не показывать стоимость</string>
+    <string name="sms_cost_hint">Строка под «Отправить», например «Стоит 1 текстовое сообщение»</string>
     <string name="sms_filter_numbers_heading">Скрыть сообщения</string>
     <string name="sms_filter_hint">Соответствующие сообщения скрываются из вашего списка, но не отклоняются: HomeTiles не является приложением для обмена сообщениями на этом телефоне.</string>
     <string name="sms_filter_hint_default">Соответствующие сообщения скрываются из вашего списка. Они по-прежнему поступают и остаются в хранилище сообщений телефона.</string>

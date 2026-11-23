@@ -160,6 +160,17 @@ internal fun MessagesSettingsList(
                 onClick = { onChange(sms.copy(sendButtonLarge = !sms.sendButtonLarge)) },
             )
         }
+        // issue #22: with unlimited texts the cost line only worries.
+        item {
+            BigRow(
+                label = stringResource(
+                    if (sms.showCost) R.string.sms_cost_on else R.string.sms_cost_off,
+                ),
+                secondary = stringResource(R.string.sms_cost_hint),
+                surface = if (sms.showCost) palette.surfaceAccent else palette.surfaceDefault,
+                onClick = { onChange(sms.copy(showCost = !sms.showCost)) },
+            )
+        }
         item { BigHeading(stringResource(R.string.sms_filter_numbers_heading)) }
         item {
             Text(

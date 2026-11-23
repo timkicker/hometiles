@@ -126,6 +126,9 @@
     <string name="sms_send_above">Knopf über dem Text</string>
     <string name="sms_send_normal">Normale Größe</string>
     <string name="sms_send_large">Größerer Knopf</string>
+    <string name="sms_cost_on">Zeigen, was eine Nachricht kostet</string>
+    <string name="sms_cost_off">Nicht zeigen, was sie kostet</string>
+    <string name="sms_cost_hint">Die Zeile unter Senden, etwa „Kostet eine SMS“</string>
     <string name="sms_filter_numbers_heading">Nachrichten ausblenden</string>
     <string name="sms_filter_hint">Passende Nachrichten sind nur ausgeblendet, nicht abgewiesen: HomeTiles ist nicht die SMS-App dieses Telefons.</string>
     <string name="sms_filter_hint_default">Passende Nachrichten sind nur ausgeblendet. Sie kommen an und bleiben im Speicher.</string>

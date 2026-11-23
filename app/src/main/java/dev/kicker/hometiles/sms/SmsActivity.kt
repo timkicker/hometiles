@@ -323,6 +323,7 @@ var granted by remember(resumes.intValue) { mutableStateOf(repository.hasReadPer
                             confirmBeforeSending = config.sms.confirmBeforeSending,
                             sendButtonAbove = config.sms.sendButtonAbove,
                             sendButtonLarge = config.sms.sendButtonLarge,
+                            showCost = config.sms.showCost,
                         )
 
                         newNumber != null -> Conversation(
@@ -342,6 +343,7 @@ var granted by remember(resumes.intValue) { mutableStateOf(repository.hasReadPer
                             confirmBeforeSending = config.sms.confirmBeforeSending,
                             sendButtonAbove = config.sms.sendButtonAbove,
                             sendButtonLarge = config.sms.sendButtonLarge,
+                            showCost = config.sms.showCost,
                         )
 
                         else -> ThreadList(
@@ -588,6 +590,7 @@ private fun Conversation(
     confirmBeforeSending: Boolean,
     sendButtonAbove: Boolean,
     sendButtonLarge: Boolean,
+    showCost: Boolean,
 ) {
     // the confirmation lives here and not in the config: it holds for this one draft.
     var asking by remember(draft) { mutableStateOf(false) }
@@ -737,7 +740,8 @@ private fun Conversation(
                 },
                 secondary = when {
                     asking -> stringResource(R.string.sms_send_confirm_hint)
-                    draft.isNotBlank() -> pluralStringResource(
+                    // the cost line can be switched off (issue #22).
+                    draft.isNotBlank() && showCost -> pluralStringResource(
                         R.plurals.sms_parts,
                         SosMessage.partsNeeded(draft),
                         SosMessage.partsNeeded(draft),

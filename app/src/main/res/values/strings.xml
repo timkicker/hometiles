@@ -127,6 +127,9 @@
     <string name="sms_send_above">Button above the text</string>
     <string name="sms_send_normal">Normal size</string>
     <string name="sms_send_large">Larger button</string>
+    <string name="sms_cost_on">Show what a message costs</string>
+    <string name="sms_cost_off">Do not show what it costs</string>
+    <string name="sms_cost_hint">The line under Send, such as “Costs one text message”</string>
     <string name="sms_filter_numbers_heading">Hide messages</string>
     <string name="sms_filter_hint">Matching messages are hidden from your list, not turned away: HomeTiles is not this phone’s messaging app.</string>
     <string name="sms_filter_hint_default">Matching messages are hidden from your list. They still arrive and stay in the phone’s message store.</string>

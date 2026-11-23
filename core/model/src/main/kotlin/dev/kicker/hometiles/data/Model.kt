@@ -401,6 +401,8 @@ data class SmsConfig(
     val confirmBeforeSending: Boolean = false,
     val sendButtonAbove: Boolean = false,
     val sendButtonLarge: Boolean = false,
+    /** the "costs one text message" line under Send (issue #22). on, as it always was. */
+    val showCost: Boolean = true,
 )
 
 @Serializable
