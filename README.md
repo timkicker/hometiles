@@ -96,13 +96,13 @@ Needs the Android SDK (compileSdk 35) and JDK 21. Modules: `:app`, `:core:model`
 
 Most tests are rules that read the source: every permission must be used, colour pairs are computed, text must fit the smallest screen.
 
-**Reproducible:** two builds with `./gradlew --no-build-cache clean assembleRelease` give the same unsigned APK. Checked on 20 November 2026 with AGP 8.7.3, Gradle 8.11.1 and JDK 21:
+**Reproducible:** two builds with `./gradlew --no-build-cache clean assembleRelease` give the same unsigned APK. Checked on 23 November 2026 with AGP 8.7.3, Gradle 8.11.1 and JDK 21:
 
 ```
-fc7e086ae08f23155d78d2e32a66144acb49121c1b91990cfb918214c620f616   2 073 519 bytes
+7f54137fff6dd975bb54e732b52386f36a47ddc144373956d714fa3d19f34111   2 093 579 bytes
 ```
 
-for **Commit `b9eea8b`**. `tools/rebuild.sh` builds twice and compares.
+for **Commit `66bce25`**. `tools/rebuild.sh` builds twice and compares.
 
 ## Permissions
 
