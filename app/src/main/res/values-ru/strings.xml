@@ -129,7 +129,7 @@
     <string name="sms_send_large">Большая кнопка</string>
     <string name="sms_cost_on">Показывать стоимость сообщения</string>
     <string name="sms_cost_off">Не показывать стоимость</string>
-    <string name="sms_cost_hint">Строка под «Отправить», например «Стоит 1 текстовое сообщение»</string>
+    <string name="sms_cost_hint">Строка о цене под «Отправить»</string>
     <string name="sms_filter_numbers_heading">Скрыть сообщения</string>
     <string name="sms_filter_hint">Соответствующие сообщения скрываются из вашего списка, но не отклоняются: HomeTiles не является приложением для обмена сообщениями на этом телефоне.</string>
     <string name="sms_filter_hint_default">Соответствующие сообщения скрываются из вашего списка. Они по-прежнему поступают и остаются в хранилище сообщений телефона.</string>
@@ -151,7 +151,7 @@
     <string name="call_speaker_out_hint">Только для звонков, которые вы инициируете сами</string>
     <string name="keypad_contacts_on">Контакты рядом с клавиатурой</string>
     <string name="keypad_contacts_off">Только клавиатура</string>
-    <string name="keypad_contacts_hint">Только на планшете. Нажатие вводит номер</string>
+    <string name="keypad_contacts_hint">Для планшета. Касание вводит номер</string>
     <string name="caller_photo_hint">Лицо распознать легче, чем имя</string>
     <string name="caller_photo_off">Без фотографии</string>
     <string name="caller_photo_small">Маленькое</string>
@@ -173,7 +173,7 @@
     <string name="contacts_favourites_first_hint">Люди, которым вы звоните чаще всего, остаются вверху списка</string>
     <string name="contacts_texts_every_number">Сообщения на любой номер</string>
     <string name="contacts_texts_mobile_only">Сообщения только на мобильные</string>
-    <string name="contacts_texts_hint">Домашний, рабочий и факс считаются городскими</string>
+    <string name="contacts_texts_hint">Городские: домашний, рабочий, факс</string>
     <string name="settings_diagnostics">Диагностика</string>
     <string name="screen_is_home">Начальный экран, %1$d × %2$d полей</string>
     <string name="screen_make_home">Сделать «%1$s» начальным экраном</string>
