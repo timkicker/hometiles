@@ -9,16 +9,17 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Bluetooth
@@ -49,8 +50,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.platform.LocalDensity
 import coil.compose.AsyncImage
 import dev.kicker.hometiles.ui.cappedTextScale
 import dev.kicker.hometiles.ui.theme.LocalCornerRadius
@@ -146,13 +145,14 @@ class InCallActivity : HomeTilesActivity() {
             ) {
                 val palette = LocalBigPalette.current
                 val current = view
-                Box(
+                BoxWithConstraints(
                     Modifier
                         .fillMaxSize()
                         .background(palette.background)
                         .safeDrawingPadding()
                         .padding(horizontal = 8.dp),
                 ) {
+                    val boxHeight = maxHeight
                     if (current == null) {
                         Text(
                             text = stringResource(R.string.incall_ended),
@@ -160,7 +160,7 @@ class InCallActivity : HomeTilesActivity() {
                             fontSize = dpSp(22f),
                             modifier = Modifier.align(Alignment.Center),
                         )
-                        return@Box
+                        return@BoxWithConstraints
                     }
 
                     if (replyChoice) {
@@ -173,7 +173,7 @@ class InCallActivity : HomeTilesActivity() {
                             },
                             onClose = { replyChoice = false },
                         )
-                        return@HomeTilesTheme
+                        return@BoxWithConstraints
                     }
 
                     if (audioChoice) {
@@ -187,7 +187,7 @@ class InCallActivity : HomeTilesActivity() {
                             },
                             onClose = { audioChoice = false },
                         )
-                        return@HomeTilesTheme
+                        return@BoxWithConstraints
                     }
 
                     // with the keypad open only two rows stay, or nothing is left for the
@@ -196,117 +196,137 @@ class InCallActivity : HomeTilesActivity() {
                         if (showKeypad) CallActions.whileKeypad(current)
                         else CallActions.availableFor(current)
 
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Column(
-                            modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                        ) {
-                            // the photo stands over the name and takes only what is left:
-                            // CallerPhotoSize holds what name, state and buttons need. a
-                            // photo that pushes the answer button off screen would be the
-                            // worst fault on exactly this screen. no photo with the keypad
-                            // open, where the room is needed for the digits.
-                            // the *usable* height, not the window's: `screenHeightDp` counts
-                            // the status and gesture bars in. with two rows the slack hid it,
-                            // with three the last row ran under the gesture bar. seen at the
-                            // emulator on 05.09.2026. same reckoning as in SystemBarsTest.
-                            val screenDensity = LocalDensity.current
-                            val insets = WindowInsets.safeDrawing
-                            val usableHeightDp = LocalConfiguration.current.screenHeightDp -
-                                with(screenDensity) {
-                                    (insets.getTop(this) + insets.getBottom(this)).toDp().value
+                    // landscape, as on a tablet lying on its side (issue #21): stacked, the
+                    // five rows of a running call left no height for the photo and it was
+                    // dropped. beside each other both get the full height.
+                    val beside = CallerPhotoSize.beside(maxWidth.value.toInt(), maxHeight.value.toInt())
+                    val header: @Composable (Modifier) -> Unit = { place ->
+                            Column(
+                                modifier = place.padding(top = 16.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                            ) {
+                                // the photo stands over the name and takes only what is left:
+                                // CallerPhotoSize holds what name, state and buttons need. a
+                                // photo that pushes the answer button off screen would be the
+                                // worst fault on exactly this screen. no photo with the keypad
+                                // open, where the room is needed for the digits.
+                                // the *usable* height: what this box was given inside the
+                                // safe drawing padding. `screenHeightDp` minus the bars was
+                                // right only where android counts the bars in. on android 11
+                                // and 12 it already leaves them out, so they went off twice:
+                                // 72 dp short, and on the jelly 2 the photo never showed while
+                                // ringing (emulator at its size, 23.11.2026, issue #21).
+                                val usableHeightDp = boxHeight.value
+                                val photoHeight =
+                                    if (showKeypad && !beside) 0f
+                                    else CallerPhotoSize.heightDp(
+                                        size = config.phone.callerPhoto,
+                                        availableDp = usableHeightDp,
+                                        // beside the buttons nothing of theirs is below it.
+                                        buttons = if (beside) 0 else rows.size,
+                                        notice = current.otherName != null &&
+                                            current.status == CallStatus.RINGING,
+                                    )
+                                val photo = current.photoUri
+                                val name = current.name?.takeIf { it.isNotBlank() }
+                                when (CallerPhotoSize.imageFor(photoHeight, photo, name)) {
+                                    CallerPhotoSize.Image.NONE -> Unit
+                                    CallerPhotoSize.Image.PHOTO -> AsyncImage(
+                                        model = photo,
+                                        contentDescription = null,
+                                        contentScale = ContentScale.Crop,
+                                        // square beside the buttons: half a wide screen at
+                                        // a fifth of its height is a strip that cuts the face.
+                                        modifier = (
+                                            if (beside) Modifier.size(photoHeight.dp)
+                                            else Modifier.height(photoHeight.dp).fillMaxWidth()
+                                            )
+                                            .clip(RoundedCornerShape(LocalCornerRadius.current)),
+                                    )
+                                    // no photo but a name: the initials, as everywhere else.
+                                    // reasoned in CallerPhotoSize.imageFor.
+                                    CallerPhotoSize.Image.INITIALS -> ContactAvatar(
+                                        name = name.orEmpty(),
+                                        photoUri = null,
+                                        size = photoHeight.dp,
+                                    )
                                 }
-                            val photoHeight =
-                                if (showKeypad) 0f
-                                else CallerPhotoSize.heightDp(
-                                    size = config.phone.callerPhoto,
-                                    availableDp = usableHeightDp,
-                                    buttons = rows.size,
-                                    notice = current.otherName != null &&
-                                        current.status == CallStatus.RINGING,
-                                )
-                            val photo = current.photoUri
-                            val name = current.name?.takeIf { it.isNotBlank() }
-                            when (CallerPhotoSize.imageFor(photoHeight, photo, name)) {
-                                CallerPhotoSize.Image.NONE -> Unit
-                                CallerPhotoSize.Image.PHOTO -> AsyncImage(
-                                    model = photo,
-                                    contentDescription = null,
-                                    contentScale = ContentScale.Crop,
-                                    modifier = Modifier
-                                        .height(photoHeight.dp)
-                                        .fillMaxWidth()
-                                        .clip(RoundedCornerShape(LocalCornerRadius.current)),
-                                )
-                                // no photo but a name: the initials, as everywhere else.
-                                // reasoned in CallerPhotoSize.imageFor.
-                                CallerPhotoSize.Image.INITIALS -> ContactAvatar(
-                                    name = name.orEmpty(),
-                                    photoUri = null,
-                                    size = photoHeight.dp,
-                                )
-                            }
-                            Text(
-                                text = CallActions.headline(current, stringResource(R.string.call_unknown)),
-                                color = palette.onBackground,
-                                fontSize = dpSp(34f),
-                                fontWeight = FontWeight.Bold,
-                                textAlign = TextAlign.Center,
-                                maxLines = 2,
-                            )
-                            Text(
-                                text = CallActions.durationSeconds(current, now)
-                                    ?.let(CallActions::formatDuration)
-                                    ?: stringResource(statusLabel(current.status)),
-                                color = palette.onBackground,
-                                fontSize = dpSp(20f),
-                                // the duration ticks every second and would wobble without
-                                // tabular figures. `PLAN.md` 3.7.
-                                style = tabularFigures(),
-                            )
-                            // a second call while one is running: without this row only the
-                            // new caller would stand here and the one still on the line would
-                            // be nowhere to be seen.
-                            val other = current.otherName
-                            if (other != null && current.status == CallStatus.RINGING) {
                                 Text(
-                                    text = stringResource(R.string.incall_other_active, other),
+                                    text = CallActions.headline(current, stringResource(R.string.call_unknown)),
                                     color = palette.onBackground,
-                                    fontSize = dpSp(18f),
+                                    fontSize = dpSp(34f),
+                                    fontWeight = FontWeight.Bold,
                                     textAlign = TextAlign.Center,
                                     maxLines = 2,
                                 )
-                            }
-                        }
-
-                        if (showKeypad) {
-                            Box(Modifier.weight(1f)) {
-                                BigKeypad(
-                                    onDigit = { InCallRepository.playDigit(it) },
-                                    onBackspace = { showKeypad = false },
-                                    extraKey = '*',
-                                    lastKey = '#',
+                                Text(
+                                    text = CallActions.durationSeconds(current, now)
+                                        ?.let(CallActions::formatDuration)
+                                        ?: stringResource(statusLabel(current.status)),
+                                    color = palette.onBackground,
+                                    fontSize = dpSp(20f),
+                                    // the duration ticks every second and would wobble without
+                                    // tabular figures. `PLAN.md` 3.7.
+                                    style = tabularFigures(),
                                 )
+                                // a second call while one is running: without this row only the
+                                // new caller would stand here and the one still on the line would
+                                // be nowhere to be seen.
+                                val other = current.otherName
+                                if (other != null && current.status == CallStatus.RINGING) {
+                                    Text(
+                                        text = stringResource(R.string.incall_other_active, other),
+                                        color = palette.onBackground,
+                                        fontSize = dpSp(18f),
+                                        textAlign = TextAlign.Center,
+                                        maxLines = 2,
+                                    )
+                                }
                             }
-                        } else {
-                            // empty space over the buttons keeps the ear from triggering
-                            // something during the call.
-                            Box(Modifier.weight(1f))
-                        }
+                    }
+                    val controls: @Composable ColumnScope.() -> Unit = {
+                            if (showKeypad) {
+                                Box(Modifier.weight(1f)) {
+                                    BigKeypad(
+                                        onDigit = { InCallRepository.playDigit(it) },
+                                        onBackspace = { showKeypad = false },
+                                        extraKey = '*',
+                                        lastKey = '#',
+                                    )
+                                }
+                            } else {
+                                // empty space over the buttons keeps the ear from triggering
+                                // something during the call.
+                                Box(Modifier.weight(1f))
+                            }
 
-                        rows.forEach { action ->
-                            ActionRow(
-                                action = action,
-                                keypadOpen = showKeypad,
-                                route = current.audioRoute,
-                            ) {
-                                perform(
+                            rows.forEach { action ->
+                                ActionRow(
                                     action = action,
-                                    toggleKeypad = { showKeypad = !showKeypad },
-                                    openAudio = { audioChoice = true },
-                                    openReplies = { replyChoice = true },
-                                )
+                                    keypadOpen = showKeypad,
+                                    route = current.audioRoute,
+                                ) {
+                                    perform(
+                                        action = action,
+                                        toggleKeypad = { showKeypad = !showKeypad },
+                                        openAudio = { audioChoice = true },
+                                        openReplies = { replyChoice = true },
+                                    )
+                                }
                             }
+                    }
+                    if (beside) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            header(Modifier.weight(1f))
+                            Column(
+                                modifier = Modifier.weight(1f),
+                                verticalArrangement = Arrangement.spacedBy(8.dp),
+                            ) { controls() }
+                        }
+                    } else {
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            header(Modifier.fillMaxWidth())
+                            controls()
                         }
                     }
                 }

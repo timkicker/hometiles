@@ -150,4 +150,34 @@ class CallerPhotoSizeTest {
             0.01f,
         )
     }
+
+    /**
+     * a 10 inch tablet on its side at a display size one step up: 685 dp high, less the
+     * status and navigation bars. measured on the emulator at 2000 x 1200 px and 280 dpi on
+     * 23.11.2026 (issue #21).
+     */
+    private val tabletLying = 613f
+
+    @Test
+    fun `stacked on a lying tablet the running call leaves no photo`() {
+        // the fault as it was, kept so the reason for the side by side layout stays visible.
+        assertEquals(0f, CallerPhotoSize.heightDp(CallerPhoto.SMALL, tabletLying, inCall), 0.01f)
+    }
+
+    @Test
+    fun `beside the buttons every size shows a face`() {
+        CallerPhoto.entries.filter { it != CallerPhoto.OFF }.forEach { size ->
+            val height = CallerPhotoSize.heightDp(size, tabletLying, buttons = 0)
+            assertTrue("$size: $height", height >= CallerPhotoSize.MIN_PHOTO_DP)
+        }
+    }
+
+    @Test
+    fun `beside only where it is wider than high`() {
+        assertTrue(CallerPhotoSize.beside(widthDp = 1143, heightDp = 685))
+        // the jelly 2 upright stays as it was.
+        assertTrue(!CallerPhotoSize.beside(widthDp = 349, heightDp = 597))
+        // square, as on a split screen: the photo has no side to stand on.
+        assertTrue(!CallerPhotoSize.beside(widthDp = 600, heightDp = 600))
+    }
 }

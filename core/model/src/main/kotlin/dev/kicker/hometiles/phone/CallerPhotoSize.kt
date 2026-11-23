@@ -52,6 +52,13 @@ object CallerPhotoSize {
         CallerPhoto.FULL -> 1f
     }
 
+    /**
+     * photo and name beside the buttons instead of above them: wider than high, as a tablet
+     * lying on its side (issue #21). stacked, the five rows of a running call took all of a
+     * landscape tablet's height and the photo was dropped every time.
+     */
+    fun beside(widthDp: Int, heightDp: Int): Boolean = widthDp > heightDp
+
     enum class Image { NONE, PHOTO, INITIALS }
 
     /**
