@@ -114,6 +114,7 @@ All optional, asked for only when a feature needs them.
 | `READ_CALL_LOG`, `WRITE_CALL_LOG` | showing and deleting the call log |
 | `READ_CONTACTS`, `WRITE_CONTACTS` | contacts and the favourite mark |
 | `SEND_SMS`, `READ_SMS`, `RECEIVE_SMS` | messages |
+| `RECEIVE_WAP_PUSH`, `READ_CELL_BROADCASTS` | being the default messaging app on Android 15, nothing is read with them |
 | `READ_PHONE_STATE` | the signal bars |
 | `ACCESS_FINE_LOCATION`, `ACCESS_COARSE_LOCATION` | the location in an emergency message |
 | `POST_NOTIFICATIONS` | showing a new message and an incoming call |

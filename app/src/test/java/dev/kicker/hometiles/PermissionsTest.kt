@@ -20,6 +20,14 @@ class PermissionsTest {
         "RECEIVE_SMS" to
             "required for the default sms role. without it HomeTiles does not appear in the " +
             "choice at all; the system uses it, not we.",
+        "RECEIVE_WAP_PUSH" to
+            "the default sms app must hold its app op. otherwise android 15 answers " +
+            "getDefaultSmsPackage with null inside the app, which then neither stores an " +
+            "incoming message nor marks one read (emulator api 35, 25.11.2026).",
+        "READ_CELL_BROADCASTS" to
+            "the same check as RECEIVE_WAP_PUSH: one of the six app ops android tests before " +
+            "it admits to the default sms app that it is the default (emulator api 35, " +
+            "25.11.2026).",
         "USE_FULL_SCREEN_INTENT" to
             "carries `setFullScreenIntent` in SmsNotifications and in CallNotifications. " +
             "from android 14 on it has to be declared, otherwise the notice appears quietly " +
@@ -90,11 +98,11 @@ class PermissionsTest {
 
     /** and the number itself is a reminder: it should not grow unnoticed. */
     @Test
-    fun `there are fifteen permissions`() {
+    fun `there are seventeen permissions`() {
         assertEquals(
             "the number of permissions has changed. each one is a promise outwards - that " +
                 "belongs seen, not only translated.",
-            15,
+            17,
             permissions().size,
         )
     }
