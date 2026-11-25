@@ -414,6 +414,7 @@
     <string name="incall_unhold">Resume</string>
     <string name="incall_keypad">Keypad</string>
     <string name="incall_switch">Switch</string>
+    <string name="incall_merge">Merge</string>
     <string name="incall_other_active">On a call with %1$s</string>
     <string name="incall_keypad_hide">Close</string>
     <string name="incall_ringing">is calling</string>

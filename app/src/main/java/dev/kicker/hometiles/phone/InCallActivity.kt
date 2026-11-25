@@ -25,9 +25,10 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Bluetooth
 import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.CallEnd
+import androidx.compose.material.icons.filled.CallMerge
 import androidx.compose.material.icons.filled.Dialpad
-import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Message
+import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.MicOff
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PhoneInTalk
@@ -365,6 +366,7 @@ class InCallActivity : HomeTilesActivity() {
             CallAction.SPEAKER -> InCallRepository.setSpeaker(true)
             CallAction.SPEAKER_OFF -> InCallRepository.setSpeaker(false)
             CallAction.SWITCH -> InCallRepository.switchCall()
+            CallAction.MERGE -> InCallRepository.merge()
             CallAction.AUDIO -> { openAudio(); null }
             CallAction.KEYPAD -> { toggleKeypad(); null }
             CallAction.REJECT_WITH_TEXT -> { openReplies(); null }
@@ -409,6 +411,7 @@ private fun ActionRow(
             CallAction.HOLD -> Icons.Filled.Pause
             CallAction.UNHOLD -> Icons.Filled.PlayArrow
             CallAction.SWITCH -> Icons.Filled.SwapCalls
+            CallAction.MERGE -> Icons.Filled.CallMerge
             CallAction.AUDIO -> when (route) {
                 AudioRoute.SPEAKER -> Icons.Filled.VolumeUp
                 AudioRoute.BLUETOOTH -> Icons.Filled.Bluetooth
@@ -486,6 +489,7 @@ private fun actionLabel(action: CallAction) = when (action) {
     CallAction.HOLD -> R.string.incall_hold
     CallAction.UNHOLD -> R.string.incall_unhold
     CallAction.SWITCH -> R.string.incall_switch
+    CallAction.MERGE -> R.string.incall_merge
     // the label hangs on the route, not on the action. see audioLabel.
     CallAction.AUDIO -> R.string.call_audio
     CallAction.KEYPAD -> R.string.incall_keypad

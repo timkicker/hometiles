@@ -418,6 +418,7 @@
     <string name="incall_unhold">Reprendre</string>
     <string name="incall_keypad">Clavier</string>
     <string name="incall_switch">Basculer</string>
+    <string name="incall_merge">Fusionner</string>
     <string name="incall_other_active">En communication avec %1$s</string>
     <string name="incall_keypad_hide">Fermer</string>
     <string name="incall_ringing">appelle</string>

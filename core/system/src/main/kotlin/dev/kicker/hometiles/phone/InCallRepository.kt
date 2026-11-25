@@ -65,6 +65,17 @@ object InCallRepository {
     /** back to the held call; the system holds the running one itself, in the right order. */
     fun switchCall() = runCatching { other?.unhold() }
 
+    /**
+     * the two calls into one. gsm names the partner (`conferenceableCalls`), others only say
+     * they can merge whatever they hold (`CAPABILITY_MERGE_CONFERENCE`).
+     */
+    fun merge() = runCatching {
+        val running = current ?: return@runCatching
+        val held = other
+        if (held != null && held in running.conferenceableCalls) running.conference(held)
+        else running.mergeConference()
+    }
+
     fun playDigit(digit: Char) = runCatching {
         current?.playDtmfTone(digit)
         current?.stopDtmfTone()

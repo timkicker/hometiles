@@ -413,6 +413,7 @@
     <string name="incall_unhold">Fortsetzen</string>
     <string name="incall_keypad">Tastenfeld</string>
     <string name="incall_switch">Wechseln</string>
+    <string name="incall_merge">Zusammenlegen</string>
     <string name="incall_other_active">Gespräch mit %1$s läuft</string>
     <string name="incall_keypad_hide">Schließen</string>
     <string name="incall_ringing">ruft an</string>

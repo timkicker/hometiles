@@ -419,6 +419,7 @@
     <string name="incall_unhold">Reanudar</string>
     <string name="incall_keypad">Teclado</string>
     <string name="incall_switch">Cambiar</string>
+    <string name="incall_merge">Unir</string>
     <string name="incall_other_active">En llamada con %1$s</string>
     <string name="incall_keypad_hide">Cerrar</string>
     <string name="incall_ringing">está llamando</string>

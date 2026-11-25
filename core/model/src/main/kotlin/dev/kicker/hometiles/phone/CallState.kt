@@ -29,6 +29,13 @@ enum class CallAction {
      * question. without it the held call was unreachable and no button led back.
      */
     SWITCH,
+
+    /**
+     * both calls into one conference (user mail 25.11.2026: only switching was there). it
+     * takes the place of [KEYPAD] while two calls wait: a sixth row does not fit the small
+     * phone, and once merged the conference is one call and the keypad is back.
+     */
+    MERGE,
     KEYPAD,
 
     /** turn the call down and say why in a short message. */
@@ -54,6 +61,8 @@ data class CallView(
      */
     val otherName: String? = null,
     val otherHeld: Boolean = false,
+    /** telecom says the two calls can become one; only the network knows, so it is asked. */
+    val canMerge: Boolean = false,
 )
 
 /**
@@ -118,7 +127,7 @@ object CallActions {
             if (view.muted) CallAction.UNMUTE else CallAction.MUTE,
             audioRow(view),
             if (view.otherHeld) CallAction.SWITCH else CallAction.HOLD,
-            CallAction.KEYPAD,
+            if (view.otherHeld && view.canMerge) CallAction.MERGE else CallAction.KEYPAD,
         )
 
         CallStatus.HOLDING -> listOf(CallAction.HANG_UP, CallAction.UNHOLD)
@@ -168,4 +177,15 @@ object CallActions {
         view.name?.takeIf { it.isNotBlank() }
             ?: PhoneNumbers.forDisplay(view.number).takeIf { it.isNotBlank() }
             ?: unknown
+}
+
+/**
+ * what stands over a conference. it has no number of its own, so without this the screen
+ * said "unknown" while two people were on the line (emulator, 25.11.2026).
+ */
+object ConferenceName {
+
+    /** null without members, so the ordinary fallback still applies. */
+    fun of(members: List<String>): String? =
+        members.filter { it.isNotBlank() }.takeIf { it.isNotEmpty() }?.joinToString(", ")
 }

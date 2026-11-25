@@ -184,7 +184,13 @@ class BigInCallService : InCallService() {
                 name = CallerName.lookup(
                     this,
                     details?.handle?.schemeSpecificPart.orEmpty(),
-                ) ?: details?.callerDisplayName?.takeIf { it.isNotBlank() },
+                ) ?: details?.callerDisplayName?.takeIf { it.isNotBlank() }
+                    // a conference has no number of its own and stood there as "unknown"
+                    // (emulator, 25.11.2026). its members say who is on the line.
+                    ?: ConferenceName.of(call.children.map { member ->
+                        val number = member.details?.handle?.schemeSpecificPart.orEmpty()
+                        CallerName.lookup(this, number) ?: number
+                    }),
                 photoUri = CallerName.photo(
                     this,
                     details?.handle?.schemeSpecificPart.orEmpty(),
@@ -200,6 +206,10 @@ class BigInCallService : InCallService() {
                     CallerName.lookup(this, other) ?: other.takeIf { n -> n.isNotBlank() }
                 },
                 otherHeld = second?.state == Call.STATE_HOLDING,
+                canMerge = second != null && (
+                    second in call.conferenceableCalls ||
+                        call.details?.can(Call.Details.CAPABILITY_MERGE_CONFERENCE) == true
+                    ),
             ),
             other = second,
         )

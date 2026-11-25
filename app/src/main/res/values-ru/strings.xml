@@ -414,6 +414,7 @@
     <string name="incall_unhold">Возобновить</string>
     <string name="incall_keypad">Клавиатура</string>
     <string name="incall_switch">Переключить</string>
+    <string name="incall_merge">Объединить</string>
     <string name="incall_other_active">В разговоре с %1$s</string>
     <string name="incall_keypad_hide">Закрыть</string>
     <string name="incall_ringing">звонит</string>

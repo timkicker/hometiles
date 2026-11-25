@@ -3,6 +3,7 @@ package dev.kicker.hometiles.phone.probe
 import android.content.Context
 import android.net.Uri
 import android.provider.CallLog
+import android.telecom.Conference
 import android.telecom.Connection
 import android.telecom.ConnectionRequest
 import android.telecom.ConnectionService
@@ -49,10 +50,9 @@ class ProbeConnectionService : ConnectionService() {
                 TelecomManager.PRESENTATION_ALLOWED,
             )
             setCallerDisplayName(ProbeCall.NAME, TelecomManager.PRESENTATION_ALLOWED)
-            // no merge capability, so telecom offers no conference: two probes stay two
-            // calls. tried on this device on 05.09.2026 - a second probe arrived as an
-            // additional call, but a conference cannot be reached this way, and the
-            // conference handling in CallForeground is checked by its rules only.
+            // two probes may become one conference, the way gsm offers it: each names the
+            // other as a partner and telecom calls onConference. until 25.11.2026 the
+            // probe had no such thing and merging could not be tried anywhere.
             connectionCapabilities = Connection.CAPABILITY_MUTE or
                 Connection.CAPABILITY_HOLD or
                 Connection.CAPABILITY_SUPPORT_HOLD
@@ -64,7 +64,37 @@ class ProbeConnectionService : ConnectionService() {
             setRinging()
             if (!ringing) answerSelf()
             endSelf()
+            phoneAccount = request?.accountHandle
+            live.removeAll { it.state == Connection.STATE_DISCONNECTED }
+            live += this
+            live.forEach { c -> c.setConferenceableConnections(live.filter { it !== c }) }
         }
+    }
+
+    private val live = mutableListOf<ProbeConnection>()
+    private var phoneAccount: PhoneAccountHandle? = null
+
+    override fun onConference(first: Connection?, second: Connection?) {
+        val members = listOfNotNull(first, second)
+        if (members.size < 2) return
+        val conference = object : Conference(phoneAccount) {
+            override fun onDisconnect() {
+                connections.toList().forEach { (it as? ProbeConnection)?.end(DisconnectCause.LOCAL) }
+                setDisconnected(DisconnectCause(DisconnectCause.LOCAL))
+                destroy()
+            }
+
+            override fun onHold() = setOnHold()
+            override fun onUnhold() = setActive()
+            override fun onConnectionAdded(connection: Connection) = Unit
+        }
+        conference.connectionCapabilities = Connection.CAPABILITY_MUTE or
+            Connection.CAPABILITY_HOLD or
+            Connection.CAPABILITY_SUPPORT_HOLD
+        members.forEach { conference.addConnection(it); it.setActive() }
+        conference.setActive()
+        addConference(conference)
+        Log.i("HomeTiles", "probe conference with ${members.size} calls")
     }
 }
 
