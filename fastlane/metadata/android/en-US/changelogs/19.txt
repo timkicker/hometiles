@@ -1,0 +1,1 @@
+On Android 15 HomeTiles could be set as the messaging app and still not know it, so new messages were neither stored nor marked read once opened. Two permissions Android checks for were missing. With two calls running, Merge joins them into one conference as long as the network offers it.

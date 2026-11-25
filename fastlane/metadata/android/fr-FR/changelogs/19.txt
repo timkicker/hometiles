@@ -1,0 +1,1 @@
+Sous Android 15, HomeTiles pouvait être l'application de messages par défaut sans le savoir : les nouveaux messages n'étaient pas enregistrés ni marqués comme lus à l'ouverture. Il manquait deux autorisations que vérifie Android. Avec deux appels en cours, Fusionner les réunit en une conférence si le réseau le propose.

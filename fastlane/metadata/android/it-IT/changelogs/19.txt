@@ -1,0 +1,1 @@
+Su Android 15 HomeTiles poteva essere l'app per i messaggi senza saperlo, quindi i nuovi messaggi non venivano salvati né segnati come letti una volta aperti. Mancavano due permessi che Android controlla. Con due chiamate in corso Unire le raccoglie in una conferenza, se la rete lo consente.

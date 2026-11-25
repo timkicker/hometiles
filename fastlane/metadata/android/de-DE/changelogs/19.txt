@@ -1,0 +1,1 @@
+Unter Android 15 war HomeTiles als SMS-App eingestellt und wusste es selbst nicht, weshalb neue Nachrichten nicht gespeichert und beim Öffnen nicht als gelesen markiert wurden. Es fehlten zwei Berechtigungen, die Android dafür prüft. Laufen zwei Anrufe, legt Zusammenlegen sie zu einer Konferenz zusammen, wenn das Netz das anbietet.

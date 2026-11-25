@@ -1,0 +1,1 @@
+En Android 15 HomeTiles podía ser la app de mensajes sin saberlo y por eso los mensajes nuevos no se guardaban ni quedaban como leídos al abrirlos. Faltaban dos permisos que Android comprueba. Con dos llamadas en curso, Unir las junta en una conferencia si la red lo permite.
